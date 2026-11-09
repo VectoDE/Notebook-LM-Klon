@@ -6,13 +6,13 @@ export interface ExtractedArticle {
 
 /**
  * Decodes common HTML entities into their character equivalents.
+ * Note: &amp; must be decoded last to avoid double unescaping (e.g. &amp;lt; -> &lt; -> <).
  */
 export function decodeHtmlEntities(text: string): string {
   return text
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&nbsp;/g, " ")
@@ -25,7 +25,8 @@ export function decodeHtmlEntities(text: string): string {
     .replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
       const code = Number.parseInt(hex, 16);
       return String.fromCharCode(code);
-    });
+    })
+    .replace(/&amp;/g, "&");
 }
 
 /**
@@ -83,33 +84,27 @@ export function extractArticleFromHtml(html: string): ExtractedArticle {
   }
 
   // 2. Remove title tag and head tag contents if any
-  cleaned = stripTagsRepeatedly(cleaned, /<title\b[^<]*(?:(?!<\/title>)<[^<]*)*<\/title>/gi);
+  cleaned = stripTagsRepeatedly(cleaned, /<title\b[^>]*>[\s\S]*?<\/title\s*>/gi);
 
   // 3. Remove script, style, noscript, template, svg, canvas, iframe and their contents
-  cleaned = stripTagsRepeatedly(cleaned, /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi);
-  cleaned = stripTagsRepeatedly(cleaned, /<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi);
-  cleaned = stripTagsRepeatedly(
-    cleaned,
-    /<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi
-  );
-  cleaned = stripTagsRepeatedly(
-    cleaned,
-    /<template\b[^<]*(?:(?!<\/template>)<[^<]*)*<\/template>/gi
-  );
-  cleaned = stripTagsRepeatedly(cleaned, /<svg\b[^<]*(?:(?!<\/svg>)<[^<]*)*<\/svg>/gi);
-  cleaned = stripTagsRepeatedly(cleaned, /<canvas\b[^<]*(?:(?!<\/canvas>)<[^<]*)*<\/canvas>/gi);
-  cleaned = stripTagsRepeatedly(cleaned, /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi);
+  cleaned = stripTagsRepeatedly(cleaned, /<script\b[^>]*>[\s\S]*?<\/script\s*>/gi);
+  cleaned = stripTagsRepeatedly(cleaned, /<style\b[^>]*>[\s\S]*?<\/style\s*>/gi);
+  cleaned = stripTagsRepeatedly(cleaned, /<noscript\b[^>]*>[\s\S]*?<\/noscript\s*>/gi);
+  cleaned = stripTagsRepeatedly(cleaned, /<template\b[^>]*>[\s\S]*?<\/template\s*>/gi);
+  cleaned = stripTagsRepeatedly(cleaned, /<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi);
+  cleaned = stripTagsRepeatedly(cleaned, /<canvas\b[^>]*>[\s\S]*?<\/canvas\s*>/gi);
+  cleaned = stripTagsRepeatedly(cleaned, /<iframe\b[^>]*>[\s\S]*?<\/iframe\s*>/gi);
 
   // 4. Remove navigation, header, footer, aside blocks
-  cleaned = stripTagsRepeatedly(cleaned, /<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi);
-  cleaned = stripTagsRepeatedly(cleaned, /<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi);
-  cleaned = stripTagsRepeatedly(cleaned, /<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi);
-  cleaned = stripTagsRepeatedly(cleaned, /<aside\b[^<]*(?:(?!<\/aside>)<[^<]*)*<\/aside>/gi);
+  cleaned = stripTagsRepeatedly(cleaned, /<header\b[^>]*>[\s\S]*?<\/header\s*>/gi);
+  cleaned = stripTagsRepeatedly(cleaned, /<footer\b[^>]*>[\s\S]*?<\/footer\s*>/gi);
+  cleaned = stripTagsRepeatedly(cleaned, /<nav\b[^>]*>[\s\S]*?<\/nav\s*>/gi);
+  cleaned = stripTagsRepeatedly(cleaned, /<aside\b[^>]*>[\s\S]*?<\/aside\s*>/gi);
 
   // 4. Remove elements matching typical ad/cookie/banner markers (class/id contains ad, banner, cookie, popup, newsletter)
   cleaned = stripTagsRepeatedly(
     cleaned,
-    /<div\b[^>]*(?:class|id)=["'][^"']*(?:advertisement|ad-container|ad-box|banner-ad|cookie-banner|cookie-consent|popup-modal|newsletter-signup)[^"']*["'][^<]*(?:(?!<\/div>)<[^<]*)*<\/div>/gi
+    /<div\b[^>]*(?:class|id)=["'][^"']*(?:advertisement|ad-container|ad-box|banner-ad|cookie-banner|cookie-consent|popup-modal|newsletter-signup)[^"']*["'][^<]*(?:(?!<\/div>)<[^<]*)*<\/div\s*>/gi
   );
 
   // 5. Convert block elements to newlines

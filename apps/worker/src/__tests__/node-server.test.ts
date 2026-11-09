@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -12,10 +12,10 @@ import {
   startNodeServer
 } from "../node-server.js";
 
-const TEST_DATA_DIR = join(tmpdir(), `data-test-node-server-${process.pid}`);
+let TEST_DATA_DIR = "";
 
 function safeCleanDir(dir: string): void {
-  if (existsSync(dir)) {
+  if (dir && existsSync(dir)) {
     try {
       rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     } catch {
@@ -26,8 +26,7 @@ function safeCleanDir(dir: string): void {
 
 describe("Node.js Runtime & Adapters (Decision #111)", () => {
   beforeEach(() => {
-    safeCleanDir(TEST_DATA_DIR);
-    mkdirSync(TEST_DATA_DIR, { recursive: true });
+    TEST_DATA_DIR = mkdtempSync(join(tmpdir(), "data-test-node-server-"));
   });
 
   afterEach(() => {

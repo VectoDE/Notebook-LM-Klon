@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { decodeHtmlEntities, extractArticleFromHtml } from "../html-extractor.js";
 
 describe("HTML Extractor - decodeHtmlEntities", () => {
-  it("decodes named, decimal, and hex HTML entities", () => {
+  it("decodes named, decimal, and hex HTML entities without double unescaping", () => {
     expect(decodeHtmlEntities("&quot;Hello&quot; &amp; &lt;World&gt;")).toBe('"Hello" & <World>');
     expect(decodeHtmlEntities("It&#39;s &apos;fine&apos; &nbsp; &mdash; &ndash;")).toBe(
       "It's 'fine'   — –"
@@ -10,6 +10,10 @@ describe("HTML Extractor - decodeHtmlEntities", () => {
     expect(decodeHtmlEntities("&#65;&#66;&#67;")).toBe("ABC");
     expect(decodeHtmlEntities("&#x41;&#x42;&#x43;")).toBe("ABC");
     expect(decodeHtmlEntities("&#invalid;")).toBe("&#invalid;");
+    // Verify no double unescaping occurs: &amp;lt; should become &lt;, NOT <
+    expect(decodeHtmlEntities("&amp;lt;")).toBe("&lt;");
+    expect(decodeHtmlEntities("&amp;gt;")).toBe("&gt;");
+    expect(decodeHtmlEntities("&amp;quot;")).toBe("&quot;");
   });
 });
 
@@ -88,19 +92,19 @@ describe("HTML Extractor - extractArticleFromHtml", () => {
     expect(article.content).toBe("Just simple text without any headings or titles.");
   });
 
-  it("strips script, style, noscript, template, svg, canvas, iframe and their content", () => {
+  it("strips script, style, noscript, template, svg, canvas, iframe and their content even with spaces in end tags", () => {
     const html = `
       <html>
         <head>
-          <style>body { color: red; } .hidden { display: none; }</style>
-          <script>console.log("secret script execution");</script>
+          <style>body { color: red; } .hidden { display: none; }</style >
+          <script>console.log("secret script execution");</script  >
         </head>
         <body>
-          <noscript><p>Please enable JS</p></noscript>
-          <template><p>Template content</p></template>
-          <svg><text>SVG Text</text></svg>
-          <canvas>Canvas fallback</canvas>
-          <iframe src="https://example.com">Iframe text</iframe>
+          <noscript><p>Please enable JS</p></noscript >
+          <template><p>Template content</p></template >
+          <svg><text>SVG Text</text></svg >
+          <canvas>Canvas fallback</canvas >
+          <iframe src="https://example.com">Iframe text</iframe >
           <p>Actual visible readable text.</p>
         </body>
       </html>
