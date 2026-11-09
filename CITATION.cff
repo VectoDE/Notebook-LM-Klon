@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+title: "RelationNotes – NotebookLM & RelationFlow Knowledge Studio"
+message: "If you reference or evaluate this software architecture, please cite it using the metadata below."
+type: software
+authors:
+  - given-names: "Tim"
+    family-names: "Hauke"
+    email: "timhauke99@gmail.com"
+repository-code: "https://github.com/VectoDE/Notebook-LM-Klon"
+url: "https://github.com/VectoDE/Notebook-LM-Klon"
+license: Apache-2.0
+version: "0.1.0"
+date-released: "2026-11-09"
+keywords:
+  - cloudflare-workers
+  - notebooklm
+  - relationflow
+  - rag
+  - d1
+  - durable-objects
+  - wcag-aaa
+  - eu-ai-act
+  - gdpr

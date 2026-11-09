@@ -34,10 +34,17 @@ const TEXT_EXTENSIONS = new Set([
   ".sql",
   ".txt",
   ".vtt",
-  ".webmanifest"
+  ".webmanifest",
+  ".cff"
 ]);
 
-const TEXT_FILENAMES = new Set([".gitattributes", ".gitignore", "LICENSE"]);
+const TEXT_FILENAMES = new Set([
+  ".gitattributes",
+  ".gitignore",
+  ".editorconfig",
+  "LICENSE",
+  "CODEOWNERS"
+]);
 
 function collectTextFiles(dir: string): string[] {
   const results: string[] = [];
