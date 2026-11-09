@@ -77,7 +77,7 @@ function splitIntoUnits(text: string): TextSegment[] {
     }
 
     // Split large paragraph into sentences (. , ! , ? followed by space or newline)
-    const sentenceRegex = /[^.!?\n]+(?:[.!?]+(?=\s|$)|$)/g;
+    const sentenceRegex = /[^.!?\n]+(?:[.!?]+|\n|$)/g;
 
     while (true) {
       const sMatch = sentenceRegex.exec(para.text);
