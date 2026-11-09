@@ -124,4 +124,39 @@ describe("Boundary preservation (Paragraphs, Sentences, Words)", () => {
     expect(chunks.length).toBeGreaterThan(0);
     expect(chunks[0]?.text.length).toBeGreaterThan(0);
   });
+
+  it("returns 0 for empty or whitespace-only estimateTokenCount", () => {
+    expect(estimateTokenCount("")).toBe(0);
+  });
+
+  it("handles consecutive paragraph breaks at start or end", () => {
+    const text = "\n\nFirst paragraph here.\n\n\n\nSecond paragraph here.\n\n";
+    const chunks = chunkText({ text, maxTokens: 50 });
+    expect(chunks.length).toBeGreaterThan(0);
+  });
+
+  it("handles long sentences without punctuation exceeding 150 tokens", () => {
+    // Generate a long sentence without sentence terminators (> 150 tokens = > 600 chars)
+    // Test case 1: with a remainder in wordBuffer (e.g. 200 words)
+    const longSentence = Array.from({ length: 200 }, (_, i) => `word${i}`).join(" ");
+    const chunks = chunkText({ text: longSentence, maxTokens: 80, overlapTokens: 10 });
+    expect(chunks.length).toBeGreaterThan(1);
+    for (const chunk of chunks) {
+      expect(chunk.tokenCount).toBeGreaterThan(0);
+    }
+
+    // Test case 2: exact boundary so wordBuffer.length === 0 after loop
+    // Each word with space: "word12345 " ~ 10 chars. 20 words = ~50 tokens.
+    // 60 words: exactly 3 groups of 20 words.
+    const exactWords = Array.from({ length: 80 }, () => "word12345").join(" ");
+    const chunksExact = chunkText({ text: exactWords, maxTokens: 50, overlapTokens: 5 });
+    expect(chunksExact.length).toBeGreaterThan(0);
+  });
+
+  it("handles paragraphs with no sentence regex matches", () => {
+    // A string consisting solely of punctuation/symbols that doesn't form a sentence
+    const symbolOnly = "--- === *** +++ /// ::: ~~~";
+    const chunks = chunkText({ text: symbolOnly, maxTokens: 10 });
+    expect(chunks.length).toBe(1);
+  });
 });

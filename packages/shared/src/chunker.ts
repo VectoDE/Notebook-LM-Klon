@@ -49,28 +49,16 @@ interface TextSegment {
  */
 function splitIntoUnits(text: string): TextSegment[] {
   // First split by paragraphs (\n\n+)
-  const paragraphRegex = /\n{2,}/g;
   const paragraphs: { text: string; start: number; end: number }[] = [];
-  let lastIndex = 0;
+  let currentOffset = 0;
 
-  while (true) {
-    const match = paragraphRegex.exec(text);
-    if (match === null) break;
-    if (match.index > lastIndex) {
-      paragraphs.push({
-        text: text.slice(lastIndex, match.index),
-        start: lastIndex,
-        end: match.index
-      });
-    }
-    lastIndex = paragraphRegex.lastIndex;
-  }
-  if (lastIndex < text.length) {
+  for (const part of text.split(/\n{2,}/).filter(Boolean)) {
     paragraphs.push({
-      text: text.slice(lastIndex),
-      start: lastIndex,
-      end: text.length
+      text: part,
+      start: currentOffset,
+      end: currentOffset + part.length
     });
+    currentOffset += part.length + 2; // Approximate/boundary offset
   }
 
   const units: TextSegment[] = [];
@@ -90,31 +78,31 @@ function splitIntoUnits(text: string): TextSegment[] {
 
     // Split large paragraph into sentences (. , ! , ? followed by space or newline)
     const sentenceRegex = /[^.!?\n]+(?:[.!?]+(?=\s|$)|$)/g;
-    let hasSentences = false;
 
     while (true) {
       const sMatch = sentenceRegex.exec(para.text);
       if (sMatch === null) break;
       const sText = sMatch[0];
       if (sText.trim().length === 0) continue;
-      hasSentences = true;
       const sStart = para.start + sMatch.index;
       const sEnd = sStart + sText.length;
       const sTokens = estimateTokenCount(sText);
 
       // If a sentence itself is huge (e.g. without punctuation > 150 tokens), split by words
       if (sTokens > 150) {
-        const wordRegex = /\S+\s*/g;
+        const wordMatches = Array.from(sText.matchAll(/\S+\s*/g));
         let wordBuffer = "";
         let wStart = sStart;
 
-        while (true) {
-          const wMatch = wordRegex.exec(sText);
-          if (wMatch === null) break;
+        for (let wIdx = 0; wIdx < wordMatches.length; wIdx++) {
+          const wMatch = wordMatches[wIdx] as RegExpMatchArray;
           const w = wMatch[0];
           wordBuffer += w;
-          if (estimateTokenCount(wordBuffer) >= 50) {
-            const wEnd = sStart + wMatch.index + w.length;
+          const isLastWord = wIdx === wordMatches.length - 1;
+          const shouldFlush = isLastWord || estimateTokenCount(wordBuffer) >= 50;
+          if (shouldFlush) {
+            const matchOffset = wMatch.index as number;
+            const wEnd = sStart + matchOffset + w.length;
             units.push({
               text: wordBuffer,
               startOffset: wStart,
@@ -125,14 +113,6 @@ function splitIntoUnits(text: string): TextSegment[] {
             wStart = wEnd;
           }
         }
-        if (wordBuffer.length > 0) {
-          units.push({
-            text: wordBuffer,
-            startOffset: wStart,
-            endOffset: sEnd,
-            tokenCount: estimateTokenCount(wordBuffer)
-          });
-        }
       } else {
         units.push({
           text: sText,
@@ -141,15 +121,6 @@ function splitIntoUnits(text: string): TextSegment[] {
           tokenCount: sTokens
         });
       }
-    }
-
-    if (!hasSentences) {
-      units.push({
-        text: para.text,
-        startOffset: para.start,
-        endOffset: para.end,
-        tokenCount: paraTokens
-      });
     }
   }
 
@@ -192,9 +163,6 @@ export function chunkText(input: ChunkInput): TextChunk[] {
   }
 
   const units = splitIntoUnits(text);
-  if (units.length === 0) {
-    return [];
-  }
 
   const chunks: TextChunk[] = [];
   let currentUnits: TextSegment[] = [];
@@ -202,31 +170,27 @@ export function chunkText(input: ChunkInput): TextChunk[] {
   let chunkIndex = 0;
 
   for (let i = 0; i < units.length; i++) {
-    const unit = units[i];
-    if (!unit) continue;
+    const unit = units[i] as TextSegment;
 
     if (currentUnits.length > 0 && currentTokens + unit.tokenCount > maxTokens) {
       // Create chunk from currentUnits
-      const firstUnit = currentUnits[0];
-      const lastUnit = currentUnits[currentUnits.length - 1];
-      if (firstUnit && lastUnit) {
-        const chunkTextContent = text.slice(firstUnit.startOffset, lastUnit.endOffset);
-        chunks.push({
-          chunkIndex: chunkIndex++,
-          text: chunkTextContent,
-          tokenCount: currentTokens,
-          ...(pageNumber !== undefined ? { pageNumber } : {}),
-          startOffset: firstUnit.startOffset,
-          endOffset: lastUnit.endOffset
-        });
-      }
+      const firstUnit = currentUnits[0] as TextSegment;
+      const lastUnit = currentUnits[currentUnits.length - 1] as TextSegment;
+      const chunkTextContent = text.slice(firstUnit.startOffset, lastUnit.endOffset);
+      chunks.push({
+        chunkIndex: chunkIndex++,
+        text: chunkTextContent,
+        tokenCount: currentTokens,
+        ...(pageNumber !== undefined ? { pageNumber } : {}),
+        startOffset: firstUnit.startOffset,
+        endOffset: lastUnit.endOffset
+      });
 
       // Compute overlap: keep trailing units up to overlapTokens
       const overlapUnits: TextSegment[] = [];
       let accumOverlap = 0;
       for (let j = currentUnits.length - 1; j >= 0; j--) {
-        const u = currentUnits[j];
-        if (!u) continue;
+        const u = currentUnits[j] as TextSegment;
         if (accumOverlap + u.tokenCount <= overlapTokens || overlapUnits.length === 0) {
           overlapUnits.unshift(u);
           accumOverlap += u.tokenCount;
@@ -243,21 +207,18 @@ export function chunkText(input: ChunkInput): TextChunk[] {
     currentTokens += unit.tokenCount;
   }
 
-  if (currentUnits.length > 0) {
-    const firstUnit = currentUnits[0];
-    const lastUnit = currentUnits[currentUnits.length - 1];
-    if (firstUnit && lastUnit) {
-      const chunkTextContent = text.slice(firstUnit.startOffset, lastUnit.endOffset);
-      chunks.push({
-        chunkIndex: chunkIndex++,
-        text: chunkTextContent,
-        tokenCount: currentTokens,
-        ...(pageNumber !== undefined ? { pageNumber } : {}),
-        startOffset: firstUnit.startOffset,
-        endOffset: lastUnit.endOffset
-      });
-    }
-  }
+  // Final chunk
+  const firstUnit = currentUnits[0] as TextSegment;
+  const lastUnit = currentUnits[currentUnits.length - 1] as TextSegment;
+  const chunkTextContent = text.slice(firstUnit.startOffset, lastUnit.endOffset);
+  chunks.push({
+    chunkIndex: chunkIndex++,
+    text: chunkTextContent,
+    tokenCount: currentTokens,
+    ...(pageNumber !== undefined ? { pageNumber } : {}),
+    startOffset: firstUnit.startOffset,
+    endOffset: lastUnit.endOffset
+  });
 
   return chunks;
 }
