@@ -34,13 +34,13 @@ function createMockEnv(overrides?: Partial<{ APP_PROFILE: string; d1Fail: boolea
       get: () => ({
         fetch: async () => new Response(JSON.stringify({ ok: true }), { status: 200 })
       })
-    } as unknown as DurableObjectNamespace,
+    } as unknown as Env["NOTEBOOK_DO"],
     JOB_DO: {
       idFromName: (name: string) => ({ toString: () => `job-${name}` }),
       get: () => ({
         fetch: async () => new Response(JSON.stringify({ ok: true }), { status: 200 })
       })
-    } as unknown as DurableObjectNamespace
+    } as unknown as Env["JOB_DO"]
   };
 }
 

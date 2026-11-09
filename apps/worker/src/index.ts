@@ -64,3 +64,9 @@ export function createApp(): Hono<{ Bindings: Env }> {
 
 const app = createApp();
 export default app;
+export {
+  JobDO,
+  NotebookDO,
+  type DurableObjectHealthReport,
+  type SqliteDurableObjectState
+} from "./durable-objects.js";
