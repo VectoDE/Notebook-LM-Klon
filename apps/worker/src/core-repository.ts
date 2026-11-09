@@ -43,6 +43,12 @@ export class CoreRepository {
     ]);
   }
 
+  async getUserByEmail(email: string): Promise<UserRow | null> {
+    return this.db.queryOne<UserRow>("SELECT * FROM users WHERE email = ? AND deleted_at IS NULL", [
+      email.toLowerCase().trim()
+    ]);
+  }
+
   async deleteUser(id: string): Promise<void> {
     await this.db.run("DELETE FROM users WHERE id = ?", [id]);
   }
