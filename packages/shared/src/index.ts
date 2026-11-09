@@ -64,4 +64,14 @@ export function createProblemDetails(input: CreateProblemDetailsInput): ProblemD
 }
 
 export { inspectTextEncoding, type EncodingInspectionReport } from "./encoding.js";
+export {
+  DEFAULT_MAX_TOKENS,
+  DEFAULT_OVERLAP_TOKENS,
+  MAX_WORDS_LIMIT,
+  TextTooLargeError,
+  chunkText,
+  estimateTokenCount,
+  type ChunkInput,
+  type TextChunk
+} from "./chunker.js";
 export type * from "./models.d.js";
