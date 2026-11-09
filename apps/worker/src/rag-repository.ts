@@ -1,7 +1,6 @@
 import type {
   ArtifactRow,
   ArtifactStatus,
-  ArtifactType,
   ChatRow,
   ChunkRow,
   ChunkVectorRow,
@@ -10,8 +9,7 @@ import type {
   ProviderKeyRow,
   ProviderType,
   SourceRow,
-  SourceStatus,
-  SourceType
+  SourceStatus
 } from "@notebook-lm/shared";
 import type { DatabaseAdapter } from "./core-repository.js";
 
@@ -126,17 +124,15 @@ export class RagRepository {
   }
 
   async getChunkVector(chunkId: string): Promise<ChunkVectorRow | null> {
-    return this.db.queryOne<ChunkVectorRow>(
-      "SELECT * FROM chunk_vectors WHERE chunk_id = ?",
-      [chunkId]
-    );
+    return this.db.queryOne<ChunkVectorRow>("SELECT * FROM chunk_vectors WHERE chunk_id = ?", [
+      chunkId
+    ]);
   }
 
   async getChunkVectorsByNotebook(notebookId: string): Promise<ChunkVectorRow[]> {
-    return this.db.query<ChunkVectorRow>(
-      "SELECT * FROM chunk_vectors WHERE notebook_id = ?",
-      [notebookId]
-    );
+    return this.db.query<ChunkVectorRow>("SELECT * FROM chunk_vectors WHERE notebook_id = ?", [
+      notebookId
+    ]);
   }
 
   // ---------------------------------------------------------------------------
@@ -297,12 +293,7 @@ export class RagRepository {
     );
   }
 
-  async updateNote(
-    id: string,
-    title: string,
-    content: string,
-    version: number
-  ): Promise<void> {
+  async updateNote(id: string, title: string, content: string, version: number): Promise<void> {
     await this.db.run(
       "UPDATE notes SET title = ?, content = ?, version = ?, updated_at = ? WHERE id = ?",
       [title, content, version, Date.now(), id]
@@ -338,9 +329,9 @@ export class RagRepository {
   }
 
   async deleteProviderKey(userId: string, provider: ProviderType): Promise<void> {
-    await this.db.run(
-      "DELETE FROM provider_keys WHERE user_id = ? AND provider = ?",
-      [userId, provider]
-    );
+    await this.db.run("DELETE FROM provider_keys WHERE user_id = ? AND provider = ?", [
+      userId,
+      provider
+    ]);
   }
 }

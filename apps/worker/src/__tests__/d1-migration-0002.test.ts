@@ -376,6 +376,8 @@ describe("0002_rag_and_studio.sql D1 Migration & RagRepository", () => {
       content_json: JSON.stringify({ duration_seconds: 180, quality: "high" }),
       r2_key: "artifacts/art_01_final.mp3"
     });
+    // Test updateArtifact with partial empty updates object to cover false branch
+    await rag.updateArtifact("art_01", {});
     artifacts = await rag.getArtifactsByNotebook("nb_03");
     expect(artifacts[0]?.status).toBe("ready");
     expect(artifacts[0]?.r2_key).toBe("artifacts/art_01_final.mp3");
