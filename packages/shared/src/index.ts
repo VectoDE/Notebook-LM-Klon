@@ -64,3 +64,4 @@ export function createProblemDetails(input: CreateProblemDetailsInput): ProblemD
 }
 
 export { inspectTextEncoding, type EncodingInspectionReport } from "./encoding.js";
+export type * from "./models.d.js";
