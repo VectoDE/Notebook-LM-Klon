@@ -76,16 +76,36 @@ function splitIntoUnits(text: string): TextSegment[] {
       continue;
     }
 
-    // Split large paragraph into sentences (. , ! , ? followed by space or newline)
-    const sentenceRegex = /[^.!?\n]+(?:[.!?]+|\n|$)/g;
+    // Split large paragraph into sentences without complex backtracking regex
+    const sentences: { text: string; start: number; end: number }[] = [];
+    let currentStart = 0;
 
-    while (true) {
-      const sMatch = sentenceRegex.exec(para.text);
-      if (sMatch === null) break;
-      const sText = sMatch[0];
-      if (sText.trim().length === 0) continue;
-      const sStart = para.start + sMatch.index;
-      const sEnd = sStart + sText.length;
+    for (let i = 0; i < para.text.length; i++) {
+      const char = para.text[i];
+      const nextChar = i + 1 < para.text.length ? para.text[i + 1] : "";
+      const isDelim =
+        (char === "." || char === "!" || char === "?") && (nextChar === " " || nextChar === "\n");
+      const isNewline = char === "\n";
+
+      if (isDelim || isNewline || i === para.text.length - 1) {
+        const segEnd = isDelim ? i + 2 : i + 1;
+        const sText = para.text.slice(currentStart, segEnd);
+        sentences.push({
+          text: sText,
+          start: para.start + currentStart,
+          end: para.start + segEnd
+        });
+        currentStart = segEnd;
+        if (isDelim) {
+          i++; // skip next whitespace char
+        }
+      }
+    }
+
+    for (const s of sentences) {
+      const sText = s.text;
+      const sStart = s.start;
+      const sEnd = s.end;
       const sTokens = estimateTokenCount(sText);
 
       // If a sentence itself is huge (e.g. without punctuation > 150 tokens), split by words
