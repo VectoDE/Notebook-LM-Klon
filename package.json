@@ -18,7 +18,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
+    "@biomejs/biome": "2.6.6",
     "@types/node": "26.6.6",
     "@vitest/coverage-v8": "5.1.0",
     "fast-check": "^4.10.2",
