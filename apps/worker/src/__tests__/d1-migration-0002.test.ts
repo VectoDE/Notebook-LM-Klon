@@ -157,6 +157,10 @@ describe("0002_rag_and_studio.sql D1 Migration & RagRepository", () => {
     const nbVectors = await rag.getChunkVectorsByNotebook("nb_01");
     expect(nbVectors.length).toBe(1);
 
+    // Test getChunksByIds empty array branch
+    const emptyChunks = await rag.getChunksByIds([]);
+    expect(emptyChunks).toEqual([]);
+
     // Test Cascade Deletion on Source: deleting source must cascade-delete chunks & vectors
     await rag.deleteSource("src_01");
     expect(await rag.getSourceById("src_01")).toBeNull();
@@ -436,6 +440,10 @@ describe("0002_rag_and_studio.sql D1 Migration & RagRepository", () => {
     expect((await rag.getChatsByNotebook("nb_03")).length).toBe(0);
     expect((await rag.getArtifactsByNotebook("nb_03")).length).toBe(0);
     expect((await rag.getNotesByNotebook("nb_03")).length).toBe(0);
+
+    // Test searchChunksFts with sourceIds filter
+    const ftsWithSources = await rag.searchChunksFts("nb_02", "Quantencomputing", 5, ["src_02"]);
+    expect(ftsWithSources).toEqual([]);
 
     close();
   });

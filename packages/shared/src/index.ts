@@ -208,6 +208,132 @@ export const IngestChunksResponseSchema = z.object({
 });
 export type IngestChunksResponse = z.infer<typeof IngestChunksResponseSchema>;
 
+// ---------------------------------------------------------------------------
+// RAG & Hybrid Search API Schemas (Decision #7, #40, #58 - Sub-Issues #98, #99, #100)
+// ---------------------------------------------------------------------------
+
+export const SearchModeSchema = z.enum(["hybrid", "vector", "fts"]);
+export type SearchMode = z.infer<typeof SearchModeSchema>;
+
+export const SearchQueryBodySchema = z.object({
+  query: z.string().trim().min(1, "Suchanfrage darf nicht leer sein."),
+  queryVector: z.array(z.number()).optional(),
+  limit: z.number().int().positive().max(100).default(10),
+  sourceIds: z.array(z.string().min(1)).optional(),
+  mode: SearchModeSchema.default("hybrid")
+});
+export type SearchQueryBody = z.infer<typeof SearchQueryBodySchema>;
+
+export const SearchCitationSchema = z.object({
+  chunkId: z.string().min(1),
+  sourceId: z.string().min(1),
+  sourceTitle: z.string(),
+  page: z.number().int().positive().nullable(),
+  startOffset: z.number().int().nonnegative().nullable().optional(),
+  endOffset: z.number().int().nonnegative().nullable().optional(),
+  score: z.number(),
+  snippet: z.string(),
+  vectorRank: z.number().int().positive().nullable().optional(),
+  ftsRank: z.number().int().positive().nullable().optional(),
+  vectorScore: z.number().nullable().optional(),
+  ftsScore: z.number().nullable().optional()
+});
+export type SearchCitation = z.infer<typeof SearchCitationSchema>;
+
+export const SearchResponseSchema = z.object({
+  notebookId: z.string().min(1),
+  query: z.string(),
+  mode: SearchModeSchema,
+  totalResults: z.number().int().nonnegative(),
+  latencyMs: z.number().nonnegative(),
+  results: z.array(SearchCitationSchema)
+});
+export type SearchResponse = z.infer<typeof SearchResponseSchema>;
+
+/**
+ * Standard Reciprocal Rank Fusion constant (k = 60).
+ */
+export const RRF_K_DEFAULT = 60;
+
+export interface RrfScoredItem<T> {
+  item: T;
+  score: number;
+  rank1?: number | undefined;
+  rank2?: number | undefined;
+  score1?: number | undefined;
+  score2?: number | undefined;
+}
+
+/**
+ * Reciprocal Rank Fusion combiner for two ranked result lists.
+ * Formula: RRF(doc) = w1 / (k + rank1) + w2 / (k + rank2)
+ */
+export function combineWithRrf<T, K extends string | number>(
+  list1: readonly T[],
+  list2: readonly T[],
+  getId: (item: T) => K,
+  options?: {
+    k?: number | undefined;
+    weight1?: number | undefined;
+    weight2?: number | undefined;
+    getScore1?: ((item: T) => number) | undefined;
+    getScore2?: ((item: T) => number) | undefined;
+  }
+): RrfScoredItem<T>[] {
+  const k = options?.k ?? RRF_K_DEFAULT;
+  const w1 = options?.weight1 ?? 1.0;
+  const w2 = options?.weight2 ?? 1.0;
+
+  const scoreMap = new Map<
+    K,
+    {
+      item: T;
+      score: number;
+      rank1?: number | undefined;
+      rank2?: number | undefined;
+      score1?: number | undefined;
+      score2?: number | undefined;
+    }
+  >();
+
+  let rank1 = 1;
+  for (const item of list1) {
+    const id = getId(item);
+    const rrfScore = w1 / (k + rank1);
+    const origScore = options?.getScore1 ? options.getScore1(item) : undefined;
+    scoreMap.set(id, {
+      item,
+      score: rrfScore,
+      rank1,
+      score1: origScore
+    });
+    rank1++;
+  }
+
+  let rank2 = 1;
+  for (const item of list2) {
+    const id = getId(item);
+    const rrfScore = w2 / (k + rank2);
+    const origScore = options?.getScore2 ? options.getScore2(item) : undefined;
+    const existing = scoreMap.get(id);
+    if (existing) {
+      existing.score += rrfScore;
+      existing.rank2 = rank2;
+      existing.score2 = origScore;
+    } else {
+      scoreMap.set(id, {
+        item,
+        score: rrfScore,
+        rank2,
+        score2: origScore
+      });
+    }
+    rank2++;
+  }
+
+  return Array.from(scoreMap.values()).sort((a, b) => b.score - a.score);
+}
+
 export type * from "./providers.d.js";
 
 export type * from "./models.d.js";
