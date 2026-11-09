@@ -93,4 +93,101 @@ describe("SQLite Durable Objects (NotebookDO & JobDO)", () => {
     const degJobRes = await degradedJob.fetch(new Request("https://do.internal/health"));
     expect(degJobRes.status).toBe(503);
   });
+
+  it("handles in-memory int8 vector cache update, query, and invalidation (Sub-Issue #97)", async () => {
+    const { state } = createMockSqliteState("notebook-do-vec");
+    const doInstance = new NotebookDO(state, {} as Env);
+
+    // Initial cache is empty
+    const initRes = await doInstance.fetch(new Request("https://do.internal/vectors"));
+    expect(initRes.status).toBe(200);
+    const initBody = (await initRes.json()) as { vectors: unknown[]; count: number };
+    expect(initBody.count).toBe(0);
+
+    // Update with 2 vectors
+    const updateRes = await doInstance.fetch(
+      new Request("https://do.internal/vectors/update", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          vectors: [
+            {
+              chunkId: "c1",
+              sourceId: "src1",
+              quantized: [10, -20, 30],
+              scale: 0.05
+            },
+            {
+              chunkId: "c2",
+              sourceId: "src2",
+              quantized: [-5, 15, -25],
+              scale: 0.02
+            }
+          ]
+        })
+      })
+    );
+    expect(updateRes.status).toBe(200);
+    const updateBody = (await updateRes.json()) as {
+      success: boolean;
+      count: number;
+      totalCached: number;
+    };
+    expect(updateBody.count).toBe(2);
+    expect(updateBody.totalCached).toBe(2);
+
+    // Verify GET /vectors returns them
+    const getRes = await doInstance.fetch(new Request("https://do.internal/vectors"));
+    const getBody = (await getRes.json()) as {
+      vectors: Array<{ chunkId: string; length: number }>;
+      count: number;
+    };
+    expect(getBody.count).toBe(2);
+    expect(getBody.vectors[0]?.chunkId).toBe("c1");
+    expect(getBody.vectors[0]?.length).toBe(3);
+
+    // Invalidate src1 only
+    const invalSrc1Res = await doInstance.fetch(
+      new Request("https://do.internal/vectors/invalidate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sourceId: "src1" })
+      })
+    );
+    expect(invalSrc1Res.status).toBe(200);
+    const invalBody = (await invalSrc1Res.json()) as { remaining: number };
+    expect(invalBody.remaining).toBe(1);
+
+    // Invalidate everything
+    const invalAllRes = await doInstance.fetch(
+      new Request("https://do.internal/vectors/invalidate", {
+        method: "POST"
+      })
+    );
+    expect(invalAllRes.status).toBe(200);
+    const invalAllBody = (await invalAllRes.json()) as { remaining: number };
+    expect(invalAllBody.remaining).toBe(0);
+
+    // Invalidate with malformed JSON body
+    const invalBadJsonRes = await doInstance.fetch(
+      new Request("https://do.internal/vectors/invalidate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "bad-json{"
+      })
+    );
+    expect(invalBadJsonRes.status).toBe(200);
+
+    // Invalid JSON handling
+    const invalidJsonRes = await doInstance.fetch(
+      new Request("https://do.internal/vectors/update", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "invalid-json{"
+      })
+    );
+    expect(invalidJsonRes.status).toBe(400);
+    const problem = ProblemDetailsSchema.parse(await invalidJsonRes.json());
+    expect(problem.code).toBe("INVALID_JSON");
+  });
 });
