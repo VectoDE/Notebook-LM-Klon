@@ -1,0 +1,426 @@
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  unlinkSync,
+  writeFileSync
+} from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import { fileURLToPath } from "node:url";
+import { serve } from "@hono/node-server";
+import { serveStatic } from "@hono/node-server/serve-static";
+import { Hono } from "hono";
+import { createApp } from "./index.js";
+
+export interface NodeServerOptions {
+  port?: number | undefined;
+  dataDir?: string | undefined;
+  staticDir?: string | undefined;
+  appProfile?: "demo" | "full" | undefined;
+  appOrigin?: string | undefined;
+}
+
+export interface NodeServerInstance {
+  server: ReturnType<typeof serve>;
+  port: number;
+  db: DatabaseSync;
+  dataDir: string;
+  close: () => Promise<void>;
+}
+
+export function createSqliteD1Adapter(db: DatabaseSync): D1Database {
+  return {
+    prepare: (query: string) => {
+      const stmt = db.prepare(query);
+      return {
+        bind: (...params: unknown[]) => ({
+          first: async <T = unknown>(colName?: string): Promise<T | null> => {
+            const row = stmt.get(...(params as (string | number | bigint | null | Uint8Array)[])) as
+              | Record<string, unknown>
+              | undefined;
+            if (!row) {
+              return null;
+            }
+            if (colName) {
+              return (row[colName] as T) ?? null;
+            }
+            return row as T;
+          },
+          all: async <T = unknown>() => {
+            const rows = stmt.all(...(params as (string | number | bigint | null | Uint8Array)[]));
+            return {
+              results: rows as T[],
+              success: true,
+              meta: {
+                changes: 0,
+                last_row_id: 0,
+                duration: 0,
+                rows_read: rows.length,
+                rows_written: 0
+              }
+            };
+          },
+          run: async () => {
+            const res = stmt.run(...(params as (string | number | bigint | null | Uint8Array)[]));
+            return {
+              results: [],
+              success: true,
+              meta: {
+                changes: Number(res.changes),
+                last_row_id: Number(res.lastInsertRowid),
+                duration: 0,
+                rows_read: 0,
+                rows_written: Number(res.changes)
+              }
+            };
+          }
+        }),
+        first: async <T = unknown>(colName?: string): Promise<T | null> => {
+          const row = stmt.get() as Record<string, unknown> | undefined;
+          if (!row) {
+            return null;
+          }
+          if (colName) {
+            return (row[colName] as T) ?? null;
+          }
+          return row as T;
+        },
+        all: async <T = unknown>() => {
+          const rows = stmt.all();
+          return {
+            results: rows as T[],
+            success: true,
+            meta: {
+              changes: 0,
+              last_row_id: 0,
+              duration: 0,
+              rows_read: rows.length,
+              rows_written: 0
+            }
+          };
+        },
+        run: async () => {
+          const res = stmt.run();
+          return {
+            results: [],
+            success: true,
+            meta: {
+              changes: Number(res.changes),
+              last_row_id: Number(res.lastInsertRowid),
+              duration: 0,
+              rows_read: 0,
+              rows_written: Number(res.changes)
+            }
+          };
+        }
+      } as unknown as D1PreparedStatement;
+    },
+    exec: async (sqlStr: string) => {
+      db.exec(sqlStr);
+      return { count: 1, duration: 0 };
+    },
+    batch: async (statements: D1PreparedStatement[]) => {
+      const results = [];
+      for (const st of statements) {
+        results.push(await st.all());
+      }
+      return results;
+    },
+    dump: async () => new ArrayBuffer(0)
+  } as unknown as D1Database;
+}
+
+export function createLocalR2Adapter(mediaDir: string): R2Bucket {
+  if (!existsSync(mediaDir)) {
+    mkdirSync(mediaDir, { recursive: true });
+  }
+
+  const getFilePath = (key: string): string => {
+    const safeKey = key.replace(/^[/\\]+/, "");
+    return join(mediaDir, safeKey);
+  };
+
+  return {
+    get: async (key: string) => {
+      const filePath = getFilePath(key);
+      if (!existsSync(filePath)) {
+        return null;
+      }
+      const data = readFileSync(filePath);
+      return {
+        key,
+        size: data.byteLength,
+        etag: `"${data.byteLength}"`,
+        httpEtag: `"${data.byteLength}"`,
+        arrayBuffer: async () =>
+          data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
+        text: async () => data.toString("utf8"),
+        body: new ReadableStream({
+          start(controller) {
+            controller.enqueue(data);
+            controller.close();
+          }
+        })
+      } as unknown as R2ObjectBody;
+    },
+    put: async (key: string, value: ArrayBuffer | ArrayBufferView | string | Blob) => {
+      const filePath = getFilePath(key);
+      const fileDir = dirname(filePath);
+      if (!existsSync(fileDir)) {
+        mkdirSync(fileDir, { recursive: true });
+      }
+
+      let buf: Buffer;
+      if (typeof value === "string") {
+        buf = Buffer.from(value, "utf8");
+      } else if (value instanceof Uint8Array || Buffer.isBuffer(value)) {
+        buf = Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+      } else if (value instanceof ArrayBuffer) {
+        buf = Buffer.from(value);
+      } else if (typeof (value as Blob).arrayBuffer === "function") {
+        const ab = await (value as Blob).arrayBuffer();
+        buf = Buffer.from(ab);
+      } else {
+        buf = Buffer.from(String(value), "utf8");
+      }
+
+      writeFileSync(filePath, buf);
+      return {
+        key,
+        size: buf.byteLength,
+        etag: `"${buf.byteLength}"`,
+        httpEtag: `"${buf.byteLength}"`
+      } as unknown as R2Object;
+    },
+    delete: async (keys: string | string[]) => {
+      const keyList = Array.isArray(keys) ? keys : [keys];
+      for (const k of keyList) {
+        const filePath = getFilePath(k);
+        if (existsSync(filePath)) {
+          unlinkSync(filePath);
+        }
+      }
+    },
+    list: async (options?: {
+      prefix?: string | undefined;
+      cursor?: string | undefined;
+      limit?: number | undefined;
+    }) => {
+      const prefix = options?.prefix ?? "";
+      const matchedObjects: Array<{ key: string; size: number }> = [];
+
+      const walk = (currentDir: string, currentRel: string) => {
+        const entries = readdirSync(currentDir, { withFileTypes: true });
+        for (const entry of entries) {
+          const entryRel = currentRel ? `${currentRel}/${entry.name}` : entry.name;
+          const entryFull = join(currentDir, entry.name);
+          if (entry.isDirectory()) {
+            walk(entryFull, entryRel);
+          } else {
+            if (entryRel.startsWith(prefix)) {
+              const stat = statSync(entryFull);
+              matchedObjects.push({ key: entryRel, size: stat.size });
+            }
+          }
+        }
+      };
+
+      walk(mediaDir, "");
+      return {
+        objects: matchedObjects,
+        truncated: false,
+        cursor: undefined
+      };
+    },
+    head: async (key: string) => {
+      const filePath = getFilePath(key);
+      if (!existsSync(filePath)) {
+        return null;
+      }
+      const stat = statSync(filePath);
+      return {
+        key,
+        size: stat.size,
+        etag: `"${stat.size}"`,
+        httpEtag: `"${stat.size}"`
+      } as unknown as R2Object;
+    }
+  } as unknown as R2Bucket;
+}
+
+export function createMockDurableObjectNamespace(namePrefix: string) {
+  return {
+    idFromName: (name: string) => ({
+      toString: () => `${namePrefix}-${name}`,
+      equals: () => false,
+      name
+    }),
+    newUniqueId: () => ({
+      toString: () => `${namePrefix}-${Date.now()}`,
+      equals: () => false
+    }),
+    idFromString: (idStr: string) => ({
+      toString: () => idStr,
+      equals: () => false
+    }),
+    get: (_id: unknown) => ({
+      fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+        const req = input instanceof Request ? input : new Request(input, init);
+        const url = new URL(req.url);
+        if (url.pathname === "/health") {
+          return new Response(JSON.stringify({ ok: true, className: namePrefix }), {
+            status: 200,
+            headers: { "content-type": "application/json; charset=utf-8" }
+          });
+        }
+        return new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { "content-type": "application/json; charset=utf-8" }
+        });
+      }
+    })
+  } as unknown as DurableObjectNamespace;
+}
+
+export function runSqliteMigrations(db: DatabaseSync, migrationsDir: string): void {
+  if (!existsSync(migrationsDir)) {
+    return;
+  }
+  const files = readdirSync(migrationsDir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
+
+  for (const file of files) {
+    const fullPath = join(migrationsDir, file);
+    const sql = readFileSync(fullPath, "utf8");
+    db.exec(sql);
+  }
+}
+
+export function createNodeEnv(options?: {
+  db?: DatabaseSync | undefined;
+  dataDir?: string | undefined;
+  appProfile?: "demo" | "full" | undefined;
+  appOrigin?: string | undefined;
+}): { env: Env; db: DatabaseSync; dataDir: string } {
+  const dataDir = options?.dataDir ?? resolve(".data");
+  const mediaDir = join(dataDir, "media");
+
+  if (!existsSync(dataDir)) {
+    mkdirSync(dataDir, { recursive: true });
+  }
+
+  const db = options?.db ?? new DatabaseSync(join(dataDir, "local.sqlite"));
+  const d1 = createSqliteD1Adapter(db);
+  const r2 = createLocalR2Adapter(mediaDir);
+
+  const env = {
+    DB: d1,
+    MEDIA: r2,
+    APP_PROFILE: options?.appProfile ?? "demo",
+    APP_ORIGIN: options?.appOrigin ?? "http://localhost:8787",
+    ASSETS: {
+      fetch: async () => new Response("Not Found", { status: 404 })
+    } as unknown as Fetcher,
+    NOTEBOOK_DO: createMockDurableObjectNamespace("NotebookDO"),
+    JOB_DO: createMockDurableObjectNamespace("JobDO")
+  } as unknown as Env;
+
+  return { env, db, dataDir };
+}
+
+export function startNodeServer(options?: NodeServerOptions): Promise<NodeServerInstance> {
+  const port = options?.port !== undefined ? options.port : Number(process.env.PORT);
+  const dataDir = options?.dataDir !== undefined ? options.dataDir : resolve(".data");
+  const staticDir = options?.staticDir !== undefined ? options.staticDir : resolve("apps/web/dist");
+
+  const envOpts: {
+    dataDir: string;
+    appProfile?: "demo" | "full";
+    appOrigin?: string;
+  } = { dataDir };
+  if (options?.appProfile !== undefined) {
+    envOpts.appProfile = options.appProfile;
+  }
+  if (options?.appOrigin !== undefined) {
+    envOpts.appOrigin = options.appOrigin;
+  }
+
+  const { env, db } = createNodeEnv(envOpts);
+
+  const currentDir = dirname(fileURLToPath(import.meta.url));
+  const migrationsDir = resolve(currentDir, "../migrations");
+  runSqliteMigrations(db, migrationsDir);
+
+  const rootApp = new Hono();
+  const workerApp = createApp();
+
+  rootApp.use("*", async (c, next) => {
+    (c.env as unknown as { env: Env }).env = env;
+    await next();
+  });
+
+  rootApp.route("/", workerApp);
+
+  if (existsSync(staticDir)) {
+    rootApp.use("/*", serveStatic({ root: staticDir }));
+    rootApp.get("*", (c) => {
+      const indexHtmlPath = join(staticDir, "index.html");
+      if (existsSync(indexHtmlPath)) {
+        const html = readFileSync(indexHtmlPath, "utf8");
+        return c.html(html);
+      }
+      return c.text("Not Found", 404);
+    });
+  }
+
+  return new Promise((resolvePromise) => {
+    const server = serve(
+      {
+        fetch: (request: Request) => rootApp.fetch(request, env),
+        port
+      },
+      (info) => {
+        const instance: NodeServerInstance = {
+          server,
+          port: info.port,
+          db,
+          dataDir,
+          close: () =>
+            new Promise<void>((res) => {
+              server.close(() => {
+                try {
+                  db.close();
+                } catch {
+                  // already closed or in-memory
+                }
+                res();
+              });
+            })
+        };
+        resolvePromise(instance);
+      }
+    );
+  });
+}
+
+// Auto-run if executed directly as entrypoint
+/* v8 ignore start */
+const isDirectRun =
+  process.argv[1] &&
+  (process.argv[1].endsWith("node-server.ts") || process.argv[1].endsWith("node-server.js"));
+
+if (isDirectRun) {
+  startNodeServer()
+    .then((instance) => {
+      console.log(`[node-server] Server listening on http://localhost:${instance.port}`);
+    })
+    .catch((err) => {
+      console.error("[node-server] Failed to start:", err);
+      process.exit(1);
+    });
+}
+/* v8 ignore stop */

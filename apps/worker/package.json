@@ -7,9 +7,11 @@
     "dev": "wrangler dev",
     "types": "wrangler types ./src/worker-configuration.d.ts",
     "build": "tsc --noEmit",
+    "start:node": "tsx src/node-server.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hono/node-server": "2.1.6",
     "@notebook-lm/shared": "workspace:*",
     "@simplewebauthn/server": "^13.3.3",
     "aws4fetch": "^1.0.20",
@@ -17,6 +19,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20261109.1",
+    "tsx": "4.23.15",
     "wrangler": "4.158.0"
   }
 }
