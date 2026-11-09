@@ -5,7 +5,9 @@ import {
   createProblemDetails
 } from "@notebook-lm/shared";
 import { Hono } from "hono";
+import { runScheduledCleanup } from "./cleanup.js";
 import { resolveAppConfig } from "./config.js";
+import { createD1DatabaseAdapter } from "./d1-adapter.js";
 
 export const WORKER_VERSION = WORKSPACE_VERSION;
 
@@ -63,7 +65,33 @@ export function createApp(): Hono<{ Bindings: Env }> {
 }
 
 const app = createApp();
-export default app;
+
+export const scheduled = async (
+  _controller: ScheduledController,
+  env: Env,
+  ctx: ExecutionContext
+): Promise<void> => {
+  const dbAdapter = createD1DatabaseAdapter(env.DB);
+
+  const cleanupPromise = runScheduledCleanup({
+    db: dbAdapter,
+    mediaBucket: env.MEDIA
+  }).then((metrics) => {
+    console.info(
+      JSON.stringify({
+        event: "scheduled_cleanup_completed",
+        metrics
+      })
+    );
+  });
+
+  ctx.waitUntil(cleanupPromise);
+};
+
+export default {
+  fetch: app.fetch,
+  scheduled
+};
 export {
   JobDO,
   NotebookDO,
