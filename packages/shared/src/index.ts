@@ -208,4 +208,6 @@ export const IngestChunksResponseSchema = z.object({
 });
 export type IngestChunksResponse = z.infer<typeof IngestChunksResponseSchema>;
 
+export type * from "./providers.d.js";
+
 export type * from "./models.d.js";
