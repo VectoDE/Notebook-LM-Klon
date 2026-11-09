@@ -32,5 +32,10 @@ describe("GitHub Actions Security & SHA-Pinning Policy (#4, #56)", () => {
         ).toBe(true);
       }
     }
+
+    const codeql = readFileSync(join(WORKFLOWS_DIR, "codeql.yml"), "utf-8");
+    expect(codeql).toContain("javascript-typescript");
+    expect(codeql).toContain("github/codeql-action/init@");
+    expect(codeql).toContain("github/codeql-action/analyze@");
   });
 });
