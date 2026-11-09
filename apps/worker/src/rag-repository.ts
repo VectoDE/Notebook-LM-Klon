@@ -334,4 +334,15 @@ export class RagRepository {
       provider
     ]);
   }
+
+  async listProviderKeysByUser(userId: string): Promise<ProviderKeyRow[]> {
+    return this.db.query<ProviderKeyRow>(
+      "SELECT * FROM provider_keys WHERE user_id = ? ORDER BY provider ASC",
+      [userId]
+    );
+  }
+
+  async getAllProviderKeys(): Promise<ProviderKeyRow[]> {
+    return this.db.query<ProviderKeyRow>("SELECT * FROM provider_keys ORDER BY created_at ASC");
+  }
 }

@@ -420,8 +420,16 @@ describe("0002_rag_and_studio.sql D1 Migration & RagRepository", () => {
     expect(key).not.toBeNull();
     expect(key?.last4).toBe("9876");
 
+    const userKeys = await rag.listProviderKeysByUser("usr_03");
+    expect(userKeys.length).toBe(1);
+    expect(userKeys[0]?.provider).toBe("anthropic");
+
+    const allKeys = await rag.getAllProviderKeys();
+    expect(allKeys.length).toBe(1);
+
     await rag.deleteProviderKey("usr_03", "anthropic");
     expect(await rag.getProviderKey("usr_03", "anthropic")).toBeNull();
+    expect((await rag.listProviderKeysByUser("usr_03")).length).toBe(0);
 
     // 5. Cascade delete notebook cascades all studio entities
     await adapter.run("DELETE FROM notebooks WHERE id = ?", ["nb_03"]);
