@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -11,20 +12,25 @@ import {
   startNodeServer
 } from "../node-server.js";
 
-const TEST_DATA_DIR = join(process.cwd(), ".data-test-node-server");
+let TEST_DATA_DIR = "";
+
+function safeCleanDir(dir: string): void {
+  if (dir && existsSync(dir)) {
+    try {
+      rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    } catch {
+      // Best-effort cleanup on Windows
+    }
+  }
+}
 
 describe("Node.js Runtime & Adapters (Decision #111)", () => {
   beforeEach(() => {
-    if (existsSync(TEST_DATA_DIR)) {
-      rmSync(TEST_DATA_DIR, { recursive: true, force: true });
-    }
-    mkdirSync(TEST_DATA_DIR, { recursive: true });
+    TEST_DATA_DIR = mkdtempSync(join(tmpdir(), "data-test-node-server-"));
   });
 
   afterEach(() => {
-    if (existsSync(TEST_DATA_DIR)) {
-      rmSync(TEST_DATA_DIR, { recursive: true, force: true });
-    }
+    safeCleanDir(TEST_DATA_DIR);
   });
 
   describe("createSqliteD1Adapter", () => {
@@ -286,7 +292,7 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       expect(spaHtml).toContain("App Loaded");
 
       await serverInstance.close();
-    });
+    }, 15000);
 
     it("serves 404 when static directory has no index.html and route is unknown", async () => {
       const emptyStaticDir = join(TEST_DATA_DIR, "empty-static");

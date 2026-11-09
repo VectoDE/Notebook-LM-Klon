@@ -63,6 +63,7 @@ export function createProblemDetails(input: CreateProblemDetailsInput): ProblemD
   });
 }
 
+export { z, type ZodIssue } from "zod";
 export { inspectTextEncoding, type EncodingInspectionReport } from "./encoding.js";
 export {
   DEFAULT_MAX_TOKENS,
