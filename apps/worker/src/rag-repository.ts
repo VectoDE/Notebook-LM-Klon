@@ -141,16 +141,46 @@ export class RagRepository {
   async searchChunksFts(
     notebookId: string,
     queryText: string,
-    limit = 10
-  ): Promise<Array<ChunkRow & { rank: number }>> {
-    return this.db.query<ChunkRow & { rank: number }>(
-      `SELECT c.*, f.rank
-       FROM chunks_fts f
-       JOIN chunks c ON c.rowid = f.rowid
-       WHERE f.text MATCH ? AND c.notebook_id = ?
-       ORDER BY f.rank
-       LIMIT ?`,
-      [queryText, notebookId, limit]
+    limit = 10,
+    sourceIds?: string[]
+  ): Promise<Array<ChunkRow & { rank: number; source_title?: string }>> {
+    const hasSourceFilter = Array.isArray(sourceIds) && sourceIds.length > 0;
+    const placeholders = hasSourceFilter ? sourceIds.map(() => "?").join(", ") : "";
+
+    const sql = hasSourceFilter
+      ? `SELECT c.*, f.rank, s.title AS source_title
+         FROM chunks_fts f
+         JOIN chunks c ON c.rowid = f.rowid
+         LEFT JOIN sources s ON s.id = c.source_id
+         WHERE f.text MATCH ? AND c.notebook_id = ? AND c.source_id IN (${placeholders})
+         ORDER BY f.rank
+         LIMIT ?`
+      : `SELECT c.*, f.rank, s.title AS source_title
+         FROM chunks_fts f
+         JOIN chunks c ON c.rowid = f.rowid
+         LEFT JOIN sources s ON s.id = c.source_id
+         WHERE f.text MATCH ? AND c.notebook_id = ?
+         ORDER BY f.rank
+         LIMIT ?`;
+
+    const params = hasSourceFilter
+      ? [queryText, notebookId, ...sourceIds, limit]
+      : [queryText, notebookId, limit];
+
+    return this.db.query<ChunkRow & { rank: number; source_title?: string }>(sql, params);
+  }
+
+  async getChunksByIds(chunkIds: string[]): Promise<Array<ChunkRow & { source_title?: string }>> {
+    if (chunkIds.length === 0) {
+      return [];
+    }
+    const placeholders = chunkIds.map(() => "?").join(", ");
+    return this.db.query<ChunkRow & { source_title?: string }>(
+      `SELECT c.*, s.title AS source_title
+       FROM chunks c
+       LEFT JOIN sources s ON s.id = c.source_id
+       WHERE c.id IN (${placeholders})`,
+      chunkIds
     );
   }
 
