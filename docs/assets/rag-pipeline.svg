@@ -1,6 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 540" width="1200" height="540" role="img" aria-labelledby="rag-title rag-desc">
   <title id="rag-title">Hybrid RAG &amp; int8-Vektorsuche in Cloudflare D1 + NotebookDO</title>
   <desc id="rag-desc">Fünfstufige Pipeline: 1. Browser-Chunking, 2. 768d Embeddings und symmetrische int8-Quantisierung, 3. Speicherung in D1 + FTS5-Index, 4. Hybrid-Suche via NotebookDO In-Memory Dot-Product und D1 FTS5 BM25 mit Reciprocal Rank Fusion, 5. Zitat-validierter SSE-Chat.</desc>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg-primary: #FAF8F5;
+      --bg-card: #FFFFFF;
+      --text-primary: #141413;
+      --text-secondary: #3D3935;
+      --border-subtle: #CBD5E1;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #0B0F17;
+        --bg-card: #1E293B;
+        --text-primary: #F8FAFC;
+        --text-secondary: #94A3B8;
+        --border-subtle: #334155;
+      }
+    }
+  </style>
   <defs>
     <linearGradient id="ragBg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#090D16" />

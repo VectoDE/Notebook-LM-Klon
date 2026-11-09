@@ -1,4 +1,4 @@
-# Notebook-LM-Klon: Anforderungen und Entscheidungen (ADR #1–#88)
+# RelationNotes (Notebook-LM-Klon): Anforderungen und Entscheidungen (ADR #1–#110)
 
 Stand: 2026-11-09 · Vollständiges Entscheidungsprotokoll
 
@@ -162,3 +162,30 @@ Notebook-LM-Klon mit Frontend, Backend und Datenbank. Alle Richtlinien und Geset
 | 86 | Issue-Qualität & Sub-Issues | 44 Haupt-Issues mit 132 nativen GitHub Sub-Issues (per GraphQL `addSubIssue` verknüpft). 1 Feature-Branch + 1 PR pro Haupt-Issue schließt das Haupt-Issue samt allen Unterissues via `Closes #...` |
 | 87 | README.md auf Agentur-Niveau | Eigenes SVG-Hero-Banner, Badges, Architektur-Mermaid-Diagramm, Tech-Stack-Tabelle, Zielgruppen-Wegweiser (HR, Senior-Dev, Prüfer), RelationFlow-Andockkonzept, 1-Klick-Testing, lokales Setup, Recht/Datenschutz/a11y sowie transparente Dokumentation des Vorgehens |
 | 88 | Visuelle Dokumentation & GitHub Wiki | Reich bebilderte Fachdokumentation unter `docs/` (inkl. SVG-Infografiken unter `docs/assets/` und Mermaid-Diagrammen) sowie 1:1-Synchronisation in das offizielle GitHub Wiki (`Home.md`, `_Sidebar.md`, Architektur, RAG, RelationFlow, Security, Datenbankschema, Plattform-Limits & Loom-Präsentationsleitfaden) |
+
+## Entscheidungen (Runde 17 – Verifikations-Disziplin, Branding, Release-Taktung & 100 % Coverage)
+| # | Thema | Entscheidung |
+|---|---|---|
+| 89 | Echtzeit-Meilenstein-Tracking | Laufende Pflege der 4 GitHub-Meilensteine und des Project Boards #13 synchron zum Entwicklungsfortschritt |
+| 90 | Strikte Checkbox-Disziplin | **Niemals** ein Issue oder Sub-Issue schließen, solange im Body noch eine einzige offene Checkbox (`- [ ]`) steht; erst nach technischer Verifikation auf `- [x]` setzen |
+| 91 | Atomare Sub-Issue-Commits | Jedes Haupt-Issue besteht aus 3 Sub-Issues (`a`, `b`, `c`), die jeweils als eigener sauberer englischer Conventional Commit (`type(scope): ... (#sub-nr)`) umgesetzt werden |
+| 92 | Echtzeit-Verifikationskommentare | Unmittelbar nach jedem Sub-Issue-Commit wird das Sub-Issue auf GitHub abgehakt (`[x]`), mit Commit-SHA kommentiert und geschlossen sowie im Haupt-Issue abgehakt |
+| 93 | Vollständige Repo-Konfiguration | Komplette Ausstattung mit Governance-, Security-, Template- und Automatisierungs-Dateien sowie Branch-Protection und Private Vulnerability Reporting |
+| 94 | GitHub Wiki & Discussions | Vollständige 1:1-Synchronisation der 8 illustrierten Handbuch-Kapitel ins GitHub Wiki inkl. Sidebar/Footer und automatisiertem `.github/workflows/wiki-sync.yml` |
+| 95 | Blockweise Umsetzung | Umsetzung in 9 klar abgegrenzten Themenblöcken (Block 1: Fundament, CI, OpenSSF, Doku & Wiki, Issues #1–#5 / #47–#61) |
+| 96 | Offizielles Produkt-Branding | Der offizielle Produktname lautet **`RelationNotes`** mit dem Untertitel **`NotebookLM & RelationFlow Knowledge Studio`** |
+| 97 | CI-Checklisten-Gate | Automatisierter Workflow `.github/workflows/verify-issue-checklists.yml` prüft bei jedem PR, dass alle referenzierten Sub-Issues 0 offene Checkboxen (`- [ ]`) haben |
+| 98 | Keine KI-Kennzeichnung | Striktes Verbot jeglicher `Generated with ...`- oder `Co-Authored-By: ...`-Zeilen in Commits, PRs, Issues, Code und Dokumentation |
+| 99 | Kostenlose Werkzeuge & Dienste | 100 % lauffähig im kostenlosen Cloudflare Free Tier (Workers, D1, R2, SQLite Durable Objects) und kostenlosen GitHub-Tarif |
+| 100 | OpenSSF Best Practices | Maximal erreichbare Scorecard-Bewertung (SHA-Pinning, minimale Token-Permissions, SAST/CodeQL, OSV-Scanner, Gitleaks, Renovate, Security-Policy) |
+| 101 | Barrierefreiheit ab Tag 1 | 29 verschärfte WAI-ARIA-/JSX-Regeln in `biome.json` sowie automatisierte WCAG-2.2-AAA-Kontrast- und Semantik-Tests ab Meilenstein 1 |
+| 102 | Kein vorzeitiges Auto-Close | Keine `Closes #...`-Schlüsselwörter in PR-Beschreibungen verwenden, bevor nicht alle Checkboxen im Ziel-Issue verifiziert und auf `[x]` gesetzt sind |
+| 103 | Kanonische Wiki-Struktur | 8 nummerierte deutsche Kapitel (`1-Systemarchitektur.md` bis `8-Loom-Praesentations-Leitfaden.md`) plus `Home.md`, `_Sidebar.md` und `_Footer.md` |
+| 104 | Gestaffelte Releases | 6 semantische Releases (`v0.1.0`, `v0.2.0`, `v0.3.0`, `v0.4.0`, `v0.5.0`, `v1.0.0`) passend zum Projektfortschritt; `v0.1.0` nach Abschluss von Block 1 |
+| 105 | Release `v0.1.0` nach Block 1 | Veröffentlichung von `v0.1.0` (`Foundation, CI, OpenSSF, Architecture Docs & Wiki`) direkt nach Merge von PR #5 und Abschluss aller 20 Block-1-Issues |
+| 106 | Keine externen Kosten-Dienste | Keine kostenpflichtigen Drittanbieter-Vektordatenbanken oder Auth-SaaS; alles nativ über D1, R2, Durable Objects und WebCrypto |
+| 107 | **100 % Code-Coverage & Alle Testarten ab Meilenstein 1** | `vitest.config.ts` erzwingt **`lines: 100, functions: 100, branches: 100, statements: 100`**; Unit-, Integrations-, Contract-, Property-Based/Fuzz- (`fast-check`), Security-, A11y-, Performance- und Encoding-Tests sind bereits in Block 1 aktiv |
+| 108 | **Sauberes Root-Verzeichnis (`.github/`-Bündelung)** | Alle Community-, Governance- und Tool-Konfigurationsdateien (`SECURITY.md`, `SUPPORT.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CITATION.cff`, `CODEOWNERS`, `FUNDING.yml`, `PULL_REQUEST_TEMPLATE.md`, `ISSUE_TEMPLATE/*`, `dependabot.yml`, `renovate.json`, `release.yml`, `gitleaks.toml`) liegen sauber gebündelt unter **`.github/`** statt lose im Repository-Root |
+| 109 | **Striktes Emoji-Verbot (Kein Emoji-KI-Slop)** | Keine Emojis (`/\p{Extended_Pictographic}/u`) in `README.md`, `CHANGELOG.md`, `docs/**`, `.github/**`, GitHub Wiki, Code, Tests, PRs, Issues oder Release-Notes. Stattdessen klare Typografie, Standard-Checklisten (`- [x]` / `- [ ]`) und im UI ausschließlich saubere SVG-Icons; automatisiert erzwungen durch `encoding.test.ts` |
+| 110 | **Theme-adaptive Grafiken für Light & Dark Mode (`<picture>` + `-light.svg` / `-dark.svg`)** | Alle SVG-Architekturdiagramme und Banner unter `docs/assets/` enthalten eingebettete `@media (prefers-color-scheme: dark)`-Regeln UND liegen als dedizierte `*-light.svg`- und `*-dark.svg`-Varianten vor; in `README.md`, `docs/*.md` und im GitHub Wiki werden alle Grafiken über das `<picture>`-Element mit `prefers-color-scheme: dark` und `prefers-color-scheme: light` eingebunden und per Test (`encoding.test.ts`) verifiziert |
+

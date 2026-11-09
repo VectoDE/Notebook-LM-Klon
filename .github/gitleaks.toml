@@ -1,0 +1,12 @@
+title = "RelationNotes Gitleaks Configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist for non-secret benchmark and test fixtures"
+paths = [
+  '''apps/worker/src/crypto-benchmark\.ts''',
+  '''packages/shared/src/__tests__/.*''',
+  '''apps/worker/src/__tests__/.*'''
+]

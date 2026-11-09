@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Vertrauliche Sicherheitslücke melden (Private Vulnerability Reporting)
+    url: https://github.com/VectoDE/Notebook-LM-Klon/security/advisories/new
+    about: Melde Sicherheitslücken vertraulich über GitHub Security Advisories (Coordinated Vulnerability Disclosure gemäß .github/SECURITY.md).
+  - name: Architektur- & FAQ-Diskussionen (GitHub Discussions)
+    url: https://github.com/VectoDE/Notebook-LM-Klon/discussions
+    about: Stelle Fragen zu Systemarchitektur, Hybrid-RAG, RelationFlow-Integration oder Cloudflare-Setup.
+  - name: Offizielles Projekthandbuch & GitHub Wiki
+    url: https://github.com/VectoDE/Notebook-LM-Klon/wiki
+    about: Lies die 8 illustrierten Architektur-, Sicherheits-, Barrierefreiheits- und Präsentations-Leitfäden.

@@ -7,13 +7,13 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
-      include: ["packages/shared/src/**/*.ts", "apps/worker/src/**/*.ts"],
+      include: ["packages/shared/src/**/*.ts", "apps/worker/src/**/*.ts", "apps/web/src/App.tsx"],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {
-        lines: 90,
-        functions: 90,
-        branches: 90,
-        statements: 90
+        lines: 100,
+        functions: 100,
+        branches: 100,
+        statements: 100
       }
     }
   }

@@ -1,0 +1,46 @@
+name: Wiki Sync – Documentation & Visual Assets
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "docs/**"
+      - "README.md"
+      - ".github/workflows/wiki-sync.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wiki-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync-wiki:
+    name: Synchronize docs/ to GitHub Wiki
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Clone & update GitHub Wiki repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" /tmp/wiki || exit 0
+          if [ -d "/tmp/wiki/.git" ]; then
+            cp -r docs/wiki/* /tmp/wiki/
+            mkdir -p /tmp/wiki/assets
+            cp -r docs/assets/*.svg /tmp/wiki/assets/
+            cd /tmp/wiki
+            git config user.name "VectoDE"
+            git config user.email "VectoDE@users.noreply.github.com"
+            git add -A
+            if ! git diff --cached --quiet; then
+              git commit -m "docs(wiki): synchronize architecture handbook and SVG diagrams"
+              git push origin master || git push origin main
+            fi
+          fi

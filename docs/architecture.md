@@ -2,7 +2,11 @@
 
 Stand: 2026-11-09 · Referenzen: Entscheidungen #4, #7, #11, #17, #18, #21, #22, #50
 
-![Architektur-Gesamtübersicht](./assets/architecture-overview.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/architecture-overview-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="./assets/architecture-overview-light.svg">
+  <img alt="Architektur-Gesamtübersicht" src="./assets/architecture-overview-light.svg" width="100%">
+</picture>
 
 ## 1. Leitprinzipien der Architektur
 

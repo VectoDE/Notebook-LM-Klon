@@ -1,0 +1,30 @@
+# Automated Release Notes Categorization – RelationNotes
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+  categories:
+    - title: "Features & Studio Capabilities"
+      labels:
+        - "type:feat"
+        - "area:frontend"
+        - "area:studio"
+        - "area:rag"
+    - title: "Security, Privacy & Compliance"
+      labels:
+        - "type:security"
+        - "area:security"
+    - title: "Accessibility (WCAG 2.2 AAA)"
+      labels:
+        - "area:a11y"
+    - title: "Bug Fixes & Stability"
+      labels:
+        - "type:fix"
+    - title: "Documentation, Architecture & OpenSSF"
+      labels:
+        - "type:docs"
+        - "type:ci"
+        - "type:chore"
+    - title: "Other Changes"
+      labels:
+        - "*"

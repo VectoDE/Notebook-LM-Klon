@@ -1,6 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" width="1200" height="520" role="img" aria-labelledby="sec-title sec-desc">
   <title id="sec-title">Defense-in-Depth Sicherheits-, Datenschutz- und Compliance-Schichten</title>
   <desc id="sec-desc">Vier Sicherheits- und Rechts-Säulen: 1. Edge- &amp; Transport-Sicherheit (Turnstile, CSP, Trusted Types, HSTS), 2. Authentifizierung &amp; Kryptografie (WebAuthn Passkeys, AES-256-GCM BYOK Envelope Encryption, SSRF-Guard), 3. EU-Recht &amp; Datenschutz (DSGVO Art. 15/17/20, EU AI Act Art. 50, TDDDG, DDG), 4. Barrierefreiheit &amp; Supply-Chain (WCAG 2.2 AAA, OpenSSF Scorecard, CodeQL, osv-scanner).</desc>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg-primary: #FAF8F5;
+      --bg-card: #FFFFFF;
+      --text-primary: #141413;
+      --text-secondary: #3D3935;
+      --border-subtle: #CBD5E1;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #0B0F17;
+        --bg-card: #1E293B;
+        --text-primary: #F8FAFC;
+        --text-secondary: #94A3B8;
+        --border-subtle: #334155;
+      }
+    }
+  </style>
   <defs>
     <linearGradient id="secBg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#090D16" />

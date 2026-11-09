@@ -1,0 +1,7 @@
+# Global Repository Ownership – RelationNotes (NotebookLM & RelationFlow Knowledge Studio)
+* @VectoDE
+/.github/ @VectoDE
+/apps/worker/ @VectoDE
+/apps/web/ @VectoDE
+/packages/shared/ @VectoDE
+/docs/ @VectoDE

@@ -39,9 +39,10 @@ describe("GitHub Actions Security & SHA-Pinning Policy (#4, #56)", () => {
     expect(codeql).toContain("github/codeql-action/analyze@");
   });
 
-  it("validates renovate.json configuration for pinned dependencies and GitHub Action SHA digests (#58)", () => {
-    const renovatePath = join(REPO_ROOT, "renovate.json");
+  it("validates .github/renovate.json configuration for pinned dependencies and GitHub Action SHA digests (#58, #108)", () => {
+    const renovatePath = join(REPO_ROOT, ".github/renovate.json");
     expect(existsSync(renovatePath)).toBe(true);
+    expect(existsSync(join(REPO_ROOT, "renovate.json"))).toBe(false);
     const renovate = JSON.parse(readFileSync(renovatePath, "utf-8")) as {
       extends: string[];
       rangeStrategy: string;

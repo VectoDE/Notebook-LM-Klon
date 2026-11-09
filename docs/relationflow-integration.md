@@ -2,7 +2,11 @@
 
 Stand: 2026-11-09 · Referenzen: Entscheidungen #37, #40, #61, #63, #87, #88
 
-![RelationFlow Bridge-Architektur](./assets/relationflow-bridge.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/relationflow-bridge-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="./assets/relationflow-bridge-light.svg">
+  <img alt="RelationFlow Bridge-Architektur" src="./assets/relationflow-bridge-light.svg" width="100%">
+</picture>
 
 ## 1. Hintergrund & Strategische Passung
 

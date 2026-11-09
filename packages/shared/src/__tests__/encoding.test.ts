@@ -1,5 +1,5 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { extname, join, relative } from "node:path";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { dirname, extname, join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { inspectTextEncoding } from "../encoding.js";
 
@@ -35,7 +35,8 @@ const TEXT_EXTENSIONS = new Set([
   ".txt",
   ".vtt",
   ".webmanifest",
-  ".cff"
+  ".cff",
+  ".toml"
 ]);
 
 const TEXT_FILENAMES = new Set([
@@ -115,5 +116,82 @@ describe("UTF-8 & Anti-Mojibake Repository Guard", () => {
     }
 
     expect(violations).toEqual([]);
+  });
+
+  it("enforces strict zero-emoji policy across all repository files (Decision #109)", () => {
+    const files = collectTextFiles(REPO_ROOT);
+    const emojiRegex = /\p{Extended_Pictographic}/gu;
+    const emojiViolations: string[] = [];
+
+    for (const filePath of files) {
+      const relPath = relative(REPO_ROOT, filePath);
+      const content = readFileSync(filePath, "utf-8");
+      const matches = content.match(emojiRegex);
+      if (matches && matches.length > 0) {
+        const uniqueEmojis = [...new Set(matches)].join(" ");
+        emojiViolations.push(`${relPath}: contains forbidden emoji(s): ${uniqueEmojis}`);
+      }
+    }
+
+    expect(emojiViolations).toEqual([]);
+  });
+
+  it("enforces theme-adaptive <picture> Light & Dark Mode SVG embedding across README.md, docs/ and wiki (Decision #110)", () => {
+    const markdownFiles = collectTextFiles(REPO_ROOT).filter((f) => f.endsWith(".md"));
+    const emojiRegex = /\p{Extended_Pictographic}/gu;
+
+    for (const mdPath of markdownFiles) {
+      const relMd = relative(REPO_ROOT, mdPath);
+      const content = readFileSync(mdPath, "utf-8");
+
+      // Disallow raw ![alt](...assets/*.svg) markdown embeds; must use <picture> with light & dark sources
+      const rawMarkdownSvgMatch = content.match(/!\[[^\]]*\]\([^)]*assets\/[^)]+\.svg\)/);
+      expect(
+        rawMarkdownSvgMatch,
+        `${relMd} uses raw Markdown image syntax instead of theme-adaptive <picture>`
+      ).toBeNull();
+
+      const pictureBlocks = [...content.matchAll(/<picture>([\s\S]*?)<\/picture>/g)];
+      for (const match of pictureBlocks) {
+        const block = match[1] ?? "";
+        const darkMatch = block.match(
+          /<source[^>]*media="\(prefers-color-scheme:\s*dark\)"[^>]*srcset="([^"]+)"/
+        );
+        const lightMatch = block.match(
+          /<source[^>]*media="\(prefers-color-scheme:\s*light\)"[^>]*srcset="([^"]+)"/
+        );
+        const imgMatch = block.match(/<img[^>]*src="([^"]+)"/);
+
+        expect(darkMatch, `${relMd} <picture> missing dark source`).not.toBeNull();
+        expect(lightMatch, `${relMd} <picture> missing light source`).not.toBeNull();
+        expect(imgMatch, `${relMd} <picture> missing fallback img`).not.toBeNull();
+
+        const darkSrc = darkMatch?.[1] ?? "";
+        const lightSrc = lightMatch?.[1] ?? "";
+        expect(darkSrc.endsWith("-dark.svg"), `${relMd}: ${darkSrc} must end with -dark.svg`).toBe(
+          true
+        );
+        expect(
+          lightSrc.endsWith("-light.svg"),
+          `${relMd}: ${lightSrc} must end with -light.svg`
+        ).toBe(true);
+
+        // Resolve paths (for docs/wiki/*, ./assets/* maps to docs/assets/*)
+        const baseDir = relMd.replace(/\\/g, "/").startsWith("docs/wiki/")
+          ? join(REPO_ROOT, "docs")
+          : dirname(mdPath);
+
+        for (const svgRel of [darkSrc, lightSrc]) {
+          const resolvedSvg = resolve(baseDir, svgRel);
+          expect(existsSync(resolvedSvg), `Missing SVG referenced in ${relMd}: ${svgRel}`).toBe(
+            true
+          );
+          const svgText = readFileSync(resolvedSvg, "utf-8");
+          expect(svgText).toContain("<svg");
+          expect(svgText).toContain("prefers-color-scheme: dark");
+          expect(svgText.match(emojiRegex)).toBeNull();
+        }
+      }
+    }
   });
 });

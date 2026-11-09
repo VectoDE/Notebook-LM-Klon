@@ -1,6 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" width="1200" height="680" role="img" aria-labelledby="arch-title arch-desc">
   <title id="arch-title">NotebookLM Klon – Single-Worker Edge-Architektur</title>
   <desc id="arch-desc">Architekturübersicht: Browser PWA mit Web Worker für Parsing/OCR, Cloudflare Single-Worker mit Hono API, D1 SQLite Datenbank, R2 Medienspeicher, NotebookDO und JobDO sowie Multi-LLM-Provider.</desc>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg-primary: #FAF8F5;
+      --bg-card: #FFFFFF;
+      --text-primary: #141413;
+      --text-secondary: #3D3935;
+      --border-subtle: #CBD5E1;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #0B0F17;
+        --bg-card: #1E293B;
+        --text-primary: #F8FAFC;
+        --text-secondary: #94A3B8;
+        --border-subtle: #334155;
+      }
+    }
+  </style>
   <defs>
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#0B0F17" />
