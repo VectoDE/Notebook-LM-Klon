@@ -7,7 +7,10 @@ import {
   type SqliteDurableObjectState
 } from "../index.js";
 
-function createMockSqliteState(id: string): {
+function createMockSqliteState(
+  id: string,
+  emptySelectResult = false
+): {
   state: SqliteDurableObjectState;
   executedQueries: string[];
 } {
@@ -19,7 +22,7 @@ function createMockSqliteState(id: string): {
         exec: (query: string) => {
           executedQueries.push(query);
           return {
-            toArray: () => [{ ok: 1 }]
+            toArray: () => (emptySelectResult ? [] : [{ ok: 1 }])
           };
         }
       }
@@ -80,5 +83,14 @@ describe("SQLite Durable Objects (NotebookDO & JobDO)", () => {
     expect(notFoundRes.status).toBe(404);
     const problem = ProblemDetailsSchema.parse(await notFoundRes.json());
     expect(problem.code).toBe("DO_ROUTE_NOT_FOUND");
+
+    // Degraded SQLite health check branch (503) for both DOs
+    const degradedNotebook = new NotebookDO(createMockSqliteState("nb-deg", true).state, {} as Env);
+    const degNbRes = await degradedNotebook.fetch(new Request("https://do.internal/health"));
+    expect(degNbRes.status).toBe(503);
+
+    const degradedJob = new JobDO(createMockSqliteState("job-deg", true).state, {} as Env);
+    const degJobRes = await degradedJob.fetch(new Request("https://do.internal/health"));
+    expect(degJobRes.status).toBe(503);
   });
 });

@@ -2,7 +2,11 @@
 
 Stand: 2026-11-09 · Verifiziert durch automatisierte Tests (`fts5-probe.test.ts`, `crypto-benchmark.test.ts`)
 
-![Single-Worker Edge-Architektur](./assets/architecture-overview.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/architecture-overview-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="./assets/architecture-overview-light.svg">
+  <img alt="Single-Worker Edge-Architektur" src="./assets/architecture-overview-light.svg" width="100%">
+</picture>
 
 ## 1. Übersicht der harten Plattform-Grenzen (Cloudflare Free vs. Paid)
 

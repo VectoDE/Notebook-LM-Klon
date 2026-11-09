@@ -89,7 +89,7 @@ describe("Configuration Profiles (demo vs. full) & /api/v1/health Endpoint", () 
     });
   });
 
-  it("reports degraded status when D1 ping fails during health check", async () => {
+  it("reports degraded status when D1 ping fails or R2/DO bindings are missing during health check", async () => {
     const app = createApp();
     const env = createMockEnv({ APP_PROFILE: "full", d1Fail: true });
 
@@ -100,6 +100,18 @@ describe("Configuration Profiles (demo vs. full) & /api/v1/health Endpoint", () 
     expect(parsed.status).toBe("degraded");
     expect(parsed.profile).toBe("full");
     expect(parsed.services.d1).toBe("down");
+
+    const missingBindingsEnv = {
+      ...createMockEnv({ APP_PROFILE: "demo" }),
+      MEDIA: undefined as unknown as R2Bucket,
+      NOTEBOOK_DO: undefined as unknown as Env["NOTEBOOK_DO"]
+    };
+    const missingRes = await app.request("/api/v1/health", { method: "GET" }, missingBindingsEnv);
+    expect(missingRes.status).toBe(503);
+    const missingParsed = HealthResponseSchema.parse(await missingRes.json());
+    expect(missingParsed.status).toBe("degraded");
+    expect(missingParsed.services.r2).toBe("down");
+    expect(missingParsed.services.durableObjects).toBe("down");
   });
 
   it("returns RFC 9457 ProblemDetails JSON on unknown /api/* routes", async () => {

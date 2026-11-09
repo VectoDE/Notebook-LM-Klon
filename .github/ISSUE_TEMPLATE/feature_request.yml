@@ -1,0 +1,30 @@
+name: Feature Request / Erweiterungsvorschlag
+description: Schlage eine funktionale Erweiterung, ein neues Studio-Artefakt oder eine RelationFlow-Graph-Integration vor.
+title: "[FEAT] "
+labels: ["type:feat", "status:triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Beschreibe deinen Vorschlag für **RelationNotes – NotebookLM & RelationFlow Knowledge Studio**.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problemstellung & Nutzen
+      description: Welches konkrete Problem im Forschungs- oder Wissens-Workflow löst dieses Feature?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Vorgeschlagene Lösung & Architektur-Einbettung
+      description: Wie fügt sich die Erweiterung in das Cloudflare-Free-Tier-Budget (10 ms CPU, D1, R2, Durable Objects) und WCAG 2.2 AAA ein?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Akzeptanzkriterien & TDD-Tests
+      description: Welche automatisierten Tests (Unit, Integration, Property, A11y) belegen die korrekte Umsetzung?
+    validations:
+      required: true

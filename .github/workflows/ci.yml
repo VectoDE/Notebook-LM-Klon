@@ -43,7 +43,7 @@ jobs:
       - name: Run TypeScript strict typecheck
         run: pnpm typecheck
 
-      - name: Run Vitest unit & worker test suite with coverage gate (>=90%)
+      - name: Run Vitest unit & worker test suite with coverage gate (100%)
         run: pnpm test:coverage
 
       - name: Build production bundles
@@ -64,6 +64,7 @@ jobs:
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .github/gitleaks.toml
 
       - name: Run OSV-Scanner on pnpm-lock.yaml
         run: |

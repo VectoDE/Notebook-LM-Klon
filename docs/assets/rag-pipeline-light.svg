@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 540" width="1200" height="540" role="img" aria-labelledby="rag-title rag-desc">
+  <title id="rag-title">Hybrid RAG &amp; int8-Vektorsuche in Cloudflare D1 + NotebookDO</title>
+  <desc id="rag-desc">Fünfstufige Pipeline: 1. Browser-Chunking, 2. 768d Embeddings und symmetrische int8-Quantisierung, 3. Speicherung in D1 + FTS5-Index, 4. Hybrid-Suche via NotebookDO In-Memory Dot-Product und D1 FTS5 BM25 mit Reciprocal Rank Fusion, 5. Zitat-validierter SSE-Chat.</desc>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg-primary: #FAF8F5;
+      --bg-card: #FFFFFF;
+      --text-primary: #141413;
+      --text-secondary: #3D3935;
+      --border-subtle: #334155;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #FAF8F5;
+        --bg-card: #F8FAFC;
+        --text-primary: #141413;
+        --text-secondary: #475569;
+        --border-subtle: #CBD5E1;
+      }
+    }
+  </style>
+  <defs>
+    <linearGradient id="ragBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FAF8F5" />
+      <stop offset="100%" stop-color="#F3EFEA" />
+    </linearGradient>
+    <marker id="ragArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284C7" />
+    </marker>
+  </defs>
+
+  <rect width="1200" height="540" rx="20" fill="url(#ragBg)" />
+
+  <text x="48" y="52" fill="#141413" font-family="system-ui, -apple-system, sans-serif" font-size="23" font-weight="700">Hybrid-RAG-Pipeline: 768d int8-Quantisierung + D1 FTS5 BM25 + Reciprocal Rank Fusion (RRF)</text>
+  <text x="48" y="78" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="14">75 % Speicherersparnis gegenüber Float32 · 0 ms Worker-CPU-Belastung beim Vektor-Scoring · Recall@10 ≥ 0,98</text>
+
+  <!-- Step 1 -->
+  <rect x="40" y="115" width="205" height="370" rx="14" fill="#F8FAFC" stroke="#0284C7" stroke-width="1.5" />
+  <text x="58" y="148" fill="#0284C7" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700">1. Browser-Ingest</text>
+  <text x="58" y="176" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• PDF / DOCX / MD / OCR</text>
+  <text x="58" y="198" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• Im Web Worker geparst</text>
+  <text x="58" y="220" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• Token-bewusstes Chunking:</text>
+  <text x="58" y="240" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">  ≈ 800 Tokens / Chunk</text>
+  <text x="58" y="258" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">  100 Tokens Überlappung</text>
+  <text x="58" y="284" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• Metadaten je Chunk:</text>
+  <text x="58" y="304" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">  page, start_ms, ord</text>
+
+  <!-- Step 2 -->
+  <rect x="270" y="115" width="215" height="370" rx="14" fill="#F8FAFC" stroke="#4338CA" stroke-width="1.5" />
+  <text x="288" y="148" fill="#4338CA" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700">2. 768d → int8 Quant</text>
+  <text x="288" y="176" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• gemini-embedding-001</text>
+  <text x="288" y="196" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">  oder nomic-embed-text</text>
+  <text x="288" y="222" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• Symmetrische Quantisierung:</text>
+  <rect x="288" y="236" width="179" height="58" rx="8" fill="#FFFFFF" stroke="#CBD5E1" />
+  <text x="298" y="258" fill="#0284C7" font-family="monospace" font-size="11">scale = max(|v_i|) / 127</text>
+  <text x="298" y="278" fill="#047857" font-family="monospace" font-size="11">q_i = round(v_i / scale)</text>
+  <text x="288" y="320" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• Float32: 3.072 Bytes</text>
+  <text x="288" y="340" fill="#047857" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">• Int8 BLOB: 768 Bytes (-75%)</text>
+
+  <!-- Step 3 -->
+  <rect x="510" y="115" width="215" height="370" rx="14" fill="#F8FAFC" stroke="#047857" stroke-width="1.5" />
+  <text x="528" y="148" fill="#047857" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700">3. D1 Persistenz &amp; FTS5</text>
+  <text x="528" y="176" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• Tabelle chunks (Text, Seite)</text>
+  <text x="528" y="198" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• Tabelle chunk_vectors:</text>
+  <text x="528" y="218" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">  768-Byte BLOB + scale REAL</text>
+  <text x="528" y="244" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• Virtuelle Tabelle chunks_fts:</text>
+  <text x="528" y="264" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">  USING fts5(unicode61)</text>
+  <text x="528" y="284" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">  Sync-Trigger (AI / AU / AD)</text>
+  <text x="528" y="314" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• 5.000 Chunks ≈ 3,8 MB</text>
+
+  <!-- Step 4 -->
+  <rect x="750" y="115" width="205" height="370" rx="14" fill="#F8FAFC" stroke="#B45309" stroke-width="1.5" />
+  <text x="768" y="148" fill="#B45309" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700">4. Hybrid RRF Suche</text>
+  <text x="768" y="176" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• Pfad A (Semantisch):</text>
+  <text x="768" y="196" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">  NotebookDO hält Int8Array</text>
+  <text x="768" y="214" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">  im RAM → Dot-Product &lt; 3 ms</text>
+  <text x="768" y="242" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• Pfad B (Lexikalisch):</text>
+  <text x="768" y="262" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">  D1 FTS5 MATCH + bm25()</text>
+  <text x="768" y="290" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• Fusion via RRF (k=60):</text>
+  <rect x="768" y="304" width="169" height="36" rx="6" fill="#FFFFFF" stroke="#CBD5E1" />
+  <text x="776" y="326" fill="#B45309" font-family="monospace" font-size="11">1/(60+r_vec) + 1/(60+r_fts)</text>
+
+  <!-- Step 5 -->
+  <rect x="980" y="115" width="180" height="370" rx="14" fill="#F8FAFC" stroke="#BE185D" stroke-width="1.5" />
+  <text x="998" y="148" fill="#BE185D" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700">5. Grounded Chat</text>
+  <text x="998" y="176" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• Top-k Chunks als</text>
+  <text x="998" y="194" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">  nummerierter Kontext</text>
+  <text x="998" y="220" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• Halluzinations-Check:</text>
+  <text x="998" y="240" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">  Jedes [n]-Zitat wird gegen</text>
+  <text x="998" y="258" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">  reale Chunk-IDs geprüft</text>
+  <text x="998" y="286" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">• 1-Klick-Sprung zur</text>
+  <text x="998" y="304" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12">  Fundstelle / Zeitmarke</text>
+
+  <!-- Arrows -->
+  <line x1="245" y1="300" x2="266" y2="300" stroke="#0284C7" stroke-width="2" marker-end="url(#ragArrow)" />
+  <line x1="485" y1="300" x2="506" y2="300" stroke="#0284C7" stroke-width="2" marker-end="url(#ragArrow)" />
+  <line x1="725" y1="300" x2="746" y2="300" stroke="#0284C7" stroke-width="2" marker-end="url(#ragArrow)" />
+  <line x1="955" y1="300" x2="976" y2="300" stroke="#0284C7" stroke-width="2" marker-end="url(#ragArrow)" />
+</svg>

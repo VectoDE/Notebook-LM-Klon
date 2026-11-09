@@ -2,7 +2,11 @@
 
 Stand: 2026-11-09 · Referenzen: Entscheidungen #7, #22, #40, #58
 
-![Hybrid-RAG-Pipeline](./assets/rag-pipeline.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/rag-pipeline-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="./assets/rag-pipeline-light.svg">
+  <img alt="Hybrid-RAG-Pipeline" src="./assets/rag-pipeline-light.svg" width="100%">
+</picture>
 
 ## 1. Warum keine externe Vektordatenbank (kein Vectorize / Pinecone)?
 

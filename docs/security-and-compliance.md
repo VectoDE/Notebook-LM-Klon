@@ -4,7 +4,11 @@ Stand: 2026-11-09 · Referenzen: Entscheidungen #5, #6, #8, #31, #32, #33, #49, 
 
 > **Rechtlicher Hinweis:** Die juristischen und regulatorischen Ausarbeitungen in diesem Projekt stellen eine sorgfältige technische Vorprüfung nach bestem Engineering-Standard dar, ersetzen jedoch im Produktivbetrieb keine Rechtsberatung durch eine Kanzlei.
 
-![Defense-in-Depth Sicherheits- & Compliance-Schichten](./assets/security-layers.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/security-layers-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="./assets/security-layers-light.svg">
+  <img alt="Defense-in-Depth Sicherheits- & Compliance-Schichten" src="./assets/security-layers-light.svg" width="100%">
+</picture>
 
 ## 1. Kryptografisches Konzept: BYOK Envelope Encryption (`AES-256-GCM`)
 

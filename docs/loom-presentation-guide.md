@@ -21,7 +21,11 @@ Dieser Leitfaden ist exakt auf eine **10-minütige Loom-Präsentation** zugeschn
 
 ## Schaubild 1 für Minute 5:15 – Gesamtsystem auf einen Blick
 
-![Single-Worker Edge-Architektur](./assets/architecture-overview.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/architecture-overview-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="./assets/architecture-overview-light.svg">
+  <img alt="Single-Worker Edge-Architektur" src="./assets/architecture-overview-light.svg" width="100%">
+</picture>
 
 **Sprechpunkte dazu:**
 - *„Anstatt fünf separate Cloud-Dienste zu mieten, läuft die gesamte Anwendung in **einem einzigen Cloudflare Worker** mit **einer D1-SQLite-Datenbank** und **einem R2-Bucket**.“*
@@ -31,7 +35,11 @@ Dieser Leitfaden ist exakt auf eine **10-minütige Loom-Präsentation** zugeschn
 
 ## Schaubild 2 für Minute 6:15 – Warum unsere Hybrid-Vektorsuche so schnell ist
 
-![Hybrid-RAG-Pipeline](./assets/rag-pipeline.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/rag-pipeline-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="./assets/rag-pipeline-light.svg">
+  <img alt="Hybrid-RAG-Pipeline" src="./assets/rag-pipeline-light.svg" width="100%">
+</picture>
 
 **Sprechpunkte dazu:**
 - *„Wir speichern 768-dimensionale Embeddings symmetrisch `int8`-quantisiert in D1. Das spart **75 % Speicherplatz** (768 Bytes statt 3 KB pro Chunk).“*
@@ -41,7 +49,11 @@ Dieser Leitfaden ist exakt auf eine **10-minütige Loom-Präsentation** zugeschn
 
 ## Schaubild 3 für Minute 7:30 – Das Andock-Konzept an Everlasts RelationFlow
 
-![RelationFlow Bridge-Architektur](./assets/relationflow-bridge.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/relationflow-bridge-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="./assets/relationflow-bridge-light.svg">
+  <img alt="RelationFlow Bridge-Architektur" src="./assets/relationflow-bridge-light.svg" width="100%">
+</picture>
 
 **Sprechpunkte dazu:**
 - *„Ich habe mir RelationFlow genau angesehen: Team-Workspaces mit Rollen, Multi-Modell-Auswahl inklusive Auto-Routing und DSGVO-konformes EU-Hosting.“*
@@ -51,7 +63,11 @@ Dieser Leitfaden ist exakt auf eine **10-minütige Loom-Präsentation** zugeschn
 
 ## Schaubild 4 für Minute 8:15 – Security, DSGVO, EU AI Act & WCAG 2.2 AAA
 
-![Defense-in-Depth Sicherheits- & Compliance-Schichten](./assets/security-layers.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/security-layers-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="./assets/security-layers-light.svg">
+  <img alt="Defense-in-Depth Sicherheits- & Compliance-Schichten" src="./assets/security-layers-light.svg" width="100%">
+</picture>
 
 **Sprechpunkte dazu:**
 - *„Nutzer-API-Keys werden per `AES-256-GCM` mit zusätzlichem Kontext-Binding (`AAD`) verschlüsselt; Passkeys schützen vor Phishing und erfüllen gleichzeitig WCAG 2.2 Accessible Authentication.“*

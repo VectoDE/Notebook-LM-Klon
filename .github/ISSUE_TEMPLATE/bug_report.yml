@@ -1,0 +1,48 @@
+name: Bug Report / Fehlerbericht
+description: Melde einen reproduzierbaren Fehler, ein Encoding-Problem oder eine Barrierefreiheits-Abweichung in RelationNotes.
+title: "[BUG] "
+labels: ["type:fix", "status:triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Vielen Dank für deine Fehlermeldung zu **RelationNotes – NotebookLM & RelationFlow Knowledge Studio**. Bitte fülle die folgenden Felder präzise aus.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Betroffener Bereich
+      options:
+        - "Frontend / 3-Spalten-Workspace (apps/web)"
+        - "Cloudflare Worker / API / Durable Objects (apps/worker)"
+        - "Hybrid-RAG / FTS5 / Int8-Vektorsuche"
+        - "RelationFlow Knowledge-Graph-Brücke"
+        - "Studio-Synthese (Audio, Video, Mindmap, Lernkarten, Quiz)"
+        - "Barrierefreiheit (WCAG 2.2 AAA / Screenreader / Tastatur)"
+        - "Dokumentation / GitHub Wiki / Encoding (UTF-8)"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Schritte zur Reproduktion
+      description: Wie lässt sich das Fehlverhalten zuverlässig nachstellen?
+      placeholder: |
+        1. Öffne Notebook ...
+        2. Klicke auf ...
+        3. Beobachte Fehler ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes Verhalten
+      description: Was hätte laut Spezifikation passieren sollen?
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Umgebung (Browser, OS, Deployment-Profil)
+      placeholder: "z. B. Windows 11, Chrome 134, APP_PROFILE=demo"
+    validations:
+      required: true
