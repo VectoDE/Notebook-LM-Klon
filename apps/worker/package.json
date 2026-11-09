@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "wrangler dev",
+    "types": "wrangler types ./src/worker-configuration.d.ts",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   },

@@ -14,7 +14,8 @@
       "coverage",
       ".wrangler",
       "pnpm-lock.yaml",
-      "*.tsbuildinfo"
+      "*.tsbuildinfo",
+      "apps/worker/src/worker-configuration.d.ts"
     ]
   },
   "formatter": {
