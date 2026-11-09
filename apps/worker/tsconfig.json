@@ -3,9 +3,9 @@
   "compilerOptions": {
     "composite": true,
     "lib": ["ES2023"],
-    "types": ["@cloudflare/workers-types", "node"],
+    "types": ["./src/worker-configuration.d.ts", "node"],
     "rootDir": "./src",
     "outDir": "./dist"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts"]
 }
