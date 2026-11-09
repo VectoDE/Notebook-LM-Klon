@@ -16,6 +16,9 @@ export async function runWorkerCryptoBenchmark(iterations = 25): Promise<CryptoB
   const encoder = new TextEncoder();
   const sampleToken = encoder.encode("session-token-sample-payload-for-sha256-benchmark");
 
+  // Warmup WebCrypto engine to avoid one-time OpenSSL/V8 lazy initialization jitter
+  await crypto.subtle.digest("SHA-256", sampleToken);
+
   // 1. SHA-256 benchmark
   const shaStart = performance.now();
   for (let i = 0; i < iterations; i++) {
