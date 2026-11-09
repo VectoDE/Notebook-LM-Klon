@@ -18,7 +18,7 @@ export interface DatabaseAdapter {
 }
 
 export class CoreRepository {
-  constructor(private readonly db: DatabaseAdapter) {}
+  constructor(readonly db: DatabaseAdapter) {}
 
   async createUser(user: UserRow): Promise<void> {
     await this.db.run(
@@ -138,6 +138,10 @@ export class CoreRepository {
       "SELECT * FROM notebooks WHERE workspace_id = ? ORDER BY updated_at DESC",
       [workspaceId]
     );
+  }
+
+  async getNotebookById(notebookId: string): Promise<NotebookRow | null> {
+    return this.db.queryOne<NotebookRow>("SELECT * FROM notebooks WHERE id = ?", [notebookId]);
   }
 
   async getQuota(userId: string): Promise<QuotaRow | null> {
