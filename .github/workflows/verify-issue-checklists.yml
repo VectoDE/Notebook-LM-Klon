@@ -1,0 +1,60 @@
+name: Verify Issue Checklists Gate
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: ["main"]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  verify-subissue-checklists:
+    name: Enforce Checked Sub-Issues Before Merge
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Check referenced Sub-Issues for unchecked items
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - << 'EOF'
+          import json, os, re, subprocess, sys
+
+          pr_body = os.environ.get("PR_BODY") or ""
+          repo = os.environ["REPO"]
+
+          sub_refs = re.findall(r"Sub-Issues?:\s*([^\n]+)", pr_body, flags=re.IGNORECASE)
+          issue_numbers = []
+          for line in sub_refs:
+              issue_numbers.extend(re.findall(r"#(\d+)", line))
+
+          if not issue_numbers:
+              print("No explicit Sub-Issues line found in PR body; checking general issue refs.")
+              sys.exit(0)
+
+          unchecked_errors = []
+          for num in sorted(set(issue_numbers)):
+              out = subprocess.check_output(
+                  ["gh", "issue", "view", num, "--repo", repo, "--json", "number,title,body"],
+                  text=True,
+              )
+              data = json.loads(out)
+              body = data.get("body") or ""
+              if "- [ ]" in body:
+                  unchecked_errors.append(f"Sub-Issue #{num} ({data.get('title')}) still has unchecked '- [ ]' boxes!")
+              else:
+                  print(f"Verified Sub-Issue #{num}: 100% checked ([x]).")
+
+          if unchecked_errors:
+              for err in unchecked_errors:
+                  print(f"::error::{err}")
+              sys.exit(1)
+          EOF
