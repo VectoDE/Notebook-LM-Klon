@@ -5,6 +5,7 @@ import type { MailAdapter } from "./mail-adapter.js";
 import {
   type SessionManager,
   buildSessionCookie,
+  generateSecureRandomId,
   generateSessionToken,
   sha256Hex
 } from "./session.js";
@@ -96,7 +97,7 @@ export function createGuestAndMagicLinkRoutes(
     }
 
     const now = Date.now();
-    const guestId = `usr_guest_${now.toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+    const guestId = `usr_guest_${now.toString(36)}_${generateSecureRandomId(8)}`;
     const guestExpiresAt = now + GUEST_TTL_MS;
 
     // Create guest user in D1
@@ -333,7 +334,7 @@ export function createGuestAndMagicLinkRoutes(
     // Lookup or create permanent user for email
     let user = await opts.repo.getUserByEmail(magicRow.email);
     if (!user) {
-      const newUserId = `usr_${now.toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+      const newUserId = `usr_${now.toString(36)}_${generateSecureRandomId(8)}`;
       const displayName = magicRow.email.slice(0, magicRow.email.indexOf("@"));
       await opts.repo.createUser({
         id: newUserId,

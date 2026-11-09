@@ -58,6 +58,17 @@ export function generateSessionToken(): string {
   return toBase64Url(bytes);
 }
 
+/**
+ * Generates secure CSPRNG random hex string of given byte length.
+ */
+export function generateSecureRandomId(byteLength = 8): string {
+  const bytes = new Uint8Array(byteLength);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 function toBase64Url(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) {
