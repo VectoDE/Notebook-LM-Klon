@@ -92,15 +92,15 @@ describe("HTML Extractor - extractArticleFromHtml", () => {
     expect(article.content).toBe("Just simple text without any headings or titles.");
   });
 
-  it("strips script, style, noscript, template, svg, canvas, iframe and their content even with spaces in end tags", () => {
+  it("strips script, style, noscript, template, svg, canvas, iframe and their content even with spaces or attributes in end tags", () => {
     const html = `
       <html>
         <head>
-          <style>body { color: red; } .hidden { display: none; }</style >
-          <script>console.log("secret script execution");</script  >
+          <style>body { color: red; } .hidden { display: none; }</style bar="baz">
+          <script>console.log("secret script execution");</script\t\n bar>
         </head>
         <body>
-          <noscript><p>Please enable JS</p></noscript >
+          <noscript><p>Please enable JS</p></noscript foo="bar">
           <template><p>Template content</p></template >
           <svg><text>SVG Text</text></svg >
           <canvas>Canvas fallback</canvas >
