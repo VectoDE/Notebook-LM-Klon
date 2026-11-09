@@ -18,6 +18,8 @@ const ALLOWED_ROOT_FILES = new Set([
   ".gitignore",
   ".gitattributes",
   ".editorconfig",
+  ".dockerignore",
+  "docker-compose.yml",
   ".git"
 ]);
 

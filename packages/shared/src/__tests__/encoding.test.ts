@@ -11,6 +11,7 @@ const IGNORED_DIRS = new Set([
   "dist",
   "build",
   "coverage",
+  ".data",
   ".wrangler",
   ".turbo",
   "playwright-report",
@@ -49,11 +50,17 @@ const TEXT_FILENAMES = new Set([
 
 function collectTextFiles(dir: string): string[] {
   const results: string[] = [];
+  if (!existsSync(dir)) {
+    return results;
+  }
   for (const entry of readdirSync(dir)) {
-    if (IGNORED_DIRS.has(entry)) {
+    if (IGNORED_DIRS.has(entry) || entry.startsWith(".data")) {
       continue;
     }
     const fullPath = join(dir, entry);
+    if (!existsSync(fullPath)) {
+      continue;
+    }
     const stat = statSync(fullPath);
     if (stat.isDirectory()) {
       results.push(...collectTextFiles(fullPath));
