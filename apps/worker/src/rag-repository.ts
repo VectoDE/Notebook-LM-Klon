@@ -210,6 +210,14 @@ export class RagRepository {
     );
   }
 
+  async getChatById(id: string): Promise<ChatRow | null> {
+    return this.db.queryOne<ChatRow>("SELECT * FROM chats WHERE id = ?", [id]);
+  }
+
+  async updateChatTimestamp(id: string, updatedAt = Date.now()): Promise<void> {
+    await this.db.run("UPDATE chats SET updated_at = ? WHERE id = ?", [updatedAt, id]);
+  }
+
   async createMessage(msg: MessageRow): Promise<void> {
     await this.db.run(
       `INSERT INTO messages (
