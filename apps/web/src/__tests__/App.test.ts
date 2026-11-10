@@ -33,4 +33,10 @@ describe("RelationNotes Web Shell (App.tsx)", () => {
     const html = renderToStaticMarkup(createElement(App, { initialTool: "quiz" }));
     expect(html).toContain("Studio: Interaktives Quiz");
   });
+
+  it("renders 3-panel workspace layout when mode='workspace'", () => {
+    const html = renderToStaticMarkup(createElement(App, { mode: "workspace" }));
+    expect(html).toContain('data-testid="workspace-shell"');
+    expect(html).toContain('data-testid="workspace-3panel-container"');
+  });
 });

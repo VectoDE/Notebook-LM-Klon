@@ -8,6 +8,7 @@ import type { FunctionComponent } from "react";
 import { FlashcardsViewer } from "./FlashcardsViewer.js";
 import { MindmapViewer } from "./MindmapViewer.js";
 import { QuizViewer } from "./QuizViewer.js";
+import { WorkspaceLayout } from "./WorkspaceLayout.js";
 
 const DEFAULT_MINDMAP: MindmapNode = {
   id: "cf_root",
@@ -71,9 +72,21 @@ const DEFAULT_QUIZ: QuizQuestion[] = [
 
 export interface AppProps {
   readonly initialTool?: "overview" | "mindmap" | "flashcards" | "quiz" | undefined;
+  readonly mode?: "legacy" | "workspace" | undefined;
 }
 
-export const App: FunctionComponent<AppProps> = ({ initialTool = "overview" }: AppProps = {}) => {
+export const App: FunctionComponent<AppProps> = ({
+  initialTool = "overview",
+  mode = "legacy"
+}: AppProps = {}) => {
+  if (mode === "workspace") {
+    return (
+      <main aria-labelledby="app-title">
+        <WorkspaceLayout initialTool={initialTool} />
+      </main>
+    );
+  }
+
   const currentTool = initialTool;
 
   return (
