@@ -224,6 +224,44 @@ export const SearchQueryBodySchema = z.object({
 });
 export type SearchQueryBody = z.infer<typeof SearchQueryBodySchema>;
 
+export const ChatRequestBodySchema = z.object({
+  message: z.string().min(1).max(32_000),
+  chatId: z.string().min(1).optional(),
+  model: z.string().min(1).optional(),
+  sourceIds: z.array(z.string().min(1)).optional(),
+  temperature: z.number().min(0).max(2).optional(),
+  maxChunks: z.number().int().min(1).max(50).default(10)
+});
+export type ChatRequestBody = z.infer<typeof ChatRequestBodySchema>;
+
+export const AiActMetadataSchema = z.object({
+  aiGenerated: z.literal(true),
+  provider: z.string().min(1),
+  model: z.string().min(1),
+  timestamp: z.string().datetime(),
+  latencyMs: z.number().nonnegative().optional()
+});
+export type AiActMetadata = z.infer<typeof AiActMetadataSchema>;
+
+export const ChatMessageItemSchema = z.object({
+  id: z.string().min(1),
+  chatId: z.string().min(1),
+  role: z.enum(["user", "assistant", "system"]),
+  content: z.string(),
+  citations: z.array(z.record(z.string(), z.unknown())).optional().nullable(),
+  latencyMs: z.number().nullable().optional(),
+  tokenUsage: z.record(z.string(), z.unknown()).optional().nullable(),
+  aiGenerated: z.boolean(),
+  createdAt: z.number()
+});
+export type ChatMessageItem = z.infer<typeof ChatMessageItemSchema>;
+
+export const ChatMessagesResponseSchema = z.object({
+  chatId: z.string().min(1),
+  messages: z.array(ChatMessageItemSchema)
+});
+export type ChatMessagesResponse = z.infer<typeof ChatMessagesResponseSchema>;
+
 export const SearchCitationSchema = z.object({
   chunkId: z.string().min(1),
   sourceId: z.string().min(1),
@@ -339,3 +377,6 @@ export * from "./demo/index.js";
 export type * from "./providers.d.js";
 
 export type * from "./models.d.js";
+
+export * from "./chat-context.js";
+export * from "./citation-parser.js";
