@@ -116,5 +116,6 @@ export {
   JobDO,
   NotebookDO,
   type DurableObjectHealthReport,
+  type JobExecutor,
   type SqliteDurableObjectState
 } from "./durable-objects.js";

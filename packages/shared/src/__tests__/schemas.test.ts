@@ -189,4 +189,83 @@ describe("Base Zod Schemas & RFC 9457 ProblemDetails", () => {
     expect(defaultRrf[0]?.score1).toBeUndefined();
     expect(defaultRrf[0]?.score2).toBeUndefined();
   });
+
+  it("validates JobRecordSchema, EnqueueJobBodySchema, and JobBroadcastEventSchema (Issues #22, #110, #112)", async () => {
+    const {
+      JobBroadcastEventSchema,
+      JobCompletedEventSchema,
+      JobFailedEventSchema,
+      JobFilterQuerySchema,
+      JobKindSchema,
+      JobProgressEventSchema,
+      JobRecordSchema,
+      JobStatusSchema,
+      EnqueueJobBodySchema
+    } = await import("../index.js");
+
+    expect(JobKindSchema.parse("audio_overview")).toBe("audio_overview");
+    expect(JobStatusSchema.parse("queued")).toBe("queued");
+
+    const validEnqueue = {
+      notebookId: "nb-1",
+      kind: "flashcards" as const,
+      payload: { count: 10 }
+    };
+    const parsedEnqueue = EnqueueJobBodySchema.parse(validEnqueue);
+    expect(parsedEnqueue.maxAttempts).toBe(3);
+    expect(parsedEnqueue.payload).toEqual({ count: 10 });
+
+    const validRecord = {
+      id: "job-1",
+      notebookId: "nb-1",
+      kind: "flashcards" as const,
+      payload: { count: 10 },
+      status: "running" as const,
+      progress: 45,
+      attempts: 1,
+      maxAttempts: 3,
+      result: null,
+      error: null,
+      createdAt: 1000,
+      updatedAt: 1050
+    };
+    expect(JobRecordSchema.parse(validRecord)).toEqual(validRecord);
+
+    const progressEvent = {
+      type: "job_progress" as const,
+      jobId: "job-1",
+      notebookId: "nb-1",
+      kind: "flashcards" as const,
+      progress: 50,
+      status: "running" as const,
+      timestamp: 1200
+    };
+    expect(JobProgressEventSchema.parse(progressEvent)).toEqual(progressEvent);
+    expect(JobBroadcastEventSchema.parse(progressEvent)).toEqual(progressEvent);
+
+    const completedEvent = {
+      type: "job_completed" as const,
+      jobId: "job-1",
+      notebookId: "nb-1",
+      kind: "flashcards" as const,
+      result: { cardCount: 10 },
+      timestamp: 1300
+    };
+    expect(JobCompletedEventSchema.parse(completedEvent)).toEqual(completedEvent);
+    expect(JobBroadcastEventSchema.parse(completedEvent)).toEqual(completedEvent);
+
+    const failedEvent = {
+      type: "job_failed" as const,
+      jobId: "job-1",
+      notebookId: "nb-1",
+      kind: "flashcards" as const,
+      error: "OOM error",
+      attempts: 3,
+      timestamp: 1400
+    };
+    expect(JobFailedEventSchema.parse(failedEvent)).toEqual(failedEvent);
+    expect(JobBroadcastEventSchema.parse(failedEvent)).toEqual(failedEvent);
+
+    expect(JobFilterQuerySchema.parse({ status: "queued" })).toEqual({ status: "queued" });
+  });
 });

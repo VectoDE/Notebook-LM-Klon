@@ -25,8 +25,13 @@ function createMockSqliteState(
             toArray: () => (emptySelectResult ? [] : [{ ok: 1 }])
           };
         }
-      }
-    }
+      },
+      getAlarm: async () => null,
+      setAlarm: async () => {},
+      deleteAlarm: async () => {}
+    },
+    acceptWebSocket: () => {},
+    getWebSockets: () => []
   };
   return { state, executedQueries };
 }
