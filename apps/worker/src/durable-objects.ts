@@ -835,7 +835,10 @@ export class JobDO {
     const remaining = this.ctx.storage.sql
       .exec("SELECT COUNT(*) AS count FROM jobs WHERE status = 'queued'")
       .toArray();
-    const count = Number(remaining[0].count);
+    let count = 0;
+    for (const r of remaining) {
+      count = Number(r.count);
+    }
     if (count > 0) {
       await this.scheduleAlarmIfNeeded(0);
     }
