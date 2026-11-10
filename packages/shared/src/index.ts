@@ -471,3 +471,5 @@ export * from "./citation-parser.js";
 export * from "./audio-interject-types.js";
 export * from "./podcast-state-machine.js";
 export * from "./video-storyboard.js";
+export * from "./sm2.js";
+export * from "./studio-artifacts.js";
