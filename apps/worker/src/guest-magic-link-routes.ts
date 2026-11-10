@@ -1,6 +1,7 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import { Hono } from "hono";
 import type { CoreRepository } from "./core-repository.js";
+import { seedDemoNotebooks } from "./demo-seeder.js";
 import type { MailAdapter } from "./mail-adapter.js";
 import {
   type SessionManager,
@@ -131,6 +132,11 @@ export function createGuestAndMagicLinkRoutes(
 
     // Ensure demo workspace exists and grant guest viewer access
     await ensureDemoWorkspace(now);
+    await seedDemoNotebooks(opts.repo.db, {
+      targetUserId: guestId,
+      grantAccessRole: "viewer",
+      now
+    });
     await opts.repo.db.run(
       "INSERT OR IGNORE INTO workspace_members (workspace_id, user_id, role, created_at) VALUES (?, ?, 'viewer', ?)",
       [DEMO_WORKSPACE_ID, guestId, now]
@@ -362,6 +368,18 @@ export function createGuestAndMagicLinkRoutes(
         owner_id: newUserId,
         created_at: now
       });
+
+      // Seed and grant access to demo workspace
+      await ensureDemoWorkspace(now);
+      await seedDemoNotebooks(opts.repo.db, {
+        targetUserId: newUserId,
+        grantAccessRole: "viewer",
+        now
+      });
+      await opts.repo.db.run(
+        "INSERT OR IGNORE INTO workspace_members (workspace_id, user_id, role, created_at) VALUES (?, ?, 'viewer', ?)",
+        [DEMO_WORKSPACE_ID, newUserId, now]
+      );
 
       user = await opts.repo.getUserById(newUserId);
     }

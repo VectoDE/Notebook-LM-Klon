@@ -9,6 +9,7 @@ interface __BaseEnv_Env {
 	APP_ORIGIN: "http://localhost:8787";
 	NOTEBOOK_DO: DurableObjectNamespace<import("./index").NotebookDO>;
 	JOB_DO: DurableObjectNamespace<import("./index").JobDO>;
+	DEMO_GEMINI_KEY?: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {

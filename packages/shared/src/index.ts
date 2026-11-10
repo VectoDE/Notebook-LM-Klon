@@ -334,6 +334,8 @@ export function combineWithRrf<T, K extends string | number>(
   return Array.from(scoreMap.values()).sort((a, b) => b.score - a.score);
 }
 
+export * from "./demo/index.js";
+
 export type * from "./providers.d.js";
 
 export type * from "./models.d.js";
