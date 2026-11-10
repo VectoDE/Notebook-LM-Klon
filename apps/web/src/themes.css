@@ -1,0 +1,424 @@
+/**
+ * Three-tier CSS token architecture for 4 Design Systems x 3 Color Modes.
+ *
+ * Implements Sub-Issue #128 (Decisions #77, #78, #80, #82, #83):
+ * 1. Pure NotebookLM (Material 3 Airy Workspace)
+ * 2. Immersive Cinema (Deep Dive stage, ambient glow & 60fps Aurora Orb)
+ * 3. Editorial Calm (Warm paper finish, editorial serif/sans typography)
+ * 4. Fusion / All-in-One (Airy 3-panel workspace with expandable cinema stage)
+ *
+ * Color modes:
+ * - light: #F8FAFD base canvas (or #FAF8F5 for Editorial)
+ * - oled-dark: #131314 true deep dark
+ * - aaa-contrast: WCAG 2.2 Level AAA high-contrast (> 7:1)
+ */
+
+/* ==========================================================================
+   Tier 1: Primitive Tokens (Global Scales & Base Variables)
+   ========================================================================== */
+:root {
+  /* Radii */
+  --rn-radius-none: 0px;
+  --rn-radius-sm: 8px;
+  --rn-radius-md: 12px;
+  --rn-radius-lg: 16px;
+  --rn-radius-panel: 24px;
+  --rn-radius-pill: 9999px;
+
+  /* Spacing Scale (8pt baseline) */
+  --rn-space-1: 4px;
+  --rn-space-2: 8px;
+  --rn-space-3: 12px;
+  --rn-space-4: 16px;
+  --rn-space-5: 20px;
+  --rn-space-6: 24px;
+  --rn-space-8: 32px;
+  --rn-space-10: 40px;
+
+  /* Typography Scales */
+  --rn-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  --rn-font-serif: "Georgia", "Cambria", "Times New Roman", Times, serif;
+  --rn-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+
+  /* Default Transition */
+  --rn-transition-speed: 200ms;
+  --rn-transition-ease: cubic-bezier(0.2, 0, 0, 1);
+  --rn-transition-base: var(--rn-transition-speed) var(--rn-transition-ease);
+}
+
+/* Accessibility: Strict Reduced-Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --rn-transition-speed: 0ms !important;
+    --rn-transition-base: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ==========================================================================
+   Tier 2: Semantic Theme & Mode Matrix
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Default / Fallback Theme: Fusion (Light)
+   -------------------------------------------------------------------------- */
+:root,
+html[data-theme="fusion"][data-color-mode="light"],
+html:not([data-theme])[data-color-mode="light"],
+html:not([data-theme]):not([data-color-mode]) {
+  --rn-color-canvas: #f8fafd;
+  --rn-color-panel: #ffffff;
+  --rn-color-panel-border: rgba(17, 24, 39, 0.08);
+  --rn-color-panel-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+
+  --rn-color-text-primary: #111827;
+  --rn-color-text-secondary: #374151;
+  --rn-color-text-muted: #4b5563;
+
+  --rn-color-accent: #2563eb;
+  --rn-color-accent-hover: #1d4ed8;
+  --rn-color-accent-text: #ffffff;
+
+  --rn-color-focus-ring: #1d4ed8;
+  --rn-focus-outline-offset: 2px;
+  --rn-focus-outline-width: 3px;
+
+  --rn-font-family-body: var(--rn-font-sans);
+  --rn-font-family-headings: var(--rn-font-sans);
+  --rn-panel-radius: var(--rn-radius-panel);
+}
+
+/* Fusion - OLED Dark */
+html[data-theme="fusion"][data-color-mode="oled-dark"],
+html:not([data-theme])[data-color-mode="oled-dark"] {
+  --rn-color-canvas: #131314;
+  --rn-color-panel: #1e1f20;
+  --rn-color-panel-border: rgba(255, 255, 255, 0.1);
+  --rn-color-panel-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+  --rn-color-text-primary: #f9fafb;
+  --rn-color-text-secondary: #d1d5db;
+  --rn-color-text-muted: #9ca3af;
+
+  --rn-color-accent: #3b82f6;
+  --rn-color-accent-hover: #60a5fa;
+  --rn-color-accent-text: #ffffff;
+
+  --rn-color-focus-ring: #60a5fa;
+  --rn-focus-outline-offset: 2px;
+  --rn-focus-outline-width: 3px;
+
+  --rn-font-family-body: var(--rn-font-sans);
+  --rn-font-family-headings: var(--rn-font-sans);
+  --rn-panel-radius: var(--rn-radius-panel);
+}
+
+/* Fusion - AAA High Contrast */
+html[data-theme="fusion"][data-color-mode="aaa-contrast"],
+html:not([data-theme])[data-color-mode="aaa-contrast"] {
+  --rn-color-canvas: #000000;
+  --rn-color-panel: #000000;
+  --rn-color-panel-border: #ffffff;
+  --rn-color-panel-shadow: none;
+
+  --rn-color-text-primary: #ffffff;
+  --rn-color-text-secondary: #ffff00;
+  --rn-color-text-muted: #e2e8f0;
+
+  --rn-color-accent: #ffff00;
+  --rn-color-accent-hover: #ffffff;
+  --rn-color-accent-text: #000000;
+
+  --rn-color-focus-ring: #ffff00;
+  --rn-focus-outline-offset: 3px;
+  --rn-focus-outline-width: 3px;
+
+  --rn-font-family-body: var(--rn-font-sans);
+  --rn-font-family-headings: var(--rn-font-sans);
+  --rn-panel-radius: var(--rn-radius-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Theme 1: Pure NotebookLM (Google Material 3 Airy Workspace)
+   -------------------------------------------------------------------------- */
+html[data-theme="pure-notebooklm"][data-color-mode="light"] {
+  --rn-color-canvas: #f8fafd;
+  --rn-color-panel: #ffffff;
+  --rn-color-panel-border: rgba(31, 31, 31, 0.08);
+  --rn-color-panel-shadow: 0 1px 3px rgba(60, 64, 67, 0.12), 0 4px 8px rgba(60, 64, 67, 0.06);
+
+  --rn-color-text-primary: #1f1f1f;
+  --rn-color-text-secondary: #444746;
+  --rn-color-text-muted: #5e5e5e;
+
+  --rn-color-accent: #0b57d0;
+  --rn-color-accent-hover: #0842a0;
+  --rn-color-accent-text: #ffffff;
+
+  --rn-color-focus-ring: #0b57d0;
+  --rn-focus-outline-offset: 2px;
+  --rn-focus-outline-width: 3px;
+
+  --rn-font-family-body: var(--rn-font-sans);
+  --rn-font-family-headings: var(--rn-font-sans);
+  --rn-panel-radius: var(--rn-radius-panel);
+}
+
+html[data-theme="pure-notebooklm"][data-color-mode="oled-dark"] {
+  --rn-color-canvas: #131314;
+  --rn-color-panel: #1e1f20;
+  --rn-color-panel-border: rgba(255, 255, 255, 0.08);
+  --rn-color-panel-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+
+  --rn-color-text-primary: #e3e3e3;
+  --rn-color-text-secondary: #c4c7c5;
+  --rn-color-text-muted: #8e918f;
+
+  --rn-color-accent: #a8c7fa;
+  --rn-color-accent-hover: #d3e3fd;
+  --rn-color-accent-text: #041e49;
+
+  --rn-color-focus-ring: #a8c7fa;
+  --rn-focus-outline-offset: 2px;
+  --rn-focus-outline-width: 3px;
+
+  --rn-font-family-body: var(--rn-font-sans);
+  --rn-font-family-headings: var(--rn-font-sans);
+  --rn-panel-radius: var(--rn-radius-panel);
+}
+
+html[data-theme="pure-notebooklm"][data-color-mode="aaa-contrast"] {
+  --rn-color-canvas: #ffffff;
+  --rn-color-panel: #ffffff;
+  --rn-color-panel-border: #000000;
+  --rn-color-panel-shadow: none;
+
+  --rn-color-text-primary: #000000;
+  --rn-color-text-secondary: #1f1f1f;
+  --rn-color-text-muted: #333333;
+
+  --rn-color-accent: #0000cc;
+  --rn-color-accent-hover: #000088;
+  --rn-color-accent-text: #ffffff;
+
+  --rn-color-focus-ring: #000000;
+  --rn-focus-outline-offset: 3px;
+  --rn-focus-outline-width: 3px;
+
+  --rn-font-family-body: var(--rn-font-sans);
+  --rn-font-family-headings: var(--rn-font-sans);
+  --rn-panel-radius: var(--rn-radius-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Theme 2: Immersive Cinema (Film Deep-Dive Stage & Ambient Lighting)
+   -------------------------------------------------------------------------- */
+html[data-theme="immersive-cinema"][data-color-mode="light"] {
+  --rn-color-canvas: #f8fafd;
+  --rn-color-panel: #ffffff;
+  --rn-color-panel-border: rgba(15, 23, 42, 0.1);
+  --rn-color-panel-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+
+  --rn-color-text-primary: #0f172a;
+  --rn-color-text-secondary: #334155;
+  --rn-color-text-muted: #475569;
+
+  --rn-color-accent: #7c3aed;
+  --rn-color-accent-hover: #6d28d9;
+  --rn-color-accent-text: #ffffff;
+
+  --rn-color-focus-ring: #6d28d9;
+  --rn-focus-outline-offset: 2px;
+  --rn-focus-outline-width: 3px;
+
+  --rn-font-family-body: var(--rn-font-sans);
+  --rn-font-family-headings: var(--rn-font-sans);
+  --rn-panel-radius: 28px;
+}
+
+html[data-theme="immersive-cinema"][data-color-mode="oled-dark"] {
+  --rn-color-canvas: #131314;
+  --rn-color-panel: #1a1c23;
+  --rn-color-panel-border: rgba(167, 139, 250, 0.15);
+  --rn-color-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 40px rgba(124, 58, 237, 0.12);
+
+  --rn-color-text-primary: #f8fafc;
+  --rn-color-text-secondary: #cbd5e1;
+  --rn-color-text-muted: #94a3b8;
+
+  --rn-color-accent: #a78bfa;
+  --rn-color-accent-hover: #c4b5fd;
+  --rn-color-accent-text: #1e1b4b;
+
+  --rn-color-focus-ring: #c4b5fd;
+  --rn-focus-outline-offset: 2px;
+  --rn-focus-outline-width: 3px;
+
+  --rn-font-family-body: var(--rn-font-sans);
+  --rn-font-family-headings: var(--rn-font-sans);
+  --rn-panel-radius: 28px;
+}
+
+html[data-theme="immersive-cinema"][data-color-mode="aaa-contrast"] {
+  --rn-color-canvas: #000000;
+  --rn-color-panel: #000000;
+  --rn-color-panel-border: #00ffff;
+  --rn-color-panel-shadow: none;
+
+  --rn-color-text-primary: #ffffff;
+  --rn-color-text-secondary: #00ffff;
+  --rn-color-text-muted: #e2e8f0;
+
+  --rn-color-accent: #00ffff;
+  --rn-color-accent-hover: #ffffff;
+  --rn-color-accent-text: #000000;
+
+  --rn-color-focus-ring: #00ffff;
+  --rn-focus-outline-offset: 3px;
+  --rn-focus-outline-width: 3px;
+
+  --rn-font-family-body: var(--rn-font-sans);
+  --rn-font-family-headings: var(--rn-font-sans);
+  --rn-panel-radius: var(--rn-radius-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Theme 3: Editorial Calm (Warm Paper Finish & Book Typography)
+   -------------------------------------------------------------------------- */
+html[data-theme="editorial-calm"][data-color-mode="light"] {
+  --rn-color-canvas: #faf8f5;
+  --rn-color-panel: #fffdf9;
+  --rn-color-panel-border: rgba(20, 20, 19, 0.1);
+  --rn-color-panel-shadow: 0 2px 12px rgba(61, 57, 53, 0.04);
+
+  --rn-color-text-primary: #141413;
+  --rn-color-text-secondary: #3d3935;
+  --rn-color-text-muted: #57524c;
+
+  --rn-color-accent: #854d0e;
+  --rn-color-accent-hover: #713f12;
+  --rn-color-accent-text: #ffffff;
+
+  --rn-color-focus-ring: #854d0e;
+  --rn-focus-outline-offset: 2px;
+  --rn-focus-outline-width: 3px;
+
+  --rn-font-family-body: var(--rn-font-serif);
+  --rn-font-family-headings: var(--rn-font-serif);
+  --rn-panel-radius: 18px;
+}
+
+html[data-theme="editorial-calm"][data-color-mode="oled-dark"] {
+  --rn-color-canvas: #131314;
+  --rn-color-panel: #1c1b1a;
+  --rn-color-panel-border: rgba(245, 242, 235, 0.1);
+  --rn-color-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+
+  --rn-color-text-primary: #f5f2eb;
+  --rn-color-text-secondary: #cbd5e1;
+  --rn-color-text-muted: #a3a39f;
+
+  --rn-color-accent: #facc15;
+  --rn-color-accent-hover: #fde047;
+  --rn-color-accent-text: #422006;
+
+  --rn-color-focus-ring: #fde047;
+  --rn-focus-outline-offset: 2px;
+  --rn-focus-outline-width: 3px;
+
+  --rn-font-family-body: var(--rn-font-serif);
+  --rn-font-family-headings: var(--rn-font-serif);
+  --rn-panel-radius: 18px;
+}
+
+html[data-theme="editorial-calm"][data-color-mode="aaa-contrast"] {
+  --rn-color-canvas: #000000;
+  --rn-color-panel: #000000;
+  --rn-color-panel-border: #ffffff;
+  --rn-color-panel-shadow: none;
+
+  --rn-color-text-primary: #ffffff;
+  --rn-color-text-secondary: #ffff00;
+  --rn-color-text-muted: #e2e8f0;
+
+  --rn-color-accent: #ffff00;
+  --rn-color-accent-hover: #ffffff;
+  --rn-color-accent-text: #000000;
+
+  --rn-color-focus-ring: #ffff00;
+  --rn-focus-outline-offset: 3px;
+  --rn-focus-outline-width: 3px;
+
+  --rn-font-family-body: var(--rn-font-serif);
+  --rn-font-family-headings: var(--rn-font-serif);
+  --rn-panel-radius: var(--rn-radius-sm);
+}
+
+/* ==========================================================================
+   Tier 3: Component Surface & Structural Styles
+   ========================================================================== */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--rn-color-canvas);
+  color: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-body);
+  transition: background-color var(--rn-transition-base), color var(--rn-transition-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Panels with soft 24px radius */
+.rn-panel {
+  background-color: var(--rn-color-panel);
+  border: 1px solid var(--rn-color-panel-border);
+  border-radius: var(--rn-panel-radius);
+  box-shadow: var(--rn-color-panel-shadow);
+  transition: background-color var(--rn-transition-base), border-color var(--rn-transition-base),
+    box-shadow var(--rn-transition-base);
+}
+
+/* Floating Pill Input Bar */
+.rn-pill-input-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--rn-space-2);
+  background-color: var(--rn-color-panel);
+  border: 1px solid var(--rn-color-panel-border);
+  border-radius: var(--rn-radius-pill);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  padding: var(--rn-space-2) var(--rn-space-4);
+  transition: box-shadow var(--rn-transition-base), border-color var(--rn-transition-base);
+}
+
+.rn-pill-input-bar:focus-within {
+  outline: var(--rn-focus-outline-width) solid var(--rn-color-focus-ring);
+  outline-offset: var(--rn-focus-outline-offset);
+}
+
+/* Accessible Interactive Focus Target */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: var(--rn-focus-outline-width) solid var(--rn-color-focus-ring) !important;
+  outline-offset: var(--rn-focus-outline-offset) !important;
+}
+
+/* Minimum 44x44 Touch Target */
+.rn-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
