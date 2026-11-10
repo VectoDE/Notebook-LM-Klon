@@ -11,6 +11,7 @@ export interface ProviderRoutesDependencies {
   readonly keyVault?: KeyVault | undefined;
   readonly ragRepo?: RagRepository | undefined;
   readonly defaultGeminiKey?: string | undefined;
+  readonly demoGeminiKey?: string | undefined;
   readonly ollamaBaseUrl?: string | undefined;
 }
 
@@ -27,8 +28,9 @@ export function createProviderRoutes(deps: ProviderRoutesDependencies = {}): Hon
 
   // Ensure default providers are registered in router if not already present
   if (!routerInstance.getProvider("google")) {
+    const effectiveGeminiKey = deps.defaultGeminiKey ?? deps.demoGeminiKey;
     routerInstance.registerProvider(
-      new GeminiProvider(deps.defaultGeminiKey ? { apiKey: deps.defaultGeminiKey } : {})
+      new GeminiProvider(effectiveGeminiKey ? { apiKey: effectiveGeminiKey } : {})
     );
   }
   if (!routerInstance.getProvider("ollama")) {

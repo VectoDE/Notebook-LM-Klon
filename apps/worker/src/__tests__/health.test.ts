@@ -127,4 +127,16 @@ describe("Configuration Profiles (demo vs. full) & /api/v1/health Endpoint", () 
     expect(problem.code).toBe("NOT_FOUND");
     expect(problem.instance).toBe("/api/v1/non-existent-endpoint");
   });
+
+  it("serves /api/v1/demo/info via createApp in worker with demo headers", async () => {
+    const app = createApp();
+    const env = createMockEnv();
+
+    const res = await app.request("/api/v1/demo/info", { method: "GET" }, env);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("X-Demo-Notice")).toContain("Demo-Modus");
+    const json = (await res.json()) as { workspaceId: string; notebooks: unknown[] };
+    expect(json.workspaceId).toBe("ws_demo_relationflow");
+    expect(json.notebooks.length).toBe(2);
+  });
 });
