@@ -153,6 +153,38 @@ export function detectMagicBytes(bytes: Uint8Array, mimeType: string): boolean {
   return false;
 }
 
+/**
+ * Builds a safe `Content-Disposition: attachment` header value from an untrusted
+ * filename (RFC 6266 with RFC 5987 `filename*` encoding).
+ *
+ * - Removes control characters (incl. CR/LF/NUL/DEL), double quotes, backslashes
+ *   and path separators, so the value can neither break out of the header line
+ *   (header injection / response splitting) nor out of the quoted-string
+ *   (parameter smuggling such as `"; filename="evil.exe`).
+ * - `filename` carries a printable-ASCII fallback for legacy clients.
+ * - `filename*` carries the full UTF-8 name, percent-encoded to RFC 5987 attr-chars.
+ */
+export function buildContentDisposition(filename: string): string {
+  let cleaned = "";
+  for (const ch of filename) {
+    const code = ch.charCodeAt(0);
+    if (code < 0x20 || code === 0x7f || ch === '"' || ch === "\\" || ch === "/") {
+      continue;
+    }
+    cleaned += ch;
+  }
+  cleaned = cleaned.trim();
+  const safeName = cleaned.length > 0 ? cleaned : "download";
+
+  const asciiFallback = safeName.replace(/[^\x20-\x7e]/g, "_");
+  const encoded = encodeURIComponent(safeName).replace(
+    /['()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encoded}`;
+}
+
 export interface SourcesUploadRoutesDependencies {
   coreRepo: CoreRepository;
   ragRepo: RagRepository;
@@ -370,6 +402,35 @@ export function registerSourcesUploadRoutes(
       });
     }
 
+    // The body may not be larger than the size declared at init (source.byte_size,
+    // already capped by quota). Content-Length is mandatory so the check cannot be
+    // skipped by chunked streaming.
+    const contentLengthHeader = c.req.header("content-length");
+    if (contentLengthHeader === undefined || !/^\d+$/.test(contentLengthHeader)) {
+      const problem = createProblemDetails({
+        status: 411,
+        title: "Length Required",
+        detail: "Für den Upload ist ein gültiger Content-Length-Header erforderlich.",
+        instance: c.req.path,
+        code: "LENGTH_REQUIRED"
+      });
+      return c.json(problem, 411, {
+        "content-type": "application/problem+json; charset=utf-8"
+      });
+    }
+    if (Number(contentLengthHeader) > source.byte_size) {
+      const problem = createProblemDetails({
+        status: 413,
+        title: "Payload Too Large",
+        detail: `Upload (${contentLengthHeader} Bytes) ist größer als die angemeldete Dateigröße (${source.byte_size} Bytes).`,
+        instance: c.req.path,
+        code: "UPLOAD_SIZE_MISMATCH"
+      });
+      return c.json(problem, 413, {
+        "content-type": "application/problem+json; charset=utf-8"
+      });
+    }
+
     // Direct streaming into R2 bucket without buffering in Worker RAM
     const r2Result = await c.env.MEDIA.put(source.r2_key, bodyStream, {
       httpMetadata: {
@@ -498,7 +559,8 @@ export function registerSourcesUploadRoutes(
     }
 
     // Secure download headers:
-    // - Content-Disposition: attachment; filename="..."
+    // - Content-Disposition: attachment; filename="..."; filename*=UTF-8''...
+    //   (original_name is user-controlled and must be sanitized, see buildContentDisposition)
     // - X-Content-Type-Options: nosniff
     const contentType = source.mime_type;
 
@@ -506,7 +568,7 @@ export function registerSourcesUploadRoutes(
       status: 200,
       headers: {
         "content-type": `${contentType}; charset=utf-8`,
-        "content-disposition": `attachment; filename="${source.original_name}"`,
+        "content-disposition": buildContentDisposition(source.original_name),
         "x-content-type-options": "nosniff",
         "cache-control": "private, no-cache"
       }

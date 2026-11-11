@@ -288,6 +288,7 @@ export class KeyVault {
 /**
  * Creates a KeyVault from Worker environment bindings or process.env.
  * Checks KEK_V1, KEK_V2, KEK_V3, ..., and BYOK_MASTER_KEY as fallback.
+ * Throws if no KEK is configured (no built-in default, in any environment).
  */
 export function createKeyVaultFromEnv(env: Record<string, unknown> | Env): KeyVault {
   const envRecord = env as Record<string, unknown>;
@@ -309,9 +310,13 @@ export function createKeyVaultFromEnv(env: Record<string, unknown> | Env): KeyVa
     }
   }
 
-  // In test/demo without configured KEK, provide secure deterministic default for testing
+  // Fail closed: never fall back to a built-in key. A hard-coded KEK is public
+  // (it lives in the repository) and would silently make every stored BYOK
+  // ciphertext decryptable by anyone with database access.
   if (Object.keys(keks).length === 0) {
-    keks[1] = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    throw new Error(
+      "No KEK configured: set KEK_V1 (or KEK_V2 … KEK_V10, or BYOK_MASTER_KEY) as a secret before using BYOK encryption."
+    );
   }
 
   const activeVersionStr = envRecord.KEK_CURRENT_VERSION;

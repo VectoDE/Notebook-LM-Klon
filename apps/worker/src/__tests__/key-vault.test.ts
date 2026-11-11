@@ -139,14 +139,24 @@ describe("KeyVault - WebCrypto AES-256-GCM Envelope Encryption (Sub-Issue #92, #
       provider: "groq"
     });
 
-    // Flip bit in ciphertext
-    const rawCt = atob(enc.ciphertext);
-    const corruptedCt = btoa(`X${rawCt.slice(1)}`);
-    const corruptedPayload = { ...enc, ciphertext: corruptedCt };
+    // Invert every bit of one byte. XOR 0xff always changes the byte, unlike
+    // overwriting it with a fixed character (which matched the random original
+    // in 1 of 256 runs and made the test flaky).
+    const flipByte = (b64: string, index: number): string => {
+      const bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+      const at = index < 0 ? bytes.length + index : index;
+      bytes[at] = (bytes[at] ?? 0) ^ 0xff;
+      return btoa(String.fromCharCode(...bytes));
+    };
 
-    await expect(
-      vault.decrypt(corruptedPayload, { userId: "usr_carol", provider: "groq" })
-    ).rejects.toThrow("cryptographic integrity check failed");
+    // First byte: encrypted payload. Last byte: GCM auth tag (appended at the end).
+    for (const index of [0, -1]) {
+      const corruptedPayload = { ...enc, ciphertext: flipByte(enc.ciphertext, index) };
+      expect(corruptedPayload.ciphertext).not.toBe(enc.ciphertext);
+      await expect(
+        vault.decrypt(corruptedPayload, { userId: "usr_carol", provider: "groq" })
+      ).rejects.toThrow("cryptographic integrity check failed");
+    }
   });
 
   it("throws error when trying to decrypt with missing KEK version", async () => {
@@ -253,10 +263,19 @@ describe("KeyVault - WebCrypto AES-256-GCM Envelope Encryption (Sub-Issue #92, #
       expect(vault.hasVersion(1)).toBe(true);
     });
 
-    it("provides default test KEK when env is completely empty", () => {
-      const vault = createKeyVaultFromEnv({});
-      expect(vault.getCurrentVersion()).toBe(1);
-      expect(vault.hasVersion(1)).toBe(true);
+    it("throws instead of falling back to a built-in KEK when env is completely empty", () => {
+      expect(() => createKeyVaultFromEnv({})).toThrow(/No KEK configured/);
+    });
+
+    it("throws when KEK variables are present but blank or not strings", () => {
+      expect(() =>
+        createKeyVaultFromEnv({
+          KEK_V1: "   ",
+          KEK_V2: 42,
+          BYOK_MASTER_KEY: "",
+          APP_PROFILE: "full"
+        })
+      ).toThrow(/No KEK configured/);
     });
   });
 

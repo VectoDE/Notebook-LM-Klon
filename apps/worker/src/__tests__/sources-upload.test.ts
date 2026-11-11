@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
 import { RagRepository } from "../rag-repository.js";
 import {
+  buildContentDisposition,
   createR2PresignedPutUrl,
   detectMagicBytes,
   registerSourcesUploadRoutes,
@@ -620,7 +621,7 @@ describe("Sources Upload Flow Endpoints", () => {
       const fileData = new TextEncoder().encode("Hello World!");
       const uploadRes = await app.request(uploadUrl, {
         method: "PUT",
-        headers: { "Content-Type": "text/plain" },
+        headers: { "Content-Type": "text/plain", "Content-Length": String(fileData.byteLength) },
         body: fileData
       });
 
@@ -635,6 +636,56 @@ describe("Sources Upload Flow Endpoints", () => {
       expect(r2Obj).not.toBeNull();
       const text = await r2Obj?.text();
       expect(text).toBe("Hello World!");
+    });
+
+    async function initTextSource(
+      byteSize: number
+    ): Promise<{ sourceId: string; uploadUrl: string }> {
+      const initRes = await app.request(`/api/v1/notebooks/${testNotebookId}/sources`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: "limit.txt", mimeType: "text/plain", byteSize })
+      });
+      return (await initRes.json()) as { sourceId: string; uploadUrl: string };
+    }
+
+    it("returns 411 when Content-Length is missing and stores nothing", async () => {
+      const { sourceId, uploadUrl } = await initTextSource(12);
+      const res = await app.request(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "text/plain" },
+        body: new TextEncoder().encode("Hello World!")
+      });
+      expect(res.status).toBe(411);
+      const problem = (await res.json()) as { code: string };
+      expect(problem.code).toBe("LENGTH_REQUIRED");
+      const source = await ragRepo.getSourceById(sourceId);
+      expect(await mockR2.get(source?.r2_key ?? "")).toBeNull();
+    });
+
+    it("returns 411 when Content-Length is not a non-negative integer", async () => {
+      const { uploadUrl } = await initTextSource(12);
+      const res = await app.request(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "text/plain", "Content-Length": "-5" },
+        body: new TextEncoder().encode("Hello World!")
+      });
+      expect(res.status).toBe(411);
+    });
+
+    it("returns 413 when Content-Length exceeds the declared byte_size and stores nothing", async () => {
+      const { sourceId, uploadUrl } = await initTextSource(5);
+      const fileData = new TextEncoder().encode("Hello World!");
+      const res = await app.request(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "text/plain", "Content-Length": String(fileData.byteLength) },
+        body: fileData
+      });
+      expect(res.status).toBe(413);
+      const problem = (await res.json()) as { code: string };
+      expect(problem.code).toBe("UPLOAD_SIZE_MISMATCH");
+      const source = await ragRepo.getSourceById(sourceId);
+      expect(await mockR2.get(source?.r2_key ?? "")).toBeNull();
     });
   });
 
@@ -768,7 +819,7 @@ describe("Sources Upload Flow Endpoints", () => {
       expect(downloadRes.status).toBe(200);
       expect(downloadRes.headers.get("content-type")).toBe("text/plain; charset=utf-8");
       expect(downloadRes.headers.get("content-disposition")).toBe(
-        'attachment; filename="notes.txt"'
+        "attachment; filename=\"notes.txt\"; filename*=UTF-8''notes.txt"
       );
       expect(downloadRes.headers.get("x-content-type-options")).toBe("nosniff");
 
@@ -780,5 +831,63 @@ describe("Sources Upload Flow Endpoints", () => {
       const res = await app.request("/api/v1/sources/non-existent-id/file");
       expect(res.status).toBe(404);
     });
+
+    it("neutralizes CR/LF and quotes in original_name (Content-Disposition header injection)", async () => {
+      const maliciousName = 'evil"\r\nSet-Cookie: pwned=1\r\nX-Injected: yes.txt';
+      const initRes = await app.request(`/api/v1/notebooks/${testNotebookId}/sources`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: maliciousName, mimeType: "text/plain", byteSize: 14 })
+      });
+      const { sourceId } = (await initRes.json()) as { sourceId: string };
+      const source = await ragRepo.getSourceById(sourceId);
+      expect(source?.original_name).toBe(maliciousName);
+
+      await mockR2.put(source?.r2_key ?? "", new TextEncoder().encode("Important note"));
+
+      const downloadRes = await app.request(`/api/v1/sources/${sourceId}/file`);
+      expect(downloadRes.status).toBe(200);
+      expect(downloadRes.headers.get("set-cookie")).toBeNull();
+      expect(downloadRes.headers.get("x-injected")).toBeNull();
+
+      const disposition = downloadRes.headers.get("content-disposition") ?? "";
+      expect(disposition).not.toMatch(/[\r\n]/);
+      expect(disposition).toBe(
+        "attachment; filename=\"evilSet-Cookie: pwned=1X-Injected: yes.txt\"; filename*=UTF-8''evilSet-Cookie%3A%20pwned%3D1X-Injected%3A%20yes.txt"
+      );
+      // Exactly two quotes: the ones delimiting the ASCII fallback value
+      expect(disposition.split('"')).toHaveLength(3);
+    });
+  });
+});
+
+describe("buildContentDisposition (RFC 6266 / RFC 5987)", () => {
+  it("keeps plain ASCII names and adds an identical filename* parameter", () => {
+    expect(buildContentDisposition("notes.txt")).toBe(
+      "attachment; filename=\"notes.txt\"; filename*=UTF-8''notes.txt"
+    );
+  });
+
+  it("encodes non-ASCII names in filename* and replaces them in the ASCII fallback", () => {
+    expect(buildContentDisposition("Präsentation Ü.pdf")).toBe(
+      "attachment; filename=\"Pr_sentation _.pdf\"; filename*=UTF-8''Pr%C3%A4sentation%20%C3%9C.pdf"
+    );
+  });
+
+  it("strips control characters, quotes, backslashes and path separators", () => {
+    const value = buildContentDisposition('a\u0000b\u001fc\u007fd"e\\f/g\th.txt');
+    expect(value).toBe("attachment; filename=\"abcdefgh.txt\"; filename*=UTF-8''abcdefgh.txt");
+  });
+
+  it("percent-encodes characters that are not RFC 5987 attr-chars", () => {
+    expect(buildContentDisposition("it's (draft)*.md")).toBe(
+      "attachment; filename=\"it's (draft)*.md\"; filename*=UTF-8''it%27s%20%28draft%29%2A.md"
+    );
+  });
+
+  it("falls back to 'download' when nothing usable remains", () => {
+    expect(buildContentDisposition('"\r\n" ')).toBe(
+      "attachment; filename=\"download\"; filename*=UTF-8''download"
+    );
   });
 });
