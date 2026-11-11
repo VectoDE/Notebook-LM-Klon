@@ -100,6 +100,19 @@ export async function getOrInitUserQuota(
   };
 }
 
+export const NOTEBOOK_SIZE_LIMIT_CODE = "NOTEBOOK_SIZE_LIMIT";
+
+function formatMegabytes(bytes: number): string {
+  return (Math.round((bytes / 1024 / 1024) * 100) / 100).toString();
+}
+
+/**
+ * HTTP status for a denied quota check: 413 for the notebook size limit, 403 otherwise.
+ */
+export function quotaDenialStatus(code: string): 403 | 413 {
+  return code === NOTEBOOK_SIZE_LIMIT_CODE ? 413 : 403;
+}
+
 export interface QuotaCheckResult {
   readonly allowed: boolean;
   readonly code: string;
@@ -139,12 +152,32 @@ export async function verifyQuotaAction(
       };
     }
 
+    // Per-notebook totals come from the sources table (the quotas row is per user).
+    const totals = await db
+      .prepare(
+        `SELECT COUNT(*) AS source_count, COALESCE(SUM(byte_size), 0) AS total_bytes
+         FROM sources WHERE notebook_id = ?`
+      )
+      .bind(action.notebookId)
+      .first<{ source_count: number; total_bytes: number }>();
+    const sourceCount = Number(totals?.source_count ?? 0);
+    const totalBytes = Number(totals?.total_bytes ?? 0);
+
     // Check sources count per notebook
-    if (quota.sourcesCount >= limits.maxSourcesPerNotebook) {
+    if (sourceCount >= limits.maxSourcesPerNotebook) {
       return {
         allowed: false,
         code: "QUOTA_MAX_SOURCES_PER_NOTEBOOK_EXCEEDED",
         reason: `Maximale Quellenanzahl pro Notizbuch (${limits.maxSourcesPerNotebook}) erreicht.`
+      };
+    }
+
+    // Check total size of all sources in the notebook (exactly the limit is allowed)
+    if (totalBytes + action.byteSize > limits.maxNotebookBytes) {
+      return {
+        allowed: false,
+        code: NOTEBOOK_SIZE_LIMIT_CODE,
+        reason: `Notizbuch-Limit von ${formatMegabytes(limits.maxNotebookBytes)} MB überschritten: aktuell ${formatMegabytes(totalBytes)} MB, die neue Quelle (${formatMegabytes(action.byteSize)} MB) würde das Limit sprengen.`
       };
     }
 
@@ -236,15 +269,16 @@ export function quotaGuardMiddleware(
     const check = await verifyQuotaAction(db, user.id, action, config.quotas);
 
     if (!check.allowed) {
+      const status = quotaDenialStatus(check.code);
       const problem = createProblemDetails({
-        status: 403,
-        title: "Quota Exceeded",
+        status,
+        title: status === 413 ? "Payload Too Large" : "Quota Exceeded",
         detail: check.reason,
         instance: c.req.path,
         code: check.code
       });
 
-      return c.json(problem, 403, {
+      return c.json(problem, status, {
         "content-type": "application/problem+json; charset=utf-8"
       });
     }

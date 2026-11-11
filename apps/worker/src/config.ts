@@ -5,6 +5,7 @@ export interface ProfileQuotas {
   readonly maxSourcesPerNotebook: number;
   readonly maxChunksPerNotebook: number;
   readonly maxSourceBytes: number;
+  readonly maxNotebookBytes: number;
   readonly maxWordsPerSource: number;
   readonly maxLlmCallsPerDay: number;
   readonly guestTtlHours: number;
@@ -19,9 +20,10 @@ export interface AppConfig {
 
 const DEMO_QUOTAS: ProfileQuotas = {
   maxNotebooksPerUser: 3,
-  maxSourcesPerNotebook: 15,
+  maxSourcesPerNotebook: 50,
   maxChunksPerNotebook: 5_000,
-  maxSourceBytes: 25 * 1024 * 1024,
+  maxSourceBytes: 50 * 1024 * 1024,
+  maxNotebookBytes: 200 * 1024 * 1024,
   maxWordsPerSource: 150_000,
   maxLlmCallsPerDay: 50,
   guestTtlHours: 24,
@@ -33,6 +35,7 @@ const FULL_QUOTAS: ProfileQuotas = {
   maxSourcesPerNotebook: 50,
   maxChunksPerNotebook: 50_000,
   maxSourceBytes: 50 * 1024 * 1024,
+  maxNotebookBytes: 200 * 1024 * 1024,
   maxWordsPerSource: 500_000,
   maxLlmCallsPerDay: 2_000,
   guestTtlHours: 24,

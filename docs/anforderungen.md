@@ -31,11 +31,13 @@ Notebook-LM-Klon mit Frontend, Backend und Datenbank. Alle Richtlinien und Geset
 |---|---|---|
 | 14 | E-Mail | Cloudflare Email Sending + optionaler Free-Adapter |
 | 15 | Quelltypen | Alles: PDF, TXT, MD, DOCX, URL, Text, YouTube, Audio, Bilder (OCR), Google-Docs-Import |
-| 16 | Limits | 50 Quellen/Notebook, 200 MB bzw. 500.000 Wörter/Quelle, Kontingente pro Nutzer |
+| 16 | Limits | 50 Quellen/Notebook, 50 MB je Datei, 200 MB je Notebook, 500.000 Wörter/Quelle, Kontingente pro Nutzer (siehe Hinweis unten) |
 | 17 | Teilen | Echtzeit-Kollaboration über Durable Objects |
 | 18 | Hintergrundjobs | Durable Object + Job-Queue im selben Worker, nur Laufzeitzustand |
 | 19 | Tests | Vitest, Playwright, axe-core, Lighthouse CI, ≥ 90 % Abdeckung |
 | 20 | Veröffentlichung | Öffentliches GitHub-Repo, CI/CD, OpenSSF Scorecard + Best Practices, signierte Releases, Demo auf `workers.dev` |
+
+> **Hinweis zu #16 (Entscheidung des Inhabers, 2026-11-11):** Die ursprüngliche Vorgabe „200 MB je Quelle“ wird durch zwei Grenzen ersetzt: **50 MB je Datei** und **200 MB je Notebook** (Summe aller Quellen). Die Grenzen gelten in den Profilen `demo` und `full`. Das Demo-Profil erlaubt ebenfalls 50 Quellen je Notebook (vorher 15). Das Wortlimit von 500.000 Wörtern je Quelle bleibt unverändert.
 
 ## Entscheidungen (Runde 4)
 | # | Thema | Entscheidung |
