@@ -52,10 +52,11 @@ export function countUniqueWords(chunks: readonly WordCountChunk[]): number {
       const cutsWord =
         !WHITESPACE.test(chunk.text.charAt(skip - 1)) && !WHITESPACE.test(chunk.text.charAt(skip));
       const rest = chunk.text.slice(skip);
-      total += cutsWord ? Math.max(0, countWords(rest) - 1) : countWords(rest);
+      total += cutsWord ? countWords(rest) - 1 : countWords(rest);
     } else if (skip === 0) {
       total += countWords(chunk.text);
     }
+    // skip >= Textlänge: Chunk liegt vollständig im bereits gezählten Bereich
     coveredUntil = Math.max(coveredUntil, end);
   }
   return total;

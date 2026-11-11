@@ -138,9 +138,8 @@ export function registerChunkIngestionRoutes(
     const { chunks: chunkItems, model, markReady } = parseResult.data;
 
     // Word limit per source: existing chunks (replaced by index) plus this batch.
-    const wordLimit = resolveAppConfig(
-      (c.env ?? {}) as { APP_PROFILE?: string; APP_ORIGIN?: string }
-    ).quotas.maxWordsPerSource;
+    const wordLimit = resolveAppConfig(c.env as { APP_PROFILE?: string; APP_ORIGIN?: string })
+      .quotas.maxWordsPerSource;
     const batchIndexes = new Set(chunkItems.map((item) => item.chunkIndex));
     const existingChunks = (await ragRepo.getChunksBySource(source.id)).filter(
       (row) => !batchIndexes.has(row.chunk_index)

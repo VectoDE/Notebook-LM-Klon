@@ -58,6 +58,26 @@ describe("countWords / countUniqueWords", () => {
     expect(countUniqueWords(chunks)).toBe(6);
   });
 
+  it("zählt ein mitten im Wort angeschnittenes Wort nur einmal", () => {
+    // Chunk 0 deckt bis Offset 10 ab, Chunk 1 beginnt bei Offset 7 mitten im Wort "welt"
+    expect(
+      countUniqueWords([
+        { chunkIndex: 0, text: "hallo welt", startOffset: 0, endOffset: 10 },
+        { chunkIndex: 1, text: "welt wie", startOffset: 7, endOffset: 15 }
+      ])
+    ).toBe(3);
+  });
+
+  it("ignoriert Chunks, die vollständig im gezählten Bereich liegen, und zählt getrennte Chunks", () => {
+    expect(
+      countUniqueWords([
+        { chunkIndex: 0, text: "a b c d", startOffset: 0, endOffset: 7 },
+        { chunkIndex: 1, text: "b c", startOffset: 2, endOffset: 5 },
+        { chunkIndex: 2, text: "e f", startOffset: 8, endOffset: 11 }
+      ])
+    ).toBe(6);
+  });
+
   it("zählt Chunks ohne Offsets vollständig", () => {
     expect(
       countUniqueWords([
