@@ -445,7 +445,14 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
         (await call(uploadPath, { method: "PUT", body: pdf, cookie: fx.cookies.bob })).status
       ).toBe(403);
       expect(
-        (await call(uploadPath, { method: "PUT", body: pdf, cookie: fx.cookies.alice })).status
+        (
+          await call(uploadPath, {
+            method: "PUT",
+            body: pdf,
+            cookie: fx.cookies.alice,
+            headers: { "content-length": String(pdf.length) }
+          })
+        ).status
       ).toBe(200);
 
       const completePath = `${uploadPath}/complete`;

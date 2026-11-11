@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  MAX_OBJECT_BYTES,
+  ObjectTooLargeError,
   createLocalR2Adapter,
   createMockDurableObjectNamespace,
   createNodeEnv,
@@ -217,6 +219,105 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       const roundTrip = new Uint8Array((await getRes?.arrayBuffer()) ?? new ArrayBuffer(0));
       expect(roundTrip.byteLength).toBe(original.byteLength);
       expect(Buffer.compare(Buffer.from(roundTrip), Buffer.from(original))).toBe(0);
+    });
+
+    it("uses MAX_OBJECT_BYTES (200 MB, per-source maximum) as the default cap", () => {
+      expect(MAX_OBJECT_BYTES).toBe(200 * 1024 * 1024);
+    });
+
+    it("rejects a ReadableStream above the cap and leaves no partial file behind", async () => {
+      const mediaDir = join(TEST_DATA_DIR, "media");
+      const r2 = createLocalR2Adapter(mediaDir, 1024);
+
+      // 3 chunks of 512 bytes: the first two fit exactly, the third crosses the cap
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array(512).fill(0xaa));
+          controller.enqueue(new Uint8Array(512).fill(0xbb));
+          controller.enqueue(new Uint8Array(512).fill(0xcc));
+          controller.close();
+        }
+      });
+
+      await expect(r2.put("uploads/too-big.bin", stream)).rejects.toBeInstanceOf(
+        ObjectTooLargeError
+      );
+      expect(existsSync(join(mediaDir, "uploads", "too-big.bin"))).toBe(false);
+      expect(await r2.head("uploads/too-big.bin")).toBeNull();
+    });
+
+    it("removes the partial file when the source stream errors", async () => {
+      const mediaDir = join(TEST_DATA_DIR, "media");
+      const r2 = createLocalR2Adapter(mediaDir, 1024);
+      let sent = false;
+      const stream = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (!sent) {
+            sent = true;
+            controller.enqueue(new Uint8Array([1, 2, 3]));
+            return;
+          }
+          controller.error(new Error("connection reset"));
+        }
+      });
+
+      await expect(r2.put("uploads/aborted.bin", stream)).rejects.toThrow("connection reset");
+      expect(existsSync(join(mediaDir, "uploads", "aborted.bin"))).toBe(false);
+    });
+
+    it("keeps a ReadableStream exactly at the cap byte-for-byte", async () => {
+      const r2 = createLocalR2Adapter(join(TEST_DATA_DIR, "media"), 1024);
+      const original = new Uint8Array(1024);
+      for (let i = 0; i < original.length; i++) {
+        original[i] = (i * 7) % 256;
+      }
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(original.slice(0, 1000));
+          controller.enqueue(original.slice(1000));
+          controller.close();
+        }
+      });
+
+      const putRes = await r2.put("uploads/at-cap.bin", stream);
+      expect(putRes?.size).toBe(1024);
+      const getRes = await r2.get("uploads/at-cap.bin");
+      const roundTrip = new Uint8Array((await getRes?.arrayBuffer()) ?? new ArrayBuffer(0));
+      expect(Buffer.compare(Buffer.from(roundTrip), Buffer.from(original))).toBe(0);
+    });
+
+    it("rejects buffered values above the cap without writing a file", async () => {
+      const mediaDir = join(TEST_DATA_DIR, "media");
+      const r2 = createLocalR2Adapter(mediaDir, 4);
+
+      await expect(r2.put("uploads/big.bin", new Uint8Array(5))).rejects.toBeInstanceOf(
+        ObjectTooLargeError
+      );
+      expect(existsSync(join(mediaDir, "uploads", "big.bin"))).toBe(false);
+    });
+
+    it("refuses keys that escape the media directory (path traversal)", async () => {
+      const mediaDir = join(TEST_DATA_DIR, "media");
+      const r2 = createLocalR2Adapter(mediaDir);
+      const outside = join(TEST_DATA_DIR, "escape.txt");
+
+      await expect(r2.put("../escape.txt", "pwned")).rejects.toBeInstanceOf(RangeError);
+      await expect(r2.put("nested/../../escape.txt", "pwned")).rejects.toBeInstanceOf(RangeError);
+      expect(existsSync(outside)).toBe(false);
+
+      writeFileSync(outside, "secret");
+      await expect(r2.get("../escape.txt")).rejects.toBeInstanceOf(RangeError);
+      await expect(r2.head("../escape.txt")).rejects.toBeInstanceOf(RangeError);
+      await expect(r2.delete("../escape.txt")).rejects.toBeInstanceOf(RangeError);
+      expect(existsSync(outside)).toBe(true);
+
+      // The media root itself is not a valid object
+      await expect(r2.put("", "x")).rejects.toBeInstanceOf(RangeError);
+      await expect(r2.put("nested/..", "x")).rejects.toBeInstanceOf(RangeError);
+
+      // Leading slashes are still treated as relative keys inside the root
+      await r2.put("/inside/ok.txt", "ok");
+      expect(existsSync(join(mediaDir, "inside", "ok.txt"))).toBe(true);
     });
 
     it("stores non-Uint8Array ArrayBufferViews by their bytes, not their string form", async () => {

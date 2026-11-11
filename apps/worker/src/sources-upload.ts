@@ -402,6 +402,35 @@ export function registerSourcesUploadRoutes(
       });
     }
 
+    // The body may not be larger than the size declared at init (source.byte_size,
+    // already capped by quota). Content-Length is mandatory so the check cannot be
+    // skipped by chunked streaming.
+    const contentLengthHeader = c.req.header("content-length");
+    if (contentLengthHeader === undefined || !/^\d+$/.test(contentLengthHeader)) {
+      const problem = createProblemDetails({
+        status: 411,
+        title: "Length Required",
+        detail: "Für den Upload ist ein gültiger Content-Length-Header erforderlich.",
+        instance: c.req.path,
+        code: "LENGTH_REQUIRED"
+      });
+      return c.json(problem, 411, {
+        "content-type": "application/problem+json; charset=utf-8"
+      });
+    }
+    if (Number(contentLengthHeader) > source.byte_size) {
+      const problem = createProblemDetails({
+        status: 413,
+        title: "Payload Too Large",
+        detail: `Upload (${contentLengthHeader} Bytes) ist größer als die angemeldete Dateigröße (${source.byte_size} Bytes).`,
+        instance: c.req.path,
+        code: "UPLOAD_SIZE_MISMATCH"
+      });
+      return c.json(problem, 413, {
+        "content-type": "application/problem+json; charset=utf-8"
+      });
+    }
+
     // Direct streaming into R2 bucket without buffering in Worker RAM
     const r2Result = await c.env.MEDIA.put(source.r2_key, bodyStream, {
       httpMetadata: {

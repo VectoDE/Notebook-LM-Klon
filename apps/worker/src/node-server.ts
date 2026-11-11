@@ -4,13 +4,14 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  rmSync,
   statSync,
   unlinkSync,
   writeFileSync
 } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { Readable } from "node:stream";
+import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeWebReadableStream } from "node:stream/web";
 import { fileURLToPath } from "node:url";
@@ -18,6 +19,21 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { createApp } from "./index.js";
+import { MAX_SOURCE_BYTE_SIZE_LIMIT } from "./sources-upload.js";
+
+/**
+ * Upper bound for a single object written by the local R2 adapter. It matches the
+ * largest per-source file size from the requirements (200 MB, `full` profile), so a
+ * client that streams without or past its declared size cannot fill the disk.
+ */
+export const MAX_OBJECT_BYTES = MAX_SOURCE_BYTE_SIZE_LIMIT;
+
+export class ObjectTooLargeError extends Error {
+  constructor(limit: number) {
+    super(`Objekt überschreitet die Obergrenze von ${limit} Bytes.`);
+    this.name = "ObjectTooLargeError";
+  }
+}
 
 export interface NodeServerOptions {
   port?: number | undefined;
@@ -137,14 +153,25 @@ export function createSqliteD1Adapter(db: DatabaseSync): D1Database {
   } as unknown as D1Database;
 }
 
-export function createLocalR2Adapter(mediaDir: string): R2Bucket {
+export function createLocalR2Adapter(
+  mediaDir: string,
+  maxObjectBytes: number = MAX_OBJECT_BYTES
+): R2Bucket {
   if (!existsSync(mediaDir)) {
     mkdirSync(mediaDir, { recursive: true });
   }
+  const rootDir = resolve(mediaDir);
 
+  // Keys come from callers (R2 keys are opaque strings). Resolve them against the
+  // media root and refuse anything that lands outside it (`../`, absolute paths,
+  // other drives) or on the root itself.
   const getFilePath = (key: string): string => {
     const safeKey = key.replace(/^[/\\]+/, "");
-    return join(mediaDir, safeKey);
+    const target = resolve(rootDir, safeKey);
+    if (!target.startsWith(`${rootDir}${sep}`)) {
+      throw new RangeError(`Ungültiger Objektschlüssel: '${key}'.`);
+    }
+    return target;
   };
 
   return {
@@ -181,12 +208,30 @@ export function createLocalR2Adapter(mediaDir: string): R2Bucket {
       }
 
       // Request bodies arrive as web ReadableStreams: stream the raw bytes to disk
-      // (no text decoding, no full buffering in memory).
+      // (no text decoding, no full buffering in memory). A counting transform aborts
+      // once the object exceeds the cap; the partial file is removed on any failure.
       if (value instanceof ReadableStream) {
-        await pipeline(
-          Readable.fromWeb(value as unknown as NodeWebReadableStream<Uint8Array>),
-          createWriteStream(filePath)
-        );
+        let received = 0;
+        const limiter = new Transform({
+          transform(chunk: Buffer, _encoding, callback) {
+            received += chunk.byteLength;
+            if (received > maxObjectBytes) {
+              callback(new ObjectTooLargeError(maxObjectBytes));
+              return;
+            }
+            callback(null, chunk);
+          }
+        });
+        try {
+          await pipeline(
+            Readable.fromWeb(value as unknown as NodeWebReadableStream<Uint8Array>),
+            limiter,
+            createWriteStream(filePath)
+          );
+        } catch (err) {
+          rmSync(filePath, { force: true, maxRetries: 5, retryDelay: 50 });
+          throw err;
+        }
         const size = statSync(filePath).size;
         return {
           key,
@@ -210,6 +255,9 @@ export function createLocalR2Adapter(mediaDir: string): R2Bucket {
         buf = Buffer.from(String(value), "utf8");
       }
 
+      if (buf.byteLength > maxObjectBytes) {
+        throw new ObjectTooLargeError(maxObjectBytes);
+      }
       writeFileSync(filePath, buf);
       return {
         key,

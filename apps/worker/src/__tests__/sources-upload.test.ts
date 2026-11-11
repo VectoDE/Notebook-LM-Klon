@@ -621,7 +621,7 @@ describe("Sources Upload Flow Endpoints", () => {
       const fileData = new TextEncoder().encode("Hello World!");
       const uploadRes = await app.request(uploadUrl, {
         method: "PUT",
-        headers: { "Content-Type": "text/plain" },
+        headers: { "Content-Type": "text/plain", "Content-Length": String(fileData.byteLength) },
         body: fileData
       });
 
@@ -636,6 +636,56 @@ describe("Sources Upload Flow Endpoints", () => {
       expect(r2Obj).not.toBeNull();
       const text = await r2Obj?.text();
       expect(text).toBe("Hello World!");
+    });
+
+    async function initTextSource(
+      byteSize: number
+    ): Promise<{ sourceId: string; uploadUrl: string }> {
+      const initRes = await app.request(`/api/v1/notebooks/${testNotebookId}/sources`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: "limit.txt", mimeType: "text/plain", byteSize })
+      });
+      return (await initRes.json()) as { sourceId: string; uploadUrl: string };
+    }
+
+    it("returns 411 when Content-Length is missing and stores nothing", async () => {
+      const { sourceId, uploadUrl } = await initTextSource(12);
+      const res = await app.request(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "text/plain" },
+        body: new TextEncoder().encode("Hello World!")
+      });
+      expect(res.status).toBe(411);
+      const problem = (await res.json()) as { code: string };
+      expect(problem.code).toBe("LENGTH_REQUIRED");
+      const source = await ragRepo.getSourceById(sourceId);
+      expect(await mockR2.get(source?.r2_key ?? "")).toBeNull();
+    });
+
+    it("returns 411 when Content-Length is not a non-negative integer", async () => {
+      const { uploadUrl } = await initTextSource(12);
+      const res = await app.request(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "text/plain", "Content-Length": "-5" },
+        body: new TextEncoder().encode("Hello World!")
+      });
+      expect(res.status).toBe(411);
+    });
+
+    it("returns 413 when Content-Length exceeds the declared byte_size and stores nothing", async () => {
+      const { sourceId, uploadUrl } = await initTextSource(5);
+      const fileData = new TextEncoder().encode("Hello World!");
+      const res = await app.request(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "text/plain", "Content-Length": String(fileData.byteLength) },
+        body: fileData
+      });
+      expect(res.status).toBe(413);
+      const problem = (await res.json()) as { code: string };
+      expect(problem.code).toBe("UPLOAD_SIZE_MISMATCH");
+      const source = await ragRepo.getSourceById(sourceId);
+      expect(await mockR2.get(source?.r2_key ?? "")).toBeNull();
     });
   });
 
