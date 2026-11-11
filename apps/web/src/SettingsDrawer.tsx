@@ -278,14 +278,14 @@ export function SettingsDrawer({
           </h3>
           <p
             style={{
-              fontSize: "0.825rem",
+              fontSize: "0.875rem",
               margin: 0,
               color: "var(--rn-color-text-secondary)"
             }}
           >
             {t("aiActBadge")}
           </p>
-          <div style={{ fontSize: "0.825rem", color: "var(--rn-color-text-secondary)" }}>
+          <div style={{ fontSize: "0.875rem", color: "var(--rn-color-text-secondary)" }}>
             <strong>{t("gdprTitle")}: </strong>
             {t("gdprText")}
           </div>

@@ -49,6 +49,35 @@ jobs:
       - name: Build production bundles
         run: pnpm build
 
+  e2e:
+    name: E2E (Playwright, Zoom 200 %, Kopfzeile, Bewegung)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium for Playwright
+        run: pnpm --filter @notebook-lm/web exec playwright install --with-deps chromium
+
+      - name: Run Playwright E2E
+        run: pnpm --filter @notebook-lm/web test:e2e
+
   secret-and-dependency-scan:
     name: Secret Scan (Gitleaks) & Dependency Audit (OSV)
     runs-on: ubuntu-latest

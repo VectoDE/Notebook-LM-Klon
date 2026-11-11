@@ -107,7 +107,7 @@ export function LiveLyrics({
           >
             <div
               style={{
-                fontSize: "0.75rem",
+                fontSize: "0.875rem",
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 marginBottom: "4px",

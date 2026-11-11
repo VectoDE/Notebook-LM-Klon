@@ -164,7 +164,7 @@ export function ChatPanel({
                 alignItems: "center",
                 justifyContent: "center",
                 verticalAlign: "baseline",
-                fontSize: "0.75rem",
+                fontSize: "0.875rem",
                 fontWeight: 700,
                 color: "var(--rn-color-primary)",
                 background: "var(--rn-color-surface-variant)",
@@ -251,7 +251,7 @@ export function ChatPanel({
             >
               <span
                 style={{
-                  fontSize: "0.8rem",
+                  fontSize: "0.875rem",
                   fontWeight: 700,
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
@@ -260,7 +260,7 @@ export function ChatPanel({
               >
                 Executive Summary
               </span>
-              <span style={{ fontSize: "0.8rem", color: "var(--rn-color-text-secondary)" }}>
+              <span style={{ fontSize: "0.875rem", color: "var(--rn-color-text-secondary)" }}>
                 • {notebookTitle}
               </span>
             </div>
@@ -297,7 +297,7 @@ export function ChatPanel({
                   background: "var(--rn-color-panel)",
                   border: "1px solid var(--rn-color-border)",
                   color: "var(--rn-color-text-primary)",
-                  fontSize: "0.85rem",
+                  fontSize: "0.875rem",
                   fontWeight: 500,
                   cursor: "pointer",
                   transition: "background 150ms ease"
@@ -330,7 +330,7 @@ export function ChatPanel({
             >
               <div
                 style={{
-                  fontSize: "0.75rem",
+                  fontSize: "0.875rem",
                   fontWeight: 600,
                   marginBottom: "4px",
                   color: isUser ? "var(--rn-color-accent-text)" : "var(--rn-color-text-secondary)",
@@ -350,7 +350,7 @@ export function ChatPanel({
                       background: "transparent",
                       border: "none",
                       cursor: "pointer",
-                      fontSize: "0.75rem",
+                      fontSize: "0.875rem",
                       color: "var(--rn-color-primary)",
                       fontWeight: 600,
                       padding: "2px 6px"
@@ -381,7 +381,7 @@ export function ChatPanel({
                     background: "var(--rn-color-error-surface)",
                     color: "var(--rn-color-error)",
                     border: "1px solid var(--rn-color-error)",
-                    fontSize: "0.85rem"
+                    fontSize: "0.875rem"
                   }}
                 >
                   {msg.error}
@@ -414,7 +414,7 @@ export function ChatPanel({
                   data-testid={`chat-aborted-${msg.id}`}
                   style={{
                     marginTop: "8px",
-                    fontSize: "0.8rem",
+                    fontSize: "0.875rem",
                     color: "var(--rn-color-text-secondary)"
                   }}
                 >
@@ -427,7 +427,7 @@ export function ChatPanel({
                   data-testid={`ai-label-${msg.id}`}
                   style={{
                     marginTop: "8px",
-                    fontSize: "0.75rem",
+                    fontSize: "0.875rem",
                     color: "var(--rn-color-text-secondary)"
                   }}
                 >
@@ -472,6 +472,7 @@ export function ChatPanel({
           data-testid="floating-pill-input-bar"
           style={{
             display: "flex",
+            flexWrap: "wrap",
             alignItems: "center",
             gap: "8px",
             background: "var(--rn-color-panel)",
@@ -485,7 +486,7 @@ export function ChatPanel({
           <span
             data-testid="active-model-badge"
             style={{
-              fontSize: "0.75rem",
+              fontSize: "0.875rem",
               fontWeight: 600,
               padding: "4px 8px",
               borderRadius: "12px",
@@ -496,75 +497,87 @@ export function ChatPanel({
             {activeModel}
           </span>
 
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape" && isGenerating) onStop?.();
-            }}
-            placeholder="Frage zu den Quellen stellen oder Thema vertiefen..."
-            aria-label="Frage zu den Quellen eingeben"
-            readOnly={isGenerating}
-            aria-busy={isGenerating}
-            data-testid="chat-input-field"
+          {/* Eingabe und Senden bleiben zusammen; bei wenig Platz rutscht nur das Badge darüber */}
+          <div
             style={{
-              flex: 1,
-              border: "none",
-              outline: "none",
-              background: "transparent",
-              fontSize: "0.95rem",
-              color: "var(--rn-color-text-primary)",
-              minHeight: "44px"
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              flex: "1 1 12rem",
+              minWidth: 0
             }}
-          />
+          >
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && isGenerating) onStop?.();
+              }}
+              placeholder="Frage zu den Quellen stellen oder Thema vertiefen..."
+              aria-label="Frage zu den Quellen eingeben"
+              readOnly={isGenerating}
+              aria-busy={isGenerating}
+              data-testid="chat-input-field"
+              style={{
+                flex: "1 1 8rem",
+                minWidth: 0,
+                border: "none",
+                outline: "none",
+                background: "transparent",
+                fontSize: "0.95rem",
+                color: "var(--rn-color-text-primary)",
+                minHeight: "44px"
+              }}
+            />
 
-          {isGenerating && onStop ? (
-            <button
-              type="button"
-              onClick={onStop}
-              data-testid="btn-stop-chat"
-              aria-label="Generierung stoppen"
-              style={{
-                minWidth: "44px",
-                minHeight: "44px",
-                borderRadius: "50%",
-                border: "none",
-                background: "var(--rn-color-error)",
-                color: "var(--rn-color-panel)",
-                cursor: "pointer",
-                fontWeight: 700,
-                fontSize: "1rem"
-              }}
-            >
-              ■
-            </button>
-          ) : (
-            <button
-              type="submit"
-              disabled={!inputText.trim() || isGenerating}
-              data-testid="btn-send-chat"
-              aria-label="Frage absenden"
-              style={{
-                minWidth: "44px",
-                minHeight: "44px",
-                borderRadius: "50%",
-                border: "none",
-                background: "var(--rn-color-accent)",
-                color: "var(--rn-color-accent-text)",
-                cursor: inputText.trim() && !isGenerating ? "pointer" : "default",
-                opacity: inputText.trim() && !isGenerating ? 1 : 0.4,
-                fontWeight: 700,
-                fontSize: "1.1rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
-            >
-              ➤
-            </button>
-          )}
+            {isGenerating && onStop ? (
+              <button
+                type="button"
+                onClick={onStop}
+                data-testid="btn-stop-chat"
+                aria-label="Generierung stoppen"
+                style={{
+                  minWidth: "44px",
+                  minHeight: "44px",
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "var(--rn-color-error)",
+                  color: "var(--rn-color-panel)",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  fontSize: "1rem"
+                }}
+              >
+                ■
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!inputText.trim() || isGenerating}
+                data-testid="btn-send-chat"
+                aria-label="Frage absenden"
+                style={{
+                  minWidth: "44px",
+                  minHeight: "44px",
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "var(--rn-color-accent)",
+                  color: "var(--rn-color-accent-text)",
+                  cursor: inputText.trim() && !isGenerating ? "pointer" : "default",
+                  opacity: inputText.trim() && !isGenerating ? 1 : 0.4,
+                  fontWeight: 700,
+                  fontSize: "1.1rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+              >
+                ➤
+              </button>
+            )}
+          </div>
         </form>
       </footer>
     </section>

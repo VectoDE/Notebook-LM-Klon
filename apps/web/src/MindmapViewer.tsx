@@ -54,6 +54,25 @@ export interface RenderLayoutConnection {
 
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 44;
+/** Schriftgröße der Knotenbeschriftung in px (Minimum 14 px, Vorgabe 16/14). */
+export const NODE_FONT_SIZE = 14;
+/** Konservative Breite je Zeichen bei 14 px Inter (600), damit nichts abgeschnitten wird. */
+const CHAR_WIDTH = 8.6;
+/** Rand links plus Platz für den Ein-/Ausklapp-Knopf rechts (24 px Ziel + Abstand). */
+const LABEL_PADDING_LEFT = 16;
+const TOGGLE_RESERVE = 40;
+/** Radius des Ein-/Ausklapp-Knopfs: 12 px ergibt ein Ziel von 24 x 24 px (WCAG 2.5.8). */
+export const TOGGLE_RADIUS = 12;
+
+/**
+ * Breite eines Knotens: mindestens NODE_WIDTH, sonst so breit, dass die
+ * Beschriftung vollständig hineinpasst (kein Abschneiden, auch nicht an der Wurzel).
+ */
+export function nodeWidthFor(label: string, hasChildren: boolean): number {
+  const text = Math.ceil(label.length * CHAR_WIDTH);
+  const reserve = LABEL_PADDING_LEFT * 2 + (hasChildren ? TOGGLE_RESERVE : 0);
+  return Math.max(NODE_WIDTH, text + reserve);
+}
 const HORIZONTAL_SPACING = 90;
 const VERTICAL_SPACING = 24;
 
@@ -75,7 +94,8 @@ export function computeMindmapLayout(
   const connections: RenderLayoutConnection[] = [];
 
   let currentY = startY;
-  const childX = startX + NODE_WIDTH + HORIZONTAL_SPACING;
+  const width = nodeWidthFor(node.label, hasChildren);
+  const childX = startX + width + HORIZONTAL_SPACING;
 
   if (hasChildren && !isCollapsed) {
     for (const child of rawChildren) {
@@ -83,7 +103,7 @@ export function computeMindmapLayout(
       childLayouts.push(childResult.layoutNode);
       connections.push(...childResult.connections);
       connections.push({
-        fromX: startX + NODE_WIDTH,
+        fromX: startX + width,
         fromY: 0, // adjusted after node Y is finalized
         toX: childResult.layoutNode.x,
         toY: childResult.layoutNode.y + NODE_HEIGHT / 2
@@ -105,7 +125,7 @@ export function computeMindmapLayout(
 
   // Fix fromY for outgoing connections
   for (const conn of connections) {
-    if (conn.fromX === startX + NODE_WIDTH && conn.fromY === 0) {
+    if (conn.fromX === startX + width && conn.fromY === 0) {
       (conn as { fromY: number }).fromY = nodeY + NODE_HEIGHT / 2;
     }
   }
@@ -115,7 +135,7 @@ export function computeMindmapLayout(
     label: node.label,
     x: startX,
     y: nodeY,
-    width: NODE_WIDTH,
+    width,
     height: NODE_HEIGHT,
     depth,
     hasChildren,
@@ -275,15 +295,20 @@ export function MindmapViewer({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "12px",
           padding: "8px 16px",
           borderBottom: "1px solid var(--rn-color-panel-border)"
         }}
       >
         <h2 style={{ fontSize: "1.1rem", margin: 0 }}>{title}</h2>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div
+          data-testid="mindmap-toolbar"
+          style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "12px" }}
+        >
           {/* View Mode Toggle for Screenreader / Accessibility */}
-          <div role="tablist" aria-label="Ansichtsmodus">
+          <div role="tablist" aria-label="Ansichtsmodus" style={{ display: "flex", gap: "8px" }}>
             <button
               type="button"
               role="tab"
@@ -292,7 +317,8 @@ export function MindmapViewer({
               id={`${containerId}-visual-tab`}
               onClick={() => setActiveTab("visual")}
               style={{
-                padding: "6px 12px",
+                minHeight: "44px",
+                padding: "0 14px",
                 fontWeight: activeTab === "visual" ? "bold" : "normal",
                 cursor: "pointer"
               }}
@@ -307,7 +333,8 @@ export function MindmapViewer({
               id={`${containerId}-tree-tab`}
               onClick={() => setActiveTab("tree")}
               style={{
-                padding: "6px 12px",
+                minHeight: "44px",
+                padding: "0 14px",
                 fontWeight: activeTab === "tree" ? "bold" : "normal",
                 cursor: "pointer"
               }}
@@ -340,7 +367,7 @@ export function MindmapViewer({
               setZoom(1.0);
               setPan({ x: 20, y: 20 });
             }}
-            style={{ minHeight: "44px", padding: "0 10px", cursor: "pointer" }}
+            style={{ minWidth: "44px", minHeight: "44px", padding: "0 14px", cursor: "pointer" }}
           >
             Reset
           </button>
@@ -437,10 +464,11 @@ export function MindmapViewer({
                     strokeWidth={isRoot ? "2" : "1.5"}
                   />
                   <text
-                    x={node.width / 2}
+                    x={LABEL_PADDING_LEFT}
                     y={node.height / 2 + 5}
-                    textAnchor="middle"
-                    fontSize="13"
+                    textAnchor="start"
+                    fontSize={NODE_FONT_SIZE}
+                    fontWeight={isRoot ? 600 : 500}
                     style={{
                       fill: isRoot ? "var(--rn-color-panel)" : "var(--rn-color-text-primary)",
                       fontFamily: "var(--rn-font-family-ui)",
@@ -454,7 +482,7 @@ export function MindmapViewer({
                   {/* Collapse / Expand toggle button if node has children */}
                   {node.hasChildren && (
                     <g
-                      transform={`translate(${node.width - 12}, ${node.height / 2})`}
+                      transform={`translate(${node.width - TOGGLE_RADIUS - 8}, ${node.height / 2})`}
                       aria-label={`${node.isCollapsed ? "Erweitern" : "Einklappen"}: ${node.label}`}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -467,11 +495,11 @@ export function MindmapViewer({
                         }
                       }}
                     >
-                      <circle r="9" style={{ fill: "var(--rn-color-accent)" }} />
+                      <circle r={TOGGLE_RADIUS} style={{ fill: "var(--rn-color-accent)" }} />
                       <text
                         textAnchor="middle"
-                        y="3.5"
-                        fontSize="11"
+                        y="5"
+                        fontSize={NODE_FONT_SIZE}
                         fontWeight="bold"
                         style={{ fill: "var(--rn-color-accent-text)", pointerEvents: "none" }}
                       >
@@ -565,7 +593,7 @@ export function MindmapViewer({
                       toggleCollapse(node.id);
                       setFocusedNodeId(node.id);
                     }}
-                    style={{ minWidth: "32px", minHeight: "32px", cursor: "pointer" }}
+                    style={{ minWidth: "44px", minHeight: "44px", cursor: "pointer" }}
                   >
                     {node.isCollapsed ? "+" : "-"}
                   </button>

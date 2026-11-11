@@ -136,7 +136,7 @@ export function SourcesPanel({
         <span
           data-testid="sources-count-badge"
           style={{
-            fontSize: "0.85rem",
+            fontSize: "0.875rem",
             padding: "2px 8px",
             borderRadius: "12px",
             background: "var(--rn-color-surface-variant)",
@@ -220,7 +220,7 @@ export function SourcesPanel({
           transition: "background 150ms ease, border-color 150ms ease"
         }}
       >
-        <p style={{ margin: "0 0 6px 0", fontSize: "0.85rem", fontWeight: 600 }}>
+        <p style={{ margin: "0 0 6px 0", fontSize: "0.875rem", fontWeight: 600 }}>
           Dateien hier ablegen (.pdf, .txt, .md)
         </p>
         <small style={{ color: "var(--rn-color-text-secondary)" }}>
@@ -275,7 +275,7 @@ export function SourcesPanel({
           />
           <label
             htmlFor="select-all-sources-checkbox"
-            style={{ fontSize: "0.85rem", cursor: "pointer", fontWeight: 500 }}
+            style={{ fontSize: "0.875rem", cursor: "pointer", fontWeight: 500 }}
           >
             Alle Quellen auswählen
           </label>
@@ -313,8 +313,10 @@ export function SourcesPanel({
                 data-testid={`source-item-${source.id}`}
                 style={{
                   display: "flex",
+                  flexWrap: "wrap",
                   alignItems: "center",
                   justifyContent: "space-between",
+                  gap: "8px",
                   padding: "10px 12px",
                   borderRadius: "8px",
                   marginBottom: "6px",
@@ -326,7 +328,15 @@ export function SourcesPanel({
                     : "1px solid transparent"
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    flex: "1 1 10rem",
+                    minWidth: 0
+                  }}
+                >
                   <input
                     type="checkbox"
                     id={`source-checkbox-${source.id}`}
@@ -336,7 +346,14 @@ export function SourcesPanel({
                     data-testid={`source-checkbox-${source.id}`}
                     style={{ width: "18px", height: "18px", cursor: "pointer" }}
                   />
-                  <div style={{ display: "flex", flexDirection: "column" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      minWidth: 0,
+                      overflowWrap: "anywhere"
+                    }}
+                  >
                     <span
                       style={{
                         fontWeight: 600,
@@ -358,13 +375,13 @@ export function SourcesPanel({
                   aria-label={`Quelle ${source.title} inspizieren`}
                   data-testid={`btn-inspect-source-${source.id}`}
                   style={{
-                    minHeight: "36px",
-                    padding: "4px 10px",
+                    minHeight: "44px",
+                    padding: "4px 12px",
                     borderRadius: "6px",
                     border: "1px solid var(--rn-color-border)",
                     background: "var(--rn-color-panel)",
                     cursor: "pointer",
-                    fontSize: "0.8rem",
+                    fontSize: "0.875rem",
                     fontWeight: 500
                   }}
                 >
@@ -438,7 +455,7 @@ export function SourcesPanel({
 
           <div
             data-testid="inspector-source-content"
-            style={{ fontSize: "0.85rem", lineHeight: 1.5, whiteSpace: "pre-wrap" }}
+            style={{ fontSize: "0.875rem", lineHeight: 1.5, whiteSpace: "pre-wrap" }}
           >
             {activeCitation?.quote &&
             inspectedSource.rawText &&
@@ -516,7 +533,7 @@ export function SourcesPanel({
             </h3>
             <p
               style={{
-                fontSize: "0.85rem",
+                fontSize: "0.875rem",
                 color: "var(--rn-color-text-secondary)",
                 marginBottom: "16px"
               }}
@@ -531,7 +548,7 @@ export function SourcesPanel({
                   htmlFor="url-title-input"
                   style={{
                     display: "block",
-                    fontSize: "0.85rem",
+                    fontSize: "0.875rem",
                     fontWeight: 600,
                     marginBottom: "4px"
                   }}
@@ -561,7 +578,7 @@ export function SourcesPanel({
                   htmlFor="url-address-input"
                   style={{
                     display: "block",
-                    fontSize: "0.85rem",
+                    fontSize: "0.875rem",
                     fontWeight: 600,
                     marginBottom: "4px"
                   }}

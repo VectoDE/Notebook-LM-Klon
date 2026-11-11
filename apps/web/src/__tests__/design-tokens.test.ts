@@ -57,16 +57,44 @@ describe("Design-Tokens: Vollständigkeit", () => {
     }
   });
 
-  it("nutzt #2563EB nie als Text- oder Buttonfarbe im hellen Modus", () => {
+  it("Editorial Calm nutzt Everlast-Blau: #2563EB nur als Fläche, Text #1E40AF", () => {
+    const light = DESIGN_TOKENS["editorial-calm"].light;
+    expect(light.brand).toBe("#2563EB");
+    expect(light.logoTile).toBe("#2563EB");
+    expect(light.primary).toBe("#1E40AF");
+    expect(light.accent).toBe("#1E40AF");
+    expect(light.focusRing).toBe("#1E40AF");
     for (const theme of THEMES) {
-      const light = DESIGN_TOKENS[theme].light;
-      expect(light.primary).not.toBe("#2563EB");
-      expect(light.accent).not.toBe("#2563EB");
-      expect(light.brand).toBe("#2563EB");
+      for (const mode of COLOR_MODES) {
+        const t = DESIGN_TOKENS[theme][mode];
+        // #2563EB erreicht auf Weiß nur 5,17:1 und ist daher nie Textfarbe
+        for (const key of ["textPrimary", "textSecondary", "textMuted", "primary"] as const) {
+          expect(t[key]).not.toBe("#2563EB");
+        }
+      }
     }
-    // Pure und Fusion: Text und Buttons #1E40AF (8,72:1)
-    expect(DESIGN_TOKENS.pure.light.primary).toBe("#1E40AF");
-    expect(DESIGN_TOKENS.fusion.light.accent).toBe("#1E40AF");
+  });
+
+  it("gibt jedem Design eine eigene Farbwelt (Zuordnung 2026-11-12)", () => {
+    for (const mode of COLOR_MODES) {
+      for (const key of ["primary", "brand", "logoTile"] as const) {
+        const values = THEMES.map((theme) => DESIGN_TOKENS[theme][mode][key]);
+        expect(new Set(values).size).toBe(THEMES.length);
+      }
+    }
+    // Fusion übernimmt nicht mehr die Palette von Pure
+    for (const mode of COLOR_MODES) {
+      expect(DESIGN_TOKENS.fusion[mode]).not.toEqual(DESIGN_TOKENS.pure[mode]);
+      expect(DESIGN_TOKENS.fusion[mode].canvas).not.toBe(DESIGN_TOKENS.pure[mode].canvas);
+    }
+    // Pure verwendet weder Everlast- noch Google-Blauwerte
+    const foreignBlues = ["#1A73E8", "#0B57D0", "#4285F4", "#1967D2", "#2563EB", "#1E40AF"];
+    for (const mode of COLOR_MODES) {
+      const values = Object.values(DESIGN_TOKENS.pure[mode]);
+      for (const blue of foreignBlues) {
+        expect(values).not.toContain(blue);
+      }
+    }
   });
 
   it("unterscheidet Hell und Dunkel je Design deutlich (Grundfläche)", () => {

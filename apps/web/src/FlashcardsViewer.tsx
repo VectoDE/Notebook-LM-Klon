@@ -203,10 +203,10 @@ export function FlashcardsViewer({
             color: "var(--rn-color-text-secondary)"
           }}
         >
-          <span style={{ fontSize: "0.85rem", textTransform: "uppercase", fontWeight: "bold" }}>
+          <span style={{ fontSize: "0.875rem", textTransform: "uppercase", fontWeight: "bold" }}>
             {isFlipped ? "Antwort (Rückseite)" : "Frage (Vorderseite)"}
           </span>
-          <span style={{ fontSize: "0.85rem" }}>
+          <span style={{ fontSize: "0.875rem" }}>
             Intervall: {currentState.intervalDays}d | Reps: {currentState.repetitions}
           </span>
         </div>
@@ -259,7 +259,7 @@ export function FlashcardsViewer({
                 });
               }}
               style={{
-                fontSize: "0.85rem",
+                fontSize: "0.875rem",
                 color: "var(--rn-color-primary)",
                 background: "transparent",
                 border: "none",

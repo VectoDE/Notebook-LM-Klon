@@ -184,6 +184,33 @@ export interface WorkspaceLayoutProps {
   readonly chatFetch?: typeof fetch | undefined;
 }
 
+/** Unter 600 px steht die Kopfzeile in zwei Zeilen; dort gelten Kurzbezeichnungen. */
+const NARROW_HEADER_QUERY = "(max-width: 599.98px)";
+
+/** Kurze, sprachneutrale Namen, damit die Auswahlfelder mobil nichts abschneiden. */
+const SHORT_THEME_LABELS: Record<DesignTheme, string> = {
+  pure: "Pure",
+  "immersive-cinema": "Cinema",
+  "editorial-calm": "Editorial",
+  fusion: "Fusion"
+};
+
+/** Reagiert auf eine Media Query; ohne window (Server-Rendering) immer false. */
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(
+    () => typeof window !== "undefined" && Boolean(window.matchMedia?.(query).matches)
+  );
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mql = window.matchMedia(query);
+    const update = () => setMatches(mql.matches);
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, [query]);
+  return matches;
+}
+
 export function WorkspaceLayout({
   initialTool = "overview",
   initialPanelTab = "chat",
@@ -191,6 +218,7 @@ export function WorkspaceLayout({
   chatFetch
 }: WorkspaceLayoutProps) {
   const { theme, setTheme, colorMode, setColorMode, t } = useTheme();
+  const isNarrowHeader = useMediaQuery(NARROW_HEADER_QUERY);
 
   // Panels & Navigation state
   const [activeMobileTab, setActiveMobileTab] = useState<"sources" | "chat" | "studio">(
@@ -367,7 +395,10 @@ export function WorkspaceLayout({
           background: "var(--rn-color-panel)"
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div
+          className="workspace-brand"
+          style={{ display: "flex", alignItems: "center", gap: "12px" }}
+        >
           <h1 id="app-title" style={{ margin: 0, lineHeight: 0 }}>
             <BrandLogo height={32} />
           </h1>
@@ -404,9 +435,9 @@ export function WorkspaceLayout({
             data-testid="role-switcher-select"
             className="rn-header-control"
           >
-            <option value="owner">Inhaber (Owner)</option>
-            <option value="editor">Bearbeiter (Editor)</option>
-            <option value="viewer">Betrachter (Viewer)</option>
+            <option value="owner">{isNarrowHeader ? "Inhaber" : "Inhaber (Owner)"}</option>
+            <option value="editor">{isNarrowHeader ? "Bearbeiter" : "Bearbeiter (Editor)"}</option>
+            <option value="viewer">{isNarrowHeader ? "Betrachter" : "Betrachter (Viewer)"}</option>
           </select>
         </div>
 
@@ -423,10 +454,18 @@ export function WorkspaceLayout({
             aria-label={t("themeLabel")}
             className="rn-header-control"
           >
-            <option value="pure">{t("themePure")}</option>
-            <option value="immersive-cinema">{t("themeCinema")}</option>
-            <option value="editorial-calm">{t("themeEditorial")}</option>
-            <option value="fusion">{t("themeFusion")}</option>
+            <option value="pure">
+              {isNarrowHeader ? SHORT_THEME_LABELS.pure : t("themePure")}
+            </option>
+            <option value="immersive-cinema">
+              {isNarrowHeader ? SHORT_THEME_LABELS["immersive-cinema"] : t("themeCinema")}
+            </option>
+            <option value="editorial-calm">
+              {isNarrowHeader ? SHORT_THEME_LABELS["editorial-calm"] : t("themeEditorial")}
+            </option>
+            <option value="fusion">
+              {isNarrowHeader ? SHORT_THEME_LABELS.fusion : t("themeFusion")}
+            </option>
           </select>
 
           {/* Farbschema: Hell, Dunkel, AAA-Hochkontrast */}
@@ -439,7 +478,7 @@ export function WorkspaceLayout({
           >
             <option value="light">{t("modeLight")}</option>
             <option value="dark">{t("modeDark")}</option>
-            <option value="aaa-contrast">{t("modeAAA")}</option>
+            <option value="aaa-contrast">{isNarrowHeader ? "AAA" : t("modeAAA")}</option>
           </select>
 
           <button
@@ -447,10 +486,29 @@ export function WorkspaceLayout({
             onClick={() => setIsSettingsOpen(true)}
             data-testid="btn-open-settings"
             aria-label="Einstellungen & Compliance öffnen"
-            className="rn-header-control"
+            className="rn-header-control workspace-settings-button"
             style={{ fontWeight: 600 }}
           >
-            Einstellungen
+            {isNarrowHeader ? (
+              <svg
+                aria-hidden="true"
+                focusable="false"
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12" />
+                <circle cx="16" cy="6" r="2" />
+                <circle cx="10" cy="12" r="2" />
+                <circle cx="18" cy="18" r="2" />
+              </svg>
+            ) : (
+              "Einstellungen"
+            )}
           </button>
         </div>
       </header>

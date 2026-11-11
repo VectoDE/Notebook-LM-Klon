@@ -97,7 +97,7 @@ export function DeepDiveStage({
         <div>
           <span
             style={{
-              fontSize: "0.8rem",
+              fontSize: "0.875rem",
               textTransform: "uppercase",
               letterSpacing: "0.1em",
               color: "var(--rn-color-stage-accent)",
@@ -187,7 +187,7 @@ export function DeepDiveStage({
           Beitreten / Frage an die Hosts stellen
         </button>
 
-        <span style={{ fontSize: "0.85rem", color: "var(--rn-color-stage-muted)" }}>
+        <span style={{ fontSize: "0.875rem", color: "var(--rn-color-stage-muted)" }}>
           Live-Audio-Synthese • Grounded Citations
         </span>
       </footer>

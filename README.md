@@ -251,3 +251,4 @@ Sämtliche Architekturentscheidungen (ADRs #1–#110) sind im Ordner [`docs/`](d
 - **Beitragsrichtlinien:** Siehe [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) und [`.github/CODE_OF_CONDUCT.md`](.github/CODE_OF_CONDUCT.md).
 - **Sicherheitsmeldungen:** Bitte nutze für Schwachstellenmeldungen ausschließlich unser [Private Vulnerability Reporting](https://github.com/VectoDE/Notebook-LM-Klon/security/advisories/new) gemäß [`.github/SECURITY.md`](.github/SECURITY.md).
 - **Lizenz:** Veröffentlicht unter der [Apache License 2.0](LICENSE). Copyright (c) 2026 VectoDE.
+- **Schriften (SIL Open Font License 1.1):** Die Web-App liefert Inter, Source Serif 4 und JetBrains Mono selbst gehostet aus (kein externes CDN). Lizenztexte: [Inter](apps/web/public/fonts/LICENSES/Inter-OFL.txt), [Source Serif 4](apps/web/public/fonts/LICENSES/SourceSerif4-OFL.txt), [JetBrains Mono](apps/web/public/fonts/LICENSES/JetBrainsMono-OFL.txt). Im Build liegen sie unter `/fonts/LICENSES/`.
