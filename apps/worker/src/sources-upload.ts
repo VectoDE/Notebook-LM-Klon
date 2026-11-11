@@ -153,6 +153,38 @@ export function detectMagicBytes(bytes: Uint8Array, mimeType: string): boolean {
   return false;
 }
 
+/**
+ * Builds a safe `Content-Disposition: attachment` header value from an untrusted
+ * filename (RFC 6266 with RFC 5987 `filename*` encoding).
+ *
+ * - Removes control characters (incl. CR/LF/NUL/DEL), double quotes, backslashes
+ *   and path separators, so the value can neither break out of the header line
+ *   (header injection / response splitting) nor out of the quoted-string
+ *   (parameter smuggling such as `"; filename="evil.exe`).
+ * - `filename` carries a printable-ASCII fallback for legacy clients.
+ * - `filename*` carries the full UTF-8 name, percent-encoded to RFC 5987 attr-chars.
+ */
+export function buildContentDisposition(filename: string): string {
+  let cleaned = "";
+  for (const ch of filename) {
+    const code = ch.charCodeAt(0);
+    if (code < 0x20 || code === 0x7f || ch === '"' || ch === "\\" || ch === "/") {
+      continue;
+    }
+    cleaned += ch;
+  }
+  cleaned = cleaned.trim();
+  const safeName = cleaned.length > 0 ? cleaned : "download";
+
+  const asciiFallback = safeName.replace(/[^\x20-\x7e]/g, "_");
+  const encoded = encodeURIComponent(safeName).replace(
+    /['()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encoded}`;
+}
+
 export interface SourcesUploadRoutesDependencies {
   coreRepo: CoreRepository;
   ragRepo: RagRepository;
@@ -498,7 +530,8 @@ export function registerSourcesUploadRoutes(
     }
 
     // Secure download headers:
-    // - Content-Disposition: attachment; filename="..."
+    // - Content-Disposition: attachment; filename="..."; filename*=UTF-8''...
+    //   (original_name is user-controlled and must be sanitized, see buildContentDisposition)
     // - X-Content-Type-Options: nosniff
     const contentType = source.mime_type;
 
@@ -506,7 +539,7 @@ export function registerSourcesUploadRoutes(
       status: 200,
       headers: {
         "content-type": `${contentType}; charset=utf-8`,
-        "content-disposition": `attachment; filename="${source.original_name}"`,
+        "content-disposition": buildContentDisposition(source.original_name),
         "x-content-type-options": "nosniff",
         "cache-control": "private, no-cache"
       }
