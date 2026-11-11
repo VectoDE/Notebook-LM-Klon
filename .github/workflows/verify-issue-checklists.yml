@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   verify-subissue-checklists:
-    name: Enforce Checked Sub-Issues Before Merge
+    name: Verify Sub-Issue Checklists Are 100% Checked
     runs-on: ubuntu-latest
     permissions:
       contents: read
