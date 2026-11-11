@@ -1,4 +1,5 @@
 import {
+  createWriteStream,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -9,6 +10,9 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import type { ReadableStream as NodeWebReadableStream } from "node:stream/web";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
@@ -166,17 +170,36 @@ export function createLocalR2Adapter(mediaDir: string): R2Bucket {
         })
       } as unknown as R2ObjectBody;
     },
-    put: async (key: string, value: ArrayBuffer | ArrayBufferView | string | Blob) => {
+    put: async (
+      key: string,
+      value: ReadableStream | ArrayBuffer | ArrayBufferView | string | Blob
+    ) => {
       const filePath = getFilePath(key);
       const fileDir = dirname(filePath);
       if (!existsSync(fileDir)) {
         mkdirSync(fileDir, { recursive: true });
       }
 
+      // Request bodies arrive as web ReadableStreams: stream the raw bytes to disk
+      // (no text decoding, no full buffering in memory).
+      if (value instanceof ReadableStream) {
+        await pipeline(
+          Readable.fromWeb(value as unknown as NodeWebReadableStream<Uint8Array>),
+          createWriteStream(filePath)
+        );
+        const size = statSync(filePath).size;
+        return {
+          key,
+          size,
+          etag: `"${size}"`,
+          httpEtag: `"${size}"`
+        } as unknown as R2Object;
+      }
+
       let buf: Buffer;
       if (typeof value === "string") {
         buf = Buffer.from(value, "utf8");
-      } else if (value instanceof Uint8Array || Buffer.isBuffer(value)) {
+      } else if (ArrayBuffer.isView(value)) {
         buf = Buffer.from(value.buffer, value.byteOffset, value.byteLength);
       } else if (value instanceof ArrayBuffer) {
         buf = Buffer.from(value);

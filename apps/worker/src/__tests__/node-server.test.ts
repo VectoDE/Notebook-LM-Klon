@@ -189,6 +189,46 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       await r2.delete(["binary/data.bin", "binary/buffer.bin", "non-existent.bin"]);
       expect(await r2.get("binary/data.bin")).toBeNull();
     });
+
+    it("stores a binary ReadableStream byte-for-byte (0x00 and 0xFF included, multi-chunk)", async () => {
+      const r2 = createLocalR2Adapter(join(TEST_DATA_DIR, "media"));
+
+      // All 256 byte values twice, with 0x00 and 0xFF at both ends
+      const original = new Uint8Array(512);
+      for (let i = 0; i < original.length; i++) {
+        original[i] = i % 256;
+      }
+      original[0] = 0x00;
+      original[511] = 0xff;
+
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(original.slice(0, 1));
+          controller.enqueue(original.slice(1, 300));
+          controller.enqueue(original.slice(300));
+          controller.close();
+        }
+      });
+
+      const putRes = await r2.put("uploads/blob.bin", stream);
+      expect(putRes?.size).toBe(original.byteLength);
+
+      const getRes = await r2.get("uploads/blob.bin");
+      const roundTrip = new Uint8Array((await getRes?.arrayBuffer()) ?? new ArrayBuffer(0));
+      expect(roundTrip.byteLength).toBe(original.byteLength);
+      expect(Buffer.compare(Buffer.from(roundTrip), Buffer.from(original))).toBe(0);
+    });
+
+    it("stores non-Uint8Array ArrayBufferViews by their bytes, not their string form", async () => {
+      const r2 = createLocalR2Adapter(join(TEST_DATA_DIR, "media"));
+      const words = new Uint16Array([0x0000, 0xffff, 0x00ff]);
+
+      await r2.put("uploads/words.bin", new DataView(words.buffer));
+
+      const getRes = await r2.get("uploads/words.bin");
+      const roundTrip = new Uint8Array((await getRes?.arrayBuffer()) ?? new ArrayBuffer(0));
+      expect(Buffer.compare(Buffer.from(roundTrip), Buffer.from(words.buffer))).toBe(0);
+    });
   });
 
   describe("createMockDurableObjectNamespace", () => {
