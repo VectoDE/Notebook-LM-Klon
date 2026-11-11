@@ -7,7 +7,7 @@ const rootElement = document.getElementById("root");
 if (rootElement) {
   createRoot(rootElement).render(
     <StrictMode>
-      <App />
+      <App mode="workspace" />
     </StrictMode>
   );
 }
