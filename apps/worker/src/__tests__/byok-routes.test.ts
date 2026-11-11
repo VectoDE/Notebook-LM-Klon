@@ -621,24 +621,38 @@ describe("BYOK Key Management API & Rotation (Sub-Issues #93, #94)", () => {
     it("fails closed and stores nothing when no KEK is configured in env", async () => {
       const customApp = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
       customApp.use("*", async (c, next) => {
-        c.set("sessionUser", { id: "usr_nokek" });
+        c.set("sessionUser", { id: "usr_alice" });
         await next();
       });
       registerBYOKRoutes(customApp, {
         ragRepo
       });
 
-      const putRes = await customApp.request(
-        "/api/v1/keys/openai",
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ apiKey: "sk-proj-0123456789abcdefNoKekEnv" })
-        },
-        { APP_PROFILE: "full" } as unknown as Env
-      );
-      expect(putRes.status).toBe(500);
-      expect(await ragRepo.getProviderKey("usr_nokek", "openai")).toBeNull();
+      const putInit = {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: "ds-0123456789abcdefNoKekEnv" })
+      };
+
+      // No env at all (c.env undefined) and an env without any KEK: both must fail closed
+      const putNoEnv = await customApp.request("/api/v1/keys/deepseek", putInit);
+      expect(putNoEnv.status).toBe(500);
+      const putNoKek = await customApp.request("/api/v1/keys/deepseek", putInit, {
+        APP_PROFILE: "full"
+      } as unknown as Env);
+      expect(putNoKek.status).toBe(500);
+      expect(await ragRepo.getProviderKey("usr_alice", "deepseek")).toBeNull();
+
+      // A key stored while a KEK was configured cannot be used once the KEK is gone
+      const putWithKek = await customApp.request("/api/v1/keys/deepseek", putInit, {
+        KEK_V1: "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+      } as unknown as Env);
+      expect(putWithKek.status).toBe(200);
+
+      const testNoKek = await customApp.request("/api/v1/keys/deepseek/test", { method: "POST" });
+      expect(testNoKek.status).toBe(500);
+      const rekeyNoKek = await customApp.request("/api/v1/keys/rekey", { method: "POST" });
+      expect(rekeyNoKek.status).toBe(500);
 
       closeDb();
     });
