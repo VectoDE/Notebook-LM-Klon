@@ -32,7 +32,7 @@ const FULL_QUOTAS: ProfileQuotas = {
   maxNotebooksPerUser: 100,
   maxSourcesPerNotebook: 50,
   maxChunksPerNotebook: 50_000,
-  maxSourceBytes: 200 * 1024 * 1024,
+  maxSourceBytes: 50 * 1024 * 1024,
   maxWordsPerSource: 500_000,
   maxLlmCallsPerDay: 2_000,
   guestTtlHours: 24,

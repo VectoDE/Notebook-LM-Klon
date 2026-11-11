@@ -221,8 +221,8 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       expect(Buffer.compare(Buffer.from(roundTrip), Buffer.from(original))).toBe(0);
     });
 
-    it("uses MAX_OBJECT_BYTES (200 MB, per-source maximum) as the default cap", () => {
-      expect(MAX_OBJECT_BYTES).toBe(200 * 1024 * 1024);
+    it("uses MAX_OBJECT_BYTES (50 MB, per-file maximum) as the default cap", () => {
+      expect(MAX_OBJECT_BYTES).toBe(50 * 1024 * 1024);
     });
 
     it("rejects a ReadableStream above the cap and leaves no partial file behind", async () => {

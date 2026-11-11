@@ -23,7 +23,7 @@ import { MAX_SOURCE_BYTE_SIZE_LIMIT } from "./sources-upload.js";
 
 /**
  * Upper bound for a single object written by the local R2 adapter. It matches the
- * largest per-source file size from the requirements (200 MB, `full` profile), so a
+ * per-file size limit (50 MB), so a
  * client that streams without or past its declared size cannot fill the disk.
  */
 export const MAX_OBJECT_BYTES = MAX_SOURCE_BYTE_SIZE_LIMIT;

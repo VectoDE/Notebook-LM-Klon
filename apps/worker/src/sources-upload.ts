@@ -5,9 +5,9 @@ import type { CoreRepository } from "./core-repository.js";
 import type { RagRepository } from "./rag-repository.js";
 
 /**
- * 200 MB maximum size limit per source (Free-Tier strict limit).
+ * 50 MB maximum size limit per file (product decision: 50 MB per file, 200 MB per notebook).
  */
-export const MAX_SOURCE_BYTE_SIZE_LIMIT = 200 * 1024 * 1024;
+export const MAX_SOURCE_BYTE_SIZE_LIMIT = 50 * 1024 * 1024;
 
 /**
  * Allowed MIME types mapping to SourceType and file extension.
@@ -297,7 +297,7 @@ export function registerSourcesUploadRoutes(
       const problem = createProblemDetails({
         status: 413,
         title: "Payload Too Large",
-        detail: `Dateigröße (${Math.round(sizeNumber / 1024 / 1024)} MB) überschreitet das Limit von 200 MB.`,
+        detail: `Dateigröße (${Math.round(sizeNumber / 1024 / 1024)} MB) überschreitet das Limit von ${Math.round(MAX_SOURCE_BYTE_SIZE_LIMIT / 1024 / 1024)} MB.`,
         instance: c.req.path,
         code: "FILE_TOO_LARGE"
       });
