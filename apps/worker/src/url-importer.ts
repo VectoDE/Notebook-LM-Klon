@@ -18,6 +18,7 @@ import {
   StreamTooLargeError,
   safeFetchWithGuard
 } from "./ssrf-guard.js";
+import { checkTextWordLimit, sourceWordLimitProblem } from "./word-limit.js";
 
 export const ImportUrlRequestSchema = z.object({
   url: z.string().url("Gültige URL erforderlich (http:// oder https://)")
@@ -173,9 +174,19 @@ export function registerUrlImportRoutes(
       });
     }
 
-    // 5. Quota Validation
+    // 5. Word limit and quota validation (before anything is stored)
     const byteSize = fetchResult.buffer.length;
     const config = resolveAppConfig(c.env as { APP_PROFILE?: string; APP_ORIGIN?: string });
+
+    const wordCheck = checkTextWordLimit(extractedContent, config.quotas.maxWordsPerSource);
+    if (wordCheck.exceeded) {
+      return c.json(
+        sourceWordLimitProblem(wordCheck.wordCount, config.quotas.maxWordsPerSource, c.req.path),
+        413,
+        { "content-type": "application/problem+json; charset=utf-8" }
+      );
+    }
+
     const quotaCheck = await verifyQuotaAction(
       c.env.DB,
       sessionUser.id,

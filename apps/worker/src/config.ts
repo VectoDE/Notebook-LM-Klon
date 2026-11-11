@@ -1,4 +1,8 @@
-import { type DeploymentProfile, DeploymentProfileSchema } from "@notebook-lm/shared";
+import {
+  type DeploymentProfile,
+  DeploymentProfileSchema,
+  MAX_WORDS_PER_SOURCE
+} from "@notebook-lm/shared";
 
 export interface ProfileQuotas {
   readonly maxNotebooksPerUser: number;
@@ -24,7 +28,7 @@ const DEMO_QUOTAS: ProfileQuotas = {
   maxChunksPerNotebook: 5_000,
   maxSourceBytes: 50 * 1024 * 1024,
   maxNotebookBytes: 200 * 1024 * 1024,
-  maxWordsPerSource: 150_000,
+  maxWordsPerSource: MAX_WORDS_PER_SOURCE,
   maxLlmCallsPerDay: 50,
   guestTtlHours: 24,
   demoNotebookTtlDays: 30
@@ -36,7 +40,7 @@ const FULL_QUOTAS: ProfileQuotas = {
   maxChunksPerNotebook: 50_000,
   maxSourceBytes: 50 * 1024 * 1024,
   maxNotebookBytes: 200 * 1024 * 1024,
-  maxWordsPerSource: 500_000,
+  maxWordsPerSource: MAX_WORDS_PER_SOURCE,
   maxLlmCallsPerDay: 2_000,
   guestTtlHours: 24,
   demoNotebookTtlDays: null

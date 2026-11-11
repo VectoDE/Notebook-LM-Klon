@@ -599,3 +599,47 @@ describe("URL Import Route - POST /api/v1/notebooks/:id/sources/url", () => {
     expect(json.status).toBe(413);
   });
 });
+
+describe("URL Import Route - Wortgrenze (SOURCE_WORD_LIMIT)", () => {
+  async function importWords(words: number): Promise<Response> {
+    const sqlite = createMockD1();
+    const ragRepo = new RagRepository(sqlite.adapter);
+    const app = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
+    app.use("*", async (c, next) => {
+      c.env = { DB: sqlite.db, APP_PROFILE: "demo" } as unknown as Env;
+      c.set("sessionUser", { id: "usr" });
+      await next();
+    });
+    registerUrlImportRoutes(app, {
+      ragRepo,
+      fetchOptions: {
+        customFetch: (async () =>
+          new Response(`<html><body><p>${"wort ".repeat(words)}</p></body></html>`, {
+            status: 200,
+            headers: { "content-type": "text/html" }
+          })) as typeof fetch,
+        maxByteSize: 10 * 1024 * 1024
+      }
+    });
+    const res = await app.request("http://localhost/api/v1/notebooks/nb/sources/url", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url: "https://example.com/gross" })
+    });
+    sqlite.close();
+    return res;
+  }
+
+  it("lehnt 500.001 Wörter mit 413 und SOURCE_WORD_LIMIT ab", async () => {
+    const res = await importWords(500_001);
+    expect(res.status).toBe(413);
+    expect(res.headers.get("content-type")).toContain("application/problem+json");
+    const json = (await res.json()) as { code: string };
+    expect(json.code).toBe("SOURCE_WORD_LIMIT");
+  });
+
+  it("nimmt 500.000 Wörter nicht wegen der Wortgrenze ab", async () => {
+    const res = await importWords(500_000);
+    expect(res.status).not.toBe(413);
+  });
+});

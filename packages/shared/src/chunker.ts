@@ -2,6 +2,66 @@ export const DEFAULT_MAX_TOKENS = 800;
 export const DEFAULT_OVERLAP_TOKENS = 100;
 export const MAX_WORDS_LIMIT = 500_000;
 
+/** Wortgrenze pro Quelle, gilt in den Profilen demo und full. */
+export const MAX_WORDS_PER_SOURCE = MAX_WORDS_LIMIT;
+
+const WHITESPACE = /\s/;
+
+/**
+ * Zählt Wörter (durch Whitespace getrennte Folgen), ohne den Text zu splitten
+ * oder ein Array mit allen Wörtern anzulegen.
+ */
+export function countWords(text: string): number {
+  let count = 0;
+  let inWord = false;
+  for (let i = 0; i < text.length; i++) {
+    const isSpace = WHITESPACE.test(text.charAt(i));
+    if (!isSpace && !inWord) {
+      count++;
+    }
+    inWord = !isSpace;
+  }
+  return count;
+}
+
+export interface WordCountChunk {
+  readonly chunkIndex: number;
+  readonly text: string;
+  readonly startOffset?: number | null | undefined;
+  readonly endOffset?: number | null | undefined;
+}
+
+/**
+ * Zählt die Wörter einer Quelle aus ihren Chunks, ohne die Überlappung
+ * zwischen benachbarten Chunks doppelt zu rechnen. Ohne Offsets zählt der
+ * ganze Chunk-Text.
+ */
+export function countUniqueWords(chunks: readonly WordCountChunk[]): number {
+  const sorted = [...chunks].sort((a, b) => a.chunkIndex - b.chunkIndex);
+  let total = 0;
+  let coveredUntil = -1;
+  for (const chunk of sorted) {
+    const start = chunk.startOffset;
+    const end = chunk.endOffset;
+    if (typeof start !== "number" || typeof end !== "number") {
+      total += countWords(chunk.text);
+      continue;
+    }
+    const skip = coveredUntil > start ? Math.min(coveredUntil - start, chunk.text.length) : 0;
+    if (skip > 0 && skip < chunk.text.length) {
+      const cutsWord =
+        !WHITESPACE.test(chunk.text.charAt(skip - 1)) && !WHITESPACE.test(chunk.text.charAt(skip));
+      const rest = chunk.text.slice(skip);
+      total += cutsWord ? countWords(rest) - 1 : countWords(rest);
+    } else if (skip === 0) {
+      total += countWords(chunk.text);
+    }
+    // skip >= Textlänge: Chunk liegt vollständig im bereits gezählten Bereich
+    coveredUntil = Math.max(coveredUntil, end);
+  }
+  return total;
+}
+
 export class TextTooLargeError extends Error {
   constructor(wordCount: number, limit: number = MAX_WORDS_LIMIT) {
     super(`Input text has ${wordCount} words, exceeding maximum limit of ${limit} words.`);
@@ -163,9 +223,9 @@ export function chunkText(input: ChunkInput): TextChunk[] {
   }
 
   // Fast word count check
-  const words = text.trim().split(/\s+/);
-  if (words.length > MAX_WORDS_LIMIT) {
-    throw new TextTooLargeError(words.length, MAX_WORDS_LIMIT);
+  const wordCount = countWords(text);
+  if (wordCount > MAX_WORDS_LIMIT) {
+    throw new TextTooLargeError(wordCount, MAX_WORDS_LIMIT);
   }
 
   const totalTokens = estimateTokenCount(text);
