@@ -509,14 +509,24 @@ describe("URL Import Route - POST /api/v1/notebooks/:id/sources/url", () => {
   });
 
   it("enforces user source quota and returns 403 when exceeded", async () => {
-    // Fill quota to limit (15 sources in demo mode)
-    const today = new Date().toISOString().slice(0, 10);
-    await mockD1.db
-      .prepare(
-        "INSERT OR REPLACE INTO quotas (user_id, notebooks_count, sources_count, storage_bytes, llm_calls_day, quota_day) VALUES (?, 1, 15, 1000, 0, ?)"
-      )
-      .bind(testUserId, today)
-      .run();
+    // Fill the notebook to the limit (50 sources in demo mode)
+    for (let i = 0; i < 50; i++) {
+      await ragRepo.createSource({
+        id: `src_fill_${i}`,
+        notebook_id: testNotebookId,
+        title: `fill ${i}`,
+        original_name: `fill-${i}.txt`,
+        mime_type: "text/plain",
+        source_type: "txt",
+        byte_size: 10,
+        r2_key: null,
+        r2_etag: null,
+        status: "ready",
+        error_message: null,
+        created_at: Date.now(),
+        updated_at: Date.now()
+      });
+    }
 
     const mockFetch = async () =>
       new Response("Content", {
@@ -541,5 +551,51 @@ describe("URL Import Route - POST /api/v1/notebooks/:id/sources/url", () => {
     expect(res.status).toBe(403);
     const json = (await res.json()) as { code: string };
     expect(json.code).toBe("QUOTA_MAX_SOURCES_PER_NOTEBOOK_EXCEEDED");
+  });
+
+  it("rejects with 413 NOTEBOOK_SIZE_LIMIT when the notebook would exceed 200 MB", async () => {
+    // 2 x 100 MB metadata only; the 7-byte import pushes the sum over 200 MB
+    for (let i = 0; i < 2; i++) {
+      await ragRepo.createSource({
+        id: `src_big_${i}`,
+        notebook_id: testNotebookId,
+        title: `big ${i}`,
+        original_name: `big-${i}.pdf`,
+        mime_type: "application/pdf",
+        source_type: "pdf",
+        byte_size: 100 * 1024 * 1024,
+        r2_key: null,
+        r2_etag: null,
+        status: "ready",
+        error_message: null,
+        created_at: Date.now(),
+        updated_at: Date.now()
+      });
+    }
+
+    const mockFetch = async () =>
+      new Response("Content", {
+        status: 200,
+        headers: { "content-type": "text/plain" }
+      });
+
+    registerUrlImportRoutes(app, {
+      ragRepo,
+      fetchOptions: { customFetch: mockFetch as typeof fetch }
+    });
+
+    const res = await app.request(
+      `http://localhost/api/v1/notebooks/${testNotebookId}/sources/url`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/size-test" })
+      }
+    );
+
+    expect(res.status).toBe(413);
+    const json = (await res.json()) as { code: string; status: number };
+    expect(json.code).toBe("NOTEBOOK_SIZE_LIMIT");
+    expect(json.status).toBe(413);
   });
 });

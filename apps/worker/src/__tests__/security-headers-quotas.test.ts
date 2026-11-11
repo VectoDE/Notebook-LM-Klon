@@ -38,6 +38,9 @@ function createMockD1(): { db: D1Database; close: () => void } {
   const migrationPath = resolve(process.cwd(), "apps/worker/migrations/0001_initial_core.sql");
   const sql = readFileSync(migrationPath, "utf-8");
   sqlite.exec(sql);
+  sqlite.exec(
+    readFileSync(resolve(process.cwd(), "apps/worker/migrations/0002_rag_and_studio.sql"), "utf-8")
+  );
 
   const db: unknown = {
     prepare(query: string) {
@@ -67,6 +70,45 @@ function createMockD1(): { db: D1Database; close: () => void } {
   };
 
   return { db: db as D1Database, close: () => sqlite.close() };
+}
+
+/**
+ * Seeds a user, workspace and notebook plus `count` sources of `bytesEach` bytes
+ * (metadata only, no real files).
+ */
+async function seedNotebookWithSources(
+  db: D1Database,
+  userId: string,
+  notebookId: string,
+  count: number,
+  bytesEach: number
+): Promise<void> {
+  const now = Date.now();
+  await db
+    .prepare(
+      "INSERT INTO users (id, display_name, locale, is_guest, created_at) VALUES (?, 'Seed', 'de', 0, ?)"
+    )
+    .bind(userId, now)
+    .run();
+  await db
+    .prepare("INSERT INTO workspaces (id, name, owner_id, created_at) VALUES (?, 'WS', ?, ?)")
+    .bind(`ws_${notebookId}`, userId, now)
+    .run();
+  await db
+    .prepare(
+      "INSERT INTO notebooks (id, workspace_id, title, emoji, created_by, created_at, updated_at) VALUES (?, ?, 'NB', '', ?, ?, ?)"
+    )
+    .bind(notebookId, `ws_${notebookId}`, userId, now, now)
+    .run();
+  for (let i = 0; i < count; i++) {
+    await db
+      .prepare(
+        `INSERT INTO sources (id, notebook_id, title, original_name, mime_type, source_type, byte_size, status, created_at, updated_at)
+         VALUES (?, ?, 't', 't', 'application/pdf', 'pdf', ?, 'ready', ?, ?)`
+      )
+      .bind(`${notebookId}_s${i}`, notebookId, bytesEach, now, now)
+      .run();
+  }
 }
 
 describe("Security Headers (Sub-Issue #77)", () => {
@@ -346,8 +388,10 @@ describe("Quota Guard (Sub-Issue #79)", () => {
     close();
   });
 
-  it("enforces max source bytes and max sources per notebook", async () => {
+  it("enforces max source bytes per file (demo: 50 MB, 50 MB + 1 byte denied)", async () => {
     const { db, close } = createMockD1();
+    const config = resolveAppConfig({ APP_PROFILE: "demo" });
+    const mb = 1024 * 1024;
     await db
       .prepare(
         "INSERT INTO users (id, display_name, locale, is_guest, created_at) VALUES ('u3', 'User 3', 'de', 0, ?)"
@@ -355,35 +399,146 @@ describe("Quota Guard (Sub-Issue #79)", () => {
       .bind(Date.now())
       .run();
 
-    const config = resolveAppConfig({ APP_PROFILE: "demo" }); // maxSourceBytes = 25MB, maxSourcesPerNotebook = 15
+    const atLimit = await verifyQuotaAction(
+      db,
+      "u3",
+      { type: "add_source", notebookId: "nb1", byteSize: 50 * mb },
+      config.quotas
+    );
+    expect(atLimit.allowed).toBe(true);
 
-    // Exceeding byte size (e.g. 30MB)
-    const tooLargeAction: QuotaAction = {
-      type: "add_source",
-      notebookId: "nb1",
-      byteSize: 30 * 1024 * 1024
-    };
-    const deniedBytes = await verifyQuotaAction(db, "u3", tooLargeAction, config.quotas);
-    expect(deniedBytes.allowed).toBe(false);
-    expect(deniedBytes.code).toBe("QUOTA_MAX_SOURCE_BYTES_EXCEEDED");
+    const over = await verifyQuotaAction(
+      db,
+      "u3",
+      { type: "add_source", notebookId: "nb1", byteSize: 50 * mb + 1 },
+      config.quotas
+    );
+    expect(over.allowed).toBe(false);
+    expect(over.code).toBe("QUOTA_MAX_SOURCE_BYTES_EXCEEDED");
 
-    // Valid size (5MB)
-    const validAction: QuotaAction = {
-      type: "add_source",
-      notebookId: "nb1",
-      byteSize: 5 * 1024 * 1024
-    };
-    const allowed = await verifyQuotaAction(db, "u3", validAction, config.quotas);
-    expect(allowed.allowed).toBe(true);
+    close();
+  });
 
-    // Simulate filling up sources count to 15
-    for (let i = 0; i < 15; i++) {
-      await incrementUserQuota(db, "u3", validAction);
+  it("enforces max 50 sources per notebook in the demo profile", async () => {
+    const { db, close } = createMockD1();
+    const config = resolveAppConfig({ APP_PROFILE: "demo" });
+    await seedNotebookWithSources(db, "u5", "nb_count", 49, 1);
+    const action: QuotaAction = { type: "add_source", notebookId: "nb_count", byteSize: 1 };
+
+    // 49 existing sources: the 50th is allowed
+    expect((await verifyQuotaAction(db, "u5", action, config.quotas)).allowed).toBe(true);
+
+    // 50 existing sources: the 51st is denied
+    await db
+      .prepare(
+        `INSERT INTO sources (id, notebook_id, title, original_name, mime_type, source_type, byte_size, status, created_at, updated_at)
+         VALUES ('nb_count_s49', 'nb_count', 't', 't', 'application/pdf', 'pdf', 1, 'ready', 1, 1)`
+      )
+      .run();
+    const denied = await verifyQuotaAction(db, "u5", action, config.quotas);
+    expect(denied.allowed).toBe(false);
+    expect(denied.code).toBe("QUOTA_MAX_SOURCES_PER_NOTEBOOK_EXCEEDED");
+
+    // Another notebook of the same user is not affected by the count
+    expect(
+      (
+        await verifyQuotaAction(
+          db,
+          "u5",
+          { type: "add_source", notebookId: "nb_other", byteSize: 1 },
+          config.quotas
+        )
+      ).allowed
+    ).toBe(true);
+
+    close();
+  });
+
+  it.each(["demo", "full"])(
+    "enforces the 200 MB notebook limit in profile %s (exactly 200 MB allowed, +1 byte denied)",
+    async (profile) => {
+      const { db, close } = createMockD1();
+      const config = resolveAppConfig({ APP_PROFILE: profile });
+      const mb = 1024 * 1024;
+      // 4 x 40 MB = 160 MB already in the notebook (metadata only)
+      await seedNotebookWithSources(db, "u6", "nb_size", 4, 40 * mb);
+
+      const exact = await verifyQuotaAction(
+        db,
+        "u6",
+        { type: "add_source", notebookId: "nb_size", byteSize: 40 * mb },
+        config.quotas
+      );
+      expect(exact.allowed).toBe(true);
+
+      const over = await verifyQuotaAction(
+        db,
+        "u6",
+        { type: "add_source", notebookId: "nb_size", byteSize: 40 * mb + 1 },
+        config.quotas
+      );
+      expect(over.allowed).toBe(false);
+      expect(over.code).toBe("NOTEBOOK_SIZE_LIMIT");
+      expect(over.reason).toContain("200 MB");
+      expect(over.reason).toContain("160 MB");
+
+      close();
     }
+  );
 
-    const deniedCount = await verifyQuotaAction(db, "u3", validAction, config.quotas);
-    expect(deniedCount.allowed).toBe(false);
-    expect(deniedCount.code).toBe("QUOTA_MAX_SOURCES_PER_NOTEBOOK_EXCEEDED");
+  it("treats a missing totals row as an empty notebook", async () => {
+    const { db } = createMockD1();
+    const stub = {
+      prepare(query: string) {
+        if (query.includes("FROM sources")) {
+          return { bind: () => ({ first: async () => null }) };
+        }
+        return db.prepare(query);
+      }
+    } as unknown as D1Database;
+    await db
+      .prepare(
+        "INSERT INTO users (id, display_name, locale, is_guest, created_at) VALUES ('u8', 'User 8', 'de', 0, ?)"
+      )
+      .bind(Date.now())
+      .run();
+    const config = resolveAppConfig({ APP_PROFILE: "demo" });
+    const check = await verifyQuotaAction(
+      stub,
+      "u8",
+      { type: "add_source", notebookId: "nb_none", byteSize: 1 },
+      config.quotas
+    );
+    expect(check.allowed).toBe(true);
+  });
+
+  it("answers the notebook size limit with 413 RFC 9457 problem details in the middleware", async () => {
+    const { db, close } = createMockD1();
+    const mb = 1024 * 1024;
+    await seedNotebookWithSources(db, "u7", "nb_mw", 4, 50 * mb);
+
+    const app = new Hono<{
+      Bindings: { DB: D1Database };
+      Variables: { user?: { id: string } };
+    }>();
+    app.use("/nb", async (c, next) => {
+      c.set("user", { id: "u7" });
+      await next();
+    });
+    app.use(
+      "/nb",
+      quotaGuardMiddleware(() => ({ type: "add_source", notebookId: "nb_mw", byteSize: 1 }))
+    );
+    app.post("/nb", (c) => c.text("ok"));
+
+    // 4 x 50 MB = exactly 200 MB: one more byte exceeds the limit
+    const res = await app.request("http://localhost/nb", { method: "POST" }, { DB: db });
+    expect(res.status).toBe(413);
+    expect(res.headers.get("content-type")).toContain("application/problem+json");
+    const problem = (await res.json()) as { code: string; status: number; detail: string };
+    expect(problem.status).toBe(413);
+    expect(problem.code).toBe("NOTEBOOK_SIZE_LIMIT");
+    expect(problem.detail).toContain("200 MB");
 
     close();
   });

@@ -16,7 +16,7 @@ Der NotebookLM-Klon läuft vollständig auf **einem einzigen Cloudflare Worker**
 |---|---|---|---|
 | **Cloudflare Workers** | 100.000 Requests/Tag, **10 ms CPU-Zeit pro Request**, 128 MB RAM, 50 Subrequests | Rechenintensive Arbeit im Worker (PDF-Parsing, OCR, Vektor-Scan über tausende Chunks, PBKDF2 mit hohen Iterationen) führt sofort zu `Error 1102 (CPU time limit exceeded)`. | Der Worker führt nur leichtgewichtige Aufgaben aus (Auth, Zod-Validierung, DB-Persistenz, SSE-Streaming-Proxy; reine Wartezeit auf LLM-Streams zählt **nicht** als CPU-Zeit). Schwere Berechnungen liegen im **Browser-Web-Worker** (Parsing/OCR/Chunking) oder im **Durable Object** (`NotebookDO` mit 30 s CPU-Budget). |
 | **Cloudflare D1 (SQLite)** | 5 Mio. Rows read/Tag, 100.000 Rows written/Tag, 500 MB pro DB, max. 50 Queries/Invocation | Ein Vollscan über 50.000 Vektor-Zeilen bei jeder Chat-Anfrage würde das tägliche Read-Limit nach 100 Suchanfragen erschöpfen. | **Symmetrische `int8`-Quantisierung** (768 Bytes statt 3.072 Bytes pro Vektor) + **In-Memory-Cache im `NotebookDO`**: Die Vektoren eines Notebooks werden nur beim Kaltstart einmal aus D1 geladen und danach im RAM des `NotebookDO` per schnellem Dot-Product durchsucht. D1 führt parallel nur die indexierte `FTS5`-BM25-Suche aus. |
-| **Cloudflare R2** | 10 GB Speicher/Monat, 1 Mio. Class-A-Ops (Writes), 10 Mio. Class-B-Ops (Reads), **0 € Egress** | Große Quelldateien (bis 50 MB im `full`-Profil, 25 MB im `demo`-Profil) dürfen den Worker-Speicher (128 MB) nicht sprengen. | Dualer Upload-Pfad (Entscheidung #57): Primär **S3-kompatible Presigned URL** (`aws4fetch`, direkter Browser-PUT nach R2) mit automatischem Fallback auf gestreamten Multipart-Upload über das native `MEDIA`-R2-Binding. Automatische Cron-TTL-Bereinigung nach 24 h (Gäste) bzw. 30 Tagen (Demo). |
+| **Cloudflare R2** | 10 GB Speicher/Monat, 1 Mio. Class-A-Ops (Writes), 10 Mio. Class-B-Ops (Reads), **0 € Egress** | Große Quelldateien (bis 50 MB je Datei und 200 MB je Notebook, in beiden Profilen) dürfen den Worker-Speicher (128 MB) nicht sprengen. | Dualer Upload-Pfad (Entscheidung #57): Primär **S3-kompatible Presigned URL** (`aws4fetch`, direkter Browser-PUT nach R2) mit automatischem Fallback auf gestreamten Multipart-Upload über das native `MEDIA`-R2-Binding. Automatische Cron-TTL-Bereinigung nach 24 h (Gäste) bzw. 30 Tagen (Demo). |
 | **Durable Objects (SQLite)** | 100.000 Requests/Tag, 13.000 GB-s/Tag, 5 GB SQLite-Speicher (`new_sqlite_classes`), **30 s CPU-Budget pro Aufruf** | Im Free-Plan sind ausschließlich SQLite-backed Durable Objects (`new_sqlite_classes`) zulässig. | `NotebookDO` (Echtzeit-WebSockets mit Hibernation + In-Memory-`Int8Array`-Vektorsuche) und `JobDO` (persistente Hintergrund-Job-Queue via `alarm()` ohne separates Cloudflare-Queues-Abo). |
 | **Email Sending** | Im Free-Plan Versand **nur an vorab verifizierte eigene Zieladressen**; Versand an beliebige fremde Adressen erfordert Workers Paid oder Drittanbieter. | E-Mail-Magic-Link kann im reinen Cloudflare-Free-Plan nicht an unbekannte Bewerbungsprüfer senden. | Primäre Anmeldung über **WebAuthn Passkeys** + **1-Klick-Gastzugang (24 h)** (sofort ohne E-Mail testbar). Für Magic-Link ist ein Multi-Provider-Adapter (`cloudflare`, optionaler kostenloser `resend`/`brevo`-Key oder `console` im Dev-Modus) integriert (Entscheidung #56). |
 
@@ -68,9 +68,10 @@ Cloudflare D1 basiert auf SQLite und unterstützt virtuelle Volltext-Tabellen ü
 | Kontingent / Parameter | Profil `demo` (Cloudflare Free) | Profil `full` (Vollausbau / Enterprise) |
 |---|---|---|
 | Max. Notebooks pro Nutzer | 3 | 100 |
-| Max. Quellen pro Notebook | 15 | 50 |
+| Max. Quellen pro Notebook | 50 | 50 |
 | Max. Chunks pro Notebook | 5.000 (≈ 3,8 MB `int8`-Vektoren) | 50.000 (≈ 38 MB `int8`-Vektoren) |
-| Max. Dateigröße pro Quelle | 25 MB | 50 MB |
+| Max. Dateigröße pro Quelle | 50 MB | 50 MB |
+| Max. Gesamtgröße pro Notebook | 200 MB | 200 MB |
 | Max. Wörter pro Quelle | 150.000 | 500.000 |
 | Max. LLM-Aufrufe pro Nutzer/Tag | 50 | 2.000 |
 | Gast-Konto Lebensdauer (TTL) | 24 Stunden | 24 Stunden |

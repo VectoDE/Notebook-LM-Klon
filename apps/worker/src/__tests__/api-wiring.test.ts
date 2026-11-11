@@ -406,7 +406,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       const tooBig = await call(path, {
         method: "POST",
         cookie: fx.cookies.alice,
-        json: { ...pdfInit, byteSize: 30 * 1024 * 1024 }
+        json: { ...pdfInit, byteSize: 51 * 1024 * 1024 }
       });
       expect(tooBig.status).toBe(403);
       expect(((await tooBig.json()) as { code: string }).code).toBe(

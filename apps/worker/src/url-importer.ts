@@ -10,7 +10,7 @@ import type { Hono } from "hono";
 import { resolveAppConfig } from "./config.js";
 import { detectGoogleDocsUrl } from "./gdoc-detector.js";
 import { extractArticleFromHtml } from "./html-extractor.js";
-import { incrementUserQuota, verifyQuotaAction } from "./quota-guard.js";
+import { incrementUserQuota, quotaDenialStatus, verifyQuotaAction } from "./quota-guard.js";
 import type { RagRepository } from "./rag-repository.js";
 import {
   type SafeFetchOptions,
@@ -184,14 +184,15 @@ export function registerUrlImportRoutes(
     );
 
     if (!quotaCheck.allowed) {
+      const status = quotaDenialStatus(quotaCheck.code);
       const problem = createProblemDetails({
-        status: 403,
-        title: "Quota Exceeded",
+        status,
+        title: status === 413 ? "Payload Too Large" : "Quota Exceeded",
         detail: quotaCheck.reason,
         instance: c.req.path,
         code: quotaCheck.code
       });
-      return c.json(problem, 403, {
+      return c.json(problem, status, {
         "content-type": "application/problem+json; charset=utf-8"
       });
     }
