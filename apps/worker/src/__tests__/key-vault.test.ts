@@ -253,10 +253,19 @@ describe("KeyVault - WebCrypto AES-256-GCM Envelope Encryption (Sub-Issue #92, #
       expect(vault.hasVersion(1)).toBe(true);
     });
 
-    it("provides default test KEK when env is completely empty", () => {
-      const vault = createKeyVaultFromEnv({});
-      expect(vault.getCurrentVersion()).toBe(1);
-      expect(vault.hasVersion(1)).toBe(true);
+    it("throws instead of falling back to a built-in KEK when env is completely empty", () => {
+      expect(() => createKeyVaultFromEnv({})).toThrow(/No KEK configured/);
+    });
+
+    it("throws when KEK variables are present but blank or not strings", () => {
+      expect(() =>
+        createKeyVaultFromEnv({
+          KEK_V1: "   ",
+          KEK_V2: 42,
+          BYOK_MASTER_KEY: "",
+          APP_PROFILE: "full"
+        })
+      ).toThrow(/No KEK configured/);
     });
   });
 

@@ -583,22 +583,62 @@ describe("BYOK Key Management API & Rotation (Sub-Issues #93, #94)", () => {
       registerBYOKRoutes(customApp, {
         ragRepo
       });
+      const envWithKek = {
+        KEK_V1: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      } as unknown as Env;
 
       // PUT
-      const putRes = await customApp.request("/api/v1/keys/openai", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: "sk-proj-0123456789abcdefDefaultEnv" })
-      });
+      const putRes = await customApp.request(
+        "/api/v1/keys/openai",
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ apiKey: "sk-proj-0123456789abcdefDefaultEnv" })
+        },
+        envWithKek
+      );
       expect(putRes.status).toBe(200);
 
       // TEST
-      const testRes = await customApp.request("/api/v1/keys/openai/test", { method: "POST" });
+      const testRes = await customApp.request(
+        "/api/v1/keys/openai/test",
+        { method: "POST" },
+        envWithKek
+      );
       expect(testRes.status).toBe(200);
 
       // REKEY
-      const rekeyRes = await customApp.request("/api/v1/keys/rekey", { method: "POST" });
+      const rekeyRes = await customApp.request(
+        "/api/v1/keys/rekey",
+        { method: "POST" },
+        envWithKek
+      );
       expect(rekeyRes.status).toBe(200);
+
+      closeDb();
+    });
+
+    it("fails closed and stores nothing when no KEK is configured in env", async () => {
+      const customApp = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
+      customApp.use("*", async (c, next) => {
+        c.set("sessionUser", { id: "usr_nokek" });
+        await next();
+      });
+      registerBYOKRoutes(customApp, {
+        ragRepo
+      });
+
+      const putRes = await customApp.request(
+        "/api/v1/keys/openai",
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ apiKey: "sk-proj-0123456789abcdefNoKekEnv" })
+        },
+        { APP_PROFILE: "full" } as unknown as Env
+      );
+      expect(putRes.status).toBe(500);
+      expect(await ragRepo.getProviderKey("usr_nokek", "openai")).toBeNull();
 
       closeDb();
     });
