@@ -7,6 +7,12 @@ export interface ChatMessage {
   readonly content: string;
   readonly citations?: readonly CitationLocation[] | undefined;
   readonly isStreaming?: boolean | undefined;
+  /** Fehlertext, falls die Antwort fehlgeschlagen ist. */
+  readonly error?: string | undefined;
+  /** True, wenn der Nutzer die Antwort abgebrochen hat. */
+  readonly aborted?: boolean | undefined;
+  /** Modell, das die Antwort erzeugt hat (EU AI Act Art. 50). */
+  readonly modelUsed?: string | undefined;
 }
 
 export interface ChatPanelProps {
@@ -18,6 +24,8 @@ export interface ChatPanelProps {
   readonly onSendMessage?: ((message: string) => void | Promise<void>) | undefined;
   readonly onCitationClick?: ((citation: CitationLocation) => void) | undefined;
   readonly onReadAloud?: ((text: string) => void) | undefined;
+  readonly onStop?: (() => void) | undefined;
+  readonly onRetry?: (() => void) | undefined;
   readonly isGenerating?: boolean | undefined;
 }
 
@@ -34,6 +42,8 @@ export function ChatPanel({
   onSendMessage,
   onCitationClick,
   onReadAloud,
+  onStop,
+  onRetry,
   isGenerating = false
 }: ChatPanelProps) {
   const [inputText, setInputText] = useState("");
@@ -43,8 +53,23 @@ export function ChatPanel({
 
   // Auto-scroll on mount and updates
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth" });
   });
+
+  // Fokus zurueck ins Eingabefeld, sobald die Generierung endet (Tastaturbedienung)
+  const wasGenerating = useRef(false);
+  useEffect(() => {
+    if (wasGenerating.current && !isGenerating) inputRef.current?.focus();
+    wasGenerating.current = isGenerating;
+  }, [isGenerating]);
+
+  const lastMessage = messages[messages.length - 1];
+  let statusText = "";
+  if (isGenerating) statusText = "Antwort wird generiert.";
+  else if (lastMessage?.error) statusText = `Fehler: ${lastMessage.error}`;
+  else if (lastMessage?.aborted) statusText = "Generierung abgebrochen.";
+  else if (lastMessage?.role === "assistant" && messages.length > 1)
+    statusText = "Antwort vollständig.";
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -172,8 +197,28 @@ export function ChatPanel({
         color: "var(--rn-color-text-primary, #0f172a)"
       }}
     >
+      {/* Statusmeldungen fuer Screenreader (nicht pro Token, sondern pro Zustand) */}
+      <output
+        aria-live="polite"
+        aria-atomic="true"
+        data-testid="chat-status-live"
+        style={{
+          position: "absolute",
+          width: "1px",
+          height: "1px",
+          overflow: "hidden",
+          clip: "rect(0 0 0 0)",
+          whiteSpace: "nowrap"
+        }}
+      >
+        {statusText}
+      </output>
+
       {/* Messages Scroll Area */}
       <div
+        role="log"
+        aria-label="Chat-Verlauf"
+        aria-busy={isGenerating}
         style={{
           flex: 1,
           overflowY: "auto",
@@ -326,8 +371,75 @@ export function ChatPanel({
                 data-testid={`message-content-${msg.id}`}
                 style={{ fontSize: "0.95rem", lineHeight: 1.6 }}
               >
-                {renderMessageContent(msg.id, msg.content, msg.citations)}
+                {msg.isStreaming && msg.content.length === 0
+                  ? "Antwort wird erstellt …"
+                  : renderMessageContent(msg.id, msg.content, msg.citations)}
               </div>
+
+              {msg.error && (
+                <div
+                  role="alert"
+                  data-testid={`chat-error-${msg.id}`}
+                  style={{
+                    marginTop: "8px",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    background: "#fef2f2",
+                    color: "#991b1b",
+                    border: "1px solid #fecaca",
+                    fontSize: "0.85rem"
+                  }}
+                >
+                  {msg.error}
+                  {onRetry && (
+                    <button
+                      type="button"
+                      onClick={onRetry}
+                      disabled={isGenerating}
+                      data-testid="btn-retry-chat"
+                      style={{
+                        marginLeft: "12px",
+                        minHeight: "32px",
+                        padding: "2px 10px",
+                        borderRadius: "6px",
+                        border: "1px solid #991b1b",
+                        background: "transparent",
+                        color: "#991b1b",
+                        cursor: "pointer",
+                        fontWeight: 600
+                      }}
+                    >
+                      Erneut versuchen
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {msg.aborted && (
+                <div
+                  data-testid={`chat-aborted-${msg.id}`}
+                  style={{
+                    marginTop: "8px",
+                    fontSize: "0.8rem",
+                    color: "var(--rn-color-text-secondary, #64748b)"
+                  }}
+                >
+                  Generierung abgebrochen.
+                </div>
+              )}
+
+              {!isUser && msg.modelUsed && !msg.isStreaming && (
+                <div
+                  data-testid={`ai-label-${msg.id}`}
+                  style={{
+                    marginTop: "8px",
+                    fontSize: "0.75rem",
+                    color: "var(--rn-color-text-secondary, #64748b)"
+                  }}
+                >
+                  KI-generiert · {msg.modelUsed}
+                </div>
+              )}
 
               {msg.isStreaming && (
                 <div
@@ -395,9 +507,13 @@ export function ChatPanel({
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && isGenerating) onStop?.();
+            }}
             placeholder="Frage zu den Quellen stellen oder Thema vertiefen..."
             aria-label="Frage zu den Quellen eingeben"
-            disabled={isGenerating}
+            readOnly={isGenerating}
+            aria-busy={isGenerating}
             data-testid="chat-input-field"
             style={{
               flex: 1,
@@ -410,29 +526,51 @@ export function ChatPanel({
             }}
           />
 
-          <button
-            type="submit"
-            disabled={!inputText.trim() || isGenerating}
-            data-testid="btn-send-chat"
-            aria-label="Frage absenden"
-            style={{
-              minWidth: "44px",
-              minHeight: "44px",
-              borderRadius: "50%",
-              border: "none",
-              background: "var(--rn-color-primary, #2563eb)",
-              color: "#ffffff",
-              cursor: inputText.trim() && !isGenerating ? "pointer" : "default",
-              opacity: inputText.trim() && !isGenerating ? 1 : 0.4,
-              fontWeight: 700,
-              fontSize: "1.1rem",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-          >
-            ➤
-          </button>
+          {isGenerating && onStop ? (
+            <button
+              type="button"
+              onClick={onStop}
+              data-testid="btn-stop-chat"
+              aria-label="Generierung stoppen"
+              style={{
+                minWidth: "44px",
+                minHeight: "44px",
+                borderRadius: "50%",
+                border: "none",
+                background: "#b91c1c",
+                color: "#ffffff",
+                cursor: "pointer",
+                fontWeight: 700,
+                fontSize: "1rem"
+              }}
+            >
+              ■
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={!inputText.trim() || isGenerating}
+              data-testid="btn-send-chat"
+              aria-label="Frage absenden"
+              style={{
+                minWidth: "44px",
+                minHeight: "44px",
+                borderRadius: "50%",
+                border: "none",
+                background: "var(--rn-color-primary, #2563eb)",
+                color: "#ffffff",
+                cursor: inputText.trim() && !isGenerating ? "pointer" : "default",
+                opacity: inputText.trim() && !isGenerating ? 1 : 0.4,
+                fontWeight: 700,
+                fontSize: "1.1rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              ➤
+            </button>
+          )}
         </form>
       </footer>
     </section>
