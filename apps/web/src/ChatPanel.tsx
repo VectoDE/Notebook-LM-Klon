@@ -198,8 +198,7 @@ export function ChatPanel({
       }}
     >
       {/* Statusmeldungen fuer Screenreader (nicht pro Token, sondern pro Zustand) */}
-      <div
-        role="status"
+      <output
         aria-live="polite"
         aria-atomic="true"
         data-testid="chat-status-live"
@@ -213,7 +212,7 @@ export function ChatPanel({
         }}
       >
         {statusText}
-      </div>
+      </output>
 
       {/* Messages Scroll Area */}
       <div
@@ -548,29 +547,29 @@ export function ChatPanel({
               ■
             </button>
           ) : (
-          <button
-            type="submit"
-            disabled={!inputText.trim() || isGenerating}
-            data-testid="btn-send-chat"
-            aria-label="Frage absenden"
-            style={{
-              minWidth: "44px",
-              minHeight: "44px",
-              borderRadius: "50%",
-              border: "none",
-              background: "var(--rn-color-primary, #2563eb)",
-              color: "#ffffff",
-              cursor: inputText.trim() && !isGenerating ? "pointer" : "default",
-              opacity: inputText.trim() && !isGenerating ? 1 : 0.4,
-              fontWeight: 700,
-              fontSize: "1.1rem",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-          >
-            ➤
-          </button>
+            <button
+              type="submit"
+              disabled={!inputText.trim() || isGenerating}
+              data-testid="btn-send-chat"
+              aria-label="Frage absenden"
+              style={{
+                minWidth: "44px",
+                minHeight: "44px",
+                borderRadius: "50%",
+                border: "none",
+                background: "var(--rn-color-primary, #2563eb)",
+                color: "#ffffff",
+                cursor: inputText.trim() && !isGenerating ? "pointer" : "default",
+                opacity: inputText.trim() && !isGenerating ? 1 : 0.4,
+                fontWeight: 700,
+                fontSize: "1.1rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              ➤
+            </button>
           )}
         </form>
       </footer>

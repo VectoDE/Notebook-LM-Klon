@@ -7,11 +7,11 @@ import {
   WORKSPACE_VERSION
 } from "@notebook-lm/shared";
 import { type FunctionComponent, useCallback, useEffect, useRef, useState } from "react";
-import { ChatApiError, mapCitations, streamChat } from "./chat-client.js";
 import { type ChatMessage, ChatPanel } from "./ChatPanel.js";
 import { SettingsDrawer } from "./SettingsDrawer.js";
 import { SourcesPanel } from "./SourcesPanel.js";
 import { StudioPanel, type StudioTool } from "./StudioPanel.js";
+import { ChatApiError, mapCitations, streamChat } from "./chat-client.js";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, WorkspaceSource } from "./workspace-types.js";
 
@@ -283,7 +283,10 @@ export function WorkspaceLayout({
 
     const retryBase = options?.isRetry
       ? (prev: ChatMessage[]) => prev.filter((m) => !m.error)
-      : (prev: ChatMessage[]) => [...prev, { id: `msg_u_${stamp}`, role: "user" as const, content: text }];
+      : (prev: ChatMessage[]) => [
+          ...prev,
+          { id: `msg_u_${stamp}`, role: "user" as const, content: text }
+        ];
     setMessages((prev) => [
       ...retryBase(prev),
       { id: assistantId, role: "assistant", content: "", isStreaming: true }
