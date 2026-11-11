@@ -5,33 +5,100 @@ import {
   createProblemDetails
 } from "@notebook-lm/shared";
 import { Hono } from "hono";
+import { registerAudioRoutes } from "./audio-routes.js";
+import {
+  csrfProtection,
+  requireAuth,
+  requireNotebookRole,
+  sessionMiddleware
+} from "./auth-middleware.js";
+import { registerBYOKRoutes } from "./byok-routes.js";
+import { registerChatRoutes } from "./chat-routes.js";
 import { runScheduledCleanup } from "./cleanup.js";
 import { resolveAppConfig } from "./config.js";
+import { CoreRepository } from "./core-repository.js";
 import { createD1DatabaseAdapter } from "./d1-adapter.js";
 import { createDemoRoutes } from "./demo-routes.js";
+import { createGuestAndMagicLinkRoutes } from "./guest-magic-link-routes.js";
+import { registerJobRoutes } from "./job-routes.js";
+import { createKeyVaultFromEnv } from "./key-vault.js";
+import {
+  CloudflareMailAdapter,
+  type CloudflareSendEmailBinding,
+  HttpMailAdapter,
+  type MailAdapter
+} from "./mail-adapter.js";
+import { createPasskeyRoutes } from "./passkey-routes.js";
+import { PasskeyService } from "./passkey-service.js";
+import { registerProviderRoutes } from "./provider-routes.js";
+import { type QuotaAction, quotaGuardMiddleware } from "./quota-guard.js";
+import { RagRepository } from "./rag-repository.js";
+import { rateLimiterMiddleware } from "./rate-limiter.js";
+import {
+  hasConfiguredKek,
+  notExposed,
+  recordQuotaUsage,
+  requireConfiguredKek,
+  requireNotebookRoleFromQuery,
+  requireSourceRole,
+  resolveAddSourceAction
+} from "./route-guards.js";
+import { registerSearchRoutes } from "./search-routes.js";
+import { applySecurityHeaders } from "./security-headers.js";
+import { SessionManager } from "./session.js";
+import { registerSourcesUploadRoutes } from "./sources-upload.js";
+import { registerUrlImportRoutes } from "./url-importer.js";
 
 export const WORKER_VERSION = WORKSPACE_VERSION;
 
-export function createApp(): Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }> {
-  const app = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
+declare module "hono" {
+  interface ContextVariableMap {
+    /** Mirror of sessionUser for rate-limiter and quota-guard, which read "user". */
+    user?: { id: string };
+  }
+}
 
+type ApiEnv = { Bindings: Env; Variables: { sessionUser?: { id: string } } };
+
+/** Optional secrets and bindings that are not part of the generated Env type. */
+export interface OptionalSecrets {
+  readonly SESSION_SALT_SECRET?: string;
+  readonly TURNSTILE_SECRET_KEY?: string;
+  readonly RESEND_API_KEY?: string;
+  readonly MAIL_FROM?: string;
+  readonly SEND_EMAIL?: CloudflareSendEmailBinding;
+}
+
+const PROBLEM_HEADERS = { "content-type": "application/problem+json; charset=utf-8" } as const;
+
+function notFoundProblem(path: string) {
+  return createProblemDetails({
+    status: 404,
+    title: "Not Found",
+    detail: `Endpunkt '${path}' wurde nicht gefunden.`,
+    instance: path,
+    code: "NOT_FOUND"
+  });
+}
+
+export function createMailAdapter(secrets: OptionalSecrets): MailAdapter {
+  if (secrets.RESEND_API_KEY && secrets.MAIL_FROM) {
+    return new HttpMailAdapter("resend", secrets.RESEND_API_KEY, secrets.MAIL_FROM);
+  }
+  // Without a configured binding the adapter reports a delivery error (no silent success).
+  return new CloudflareMailAdapter(secrets.SEND_EMAIL);
+}
+
+function registerHealthAndDemoRoutes(app: Hono<ApiEnv>): void {
   // Demo routes: /api/v1/demo/info and /api/v1/demo/seed
   app.all("/api/v1/demo/*", async (c) => {
-    // Dynamically inject D1 adapter from c.env.DB if available
     const db = createD1DatabaseAdapter(c.env.DB);
     const demoKey = c.env.DEMO_GEMINI_KEY ?? process.env.DEMO_GEMINI_KEY;
     const dynamicRoutes = createDemoRoutes({ db, demoGeminiKey: demoKey });
-    let executionCtx: unknown;
-    try {
-      executionCtx = c.executionCtx;
-    } catch {
-      executionCtx = undefined;
-    }
-    // Sub-path after /api/v1/demo
     const subPath = c.req.path.slice("/api/v1/demo".length);
     const subUrl = new URL(subPath, "https://local.worker");
     const subReq = new Request(subUrl.toString(), c.req.raw);
-    return dynamicRoutes.fetch(subReq, c.env, executionCtx as never);
+    return dynamicRoutes.fetch(subReq, c.env, safeExecutionCtx(c));
   });
 
   app.get("/api/v1/health", async (c) => {
@@ -67,19 +134,185 @@ export function createApp(): Hono<{ Bindings: Env; Variables: { sessionUser?: { 
       "cache-control": "no-store"
     });
   });
+}
 
-  app.notFound((c) => {
-    const problem = createProblemDetails({
-      status: 404,
-      title: "Not Found",
-      detail: `Endpunkt '${c.req.path}' wurde nicht gefunden.`,
-      instance: c.req.path,
-      code: "NOT_FOUND"
-    });
-    return c.json(problem, 404, {
-      "content-type": "application/problem+json; charset=utf-8"
-    });
+function safeExecutionCtx(c: { readonly executionCtx: unknown }): never {
+  try {
+    return c.executionCtx as never;
+  } catch {
+    return undefined as never;
+  }
+}
+
+/**
+ * Builds the complete API for one environment. Repositories and services are bound
+ * to env.DB, so the app is built once per env object and cached (see createApp).
+ *
+ * Order: CSRF -> Session -> Rate-Limit -> route guards (auth, RBAC, quota) -> handler.
+ * Security headers are applied to every response by the outer app in createApp().
+ */
+export function buildApiApp(env: Env): Hono<ApiEnv> {
+  const config = resolveAppConfig(env);
+  const secrets = env as unknown as OptionalSecrets;
+  const isProduction = config.origin.startsWith("https://");
+
+  const dbAdapter = createD1DatabaseAdapter(env.DB);
+  const coreRepo = new CoreRepository(dbAdapter);
+  const ragRepo = new RagRepository(dbAdapter);
+  const sessionManager = new SessionManager({
+    repo: coreRepo,
+    saltSecret: secrets.SESSION_SALT_SECRET ?? `relationnotes-session:${config.origin}`
   });
+  const keyVault = hasConfiguredKek(env) ? createKeyVaultFromEnv(env) : undefined;
+
+  const app = new Hono<ApiEnv>();
+
+  // 1. Global API security chain
+  app.use("*", csrfProtection({ allowedOrigins: [config.origin], isProduction }));
+  app.use("*", sessionMiddleware(sessionManager));
+  app.use("*", async (c, next) => {
+    const sessionUser = c.get("sessionUser");
+    if (sessionUser) {
+      c.set("user", { id: sessionUser.id });
+    }
+    await next();
+  });
+  app.use("*", rateLimiterMiddleware());
+
+  // 2. Public infrastructure routes
+  registerHealthAndDemoRoutes(app);
+
+  // 3. Auth (public, rate-limit category "auth")
+  const guestOptions: Parameters<typeof createGuestAndMagicLinkRoutes>[0] = {
+    repo: coreRepo,
+    sessionManager,
+    mailAdapter: createMailAdapter(secrets),
+    appBaseUrl: config.origin,
+    isProduction
+  };
+  if (secrets.TURNSTILE_SECRET_KEY) {
+    guestOptions.turnstileSecretKey = secrets.TURNSTILE_SECRET_KEY;
+  }
+  app.route("/api/v1/auth", createGuestAndMagicLinkRoutes(guestOptions));
+  app.route(
+    "/api/v1/auth/passkey",
+    createPasskeyRoutes({
+      repo: coreRepo,
+      passkeyService: new PasskeyService({
+        repo: coreRepo,
+        rpName: "RelationNotes",
+        rpID: new URL(config.origin).hostname,
+        expectedOrigin: config.origin
+      }),
+      sessionManager,
+      isProduction
+    })
+  );
+
+  // 4. Chat, search, audio (session + notebook role, LLM quota)
+  const llmQuota = (): QuotaAction => ({ type: "llm_call" });
+
+  app.use(
+    "/api/v1/notebooks/:id/chat",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "viewer", "id"),
+    quotaGuardMiddleware(llmQuota),
+    recordQuotaUsage(llmQuota)
+  );
+  app.use("/api/v1/chats/:id/messages", requireAuth());
+  registerChatRoutes(app, { ragRepo, coreRepo, keyVault });
+
+  app.use(
+    "/api/v1/notebooks/:id/search",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "viewer", "id")
+  );
+  registerSearchRoutes(app, { ragRepo, coreRepo });
+
+  app.use(
+    "/api/v1/notebooks/:id/audio-interject",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "viewer", "id"),
+    quotaGuardMiddleware(llmQuota),
+    recordQuotaUsage(llmQuota)
+  );
+  registerAudioRoutes(app, { ragRepo, coreRepo, keyVault });
+
+  // 5. Sources (editor for writes, viewer for download)
+  app.use(
+    "/api/v1/notebooks/:id/sources",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "editor", "id"),
+    quotaGuardMiddleware(resolveAddSourceAction),
+    recordQuotaUsage(resolveAddSourceAction)
+  );
+  app.use(
+    "/api/v1/notebooks/:id/sources/url",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "editor", "id")
+  );
+  app.use("/api/v1/sources/:id/upload", requireSourceRole(coreRepo, ragRepo, "editor"));
+  app.use("/api/v1/sources/:id/upload/complete", requireSourceRole(coreRepo, ragRepo, "editor"));
+  app.use("/api/v1/sources/:id/file", requireSourceRole(coreRepo, ragRepo, "viewer"));
+  registerUrlImportRoutes(app, { ragRepo });
+  registerSourcesUploadRoutes(app, { coreRepo, ragRepo });
+
+  // 6. Providers: catalog and routing decision are public, the network probe needs a session
+  app.use("/api/v1/providers/ollama/probe", requireAuth());
+  registerProviderRoutes(app, { ragRepo, keyVault });
+
+  // 7. Jobs: only endpoints with an access check are exposed
+  app.use("/api/v1/jobs/enqueue", requireAuth());
+  app.get("/api/v1/jobs", requireNotebookRoleFromQuery(coreRepo, "viewer"));
+  const jobNotExposed = notExposed(
+    "Job-Status und -Abbruch sind noch nicht freigegeben (Besitzprüfung fehlt)."
+  );
+  app.get("/api/v1/jobs/:id", jobNotExposed);
+  app.post("/api/v1/jobs/:id/cancel", jobNotExposed);
+  registerJobRoutes(app, { coreRepo });
+
+  // 8. BYOK key management (last: its router adds its own same-origin CSRF check)
+  app.use("/api/v1/keys", requireAuth(), requireConfiguredKek());
+  app.use("/api/v1/keys/*", requireAuth(), requireConfiguredKek());
+  registerBYOKRoutes(app, {
+    ragRepo,
+    coreRepo,
+    keyVault,
+    saltSecret: secrets.SESSION_SALT_SECRET
+  });
+
+  app.notFound((c) => c.json(notFoundProblem(c.req.path), 404, PROBLEM_HEADERS));
+
+  return app;
+}
+
+const apiAppCache = new WeakMap<object, Hono<ApiEnv>>();
+
+function getApiApp(env: Env): Hono<ApiEnv> {
+  let api = apiAppCache.get(env);
+  if (!api) {
+    api = buildApiApp(env);
+    apiAppCache.set(env, api);
+  }
+  return api;
+}
+
+export function createApp(): Hono<ApiEnv> {
+  const app = new Hono<ApiEnv>();
+
+  // Security headers on every response. The response is rebuilt because responses from
+  // Durable Object stubs or fetch() can carry immutable headers.
+  app.use("*", async (c, next) => {
+    await next();
+    const secured = new Response(c.res.body, c.res);
+    applySecurityHeaders(secured.headers);
+    c.res = undefined;
+    c.res = secured;
+  });
+
+  app.all("/api/*", (c) => getApiApp(c.env).fetch(c.req.raw, c.env, safeExecutionCtx(c)));
+
+  app.notFound((c) => c.json(notFoundProblem(c.req.path), 404, PROBLEM_HEADERS));
 
   return app;
 }

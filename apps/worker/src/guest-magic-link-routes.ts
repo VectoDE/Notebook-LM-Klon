@@ -261,7 +261,11 @@ export function createGuestAndMagicLinkRoutes(
       [tokenHash, email, now, expiresAt]
     );
 
-    const callbackUrl = `${opts.appBaseUrl.replace(/\/+$/, "")}/api/v1/auth/magic-link/callback?token=${rawToken}`;
+    let baseUrl = opts.appBaseUrl;
+    while (baseUrl.endsWith("/")) {
+      baseUrl = baseUrl.slice(0, -1);
+    }
+    const callbackUrl = `${baseUrl}/api/v1/auth/magic-link/callback?token=${rawToken}`;
 
     const sendRes = await opts.mailAdapter.send({
       to: email,
