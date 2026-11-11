@@ -118,9 +118,9 @@ export function SourcesPanel({
         flexDirection: "column",
         height: "100%",
         padding: "16px",
-        background: "var(--rn-color-surface, #ffffff)",
-        color: "var(--rn-color-text-primary, #0f172a)",
-        borderRight: "1px solid var(--rn-color-border, #e2e8f0)",
+        background: "var(--rn-color-panel)",
+        color: "var(--rn-color-text-primary)",
+        borderRight: "1px solid var(--rn-color-border)",
         overflowY: "auto"
       }}
     >
@@ -139,8 +139,8 @@ export function SourcesPanel({
             fontSize: "0.85rem",
             padding: "2px 8px",
             borderRadius: "12px",
-            background: "var(--rn-color-surface-variant, #f1f5f9)",
-            color: "var(--rn-color-text-secondary, #64748b)"
+            background: "var(--rn-color-surface-variant)",
+            color: "var(--rn-color-text-secondary)"
           }}
         >
           {sources.length} {sources.length === 1 ? "Quelle" : "Quellen"}
@@ -159,8 +159,8 @@ export function SourcesPanel({
             minHeight: "44px",
             padding: "8px 12px",
             borderRadius: "8px",
-            background: "var(--rn-color-primary, #2563eb)",
-            color: "#ffffff",
+            background: "var(--rn-color-accent)",
+            color: "var(--rn-color-accent-text)",
             border: "none",
             cursor: "pointer",
             fontWeight: 600,
@@ -179,9 +179,9 @@ export function SourcesPanel({
             minHeight: "44px",
             padding: "8px 12px",
             borderRadius: "8px",
-            background: "var(--rn-color-surface-variant, #f1f5f9)",
-            color: "var(--rn-color-text-primary, #0f172a)",
-            border: "1px solid var(--rn-color-border, #cbd5e1)",
+            background: "var(--rn-color-surface-variant)",
+            color: "var(--rn-color-text-primary)",
+            border: "1px solid var(--rn-color-border)",
             cursor: "pointer",
             fontWeight: 600,
             fontSize: "0.9rem"
@@ -210,11 +210,9 @@ export function SourcesPanel({
         data-testid="dropzone-area"
         style={{
           border: isDragging
-            ? "2px dashed var(--rn-color-primary, #2563eb)"
-            : "2px dashed var(--rn-color-border, #cbd5e1)",
-          background: isDragging
-            ? "rgba(37, 99, 235, 0.08)"
-            : "var(--rn-color-surface-variant, #f8fafc)",
+            ? "2px dashed var(--rn-color-primary)"
+            : "2px dashed var(--rn-color-border)",
+          background: isDragging ? "var(--rn-color-highlight)" : "var(--rn-color-surface-variant)",
           borderRadius: "8px",
           padding: "16px",
           textAlign: "center",
@@ -225,7 +223,7 @@ export function SourcesPanel({
         <p style={{ margin: "0 0 6px 0", fontSize: "0.85rem", fontWeight: 600 }}>
           Dateien hier ablegen (.pdf, .txt, .md)
         </p>
-        <small style={{ color: "var(--rn-color-text-secondary, #64748b)" }}>
+        <small style={{ color: "var(--rn-color-text-secondary)" }}>
           oder Button oben nutzen (barrierefrei ohne Drag-Zwang)
         </small>
       </section>
@@ -248,9 +246,9 @@ export function SourcesPanel({
             minHeight: "44px",
             padding: "8px 12px",
             borderRadius: "8px",
-            border: "1px solid var(--rn-color-border, #cbd5e1)",
-            background: "var(--rn-color-background, #ffffff)",
-            color: "var(--rn-color-text-primary, #0f172a)",
+            border: "1px solid var(--rn-color-border)",
+            background: "var(--rn-color-canvas)",
+            color: "var(--rn-color-text-primary)",
             fontSize: "0.9rem"
           }}
         />
@@ -264,7 +262,7 @@ export function SourcesPanel({
             gap: "8px",
             padding: "6px 0",
             marginBottom: "8px",
-            borderBottom: "1px solid var(--rn-color-border, #e2e8f0)"
+            borderBottom: "1px solid var(--rn-color-border)"
           }}
         >
           <input
@@ -296,7 +294,7 @@ export function SourcesPanel({
             style={{
               padding: "24px 12px",
               textAlign: "center",
-              color: "var(--rn-color-text-secondary, #64748b)",
+              color: "var(--rn-color-text-secondary)",
               fontSize: "0.9rem"
             }}
           >
@@ -321,10 +319,10 @@ export function SourcesPanel({
                   borderRadius: "8px",
                   marginBottom: "6px",
                   background: isInspected
-                    ? "rgba(37, 99, 235, 0.12)"
-                    : "var(--rn-color-surface-variant, #f8fafc)",
+                    ? "var(--rn-color-highlight)"
+                    : "var(--rn-color-surface-variant)",
                   border: isInspected
-                    ? "1px solid var(--rn-color-primary, #2563eb)"
+                    ? "1px solid var(--rn-color-primary)"
                     : "1px solid transparent"
                 }}
               >
@@ -343,12 +341,12 @@ export function SourcesPanel({
                       style={{
                         fontWeight: 600,
                         fontSize: "0.9rem",
-                        color: "var(--rn-color-text-primary, #0f172a)"
+                        color: "var(--rn-color-text-primary)"
                       }}
                     >
                       {source.title}
                     </span>
-                    <small style={{ color: "var(--rn-color-text-secondary, #64748b)" }}>
+                    <small style={{ color: "var(--rn-color-text-secondary)" }}>
                       {source.originalName} ({Math.round(source.byteSize / 1024)} KB)
                     </small>
                   </div>
@@ -363,8 +361,8 @@ export function SourcesPanel({
                     minHeight: "36px",
                     padding: "4px 10px",
                     borderRadius: "6px",
-                    border: "1px solid var(--rn-color-border, #cbd5e1)",
-                    background: "var(--rn-color-surface, #ffffff)",
+                    border: "1px solid var(--rn-color-border)",
+                    background: "var(--rn-color-panel)",
                     cursor: "pointer",
                     fontSize: "0.8rem",
                     fontWeight: 500
@@ -387,8 +385,8 @@ export function SourcesPanel({
             marginTop: "16px",
             padding: "16px",
             borderRadius: "8px",
-            background: "var(--rn-color-surface-variant, #f1f5f9)",
-            border: "1px solid var(--rn-color-border, #cbd5e1)",
+            background: "var(--rn-color-surface-variant)",
+            border: "1px solid var(--rn-color-border)",
             maxHeight: "260px",
             overflowY: "auto"
           }}
@@ -428,9 +426,9 @@ export function SourcesPanel({
                 marginBottom: "8px",
                 padding: "6px 8px",
                 borderRadius: "6px",
-                background: "rgba(234, 179, 8, 0.2)",
-                fontSize: "0.8rem",
-                color: "#854d0e"
+                background: "var(--rn-color-highlight)",
+                fontSize: "0.875rem",
+                color: "var(--rn-color-text-primary)"
               }}
               data-testid="citation-active-badge"
             >
@@ -455,8 +453,8 @@ export function SourcesPanel({
                       tabIndex={-1}
                       data-testid="highlighted-citation-passage"
                       style={{
-                        background: "var(--rn-color-highlight, #fef08a)",
-                        color: "#713f12",
+                        background: "var(--rn-color-highlight)",
+                        color: "var(--rn-color-text-primary)",
                         padding: "2px 4px",
                         borderRadius: "4px",
                         fontWeight: 600
@@ -504,8 +502,8 @@ export function SourcesPanel({
         >
           <div
             style={{
-              background: "var(--rn-color-surface, #ffffff)",
-              color: "var(--rn-color-text-primary, #0f172a)",
+              background: "var(--rn-color-panel)",
+              color: "var(--rn-color-text-primary)",
               padding: "24px",
               borderRadius: "12px",
               maxWidth: "480px",
@@ -519,7 +517,7 @@ export function SourcesPanel({
             <p
               style={{
                 fontSize: "0.85rem",
-                color: "var(--rn-color-text-secondary, #64748b)",
+                color: "var(--rn-color-text-secondary)",
                 marginBottom: "16px"
               }}
             >
@@ -553,7 +551,7 @@ export function SourcesPanel({
                     minHeight: "40px",
                     padding: "8px",
                     borderRadius: "6px",
-                    border: "1px solid var(--rn-color-border, #cbd5e1)"
+                    border: "1px solid var(--rn-color-border)"
                   }}
                 />
               </div>
@@ -584,7 +582,7 @@ export function SourcesPanel({
                     minHeight: "40px",
                     padding: "8px",
                     borderRadius: "6px",
-                    border: "1px solid var(--rn-color-border, #cbd5e1)"
+                    border: "1px solid var(--rn-color-border)"
                   }}
                 />
               </div>
@@ -598,7 +596,7 @@ export function SourcesPanel({
                     minHeight: "44px",
                     padding: "8px 16px",
                     borderRadius: "6px",
-                    border: "1px solid var(--rn-color-border, #cbd5e1)",
+                    border: "1px solid var(--rn-color-border)",
                     background: "transparent",
                     cursor: "pointer"
                   }}
@@ -613,8 +611,8 @@ export function SourcesPanel({
                     padding: "8px 16px",
                     borderRadius: "6px",
                     border: "none",
-                    background: "var(--rn-color-primary, #2563eb)",
-                    color: "#ffffff",
+                    background: "var(--rn-color-accent)",
+                    color: "var(--rn-color-accent-text)",
                     fontWeight: 600,
                     cursor: "pointer"
                   }}

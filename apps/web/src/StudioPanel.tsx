@@ -94,9 +94,9 @@ export function StudioPanel({
         flexDirection: "column",
         height: "100%",
         padding: "16px",
-        background: "var(--rn-color-surface, #ffffff)",
-        color: "var(--rn-color-text-primary, #0f172a)",
-        borderLeft: "1px solid var(--rn-color-border, #e2e8f0)",
+        background: "var(--rn-color-panel)",
+        color: "var(--rn-color-text-primary)",
+        borderLeft: "1px solid var(--rn-color-border)",
         overflowY: "auto"
       }}
     >
@@ -117,7 +117,7 @@ export function StudioPanel({
             style={{
               padding: "4px 10px",
               borderRadius: "6px",
-              border: "1px solid var(--rn-color-border, #cbd5e1)",
+              border: "1px solid var(--rn-color-border)",
               background: "transparent",
               cursor: "pointer",
               fontSize: "0.85rem"
@@ -145,8 +145,8 @@ export function StudioPanel({
             style={{
               padding: "14px",
               borderRadius: "12px",
-              background: "var(--rn-color-surface-variant, #f8fafc)",
-              border: "1px solid var(--rn-color-border, #e2e8f0)",
+              background: "var(--rn-color-surface-variant)",
+              border: "1px solid var(--rn-color-border)",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between"
@@ -157,7 +157,7 @@ export function StudioPanel({
               <p
                 style={{
                   fontSize: "0.8rem",
-                  color: "var(--rn-color-text-secondary, #64748b)",
+                  color: "var(--rn-color-text-secondary)",
                   margin: 0
                 }}
               >
@@ -174,8 +174,8 @@ export function StudioPanel({
                   minHeight: "36px",
                   borderRadius: "6px",
                   border: "none",
-                  background: "var(--rn-color-primary, #2563eb)",
-                  color: "#ffffff",
+                  background: "var(--rn-color-accent)",
+                  color: "var(--rn-color-accent-text)",
                   fontSize: "0.8rem",
                   fontWeight: 600,
                   cursor: "pointer"
@@ -191,8 +191,8 @@ export function StudioPanel({
                 style={{
                   padding: "0 8px",
                   borderRadius: "6px",
-                  border: "1px solid var(--rn-color-border, #cbd5e1)",
-                  background: "#ffffff",
+                  border: "1px solid var(--rn-color-border)",
+                  background: "var(--rn-color-panel)",
                   fontSize: "0.8rem",
                   cursor: "pointer"
                 }}
@@ -208,8 +208,8 @@ export function StudioPanel({
             style={{
               padding: "14px",
               borderRadius: "12px",
-              background: "var(--rn-color-surface-variant, #f8fafc)",
-              border: "1px solid var(--rn-color-border, #e2e8f0)",
+              background: "var(--rn-color-surface-variant)",
+              border: "1px solid var(--rn-color-border)",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between"
@@ -220,7 +220,7 @@ export function StudioPanel({
               <p
                 style={{
                   fontSize: "0.8rem",
-                  color: "var(--rn-color-text-secondary, #64748b)",
+                  color: "var(--rn-color-text-secondary)",
                   margin: 0
                 }}
               >
@@ -236,8 +236,8 @@ export function StudioPanel({
                 minHeight: "36px",
                 borderRadius: "6px",
                 border: "none",
-                background: "var(--rn-color-primary, #2563eb)",
-                color: "#ffffff",
+                background: "var(--rn-color-accent)",
+                color: "var(--rn-color-accent-text)",
                 fontSize: "0.8rem",
                 fontWeight: 600,
                 cursor: "pointer"
@@ -253,8 +253,8 @@ export function StudioPanel({
             style={{
               padding: "14px",
               borderRadius: "12px",
-              background: "var(--rn-color-surface-variant, #f8fafc)",
-              border: "1px solid var(--rn-color-border, #e2e8f0)",
+              background: "var(--rn-color-surface-variant)",
+              border: "1px solid var(--rn-color-border)",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between"
@@ -265,7 +265,7 @@ export function StudioPanel({
               <p
                 style={{
                   fontSize: "0.8rem",
-                  color: "var(--rn-color-text-secondary, #64748b)",
+                  color: "var(--rn-color-text-secondary)",
                   margin: 0
                 }}
               >
@@ -282,8 +282,8 @@ export function StudioPanel({
                   minHeight: "36px",
                   borderRadius: "6px",
                   border: "none",
-                  background: "var(--rn-color-primary, #2563eb)",
-                  color: "#ffffff",
+                  background: "var(--rn-color-accent)",
+                  color: "var(--rn-color-accent-text)",
                   fontSize: "0.8rem",
                   fontWeight: 600,
                   cursor: "pointer"
@@ -298,8 +298,8 @@ export function StudioPanel({
                 style={{
                   padding: "0 8px",
                   borderRadius: "6px",
-                  border: "1px solid var(--rn-color-border, #cbd5e1)",
-                  background: "#ffffff",
+                  border: "1px solid var(--rn-color-border)",
+                  background: "var(--rn-color-panel)",
                   fontSize: "0.8rem",
                   cursor: "pointer"
                 }}
@@ -315,8 +315,8 @@ export function StudioPanel({
             style={{
               padding: "14px",
               borderRadius: "12px",
-              background: "var(--rn-color-surface-variant, #f8fafc)",
-              border: "1px solid var(--rn-color-border, #e2e8f0)",
+              background: "var(--rn-color-surface-variant)",
+              border: "1px solid var(--rn-color-border)",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between"
@@ -327,7 +327,7 @@ export function StudioPanel({
               <p
                 style={{
                   fontSize: "0.8rem",
-                  color: "var(--rn-color-text-secondary, #64748b)",
+                  color: "var(--rn-color-text-secondary)",
                   margin: 0
                 }}
               >
@@ -344,8 +344,8 @@ export function StudioPanel({
                   minHeight: "36px",
                   borderRadius: "6px",
                   border: "none",
-                  background: "var(--rn-color-primary, #2563eb)",
-                  color: "#ffffff",
+                  background: "var(--rn-color-accent)",
+                  color: "var(--rn-color-accent-text)",
                   fontSize: "0.8rem",
                   fontWeight: 600,
                   cursor: "pointer"
@@ -360,8 +360,8 @@ export function StudioPanel({
                 style={{
                   padding: "0 8px",
                   borderRadius: "6px",
-                  border: "1px solid var(--rn-color-border, #cbd5e1)",
-                  background: "#ffffff",
+                  border: "1px solid var(--rn-color-border)",
+                  background: "var(--rn-color-panel)",
                   fontSize: "0.8rem",
                   cursor: "pointer"
                 }}
@@ -377,8 +377,8 @@ export function StudioPanel({
             style={{
               padding: "14px",
               borderRadius: "12px",
-              background: "var(--rn-color-surface-variant, #f8fafc)",
-              border: "1px solid var(--rn-color-border, #e2e8f0)",
+              background: "var(--rn-color-surface-variant)",
+              border: "1px solid var(--rn-color-border)",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between"
@@ -389,7 +389,7 @@ export function StudioPanel({
               <p
                 style={{
                   fontSize: "0.8rem",
-                  color: "var(--rn-color-text-secondary, #64748b)",
+                  color: "var(--rn-color-text-secondary)",
                   margin: 0
                 }}
               >
@@ -406,8 +406,8 @@ export function StudioPanel({
                   minHeight: "36px",
                   borderRadius: "6px",
                   border: "none",
-                  background: "var(--rn-color-primary, #2563eb)",
-                  color: "#ffffff",
+                  background: "var(--rn-color-accent)",
+                  color: "var(--rn-color-accent-text)",
                   fontSize: "0.8rem",
                   fontWeight: 600,
                   cursor: "pointer"
@@ -422,8 +422,8 @@ export function StudioPanel({
                 style={{
                   padding: "0 8px",
                   borderRadius: "6px",
-                  border: "1px solid var(--rn-color-border, #cbd5e1)",
-                  background: "#ffffff",
+                  border: "1px solid var(--rn-color-border)",
+                  background: "var(--rn-color-panel)",
                   fontSize: "0.8rem",
                   cursor: "pointer"
                 }}
@@ -439,8 +439,8 @@ export function StudioPanel({
             style={{
               padding: "14px",
               borderRadius: "12px",
-              background: "var(--rn-color-surface-variant, #f8fafc)",
-              border: "1px solid var(--rn-color-border, #e2e8f0)",
+              background: "var(--rn-color-surface-variant)",
+              border: "1px solid var(--rn-color-border)",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between"
@@ -451,7 +451,7 @@ export function StudioPanel({
               <p
                 style={{
                   fontSize: "0.8rem",
-                  color: "var(--rn-color-text-secondary, #64748b)",
+                  color: "var(--rn-color-text-secondary)",
                   margin: 0
                 }}
               >
@@ -467,8 +467,8 @@ export function StudioPanel({
                 minHeight: "36px",
                 borderRadius: "6px",
                 border: "none",
-                background: "var(--rn-color-primary, #2563eb)",
-                color: "#ffffff",
+                background: "var(--rn-color-accent)",
+                color: "var(--rn-color-accent-text)",
                 fontSize: "0.8rem",
                 fontWeight: 600,
                 cursor: "pointer"

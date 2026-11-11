@@ -2,10 +2,10 @@
  * Theme Context, Hook, and I18n Engine for 4 Design Systems x 3 Color Modes x 2 Languages.
  *
  * Implements Sub-Issue #128 & #129:
- * - 4 Design Systems: pure-notebooklm, immersive-cinema, editorial-calm, fusion
- * - 3 Color Modes: light, oled-dark, aaa-contrast
+ * - 4 Design Systems: pure, immersive-cinema, editorial-calm, fusion
+ * - 3 Color Modes: light, dark, aaa-contrast (Standard folgt der Systemeinstellung)
  * - 2 Languages: de, en
- * - Persistence in localStorage and html attributes (data-theme, data-color-mode, lang)
+ * - Persistence in localStorage and html attributes (data-design, data-color-mode, lang)
  */
 
 import {
@@ -18,20 +18,16 @@ import {
   useState
 } from "react";
 
-export type DesignTheme = "pure-notebooklm" | "immersive-cinema" | "editorial-calm" | "fusion";
-export type ColorMode = "light" | "oled-dark" | "aaa-contrast";
-export type Language = "de" | "en";
+import { COLOR_MODES, type ColorMode, type DesignTheme, THEMES } from "./design-tokens.js";
+import {
+  LANGUAGES,
+  type Language,
+  applyThemeToDocument,
+  resolveInitialPreferences
+} from "./theme-preferences.js";
 
-export const THEMES: readonly DesignTheme[] = [
-  "pure-notebooklm",
-  "immersive-cinema",
-  "editorial-calm",
-  "fusion"
-] as const;
-
-export const COLOR_MODES: readonly ColorMode[] = ["light", "oled-dark", "aaa-contrast"] as const;
-
-export const LANGUAGES: readonly Language[] = ["de", "en"] as const;
+export { COLOR_MODES, LANGUAGES, THEMES };
+export type { ColorMode, DesignTheme, Language };
 
 export interface TranslationDictionary {
   readonly [key: string]: string;
@@ -70,12 +66,12 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     aiActTitle: "EU AI Act Compliance",
     aiActBadge: "Transparenzpflicht Art. 50 erfüllt (Kennzeichnung KI-generierter Inhalte).",
     cinemaStageClose: "Bühne schließen",
-    themePure: "Pure NotebookLM",
+    themePure: "Pure",
     themeCinema: "Immersive Cinema",
     themeEditorial: "Editorial Calm",
     themeFusion: "Fusion (Standard)",
     modeLight: "Hell",
-    modeDark: "OLED Dunkel",
+    modeDark: "Dunkel",
     modeAAA: "Hochkontrast (AAA)",
     motionLabel: "Reduzierte Bewegung",
     navOverview: "Übersicht",
@@ -116,12 +112,12 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     aiActTitle: "EU AI Act Compliance",
     aiActBadge: "Article 50 Transparency standard fulfilled (labeled AI-generated content).",
     cinemaStageClose: "Close Stage",
-    themePure: "Pure NotebookLM",
+    themePure: "Pure",
     themeCinema: "Immersive Cinema",
     themeEditorial: "Editorial Calm",
     themeFusion: "Fusion (Default)",
     modeLight: "Light",
-    modeDark: "OLED Dark",
+    modeDark: "Dark",
     modeAAA: "High Contrast (AAA)",
     motionLabel: "Reduced Motion",
     navOverview: "Overview",
@@ -145,10 +141,6 @@ export interface ThemeContextValue {
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-const STORAGE_KEY_THEME = "rn_theme";
-const STORAGE_KEY_COLOR_MODE = "rn_color_mode";
-const STORAGE_KEY_LANGUAGE = "rn_language";
-
 export interface ThemeProviderProps {
   readonly children: ReactNode;
   readonly defaultTheme?: DesignTheme | undefined;
@@ -156,55 +148,45 @@ export interface ThemeProviderProps {
   readonly defaultLanguage?: Language | undefined;
 }
 
+function browserEnvironment() {
+  if (typeof window === "undefined") return {};
+  let storage: Storage | undefined;
+  try {
+    storage = window.localStorage;
+  } catch {
+    storage = undefined;
+  }
+  return {
+    storage,
+    matchMedia: typeof window.matchMedia === "function" ? window.matchMedia.bind(window) : undefined
+  };
+}
+
 export function ThemeProvider({
   children,
-  defaultTheme = "fusion",
-  defaultColorMode = "light",
-  defaultLanguage = "de"
+  defaultTheme,
+  defaultColorMode,
+  defaultLanguage
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<DesignTheme>(() => {
-    if (typeof window !== "undefined" && window.localStorage) {
-      const saved = window.localStorage.getItem(STORAGE_KEY_THEME) as DesignTheme | null;
-      if (saved && THEMES.includes(saved)) {
-        return saved;
-      }
-    }
-    return defaultTheme;
-  });
+  const [initial] = useState(() =>
+    resolveInitialPreferences(browserEnvironment(), {
+      theme: defaultTheme,
+      colorMode: defaultColorMode,
+      language: defaultLanguage
+    })
+  );
+  const [theme, setThemeState] = useState<DesignTheme>(initial.theme);
+  const [colorMode, setColorModeState] = useState<ColorMode>(initial.colorMode);
+  const [language, setLanguageState] = useState<Language>(initial.language);
 
-  const [colorMode, setColorModeState] = useState<ColorMode>(() => {
-    if (typeof window !== "undefined" && window.localStorage) {
-      const saved = window.localStorage.getItem(STORAGE_KEY_COLOR_MODE) as ColorMode | null;
-      if (saved && COLOR_MODES.includes(saved)) {
-        return saved;
-      }
-    }
-    return defaultColorMode;
-  });
-
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window !== "undefined" && window.localStorage) {
-      const saved = window.localStorage.getItem(STORAGE_KEY_LANGUAGE) as Language | null;
-      if (saved && LANGUAGES.includes(saved)) {
-        return saved;
-      }
-    }
-    return defaultLanguage;
-  });
-
-  // Sync state to DOM and localStorage
+  // Zustand in DOM-Attribute und localStorage spiegeln
   useEffect(() => {
-    if (typeof document !== "undefined") {
-      const root = document.documentElement;
-      root.setAttribute("data-theme", theme);
-      root.setAttribute("data-color-mode", colorMode);
-      root.setAttribute("lang", language);
-    }
-    if (typeof window !== "undefined" && window.localStorage) {
-      window.localStorage.setItem(STORAGE_KEY_THEME, theme);
-      window.localStorage.setItem(STORAGE_KEY_COLOR_MODE, colorMode);
-      window.localStorage.setItem(STORAGE_KEY_LANGUAGE, language);
-    }
+    if (typeof document === "undefined") return;
+    applyThemeToDocument(
+      document.documentElement,
+      { theme, colorMode, language },
+      browserEnvironment().storage
+    );
   }, [theme, colorMode, language]);
 
   const setTheme = useCallback((newTheme: DesignTheme) => {

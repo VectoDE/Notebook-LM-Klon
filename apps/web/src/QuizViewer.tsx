@@ -103,14 +103,14 @@ export function QuizViewer({
           justifyContent: "space-between",
           alignItems: "center",
           marginBottom: "16px",
-          borderBottom: "1px solid #e2e8f0",
+          borderBottom: "1px solid var(--rn-color-panel-border)",
           paddingBottom: "8px"
         }}
       >
         <h2 style={{ fontSize: "1.2rem", margin: 0 }}>{title}</h2>
         <span
           data-testid="quiz-progress-indicator"
-          style={{ fontSize: "0.95rem", color: "#64748b" }}
+          style={{ fontSize: "0.95rem", color: "var(--rn-color-text-secondary)" }}
         >
           Frage {activeQuestionIndex + 1} von {totalQuestions}
         </span>
@@ -129,15 +129,21 @@ export function QuizViewer({
         <div
           data-testid="quiz-summary-card"
           style={{
-            background: "#f8fafc",
+            background: "var(--rn-color-surface-variant)",
             padding: "24px",
             borderRadius: "12px",
-            border: "1px solid #cbd5e1",
+            border: "1px solid var(--rn-color-border)",
             textAlign: "center"
           }}
         >
           <h3 style={{ fontSize: "1.4rem", margin: "0 0 12px 0" }}>Quiz-Auswertung</h3>
-          <p style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#1e293b" }}>
+          <p
+            style={{
+              fontSize: "1.2rem",
+              fontWeight: "bold",
+              color: "var(--rn-color-text-primary)"
+            }}
+          >
             Ergebnis: {evaluation.correctCount} von {evaluation.totalQuestions} richtig (
             {evaluation.scorePercentage}%)
           </p>
@@ -151,8 +157,8 @@ export function QuizViewer({
               style={{
                 minHeight: "44px",
                 padding: "0 20px",
-                background: "#2563eb",
-                color: "#ffffff",
+                background: "var(--rn-color-accent)",
+                color: "var(--rn-color-accent-text)",
                 border: "none",
                 borderRadius: "6px",
                 fontWeight: "bold",
@@ -167,7 +173,8 @@ export function QuizViewer({
               style={{
                 minHeight: "44px",
                 padding: "0 16px",
-                background: "#e2e8f0",
+                background: "var(--rn-color-surface-variant)",
+                color: "var(--rn-color-text-primary)",
                 border: "none",
                 borderRadius: "6px",
                 cursor: "pointer"
@@ -182,8 +189,8 @@ export function QuizViewer({
           <div
             data-testid={`quiz-question-${currentQuestion.id}`}
             style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
+              background: "var(--rn-color-panel)",
+              border: "1px solid var(--rn-color-panel-border)",
               borderRadius: "12px",
               padding: "20px"
             }}
@@ -193,7 +200,7 @@ export function QuizViewer({
                 style={{
                   fontSize: "1.1rem",
                   fontWeight: 600,
-                  color: "#1e293b",
+                  color: "var(--rn-color-text-primary)",
                   marginBottom: "16px",
                   lineHeight: 1.4
                 }}
@@ -211,19 +218,19 @@ export function QuizViewer({
                   const isSelected = selectedAnswers[currentQuestion.id] === optIdx;
                   const isCorrectAnswer = optIdx === currentQuestion.correctAnswerIndex;
 
-                  let optionBg = "#f8fafc";
-                  let optionBorder = "#cbd5e1";
-                  let textColor = "#0f172a";
+                  let optionBg = "var(--rn-color-surface-variant)";
+                  let optionBorder = "var(--rn-color-border)";
+                  let textColor = "var(--rn-color-text-primary)";
 
                   if (hasAnswered) {
                     if (isCorrectAnswer) {
-                      optionBg = "#dcfce7";
-                      optionBorder = "#22c55e";
-                      textColor = "#15803d";
+                      optionBg = "var(--rn-color-success-surface)";
+                      optionBorder = "var(--rn-color-success)";
+                      textColor = "var(--rn-color-success)";
                     } else if (isSelected) {
-                      optionBg = "#fee2e2";
-                      optionBorder = "#ef4444";
-                      textColor = "#b91c1c";
+                      optionBg = "var(--rn-color-error-surface)";
+                      optionBorder = "var(--rn-color-error)";
+                      textColor = "var(--rn-color-error)";
                     }
                   }
 
@@ -269,13 +276,27 @@ export function QuizViewer({
                 style={{
                   marginTop: "16px",
                   padding: "14px",
-                  background: "#f1f5f9",
+                  background: "var(--rn-color-surface-variant)",
                   borderRadius: "8px",
-                  borderLeft: "4px solid #3b82f6"
+                  borderLeft: "4px solid var(--rn-color-brand)"
                 }}
               >
-                <p style={{ margin: "0 0 6px 0", fontWeight: 600, color: "#1e293b" }}>Erklärung:</p>
-                <p style={{ margin: 0, fontSize: "0.95rem", color: "#334155" }}>
+                <p
+                  style={{
+                    margin: "0 0 6px 0",
+                    fontWeight: 600,
+                    color: "var(--rn-color-text-primary)"
+                  }}
+                >
+                  Erklärung:
+                </p>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "0.95rem",
+                    color: "var(--rn-color-text-secondary)"
+                  }}
+                >
                   {currentQuestion.explanation}
                 </p>
 
@@ -294,7 +315,7 @@ export function QuizViewer({
                       style={{
                         background: "transparent",
                         border: "none",
-                        color: "#2563eb",
+                        color: "var(--rn-color-primary)",
                         cursor: "pointer",
                         textDecoration: "underline",
                         padding: 0,
@@ -348,8 +369,8 @@ export function QuizViewer({
                   style={{
                     minHeight: "44px",
                     padding: "0 20px",
-                    background: "#16a34a",
-                    color: "#ffffff",
+                    background: "var(--rn-color-success)",
+                    color: "var(--rn-color-panel)",
                     border: "none",
                     borderRadius: "6px",
                     fontWeight: "bold",
