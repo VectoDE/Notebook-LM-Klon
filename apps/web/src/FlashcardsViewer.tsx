@@ -186,7 +186,7 @@ export function FlashcardsViewer({
           minHeight: "260px",
           background: isFlipped ? "var(--rn-color-surface-variant)" : "var(--rn-color-panel)",
           border: "2px solid var(--rn-color-border)",
-          borderRadius: "12px",
+          borderRadius: "var(--rn-radius-md)",
           padding: "24px",
           display: "flex",
           flexDirection: "column",
@@ -234,7 +234,7 @@ export function FlashcardsViewer({
             style={{
               padding: "6px 16px",
               minHeight: "44px",
-              borderRadius: "6px",
+              borderRadius: "var(--rn-radius-sm)",
               background: "var(--rn-color-surface-variant)",
               color: "var(--rn-color-text-primary)",
               border: "none",
@@ -299,7 +299,7 @@ export function FlashcardsViewer({
               : "var(--rn-color-surface-variant)",
             color: isFlipped ? "var(--rn-color-error)" : "var(--rn-color-text-muted)",
             border: "1px solid var(--rn-color-error)",
-            borderRadius: "6px",
+            borderRadius: "var(--rn-radius-sm)",
             cursor: isFlipped ? "pointer" : "not-allowed",
             fontWeight: "bold"
           }}
@@ -317,7 +317,7 @@ export function FlashcardsViewer({
             background: isFlipped ? "var(--rn-color-highlight)" : "var(--rn-color-surface-variant)",
             color: isFlipped ? "var(--rn-color-text-primary)" : "var(--rn-color-text-muted)",
             border: "1px solid var(--rn-color-border)",
-            borderRadius: "6px",
+            borderRadius: "var(--rn-radius-sm)",
             cursor: isFlipped ? "pointer" : "not-allowed",
             fontWeight: "bold"
           }}
@@ -337,7 +337,7 @@ export function FlashcardsViewer({
               : "var(--rn-color-surface-variant)",
             color: isFlipped ? "var(--rn-color-primary)" : "var(--rn-color-text-muted)",
             border: "1px solid var(--rn-color-primary)",
-            borderRadius: "6px",
+            borderRadius: "var(--rn-radius-sm)",
             cursor: isFlipped ? "pointer" : "not-allowed",
             fontWeight: "bold"
           }}
@@ -357,7 +357,7 @@ export function FlashcardsViewer({
               : "var(--rn-color-surface-variant)",
             color: isFlipped ? "var(--rn-color-success)" : "var(--rn-color-text-muted)",
             border: "1px solid var(--rn-color-success)",
-            borderRadius: "6px",
+            borderRadius: "var(--rn-radius-sm)",
             cursor: isFlipped ? "pointer" : "not-allowed",
             fontWeight: "bold"
           }}

@@ -101,7 +101,7 @@ export function LiveLyrics({
               fontWeight: isActive ? 600 : 400,
               color: isActive ? "var(--rn-color-text-primary)" : "var(--rn-color-text-muted)",
               padding: "8px 12px",
-              borderRadius: "12px",
+              borderRadius: "var(--rn-radius-md)",
               background: isActive ? "rgba(255, 255, 255, 0.08)" : "transparent"
             }}
           >

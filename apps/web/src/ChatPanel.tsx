@@ -169,7 +169,7 @@ export function ChatPanel({
                 color: "var(--rn-color-primary)",
                 background: "var(--rn-color-surface-variant)",
                 border: "1px solid var(--rn-color-primary)",
-                borderRadius: "12px",
+                borderRadius: "var(--rn-radius-md)",
                 padding: "1px 6px",
                 margin: "0 3px",
                 cursor: "pointer"
@@ -193,7 +193,7 @@ export function ChatPanel({
         flexDirection: "column",
         height: "100%",
         position: "relative",
-        background: "var(--rn-color-canvas)",
+        background: "var(--rn-color-panel)",
         color: "var(--rn-color-text-primary)"
       }}
     >
@@ -235,7 +235,7 @@ export function ChatPanel({
             data-testid="executive-summary-card"
             style={{
               padding: "16px 20px",
-              borderRadius: "16px",
+              borderRadius: "var(--rn-radius-md)",
               background: "var(--rn-color-panel)",
               border: "1px solid var(--rn-color-border)",
               boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)"
@@ -293,7 +293,7 @@ export function ChatPanel({
                 style={{
                   minHeight: "36px",
                   padding: "6px 14px",
-                  borderRadius: "20px",
+                  borderRadius: "var(--rn-radius-lg)",
                   background: "var(--rn-color-panel)",
                   border: "1px solid var(--rn-color-border)",
                   color: "var(--rn-color-text-primary)",
@@ -320,7 +320,7 @@ export function ChatPanel({
               style={{
                 alignSelf: isUser ? "flex-end" : "flex-start",
                 maxWidth: "85%",
-                borderRadius: "18px",
+                borderRadius: "var(--rn-radius-md)",
                 padding: "14px 18px",
                 background: isUser ? "var(--rn-color-accent)" : "var(--rn-color-panel)",
                 color: isUser ? "var(--rn-color-accent-text)" : "var(--rn-color-text-primary)",
@@ -377,7 +377,7 @@ export function ChatPanel({
                   style={{
                     marginTop: "8px",
                     padding: "8px 12px",
-                    borderRadius: "8px",
+                    borderRadius: "var(--rn-radius-sm)",
                     background: "var(--rn-color-error-surface)",
                     color: "var(--rn-color-error)",
                     border: "1px solid var(--rn-color-error)",
@@ -395,7 +395,7 @@ export function ChatPanel({
                         marginLeft: "12px",
                         minHeight: "32px",
                         padding: "2px 10px",
-                        borderRadius: "6px",
+                        borderRadius: "var(--rn-radius-sm)",
                         border: "1px solid var(--rn-color-error)",
                         background: "transparent",
                         color: "var(--rn-color-error)",
@@ -476,7 +476,7 @@ export function ChatPanel({
             alignItems: "center",
             gap: "8px",
             background: "var(--rn-color-panel)",
-            borderRadius: "32px",
+            borderRadius: "var(--rn-radius-pill)",
             padding: "6px 8px 6px 18px",
             border: "1px solid var(--rn-color-border)",
             boxShadow: "0 8px 24px rgba(0, 0, 0, 0.08)"
@@ -489,7 +489,7 @@ export function ChatPanel({
               fontSize: "0.875rem",
               fontWeight: 600,
               padding: "4px 8px",
-              borderRadius: "12px",
+              borderRadius: "var(--rn-radius-md)",
               background: "var(--rn-color-surface-variant)",
               color: "var(--rn-color-text-secondary)"
             }}

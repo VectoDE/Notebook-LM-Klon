@@ -77,15 +77,154 @@ export interface TypographyTokens {
   readonly ui: string;
 }
 
-const SANS = '"Inter Variable", "Inter", system-ui, sans-serif';
+const INTER = '"Inter Variable", "Inter", system-ui, sans-serif';
 const SERIF = '"Source Serif 4 Variable", "Source Serif 4", Georgia, serif';
+const GROTESK =
+  '"Space Grotesk Variable", "Space Grotesk", "Inter Variable", system-ui, sans-serif';
+const GEIST = '"Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif';
 export const FONT_MONO = '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace';
 
+/**
+ * Eine eigene Schrift je Design (alle SIL OFL 1.1, selbst gehostet, Lizenzen unter
+ * public/fonts/LICENSES):
+ * - Pure: Inter, neutrale Klarheit für die Arbeitsfläche.
+ * - Editorial Calm: Source Serif 4 für Lesen und Überschriften, Inter nur für Bedienelemente.
+ * - Immersive Cinema: Space Grotesk, technisch-filmischer Charakter.
+ * - Fusion: Geist, präzise und energisch.
+ */
 export const TYPOGRAPHY: Record<DesignTheme, TypographyTokens> = {
-  pure: { body: SANS, headings: SANS, ui: SANS },
-  "immersive-cinema": { body: SANS, headings: SANS, ui: SANS },
-  "editorial-calm": { body: SERIF, headings: SERIF, ui: SANS },
-  fusion: { body: SANS, headings: SERIF, ui: SANS }
+  pure: { body: INTER, headings: INTER, ui: INTER },
+  "immersive-cinema": { body: GROTESK, headings: GROTESK, ui: GROTESK },
+  "editorial-calm": { body: SERIF, headings: SERIF, ui: INTER },
+  fusion: { body: GEIST, headings: GEIST, ui: GEIST }
+};
+
+/**
+ * Typografie-Skala, Abstände (4-px-Raster), Radien, Schatten und Bewegung je Design.
+ * Werte in px bzw. ms; Schriftgrößen in rem (1 rem = 16 px).
+ */
+export interface ScaleTokens {
+  /** Fließtext (mindestens 1 rem) */
+  readonly textBase: number;
+  /** Kleinste Schrift (mindestens 0,875 rem) */
+  readonly textSmall: number;
+  /** Paneltitel (h2) */
+  readonly textH2: number;
+  /** Kartentitel (h3) */
+  readonly textH3: number;
+  readonly lineBody: number;
+  readonly lineHeading: number;
+  /** Buchstabenabstand der Überschriften in em */
+  readonly trackingHeading: number;
+  readonly weightHeading: number;
+  /** Abstand zwischen und um die Panels (px, Vielfaches von 4) */
+  readonly gapWorkspace: number;
+  /** Innenabstand der Panels (px, Vielfaches von 4) */
+  readonly padPanel: number;
+  /** Innenabstand der Kopfzeile, vertikal / horizontal (px, Vielfaches von 4) */
+  readonly padHeaderY: number;
+  readonly padHeaderX: number;
+  readonly radiusSm: number;
+  readonly radiusMd: number;
+  readonly radiusLg: number;
+  readonly radiusPanel: number;
+  /** Dauer der Einblendung in ms und Weg in px */
+  readonly enterMs: number;
+  readonly enterDistance: number;
+  /** Dauer von Zustandswechseln (Hover, Farbe) in ms */
+  readonly transitionMs: number;
+  readonly ease: string;
+}
+
+export const SCALE: Record<DesignTheme, ScaleTokens> = {
+  pure: {
+    textBase: 1,
+    textSmall: 0.875,
+    textH2: 1.25,
+    textH3: 1.0625,
+    lineBody: 1.6,
+    lineHeading: 1.25,
+    trackingHeading: -0.012,
+    weightHeading: 600,
+    gapWorkspace: 12,
+    padPanel: 20,
+    padHeaderY: 12,
+    padHeaderX: 20,
+    radiusSm: 10,
+    radiusMd: 16,
+    radiusLg: 24,
+    radiusPanel: 28,
+    enterMs: 360,
+    enterDistance: 6,
+    transitionMs: 180,
+    ease: "cubic-bezier(0.25, 0.1, 0.25, 1)"
+  },
+  "immersive-cinema": {
+    textBase: 1,
+    textSmall: 0.875,
+    textH2: 1.375,
+    textH3: 1.125,
+    lineBody: 1.55,
+    lineHeading: 1.15,
+    trackingHeading: -0.025,
+    weightHeading: 600,
+    gapWorkspace: 12,
+    padPanel: 20,
+    padHeaderY: 12,
+    padHeaderX: 20,
+    radiusSm: 8,
+    radiusMd: 14,
+    radiusLg: 20,
+    radiusPanel: 20,
+    enterMs: 640,
+    enterDistance: 18,
+    transitionMs: 280,
+    ease: "cubic-bezier(0.16, 1, 0.3, 1)"
+  },
+  "editorial-calm": {
+    textBase: 1.0625,
+    textSmall: 0.875,
+    textH2: 1.5,
+    textH3: 1.1875,
+    lineBody: 1.7,
+    lineHeading: 1.2,
+    trackingHeading: -0.005,
+    weightHeading: 600,
+    gapWorkspace: 0,
+    padPanel: 28,
+    padHeaderY: 16,
+    padHeaderX: 28,
+    radiusSm: 4,
+    radiusMd: 6,
+    radiusLg: 8,
+    radiusPanel: 0,
+    enterMs: 480,
+    enterDistance: 0,
+    transitionMs: 240,
+    ease: "cubic-bezier(0.4, 0, 0.2, 1)"
+  },
+  fusion: {
+    textBase: 1,
+    textSmall: 0.875,
+    textH2: 1.5,
+    textH3: 1.125,
+    lineBody: 1.6,
+    lineHeading: 1.1,
+    trackingHeading: -0.03,
+    weightHeading: 700,
+    gapWorkspace: 8,
+    padPanel: 20,
+    padHeaderY: 12,
+    padHeaderX: 20,
+    radiusSm: 8,
+    radiusMd: 12,
+    radiusLg: 16,
+    radiusPanel: 18,
+    enterMs: 420,
+    enterDistance: 10,
+    transitionMs: 200,
+    ease: "cubic-bezier(0.2, 0.8, 0.2, 1)"
+  }
 };
 
 export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> = {
@@ -577,10 +716,30 @@ function modeDeclarations(theme: DesignTheme, mode: ColorMode): string[] {
 
 function typographyDeclarations(theme: DesignTheme): string[] {
   const t = TYPOGRAPHY[theme];
+  const c = SCALE[theme];
   return [
     `--rn-font-family-body: ${t.body};`,
     `--rn-font-family-headings: ${t.headings};`,
-    `--rn-font-family-ui: ${t.ui};`
+    `--rn-font-family-ui: ${t.ui};`,
+    `--rn-text-base: ${c.textBase}rem;`,
+    `--rn-text-small: ${c.textSmall}rem;`,
+    `--rn-text-h2: ${c.textH2}rem;`,
+    `--rn-text-h3: ${c.textH3}rem;`,
+    `--rn-line-body: ${c.lineBody};`,
+    `--rn-line-heading: ${c.lineHeading};`,
+    `--rn-tracking-heading: ${c.trackingHeading}em;`,
+    `--rn-weight-heading: ${c.weightHeading};`,
+    `--rn-gap-workspace: ${c.gapWorkspace}px;`,
+    `--rn-pad-panel: ${c.padPanel}px;`,
+    `--rn-pad-header: ${c.padHeaderY}px ${c.padHeaderX}px;`,
+    `--rn-radius-sm: ${c.radiusSm}px;`,
+    `--rn-radius-md: ${c.radiusMd}px;`,
+    `--rn-radius-lg: ${c.radiusLg}px;`,
+    `--rn-radius-panel: ${c.radiusPanel}px;`,
+    `--rn-enter-duration: ${c.enterMs}ms;`,
+    `--rn-enter-distance: ${c.enterDistance}px;`,
+    `--rn-transition-speed: ${c.transitionMs}ms;`,
+    `--rn-transition-ease: ${c.ease};`
   ];
 }
 

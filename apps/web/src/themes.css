@@ -18,11 +18,9 @@
    Ebene 1: Grundskalen
    ========================================================================== */
 :root {
+  /* Feste Grundwerte; Schrift-Skala, Abstände, Radien und Bewegung je Design
+     kommen aus dem erzeugten Block (Ebene 2). */
   --rn-radius-none: 0px;
-  --rn-radius-sm: 6px;
-  --rn-radius-md: 12px;
-  --rn-radius-lg: 20px;
-  --rn-radius-panel: 20px;
   --rn-radius-pill: 9999px;
 
   --rn-space-1: 4px;
@@ -35,34 +33,40 @@
   --rn-space-10: 40px;
 
   --rn-font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
-  --rn-text-small: 0.875rem;
-  --rn-text-base: 1rem;
-  --rn-line-body: 1.6;
-  --rn-line-heading: 1.25;
-
-  --rn-transition-speed: 200ms;
-  --rn-transition-ease: cubic-bezier(0.2, 0, 0, 1);
   --rn-transition-base: var(--rn-transition-speed) var(--rn-transition-ease);
 
   --rn-focus-outline-width: 3px;
   --rn-focus-outline-offset: 2px;
   --rn-panel-radius: var(--rn-radius-panel);
-  --rn-color-panel-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --rn-color-panel-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 12px 32px -16px
+    rgba(15, 23, 42, 0.22);
 
   /* Aliasse für ältere Namen in Bauteilen */
   --rn-color-background: var(--rn-color-canvas);
   --rn-color-surface: var(--rn-color-panel);
 }
 
+/* Schatten je Design: Tiefe statt Kasten */
 html[data-design="pure"] {
-  --rn-panel-radius: 24px;
+  --rn-color-panel-shadow: 0 1px 2px rgba(22, 22, 42, 0.04), 0 16px 40px -20px
+    rgba(55, 48, 163, 0.28);
 }
 html[data-design="immersive-cinema"] {
-  --rn-panel-radius: 16px;
-  --rn-color-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --rn-color-panel-shadow: 0 0 0 1px rgba(255, 255, 255, 0.02) inset, 0 24px 60px -24px
+    rgba(0, 0, 0, 0.7);
 }
 html[data-design="editorial-calm"] {
-  --rn-panel-radius: 6px;
+  --rn-color-panel-shadow: none;
+}
+html[data-design="fusion"] {
+  --rn-color-panel-shadow: 0 1px 1px rgba(16, 32, 27, 0.06), 0 20px 48px -24px
+    rgba(19, 78, 74, 0.35);
+}
+html[data-design][data-color-mode="dark"] {
+  --rn-color-panel-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 24px 56px -28px
+    rgba(0, 0, 0, 0.8);
+}
+html[data-color-mode="dark"][data-design="editorial-calm"] {
   --rn-color-panel-shadow: none;
 }
 html[data-color-mode="aaa-contrast"] {
@@ -73,7 +77,8 @@ html[data-color-mode="aaa-contrast"] {
 
 /* Bewegung: bei prefers-reduced-motion abschalten */
 @media (prefers-reduced-motion: reduce) {
-  :root {
+  :root,
+  html[data-design] {
     --rn-transition-speed: 0ms;
     --rn-transition-base: 0ms linear;
   }
@@ -93,9 +98,28 @@ html[data-color-mode="aaa-contrast"] {
 /* @tokens:start */
 :root,
 html[data-design="fusion"] {
-  --rn-font-family-body: "Inter Variable", "Inter", system-ui, sans-serif;
-  --rn-font-family-headings: "Source Serif 4 Variable", "Source Serif 4", Georgia, serif;
-  --rn-font-family-ui: "Inter Variable", "Inter", system-ui, sans-serif;
+  --rn-font-family-body: "Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif;
+  --rn-font-family-headings: "Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif;
+  --rn-font-family-ui: "Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif;
+  --rn-text-base: 1rem;
+  --rn-text-small: 0.875rem;
+  --rn-text-h2: 1.5rem;
+  --rn-text-h3: 1.125rem;
+  --rn-line-body: 1.6;
+  --rn-line-heading: 1.1;
+  --rn-tracking-heading: -0.03em;
+  --rn-weight-heading: 700;
+  --rn-gap-workspace: 8px;
+  --rn-pad-panel: 20px;
+  --rn-pad-header: 12px 20px;
+  --rn-radius-sm: 8px;
+  --rn-radius-md: 12px;
+  --rn-radius-lg: 16px;
+  --rn-radius-panel: 18px;
+  --rn-enter-duration: 420ms;
+  --rn-enter-distance: 10px;
+  --rn-transition-speed: 200ms;
+  --rn-transition-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 :root {
@@ -193,6 +217,25 @@ html[data-design="pure"] {
   --rn-font-family-body: "Inter Variable", "Inter", system-ui, sans-serif;
   --rn-font-family-headings: "Inter Variable", "Inter", system-ui, sans-serif;
   --rn-font-family-ui: "Inter Variable", "Inter", system-ui, sans-serif;
+  --rn-text-base: 1rem;
+  --rn-text-small: 0.875rem;
+  --rn-text-h2: 1.25rem;
+  --rn-text-h3: 1.0625rem;
+  --rn-line-body: 1.6;
+  --rn-line-heading: 1.25;
+  --rn-tracking-heading: -0.012em;
+  --rn-weight-heading: 600;
+  --rn-gap-workspace: 12px;
+  --rn-pad-panel: 20px;
+  --rn-pad-header: 12px 20px;
+  --rn-radius-sm: 10px;
+  --rn-radius-md: 16px;
+  --rn-radius-lg: 24px;
+  --rn-radius-panel: 28px;
+  --rn-enter-duration: 360ms;
+  --rn-enter-distance: 6px;
+  --rn-transition-speed: 180ms;
+  --rn-transition-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 html[data-design="pure"][data-color-mode="light"] {
@@ -283,9 +326,31 @@ html[data-design="pure"][data-color-mode="aaa-contrast"] {
 }
 
 html[data-design="immersive-cinema"] {
-  --rn-font-family-body: "Inter Variable", "Inter", system-ui, sans-serif;
-  --rn-font-family-headings: "Inter Variable", "Inter", system-ui, sans-serif;
-  --rn-font-family-ui: "Inter Variable", "Inter", system-ui, sans-serif;
+  --rn-font-family-body: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", system-ui,
+    sans-serif;
+  --rn-font-family-headings: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", system-ui,
+    sans-serif;
+  --rn-font-family-ui: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", system-ui,
+    sans-serif;
+  --rn-text-base: 1rem;
+  --rn-text-small: 0.875rem;
+  --rn-text-h2: 1.375rem;
+  --rn-text-h3: 1.125rem;
+  --rn-line-body: 1.55;
+  --rn-line-heading: 1.15;
+  --rn-tracking-heading: -0.025em;
+  --rn-weight-heading: 600;
+  --rn-gap-workspace: 12px;
+  --rn-pad-panel: 20px;
+  --rn-pad-header: 12px 20px;
+  --rn-radius-sm: 8px;
+  --rn-radius-md: 14px;
+  --rn-radius-lg: 20px;
+  --rn-radius-panel: 20px;
+  --rn-enter-duration: 640ms;
+  --rn-enter-distance: 18px;
+  --rn-transition-speed: 280ms;
+  --rn-transition-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html[data-design="immersive-cinema"][data-color-mode="light"] {
@@ -379,6 +444,25 @@ html[data-design="editorial-calm"] {
   --rn-font-family-body: "Source Serif 4 Variable", "Source Serif 4", Georgia, serif;
   --rn-font-family-headings: "Source Serif 4 Variable", "Source Serif 4", Georgia, serif;
   --rn-font-family-ui: "Inter Variable", "Inter", system-ui, sans-serif;
+  --rn-text-base: 1.0625rem;
+  --rn-text-small: 0.875rem;
+  --rn-text-h2: 1.5rem;
+  --rn-text-h3: 1.1875rem;
+  --rn-line-body: 1.7;
+  --rn-line-heading: 1.2;
+  --rn-tracking-heading: -0.005em;
+  --rn-weight-heading: 600;
+  --rn-gap-workspace: 0px;
+  --rn-pad-panel: 28px;
+  --rn-pad-header: 16px 28px;
+  --rn-radius-sm: 4px;
+  --rn-radius-md: 6px;
+  --rn-radius-lg: 8px;
+  --rn-radius-panel: 0px;
+  --rn-enter-duration: 480ms;
+  --rn-enter-distance: 0px;
+  --rn-transition-speed: 240ms;
+  --rn-transition-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html[data-design="editorial-calm"][data-color-mode="light"] {
@@ -721,7 +805,16 @@ summary:focus-visible,
   background-color: var(--rn-color-panel);
 }
 
-.workspace-panel + .workspace-panel {
+/* Schwebende Panels mit feinem Rand; Editorial Calm liegt bündig mit Spaltenlinien */
+.workspace-panel {
+  border: 1px solid var(--rn-color-panel-border);
+}
+
+html[data-design="editorial-calm"] .workspace-panel {
+  border: 0;
+}
+
+html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   border-left: 1px solid var(--rn-color-panel-border);
 }
 
@@ -807,14 +900,25 @@ summary:focus-visible,
 }
 
 /* ==========================================================================
-   Immersive Cinema: eigene Bewegungssprache
-   - Hintergrund: langsam treibendes Licht (Fuchsia/Cyan) hinter schwebenden Panels
-   - Einblendung: Panels steigen gestaffelt auf, Kopfzeile blendet aus der Unschärfe ein
-   - Übergang: Reiterwechsel (mobil) und Werkzeugwechsel blenden weich über
-   - Kopfzeile: Lichtkante läuft langsam entlang der Unterkante
-   Text steht immer auf deckenden Panelflächen, die Kontrastwerte bleiben gültig.
-   Bei prefers-reduced-motion: keine Animation, statischer Hintergrund.
+   Atmosphäre und Bewegung je Design
+   Pure: ruhige Klarheit (weiches Licht, keine Dauerbewegung)
+   Editorial Calm: Ruhe und Lesen (Papier, feine Linien, sanftes Einblenden)
+   Immersive Cinema: Tiefe und Kino (treibendes Licht, Lichtkante, gestaffelte Einblendung)
+   Fusion: Energie und Bewegung (fließender Farbverlauf, laufende Akzentlinie)
+   Text steht immer auf deckenden Panelflächen, Kontrastwerte bleiben gültig.
+   AAA-Hochkontrast: flache Fläche ohne Verläufe. Bei prefers-reduced-motion keine Animation.
    ========================================================================== */
+@keyframes rn-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--rn-enter-distance), 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes rn-cinema-drift {
   0% {
     transform: translate3d(-6%, -4%, 0) rotate(0deg) scale(1);
@@ -830,7 +934,7 @@ summary:focus-visible,
 @keyframes rn-cinema-rise {
   from {
     opacity: 0;
-    transform: translate3d(0, 18px, 0) scale(0.985);
+    transform: translate3d(0, var(--rn-enter-distance), 0) scale(0.985);
   }
   to {
     opacity: 1;
@@ -858,25 +962,155 @@ summary:focus-visible,
   }
 }
 
-html[data-design="immersive-cinema"] {
-  --rn-cinema-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --rn-transition-speed: 280ms;
-  --rn-transition-ease: var(--rn-cinema-ease);
+@keyframes rn-fusion-flow {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
 }
 
-html[data-design="immersive-cinema"] .workspace-shell {
+@keyframes rn-fusion-line {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+/* Gemeinsame Bühne: Panels schweben auf der Atmosphäre */
+.workspace-shell {
   position: relative;
   isolation: isolate;
 }
 
 /* fixed statt absolute: die Lichtebene darf keinen Scroll-Überlauf in der Shell erzeugen,
    sonst verschiebt Autoscroll (Chat) die ganze Arbeitsfläche */
-html[data-design="immersive-cinema"] .workspace-shell::before {
+.workspace-shell::before {
   content: "";
   position: fixed;
-  inset: -25%;
+  inset: 0;
   z-index: -1;
   pointer-events: none;
+  background: var(--rn-color-canvas);
+}
+
+.workspace-header {
+  position: relative;
+  padding: var(--rn-pad-header) !important;
+}
+
+#workspace-main {
+  gap: var(--rn-gap-workspace);
+  padding: var(--rn-gap-workspace);
+}
+
+.workspace-panel {
+  border-radius: var(--rn-panel-radius);
+  box-shadow: var(--rn-color-panel-shadow);
+  animation: rn-enter var(--rn-enter-duration) var(--rn-transition-ease) both;
+}
+
+.panel-center {
+  animation-delay: 60ms;
+}
+
+.panel-right {
+  animation-delay: 120ms;
+}
+
+.workspace-panel h2 {
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-h2) !important;
+  font-weight: var(--rn-weight-heading);
+  letter-spacing: var(--rn-tracking-heading);
+  line-height: var(--rn-line-heading);
+}
+
+.workspace-panel h3 {
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-h3) !important;
+  font-weight: var(--rn-weight-heading);
+  letter-spacing: var(--rn-tracking-heading);
+  line-height: var(--rn-line-heading);
+}
+
+.rn-cinema-enter {
+  animation: rn-enter var(--rn-enter-duration) var(--rn-transition-ease) both;
+}
+
+:where(button, .rn-header-control) {
+  transition: transform var(--rn-transition-base), box-shadow var(--rn-transition-base),
+    background-color var(--rn-transition-base), border-color var(--rn-transition-base);
+}
+
+/* Karten: feine Rahmen statt schwerer Kästen, beim Überfahren deutlicher */
+.workspace-panel article {
+  border-color: var(--rn-color-panel-border) !important;
+  transition: border-color var(--rn-transition-base), box-shadow var(--rn-transition-base),
+    transform var(--rn-transition-base);
+}
+
+.workspace-panel article:hover,
+.workspace-panel article:focus-within {
+  border-color: var(--rn-color-border) !important;
+}
+
+html[data-design="pure"] .workspace-panel article:hover,
+html[data-design="fusion"] .workspace-panel article:hover {
+  box-shadow: var(--rn-color-panel-shadow);
+}
+
+html[data-color-mode="aaa-contrast"] .workspace-panel article {
+  border-color: var(--rn-color-border) !important;
+}
+
+/* --- Pure: ruhige Klarheit --- */
+html[data-design="pure"] .workspace-shell::before {
+  background: radial-gradient(
+      55% 45% at 0% 0%,
+      color-mix(in srgb, var(--rn-color-brand) 16%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      45% 40% at 100% 100%,
+      color-mix(in srgb, var(--rn-color-primary) 10%, transparent),
+      transparent 70%
+    ), var(--rn-color-canvas);
+}
+
+/* --- Editorial Calm: Ruhe und Lesen --- */
+html[data-design="editorial-calm"] .workspace-shell::before {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--rn-color-brand) 6%, var(--rn-color-canvas)) 0%,
+    var(--rn-color-canvas) 40%
+  );
+}
+
+html[data-design="editorial-calm"] .workspace-header::after {
+  content: "";
+  position: absolute;
+  left: var(--rn-space-6);
+  bottom: -1px;
+  width: 64px;
+  height: 3px;
+  background: var(--rn-color-brand);
+}
+
+html[data-design="editorial-calm"] .workspace-panel p,
+html[data-design="editorial-calm"] .workspace-panel li {
+  hyphens: auto;
+}
+
+/* --- Immersive Cinema: Tiefe und Kino --- */
+html[data-design="immersive-cinema"] .workspace-shell::before {
+  inset: -25%;
   background: radial-gradient(
       40% 35% at 20% 25%,
       color-mix(in srgb, var(--rn-color-brand) 30%, transparent),
@@ -891,14 +1125,13 @@ html[data-design="immersive-cinema"] .workspace-shell::before {
       30% 30% at 60% 15%,
       color-mix(in srgb, var(--rn-color-primary) 18%, transparent),
       transparent 70%
-    );
+    ), var(--rn-color-canvas);
   animation: rn-cinema-drift 28s ease-in-out infinite;
   will-change: transform;
 }
 
 html[data-design="immersive-cinema"] .workspace-header {
-  position: relative;
-  animation: rn-cinema-focus-in 700ms var(--rn-cinema-ease) both;
+  animation: rn-cinema-focus-in 700ms var(--rn-transition-ease) both;
 }
 
 html[data-design="immersive-cinema"] .workspace-header::after {
@@ -920,20 +1153,9 @@ html[data-design="immersive-cinema"] .workspace-header::after {
   animation: rn-cinema-sweep 9s linear infinite;
 }
 
-html[data-design="immersive-cinema"] #workspace-main {
-  gap: 12px;
-  padding: 12px;
-}
-
 html[data-design="immersive-cinema"] .workspace-panel {
   border: 1px solid var(--rn-color-panel-border);
-  border-radius: var(--rn-panel-radius);
-  box-shadow: var(--rn-color-panel-shadow);
-  animation: rn-cinema-rise 640ms var(--rn-cinema-ease) both;
-}
-
-html[data-design="immersive-cinema"] .workspace-panel + .workspace-panel {
-  border-left: 1px solid var(--rn-color-panel-border);
+  animation-name: rn-cinema-rise;
 }
 
 html[data-design="immersive-cinema"] .panel-center {
@@ -945,12 +1167,7 @@ html[data-design="immersive-cinema"] .panel-right {
 }
 
 html[data-design="immersive-cinema"] .rn-cinema-enter {
-  animation: rn-cinema-focus-in 420ms var(--rn-cinema-ease) both;
-}
-
-html[data-design="immersive-cinema"] :where(button, .rn-header-control) {
-  transition: transform var(--rn-transition-base), box-shadow var(--rn-transition-base),
-    background-color var(--rn-transition-base);
+  animation-name: rn-cinema-focus-in;
 }
 
 html[data-design="immersive-cinema"] :where(button, .rn-header-control):hover {
@@ -958,15 +1175,79 @@ html[data-design="immersive-cinema"] :where(button, .rn-header-control):hover {
   box-shadow: 0 6px 20px -6px color-mix(in srgb, var(--rn-color-brand) 70%, transparent);
 }
 
+/* --- Fusion: Energie und Bewegung --- */
+html[data-design="fusion"] .workspace-shell::before {
+  background: radial-gradient(
+      40% 50% at 10% 20%,
+      color-mix(in srgb, var(--rn-color-brand) 26%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      35% 45% at 90% 10%,
+      color-mix(in srgb, var(--rn-color-stage-accent) 30%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      45% 50% at 70% 90%,
+      color-mix(in srgb, var(--rn-color-highlight) 60%, transparent),
+      transparent 70%
+    ), var(--rn-color-canvas);
+  background-size: 160% 160%;
+  animation: rn-fusion-flow 22s ease-in-out infinite;
+}
+
+html[data-design="fusion"] .workspace-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(
+      90deg,
+      var(--rn-color-brand),
+      var(--rn-color-stage-accent),
+      var(--rn-color-primary),
+      var(--rn-color-brand)
+    )
+    0 0 / 200% 100%;
+  animation: rn-fusion-line 6s linear infinite;
+}
+
+html[data-design="fusion"] .workspace-panel {
+  border: 1px solid var(--rn-color-panel-border);
+}
+
+html[data-design="fusion"] :where(button, .rn-header-control):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--rn-color-brand) 80%, transparent);
+}
+
+/* --- AAA-Hochkontrast: flach, ohne Verläufe und Lichtkanten --- */
+html[data-color-mode="aaa-contrast"] .workspace-shell::before {
+  inset: 0;
+  background: var(--rn-color-canvas);
+  animation: none;
+}
+
+html[data-color-mode="aaa-contrast"] .workspace-header::after {
+  display: none;
+}
+
+html[data-color-mode="aaa-contrast"] .workspace-panel {
+  border: 2px solid var(--rn-color-border);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  html[data-design="immersive-cinema"] .workspace-shell::before,
-  html[data-design="immersive-cinema"] .workspace-header,
-  html[data-design="immersive-cinema"] .workspace-header::after,
-  html[data-design="immersive-cinema"] .workspace-panel,
-  html[data-design="immersive-cinema"] .rn-cinema-enter {
+  .workspace-shell::before,
+  .workspace-header,
+  .workspace-header::after,
+  .workspace-panel,
+  .rn-cinema-enter {
     animation: none !important;
   }
-  html[data-design="immersive-cinema"] :where(button, .rn-header-control):hover {
-    transform: none;
+  :where(button, .rn-header-control):hover {
+    transform: none !important;
   }
 }

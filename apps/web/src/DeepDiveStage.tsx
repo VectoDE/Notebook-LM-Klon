@@ -175,7 +175,7 @@ export function DeepDiveStage({
           style={{
             minHeight: "44px",
             padding: "10px 24px",
-            borderRadius: "24px",
+            borderRadius: "var(--rn-radius-lg)",
             background: "var(--rn-color-stage-accent)",
             color: "var(--rn-color-stage-bg)",
             fontWeight: 700,

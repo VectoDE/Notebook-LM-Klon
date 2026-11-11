@@ -565,7 +565,7 @@ export function MindmapViewer({
                 style={{
                   padding: "8px 12px",
                   marginLeft: `${node.depth * 20}px`,
-                  borderRadius: "4px",
+                  borderRadius: "var(--rn-radius-sm)",
                   cursor: "pointer",
                   background: isFocused ? "var(--rn-color-highlight)" : "transparent",
                   outline: isFocused ? "2px solid var(--rn-color-focus-ring)" : "none",

@@ -93,10 +93,9 @@ export function StudioPanel({
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        padding: "16px",
+        padding: "var(--rn-pad-panel)",
         background: "var(--rn-color-panel)",
         color: "var(--rn-color-text-primary)",
-        borderLeft: "1px solid var(--rn-color-border)",
         overflowY: "auto"
       }}
     >
@@ -116,7 +115,7 @@ export function StudioPanel({
             data-testid="btn-back-to-studio-overview"
             style={{
               padding: "4px 10px",
-              borderRadius: "6px",
+              borderRadius: "var(--rn-radius-sm)",
               border: "1px solid var(--rn-color-border)",
               background: "transparent",
               cursor: "pointer",
@@ -151,7 +150,7 @@ export function StudioPanel({
               data-testid="tool-card-audio"
               style={{
                 padding: "14px",
-                borderRadius: "12px",
+                borderRadius: "var(--rn-radius-md)",
                 background: "var(--rn-color-surface-variant)",
                 border: "1px solid var(--rn-color-border)",
                 display: "flex",
@@ -179,7 +178,7 @@ export function StudioPanel({
                   style={{
                     flex: 1,
                     minHeight: "36px",
-                    borderRadius: "6px",
+                    borderRadius: "var(--rn-radius-sm)",
                     border: "none",
                     background: "var(--rn-color-accent)",
                     color: "var(--rn-color-accent-text)",
@@ -197,7 +196,7 @@ export function StudioPanel({
                   aria-label="Deep-Dive-Bühne im Vollbild öffnen"
                   style={{
                     padding: "0 8px",
-                    borderRadius: "6px",
+                    borderRadius: "var(--rn-radius-sm)",
                     border: "1px solid var(--rn-color-border)",
                     background: "var(--rn-color-panel)",
                     fontSize: "0.875rem",
@@ -214,7 +213,7 @@ export function StudioPanel({
               data-testid="tool-card-video"
               style={{
                 padding: "14px",
-                borderRadius: "12px",
+                borderRadius: "var(--rn-radius-md)",
                 background: "var(--rn-color-surface-variant)",
                 border: "1px solid var(--rn-color-border)",
                 display: "flex",
@@ -241,7 +240,7 @@ export function StudioPanel({
                 style={{
                   marginTop: "12px",
                   minHeight: "36px",
-                  borderRadius: "6px",
+                  borderRadius: "var(--rn-radius-sm)",
                   border: "none",
                   background: "var(--rn-color-accent)",
                   color: "var(--rn-color-accent-text)",
@@ -259,7 +258,7 @@ export function StudioPanel({
               data-testid="tool-card-mindmap"
               style={{
                 padding: "14px",
-                borderRadius: "12px",
+                borderRadius: "var(--rn-radius-md)",
                 background: "var(--rn-color-surface-variant)",
                 border: "1px solid var(--rn-color-border)",
                 display: "flex",
@@ -287,7 +286,7 @@ export function StudioPanel({
                   style={{
                     flex: 1,
                     minHeight: "36px",
-                    borderRadius: "6px",
+                    borderRadius: "var(--rn-radius-sm)",
                     border: "none",
                     background: "var(--rn-color-accent)",
                     color: "var(--rn-color-accent-text)",
@@ -304,7 +303,7 @@ export function StudioPanel({
                   data-testid="btn-export-mindmap-svg"
                   style={{
                     padding: "0 8px",
-                    borderRadius: "6px",
+                    borderRadius: "var(--rn-radius-sm)",
                     border: "1px solid var(--rn-color-border)",
                     background: "var(--rn-color-panel)",
                     fontSize: "0.875rem",
@@ -321,7 +320,7 @@ export function StudioPanel({
               data-testid="tool-card-flashcards"
               style={{
                 padding: "14px",
-                borderRadius: "12px",
+                borderRadius: "var(--rn-radius-md)",
                 background: "var(--rn-color-surface-variant)",
                 border: "1px solid var(--rn-color-border)",
                 display: "flex",
@@ -349,7 +348,7 @@ export function StudioPanel({
                   style={{
                     flex: 1,
                     minHeight: "36px",
-                    borderRadius: "6px",
+                    borderRadius: "var(--rn-radius-sm)",
                     border: "none",
                     background: "var(--rn-color-accent)",
                     color: "var(--rn-color-accent-text)",
@@ -366,7 +365,7 @@ export function StudioPanel({
                   data-testid="btn-export-anki-csv"
                   style={{
                     padding: "0 8px",
-                    borderRadius: "6px",
+                    borderRadius: "var(--rn-radius-sm)",
                     border: "1px solid var(--rn-color-border)",
                     background: "var(--rn-color-panel)",
                     fontSize: "0.875rem",
@@ -383,7 +382,7 @@ export function StudioPanel({
               data-testid="tool-card-quiz"
               style={{
                 padding: "14px",
-                borderRadius: "12px",
+                borderRadius: "var(--rn-radius-md)",
                 background: "var(--rn-color-surface-variant)",
                 border: "1px solid var(--rn-color-border)",
                 display: "flex",
@@ -411,7 +410,7 @@ export function StudioPanel({
                   style={{
                     flex: 1,
                     minHeight: "36px",
-                    borderRadius: "6px",
+                    borderRadius: "var(--rn-radius-sm)",
                     border: "none",
                     background: "var(--rn-color-accent)",
                     color: "var(--rn-color-accent-text)",
@@ -428,7 +427,7 @@ export function StudioPanel({
                   data-testid="btn-export-quiz-md"
                   style={{
                     padding: "0 8px",
-                    borderRadius: "6px",
+                    borderRadius: "var(--rn-radius-sm)",
                     border: "1px solid var(--rn-color-border)",
                     background: "var(--rn-color-panel)",
                     fontSize: "0.875rem",
@@ -445,7 +444,7 @@ export function StudioPanel({
               data-testid="tool-card-briefing"
               style={{
                 padding: "14px",
-                borderRadius: "12px",
+                borderRadius: "var(--rn-radius-md)",
                 background: "var(--rn-color-surface-variant)",
                 border: "1px solid var(--rn-color-border)",
                 display: "flex",
@@ -472,7 +471,7 @@ export function StudioPanel({
                 style={{
                   marginTop: "12px",
                   minHeight: "36px",
-                  borderRadius: "6px",
+                  borderRadius: "var(--rn-radius-sm)",
                   border: "none",
                   background: "var(--rn-color-accent)",
                   color: "var(--rn-color-accent-text)",

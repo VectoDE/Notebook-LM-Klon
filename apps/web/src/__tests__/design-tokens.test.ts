@@ -6,6 +6,7 @@ import {
   CONTRAST_RULES,
   DESIGN_TOKENS,
   MIN_RATIO,
+  SCALE,
   THEMES,
   TOKEN_CSS_NAMES,
   TYPOGRAPHY,
@@ -106,11 +107,39 @@ describe("Design-Tokens: Vollständigkeit", () => {
     }
   });
 
-  it("weist jedem Design Schriften zu (Serif für Editorial und Fusion-Titel)", () => {
-    expect(TYPOGRAPHY["editorial-calm"].body).toContain("Source Serif 4");
-    expect(TYPOGRAPHY.fusion.headings).toContain("Source Serif 4");
-    expect(TYPOGRAPHY.pure.body).toContain("Inter");
-    expect(TYPOGRAPHY["immersive-cinema"].ui).toContain("Inter");
+  it("gibt jedem Design eine eigene Schrift (Zuordnung Design-Umbau)", () => {
+    expect(TYPOGRAPHY.pure.body).toMatch(/^"Inter Variable"/);
+    expect(TYPOGRAPHY["editorial-calm"].body).toMatch(/^"Source Serif 4 Variable"/);
+    expect(TYPOGRAPHY["editorial-calm"].headings).toMatch(/^"Source Serif 4 Variable"/);
+    expect(TYPOGRAPHY["immersive-cinema"].body).toMatch(/^"Space Grotesk Variable"/);
+    expect(TYPOGRAPHY.fusion.body).toMatch(/^"Geist Variable"/);
+    const primaries = THEMES.map((t) => TYPOGRAPHY[t].headings.split(",")[0]);
+    expect(new Set(primaries).size).toBe(THEMES.length);
+  });
+
+  it("legt Skala, Abstände (4-px-Raster), Radien und Bewegung je Design fest", () => {
+    for (const theme of THEMES) {
+      const c = SCALE[theme];
+      expect(c.textBase).toBeGreaterThanOrEqual(1);
+      expect(c.textSmall).toBeGreaterThanOrEqual(0.875);
+      expect(c.textH3).toBeGreaterThan(c.textBase);
+      expect(c.textH2).toBeGreaterThan(c.textH3);
+      for (const px of [c.gapWorkspace, c.padPanel, c.padHeaderY, c.padHeaderX]) {
+        expect(px % 4).toBe(0);
+      }
+      expect(c.radiusSm).toBeLessThanOrEqual(c.radiusMd);
+      expect(c.radiusMd).toBeLessThanOrEqual(c.radiusLg);
+      expect(c.enterMs).toBeLessThanOrEqual(700); // subtil bis mittel
+    }
+    // Die Designs unterscheiden sich wirklich (nicht nur Farbe)
+    const fingerprints = THEMES.map((t) => {
+      const c = SCALE[t];
+      return [c.textH2, c.radiusPanel, c.gapWorkspace, c.trackingHeading, c.ease].join("|");
+    });
+    expect(new Set(fingerprints).size).toBe(THEMES.length);
+    const css = buildThemeCss();
+    expect(css).toContain("--rn-radius-panel: 0px;");
+    expect(css).toContain("--rn-text-base: 1.0625rem;");
   });
 });
 

@@ -38,17 +38,54 @@ test.describe("Immersive Cinema: Bewegungssprache", () => {
     });
   });
 
-  test("andere Designs bleiben ruhig", async ({ page }) => {
+  test("Atmosphäre je Design: Fusion fließt, Pure und Editorial ruhen, AAA flach", async ({
+    page
+  }) => {
     await page.goto("/");
-    for (const design of ["pure", "editorial-calm", "fusion"]) {
+    const read = () =>
+      page.evaluate(() => {
+        const shell = document.querySelector(".workspace-shell") as Element;
+        const header = document.querySelector(".workspace-header") as Element;
+        return {
+          background: getComputedStyle(shell, "::before").animationName,
+          line: getComputedStyle(header, "::after").animationName,
+          font: getComputedStyle(document.body).fontFamily.split(",")[0]
+        };
+      });
+    const expected: Record<string, { background: string; line: string; font: string }> = {
+      pure: { background: "none", line: "none", font: '"Inter Variable"' },
+      "editorial-calm": { background: "none", line: "none", font: '"Source Serif 4 Variable"' },
+      fusion: { background: "rn-fusion-flow", line: "rn-fusion-line", font: '"Geist Variable"' },
+      "immersive-cinema": {
+        background: "rn-cinema-drift",
+        line: "rn-cinema-sweep",
+        font: '"Space Grotesk Variable"'
+      }
+    };
+    for (const [design, want] of Object.entries(expected)) {
       await chooseDesign(page, design, "light");
-      const name = await page.evaluate(
-        () =>
-          getComputedStyle(document.querySelector(".workspace-shell") as Element, "::before")
-            .animationName
-      );
-      expect(name).toBe("none");
+      expect(await read(), design).toEqual(want);
+      await chooseDesign(page, design, "aaa-contrast");
+      expect((await read()).background, `${design} AAA`).toBe("none");
     }
+  });
+
+  test.describe("alle Designs mit prefers-reduced-motion", () => {
+    test.use({ reducedMotion: "reduce" });
+    test("keine Animation in keinem Design", async ({ page }) => {
+      await page.goto("/");
+      for (const design of DESIGNS) {
+        await chooseDesign(page, design, "dark");
+        const names = await page.evaluate(() => [
+          getComputedStyle(document.querySelector(".workspace-shell") as Element, "::before")
+            .animationName,
+          getComputedStyle(document.querySelector(".workspace-header") as Element, "::after")
+            .animationName,
+          getComputedStyle(document.querySelector(".workspace-panel") as Element).animationName
+        ]);
+        expect(names, design).toEqual(["none", "none", "none"]);
+      }
+    });
   });
 });
 

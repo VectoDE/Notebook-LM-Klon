@@ -408,7 +408,7 @@ export function WorkspaceLayout({
               fontSize: "0.875rem",
               fontFamily: "var(--rn-font-mono)",
               padding: "2px 6px",
-              borderRadius: "4px",
+              borderRadius: "var(--rn-radius-sm)",
               background: "var(--rn-color-surface-variant)",
               color: "var(--rn-color-text-secondary)"
             }}
@@ -552,8 +552,7 @@ export function WorkspaceLayout({
           className={`workspace-panel panel-center ${activeMobileTab === "chat" ? "panel-active" : ""}`}
           style={{
             flex: "2 1 450px",
-            height: "100%",
-            borderRight: "1px solid var(--rn-color-panel-border)"
+            height: "100%"
           }}
         >
           <ChatPanel

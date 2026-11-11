@@ -117,10 +117,9 @@ export function SourcesPanel({
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        padding: "16px",
+        padding: "var(--rn-pad-panel)",
         background: "var(--rn-color-panel)",
         color: "var(--rn-color-text-primary)",
-        borderRight: "1px solid var(--rn-color-border)",
         overflowY: "auto"
       }}
     >
@@ -138,7 +137,7 @@ export function SourcesPanel({
           style={{
             fontSize: "0.875rem",
             padding: "2px 8px",
-            borderRadius: "12px",
+            borderRadius: "var(--rn-radius-md)",
             background: "var(--rn-color-surface-variant)",
             color: "var(--rn-color-text-secondary)"
           }}
@@ -158,7 +157,7 @@ export function SourcesPanel({
             flex: 1,
             minHeight: "44px",
             padding: "8px 12px",
-            borderRadius: "8px",
+            borderRadius: "var(--rn-radius-sm)",
             background: "var(--rn-color-accent)",
             color: "var(--rn-color-accent-text)",
             border: "none",
@@ -178,7 +177,7 @@ export function SourcesPanel({
             flex: 1,
             minHeight: "44px",
             padding: "8px 12px",
-            borderRadius: "8px",
+            borderRadius: "var(--rn-radius-sm)",
             background: "var(--rn-color-surface-variant)",
             color: "var(--rn-color-text-primary)",
             border: "1px solid var(--rn-color-border)",
@@ -213,7 +212,7 @@ export function SourcesPanel({
             ? "2px dashed var(--rn-color-primary)"
             : "2px dashed var(--rn-color-border)",
           background: isDragging ? "var(--rn-color-highlight)" : "var(--rn-color-surface-variant)",
-          borderRadius: "8px",
+          borderRadius: "var(--rn-radius-sm)",
           padding: "16px",
           textAlign: "center",
           marginBottom: "16px",
@@ -245,7 +244,7 @@ export function SourcesPanel({
             boxSizing: "border-box",
             minHeight: "44px",
             padding: "8px 12px",
-            borderRadius: "8px",
+            borderRadius: "var(--rn-radius-sm)",
             border: "1px solid var(--rn-color-border)",
             background: "var(--rn-color-canvas)",
             color: "var(--rn-color-text-primary)",
@@ -318,7 +317,7 @@ export function SourcesPanel({
                   justifyContent: "space-between",
                   gap: "8px",
                   padding: "10px 12px",
-                  borderRadius: "8px",
+                  borderRadius: "var(--rn-radius-sm)",
                   marginBottom: "6px",
                   background: isInspected
                     ? "var(--rn-color-highlight)"
@@ -377,7 +376,7 @@ export function SourcesPanel({
                   style={{
                     minHeight: "44px",
                     padding: "4px 12px",
-                    borderRadius: "6px",
+                    borderRadius: "var(--rn-radius-sm)",
                     border: "1px solid var(--rn-color-border)",
                     background: "var(--rn-color-panel)",
                     cursor: "pointer",
@@ -401,7 +400,7 @@ export function SourcesPanel({
           style={{
             marginTop: "16px",
             padding: "16px",
-            borderRadius: "8px",
+            borderRadius: "var(--rn-radius-sm)",
             background: "var(--rn-color-surface-variant)",
             border: "1px solid var(--rn-color-border)",
             maxHeight: "260px",
@@ -442,7 +441,7 @@ export function SourcesPanel({
               style={{
                 marginBottom: "8px",
                 padding: "6px 8px",
-                borderRadius: "6px",
+                borderRadius: "var(--rn-radius-sm)",
                 background: "var(--rn-color-highlight)",
                 fontSize: "0.875rem",
                 color: "var(--rn-color-text-primary)"
@@ -473,7 +472,7 @@ export function SourcesPanel({
                         background: "var(--rn-color-highlight)",
                         color: "var(--rn-color-text-primary)",
                         padding: "2px 4px",
-                        borderRadius: "4px",
+                        borderRadius: "var(--rn-radius-sm)",
                         fontWeight: 600
                       }}
                     >
@@ -522,7 +521,7 @@ export function SourcesPanel({
               background: "var(--rn-color-panel)",
               color: "var(--rn-color-text-primary)",
               padding: "24px",
-              borderRadius: "12px",
+              borderRadius: "var(--rn-radius-md)",
               maxWidth: "480px",
               width: "90%",
               boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)"
@@ -567,7 +566,7 @@ export function SourcesPanel({
                     boxSizing: "border-box",
                     minHeight: "40px",
                     padding: "8px",
-                    borderRadius: "6px",
+                    borderRadius: "var(--rn-radius-sm)",
                     border: "1px solid var(--rn-color-border)"
                   }}
                 />
@@ -598,7 +597,7 @@ export function SourcesPanel({
                     boxSizing: "border-box",
                     minHeight: "40px",
                     padding: "8px",
-                    borderRadius: "6px",
+                    borderRadius: "var(--rn-radius-sm)",
                     border: "1px solid var(--rn-color-border)"
                   }}
                 />
@@ -612,7 +611,7 @@ export function SourcesPanel({
                   style={{
                     minHeight: "44px",
                     padding: "8px 16px",
-                    borderRadius: "6px",
+                    borderRadius: "var(--rn-radius-sm)",
                     border: "1px solid var(--rn-color-border)",
                     background: "transparent",
                     cursor: "pointer"
@@ -626,7 +625,7 @@ export function SourcesPanel({
                   style={{
                     minHeight: "44px",
                     padding: "8px 16px",
-                    borderRadius: "6px",
+                    borderRadius: "var(--rn-radius-sm)",
                     border: "none",
                     background: "var(--rn-color-accent)",
                     color: "var(--rn-color-accent-text)",
