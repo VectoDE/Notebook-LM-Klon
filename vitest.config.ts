@@ -7,7 +7,14 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
-      include: ["packages/shared/src/**/*.ts", "apps/worker/src/**/*.ts", "apps/web/src/App.tsx"],
+      include: [
+        "packages/shared/src/**/*.ts",
+        "apps/worker/src/**/*.ts",
+        "apps/web/src/App.tsx",
+        "apps/web/src/design-tokens.ts",
+        "apps/web/src/theme-preferences.ts",
+        "apps/web/src/BrandLogo.tsx"
+      ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {
         lines: 100,

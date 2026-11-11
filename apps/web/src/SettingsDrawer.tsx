@@ -77,8 +77,8 @@ export function SettingsDrawer({
           width: "100%",
           maxWidth: "440px",
           height: "100%",
-          backgroundColor: "var(--rn-color-panel, #ffffff)",
-          color: "var(--rn-color-text-primary, #111827)",
+          backgroundColor: "var(--rn-color-panel)",
+          color: "var(--rn-color-text-primary)",
           padding: "24px",
           boxShadow: "-4px 0 24px rgba(0, 0, 0, 0.2)",
           overflowY: "auto",
@@ -100,7 +100,7 @@ export function SettingsDrawer({
             style={{
               cursor: "pointer",
               borderRadius: "8px",
-              border: "1px solid var(--rn-color-panel-border, #cbd5e1)",
+              border: "1px solid var(--rn-color-panel-border)",
               background: "transparent",
               color: "inherit",
               padding: "6px 12px"
@@ -129,16 +129,16 @@ export function SettingsDrawer({
                   borderRadius: "12px",
                   border:
                     theme === th
-                      ? "2px solid var(--rn-color-accent, #2563eb)"
-                      : "1px solid var(--rn-color-panel-border, #e2e8f0)",
-                  background: theme === th ? "var(--rn-color-accent, #2563eb)" : "transparent",
-                  color: theme === th ? "var(--rn-color-accent-text, #ffffff)" : "inherit",
+                      ? "2px solid var(--rn-color-accent)"
+                      : "1px solid var(--rn-color-panel-border)",
+                  background: theme === th ? "var(--rn-color-accent)" : "transparent",
+                  color: theme === th ? "var(--rn-color-accent-text)" : "inherit",
                   cursor: "pointer",
                   fontWeight: theme === th ? 600 : 400
                 }}
               >
                 {t(
-                  `theme${th === "pure-notebooklm" ? "Pure" : th === "immersive-cinema" ? "Cinema" : th === "editorial-calm" ? "Editorial" : "Fusion"}`
+                  `theme${th === "pure" ? "Pure" : th === "immersive-cinema" ? "Cinema" : th === "editorial-calm" ? "Editorial" : "Fusion"}`
                 )}
               </button>
             ))}
@@ -165,15 +165,15 @@ export function SettingsDrawer({
                   borderRadius: "12px",
                   border:
                     colorMode === cm
-                      ? "2px solid var(--rn-color-accent, #2563eb)"
-                      : "1px solid var(--rn-color-panel-border, #e2e8f0)",
-                  background: colorMode === cm ? "var(--rn-color-accent, #2563eb)" : "transparent",
-                  color: colorMode === cm ? "var(--rn-color-accent-text, #ffffff)" : "inherit",
+                      ? "2px solid var(--rn-color-accent)"
+                      : "1px solid var(--rn-color-panel-border)",
+                  background: colorMode === cm ? "var(--rn-color-accent)" : "transparent",
+                  color: colorMode === cm ? "var(--rn-color-accent-text)" : "inherit",
                   cursor: "pointer",
                   fontWeight: colorMode === cm ? 600 : 400
                 }}
               >
-                {t(`mode${cm === "light" ? "Light" : cm === "oled-dark" ? "Dark" : "AAA"}`)}
+                {t(`mode${cm === "light" ? "Light" : cm === "dark" ? "Dark" : "AAA"}`)}
               </button>
             ))}
           </div>
@@ -199,10 +199,10 @@ export function SettingsDrawer({
                   borderRadius: "12px",
                   border:
                     language === lang
-                      ? "2px solid var(--rn-color-accent, #2563eb)"
-                      : "1px solid var(--rn-color-panel-border, #e2e8f0)",
-                  background: language === lang ? "var(--rn-color-accent, #2563eb)" : "transparent",
-                  color: language === lang ? "var(--rn-color-accent-text, #ffffff)" : "inherit",
+                      ? "2px solid var(--rn-color-accent)"
+                      : "1px solid var(--rn-color-panel-border)",
+                  background: language === lang ? "var(--rn-color-accent)" : "transparent",
+                  color: language === lang ? "var(--rn-color-accent-text)" : "inherit",
                   cursor: "pointer",
                   fontWeight: language === lang ? 600 : 400
                 }}
@@ -228,8 +228,8 @@ export function SettingsDrawer({
               width: "100%",
               padding: "10px",
               borderRadius: "12px",
-              border: "1px solid var(--rn-color-panel-border, #cbd5e1)",
-              background: "var(--rn-color-canvas, #f8fafd)",
+              border: "1px solid var(--rn-color-panel-border)",
+              background: "var(--rn-color-canvas)",
               color: "inherit"
             }}
           >
@@ -250,7 +250,7 @@ export function SettingsDrawer({
           <p
             style={{
               fontSize: "0.875rem",
-              color: "var(--rn-color-text-secondary, #475569)",
+              color: "var(--rn-color-text-secondary)",
               margin: 0
             }}
           >
@@ -266,8 +266,8 @@ export function SettingsDrawer({
             marginTop: "auto",
             padding: "16px",
             borderRadius: "12px",
-            background: "var(--rn-color-canvas, #f8fafd)",
-            border: "1px solid var(--rn-color-panel-border, #e2e8f0)",
+            background: "var(--rn-color-canvas)",
+            border: "1px solid var(--rn-color-panel-border)",
             display: "flex",
             flexDirection: "column",
             gap: "8px"
@@ -280,12 +280,12 @@ export function SettingsDrawer({
             style={{
               fontSize: "0.825rem",
               margin: 0,
-              color: "var(--rn-color-text-secondary, #475569)"
+              color: "var(--rn-color-text-secondary)"
             }}
           >
             {t("aiActBadge")}
           </p>
-          <div style={{ fontSize: "0.825rem", color: "var(--rn-color-text-secondary, #475569)" }}>
+          <div style={{ fontSize: "0.825rem", color: "var(--rn-color-text-secondary)" }}>
             <strong>{t("gdprTitle")}: </strong>
             {t("gdprText")}
           </div>

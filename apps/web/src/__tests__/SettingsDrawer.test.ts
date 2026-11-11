@@ -33,12 +33,12 @@ describe("SettingsDrawer Component (Sub-Issue #129)", () => {
     expect(html).toContain('aria-labelledby="settings-drawer-title"');
     expect(html).toContain("Einstellungen &amp; Compliance");
     expect(html).toContain('data-testid="close-settings-btn"');
-    expect(html).toContain('data-testid="theme-option-pure-notebooklm"');
+    expect(html).toContain('data-testid="theme-option-pure"');
     expect(html).toContain('data-testid="theme-option-immersive-cinema"');
     expect(html).toContain('data-testid="theme-option-editorial-calm"');
     expect(html).toContain('data-testid="theme-option-fusion"');
     expect(html).toContain('data-testid="mode-option-light"');
-    expect(html).toContain('data-testid="mode-option-oled-dark"');
+    expect(html).toContain('data-testid="mode-option-dark"');
     expect(html).toContain('data-testid="mode-option-aaa-contrast"');
     expect(html).toContain('data-testid="lang-option-de"');
     expect(html).toContain('data-testid="lang-option-en"');

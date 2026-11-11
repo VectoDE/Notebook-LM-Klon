@@ -166,9 +166,9 @@ export function ChatPanel({
                 verticalAlign: "baseline",
                 fontSize: "0.75rem",
                 fontWeight: 700,
-                color: "var(--rn-color-primary, #2563eb)",
-                background: "rgba(37, 99, 235, 0.12)",
-                border: "1px solid rgba(37, 99, 235, 0.3)",
+                color: "var(--rn-color-primary)",
+                background: "var(--rn-color-surface-variant)",
+                border: "1px solid var(--rn-color-primary)",
                 borderRadius: "12px",
                 padding: "1px 6px",
                 margin: "0 3px",
@@ -193,8 +193,8 @@ export function ChatPanel({
         flexDirection: "column",
         height: "100%",
         position: "relative",
-        background: "var(--rn-color-background, #f8fafd)",
-        color: "var(--rn-color-text-primary, #0f172a)"
+        background: "var(--rn-color-canvas)",
+        color: "var(--rn-color-text-primary)"
       }}
     >
       {/* Statusmeldungen fuer Screenreader (nicht pro Token, sondern pro Zustand) */}
@@ -236,8 +236,8 @@ export function ChatPanel({
             style={{
               padding: "16px 20px",
               borderRadius: "16px",
-              background: "var(--rn-color-surface, #ffffff)",
-              border: "1px solid var(--rn-color-border, #e2e8f0)",
+              background: "var(--rn-color-panel)",
+              border: "1px solid var(--rn-color-border)",
               boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)"
             }}
           >
@@ -255,14 +255,12 @@ export function ChatPanel({
                   fontWeight: 700,
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
-                  color: "var(--rn-color-primary, #2563eb)"
+                  color: "var(--rn-color-primary)"
                 }}
               >
                 Executive Summary
               </span>
-              <span
-                style={{ fontSize: "0.8rem", color: "var(--rn-color-text-secondary, #64748b)" }}
-              >
+              <span style={{ fontSize: "0.8rem", color: "var(--rn-color-text-secondary)" }}>
                 • {notebookTitle}
               </span>
             </div>
@@ -271,7 +269,7 @@ export function ChatPanel({
                 margin: 0,
                 fontSize: "0.95rem",
                 lineHeight: 1.6,
-                color: "var(--rn-color-text-primary, #1e293b)"
+                color: "var(--rn-color-text-primary)"
               }}
             >
               {notebookSummary}
@@ -296,9 +294,9 @@ export function ChatPanel({
                   minHeight: "36px",
                   padding: "6px 14px",
                   borderRadius: "20px",
-                  background: "var(--rn-color-surface, #ffffff)",
-                  border: "1px solid var(--rn-color-border, #cbd5e1)",
-                  color: "var(--rn-color-text-primary, #0f172a)",
+                  background: "var(--rn-color-panel)",
+                  border: "1px solid var(--rn-color-border)",
+                  color: "var(--rn-color-text-primary)",
                   fontSize: "0.85rem",
                   fontWeight: 500,
                   cursor: "pointer",
@@ -324,11 +322,9 @@ export function ChatPanel({
                 maxWidth: "85%",
                 borderRadius: "18px",
                 padding: "14px 18px",
-                background: isUser
-                  ? "var(--rn-color-primary, #2563eb)"
-                  : "var(--rn-color-surface, #ffffff)",
-                color: isUser ? "#ffffff" : "var(--rn-color-text-primary, #0f172a)",
-                border: isUser ? "none" : "1px solid var(--rn-color-border, #e2e8f0)",
+                background: isUser ? "var(--rn-color-accent)" : "var(--rn-color-panel)",
+                color: isUser ? "var(--rn-color-accent-text)" : "var(--rn-color-text-primary)",
+                border: isUser ? "none" : "1px solid var(--rn-color-border)",
                 boxShadow: "0 2px 6px rgba(0, 0, 0, 0.04)"
               }}
             >
@@ -337,9 +333,7 @@ export function ChatPanel({
                   fontSize: "0.75rem",
                   fontWeight: 600,
                   marginBottom: "4px",
-                  color: isUser
-                    ? "rgba(255, 255, 255, 0.8)"
-                    : "var(--rn-color-text-secondary, #64748b)",
+                  color: isUser ? "var(--rn-color-accent-text)" : "var(--rn-color-text-secondary)",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center"
@@ -357,7 +351,7 @@ export function ChatPanel({
                       border: "none",
                       cursor: "pointer",
                       fontSize: "0.75rem",
-                      color: "var(--rn-color-primary, #2563eb)",
+                      color: "var(--rn-color-primary)",
                       fontWeight: 600,
                       padding: "2px 6px"
                     }}
@@ -384,9 +378,9 @@ export function ChatPanel({
                     marginTop: "8px",
                     padding: "8px 12px",
                     borderRadius: "8px",
-                    background: "#fef2f2",
-                    color: "#991b1b",
-                    border: "1px solid #fecaca",
+                    background: "var(--rn-color-error-surface)",
+                    color: "var(--rn-color-error)",
+                    border: "1px solid var(--rn-color-error)",
                     fontSize: "0.85rem"
                   }}
                 >
@@ -402,9 +396,9 @@ export function ChatPanel({
                         minHeight: "32px",
                         padding: "2px 10px",
                         borderRadius: "6px",
-                        border: "1px solid #991b1b",
+                        border: "1px solid var(--rn-color-error)",
                         background: "transparent",
-                        color: "#991b1b",
+                        color: "var(--rn-color-error)",
                         cursor: "pointer",
                         fontWeight: 600
                       }}
@@ -421,7 +415,7 @@ export function ChatPanel({
                   style={{
                     marginTop: "8px",
                     fontSize: "0.8rem",
-                    color: "var(--rn-color-text-secondary, #64748b)"
+                    color: "var(--rn-color-text-secondary)"
                   }}
                 >
                   Generierung abgebrochen.
@@ -434,7 +428,7 @@ export function ChatPanel({
                   style={{
                     marginTop: "8px",
                     fontSize: "0.75rem",
-                    color: "var(--rn-color-text-secondary, #64748b)"
+                    color: "var(--rn-color-text-secondary)"
                   }}
                 >
                   KI-generiert · {msg.modelUsed}
@@ -451,7 +445,7 @@ export function ChatPanel({
                     width: "8px",
                     height: "14px",
                     marginLeft: "4px",
-                    background: "var(--rn-color-primary, #2563eb)",
+                    background: "var(--rn-color-accent)",
                     verticalAlign: "middle"
                   }}
                 />
@@ -480,10 +474,10 @@ export function ChatPanel({
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            background: "var(--rn-color-surface, #ffffff)",
+            background: "var(--rn-color-panel)",
             borderRadius: "32px",
             padding: "6px 8px 6px 18px",
-            border: "1px solid var(--rn-color-border, #cbd5e1)",
+            border: "1px solid var(--rn-color-border)",
             boxShadow: "0 8px 24px rgba(0, 0, 0, 0.08)"
           }}
         >
@@ -495,8 +489,8 @@ export function ChatPanel({
               fontWeight: 600,
               padding: "4px 8px",
               borderRadius: "12px",
-              background: "var(--rn-color-surface-variant, #f1f5f9)",
-              color: "var(--rn-color-text-secondary, #64748b)"
+              background: "var(--rn-color-surface-variant)",
+              color: "var(--rn-color-text-secondary)"
             }}
           >
             {activeModel}
@@ -521,7 +515,7 @@ export function ChatPanel({
               outline: "none",
               background: "transparent",
               fontSize: "0.95rem",
-              color: "var(--rn-color-text-primary, #0f172a)",
+              color: "var(--rn-color-text-primary)",
               minHeight: "44px"
             }}
           />
@@ -537,8 +531,8 @@ export function ChatPanel({
                 minHeight: "44px",
                 borderRadius: "50%",
                 border: "none",
-                background: "#b91c1c",
-                color: "#ffffff",
+                background: "var(--rn-color-error)",
+                color: "var(--rn-color-panel)",
                 cursor: "pointer",
                 fontWeight: 700,
                 fontSize: "1rem"
@@ -557,8 +551,8 @@ export function ChatPanel({
                 minHeight: "44px",
                 borderRadius: "50%",
                 border: "none",
-                background: "var(--rn-color-primary, #2563eb)",
-                color: "#ffffff",
+                background: "var(--rn-color-accent)",
+                color: "var(--rn-color-accent-text)",
                 cursor: inputText.trim() && !isGenerating ? "pointer" : "default",
                 opacity: inputText.trim() && !isGenerating ? 1 : 0.4,
                 fontWeight: 700,

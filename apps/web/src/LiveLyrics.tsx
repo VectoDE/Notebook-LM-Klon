@@ -99,9 +99,7 @@ export function LiveLyrics({
               transform: isActive && !reducedMotion ? "scale(1.03)" : "scale(1.0)",
               fontSize: isActive ? "1.35rem" : "1.05rem",
               fontWeight: isActive ? 600 : 400,
-              color: isActive
-                ? "var(--rn-color-text-primary, #ffffff)"
-                : "var(--rn-color-text-muted, #94a3b8)",
+              color: isActive ? "var(--rn-color-text-primary)" : "var(--rn-color-text-muted)",
               padding: "8px 12px",
               borderRadius: "12px",
               background: isActive ? "rgba(255, 255, 255, 0.08)" : "transparent"
@@ -113,7 +111,7 @@ export function LiveLyrics({
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 marginBottom: "4px",
-                color: "var(--rn-color-accent, #a78bfa)"
+                color: "var(--rn-color-accent)"
               }}
             >
               {line.speakerName}

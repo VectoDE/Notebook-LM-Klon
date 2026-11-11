@@ -161,7 +161,7 @@ export function FlashcardsViewer({
         <span
           aria-live="polite"
           data-testid="flashcard-counter"
-          style={{ fontSize: "0.95rem", color: "#475569" }}
+          style={{ fontSize: "0.95rem", color: "var(--rn-color-text-secondary)" }}
         >
           Karte {currentIndex + 1} von {totalCards}
         </span>
@@ -184,8 +184,8 @@ export function FlashcardsViewer({
         style={{
           width: "100%",
           minHeight: "260px",
-          background: isFlipped ? "#f8fafc" : "#ffffff",
-          border: "2px solid #cbd5e1",
+          background: isFlipped ? "var(--rn-color-surface-variant)" : "var(--rn-color-panel)",
+          border: "2px solid var(--rn-color-border)",
           borderRadius: "12px",
           padding: "24px",
           display: "flex",
@@ -196,7 +196,13 @@ export function FlashcardsViewer({
           textAlign: "left"
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            color: "var(--rn-color-text-secondary)"
+          }}
+        >
           <span style={{ fontSize: "0.85rem", textTransform: "uppercase", fontWeight: "bold" }}>
             {isFlipped ? "Antwort (Rückseite)" : "Frage (Vorderseite)"}
           </span>
@@ -216,7 +222,7 @@ export function FlashcardsViewer({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            borderTop: "1px solid #e2e8f0",
+            borderTop: "1px solid var(--rn-color-panel-border)",
             paddingTop: "12px"
           }}
         >
@@ -229,7 +235,8 @@ export function FlashcardsViewer({
               padding: "6px 16px",
               minHeight: "44px",
               borderRadius: "6px",
-              background: "#e2e8f0",
+              background: "var(--rn-color-surface-variant)",
+              color: "var(--rn-color-text-primary)",
               border: "none",
               fontWeight: 500,
               cursor: "pointer",
@@ -253,7 +260,7 @@ export function FlashcardsViewer({
               }}
               style={{
                 fontSize: "0.85rem",
-                color: "#2563eb",
+                color: "var(--rn-color-primary)",
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
@@ -287,9 +294,11 @@ export function FlashcardsViewer({
           style={{
             minHeight: "44px",
             padding: "8px",
-            background: isFlipped ? "#fee2e2" : "#f1f5f9",
-            color: isFlipped ? "#991b1b" : "#94a3b8",
-            border: "1px solid #f87171",
+            background: isFlipped
+              ? "var(--rn-color-error-surface)"
+              : "var(--rn-color-surface-variant)",
+            color: isFlipped ? "var(--rn-color-error)" : "var(--rn-color-text-muted)",
+            border: "1px solid var(--rn-color-error)",
             borderRadius: "6px",
             cursor: isFlipped ? "pointer" : "not-allowed",
             fontWeight: "bold"
@@ -305,9 +314,9 @@ export function FlashcardsViewer({
           style={{
             minHeight: "44px",
             padding: "8px",
-            background: isFlipped ? "#fef3c7" : "#f1f5f9",
-            color: isFlipped ? "#92400e" : "#94a3b8",
-            border: "1px solid #fcd34d",
+            background: isFlipped ? "var(--rn-color-highlight)" : "var(--rn-color-surface-variant)",
+            color: isFlipped ? "var(--rn-color-text-primary)" : "var(--rn-color-text-muted)",
+            border: "1px solid var(--rn-color-border)",
             borderRadius: "6px",
             cursor: isFlipped ? "pointer" : "not-allowed",
             fontWeight: "bold"
@@ -323,9 +332,11 @@ export function FlashcardsViewer({
           style={{
             minHeight: "44px",
             padding: "8px",
-            background: isFlipped ? "#e0f2fe" : "#f1f5f9",
-            color: isFlipped ? "#075985" : "#94a3b8",
-            border: "1px solid #7dd3fc",
+            background: isFlipped
+              ? "var(--rn-color-surface-variant)"
+              : "var(--rn-color-surface-variant)",
+            color: isFlipped ? "var(--rn-color-primary)" : "var(--rn-color-text-muted)",
+            border: "1px solid var(--rn-color-primary)",
             borderRadius: "6px",
             cursor: isFlipped ? "pointer" : "not-allowed",
             fontWeight: "bold"
@@ -341,9 +352,11 @@ export function FlashcardsViewer({
           style={{
             minHeight: "44px",
             padding: "8px",
-            background: isFlipped ? "#dcfce7" : "#f1f5f9",
-            color: isFlipped ? "#166534" : "#94a3b8",
-            border: "1px solid #86efac",
+            background: isFlipped
+              ? "var(--rn-color-success-surface)"
+              : "var(--rn-color-surface-variant)",
+            color: isFlipped ? "var(--rn-color-success)" : "var(--rn-color-text-muted)",
+            border: "1px solid var(--rn-color-success)",
             borderRadius: "6px",
             cursor: isFlipped ? "pointer" : "not-allowed",
             fontWeight: "bold"

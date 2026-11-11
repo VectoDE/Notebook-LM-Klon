@@ -71,8 +71,8 @@ export function DeepDiveStage({
         position: "fixed",
         inset: 0,
         zIndex: 100,
-        background: "radial-gradient(ellipse at bottom, #111827 0%, #030712 100%)",
-        color: "#f8fafc",
+        background: "var(--rn-color-stage-bg)",
+        color: "var(--rn-color-stage-text)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
@@ -100,7 +100,7 @@ export function DeepDiveStage({
               fontSize: "0.8rem",
               textTransform: "uppercase",
               letterSpacing: "0.1em",
-              color: "#38bdf8",
+              color: "var(--rn-color-stage-accent)",
               fontWeight: 700
             }}
           >
@@ -118,7 +118,7 @@ export function DeepDiveStage({
           aria-label="Deep-Dive-Bühne schließen"
           style={{
             background: "rgba(255, 255, 255, 0.1)",
-            color: "#ffffff",
+            color: "var(--rn-color-stage-text)",
             border: "1px solid rgba(255, 255, 255, 0.2)",
             borderRadius: "50%",
             width: "44px",
@@ -176,8 +176,8 @@ export function DeepDiveStage({
             minHeight: "44px",
             padding: "10px 24px",
             borderRadius: "24px",
-            background: "linear-gradient(135deg, #38bdf8 0%, #818cf8 100%)",
-            color: "#0f172a",
+            background: "var(--rn-color-stage-accent)",
+            color: "var(--rn-color-stage-bg)",
             fontWeight: 700,
             fontSize: "0.95rem",
             border: "none",
@@ -187,7 +187,7 @@ export function DeepDiveStage({
           Beitreten / Frage an die Hosts stellen
         </button>
 
-        <span style={{ fontSize: "0.85rem", color: "#94a3b8" }}>
+        <span style={{ fontSize: "0.85rem", color: "var(--rn-color-stage-muted)" }}>
           Live-Audio-Synthese • Grounded Citations
         </span>
       </footer>

@@ -276,7 +276,7 @@ export function MindmapViewer({
           alignItems: "center",
           justifyContent: "space-between",
           padding: "8px 16px",
-          borderBottom: "1px solid #e2e8f0"
+          borderBottom: "1px solid var(--rn-color-panel-border)"
         }}
       >
         <h2 style={{ fontSize: "1.1rem", margin: 0 }}>{title}</h2>
@@ -356,7 +356,7 @@ export function MindmapViewer({
         style={{
           flex: 1,
           overflow: "auto",
-          background: "#f8fafc",
+          background: "var(--rn-color-surface-variant)",
           position: "relative",
           minHeight: "400px"
         }}
@@ -380,7 +380,7 @@ export function MindmapViewer({
                   key={`conn-${idx}-${conn.fromX}-${conn.fromY}-${conn.toX}-${conn.toY}`}
                   d={pathD}
                   fill="none"
-                  stroke="#94a3b8"
+                  style={{ stroke: "var(--rn-color-border)" }}
                   strokeWidth="2"
                 />
               );
@@ -422,18 +422,31 @@ export function MindmapViewer({
                     height={node.height}
                     rx="8"
                     ry="8"
-                    fill={isRoot ? "#1e293b" : hasSource ? "#f0fdf4" : "#ffffff"}
-                    stroke={isRoot ? "#0f172a" : hasSource ? "#16a34a" : "#cbd5e1"}
+                    style={{
+                      fill: isRoot
+                        ? "var(--rn-color-text-primary)"
+                        : hasSource
+                          ? "var(--rn-color-success-surface)"
+                          : "var(--rn-color-panel)",
+                      stroke: isRoot
+                        ? "var(--rn-color-text-primary)"
+                        : hasSource
+                          ? "var(--rn-color-success)"
+                          : "var(--rn-color-border)"
+                    }}
                     strokeWidth={isRoot ? "2" : "1.5"}
                   />
                   <text
                     x={node.width / 2}
                     y={node.height / 2 + 5}
                     textAnchor="middle"
-                    fill={isRoot ? "#ffffff" : "#0f172a"}
                     fontSize="13"
-                    fontFamily="system-ui, sans-serif"
-                    style={{ pointerEvents: "none", userSelect: "none" }}
+                    style={{
+                      fill: isRoot ? "var(--rn-color-panel)" : "var(--rn-color-text-primary)",
+                      fontFamily: "var(--rn-font-family-ui)",
+                      pointerEvents: "none",
+                      userSelect: "none"
+                    }}
                   >
                     {node.label}
                   </text>
@@ -454,14 +467,13 @@ export function MindmapViewer({
                         }
                       }}
                     >
-                      <circle r="9" fill="#3b82f6" />
+                      <circle r="9" style={{ fill: "var(--rn-color-accent)" }} />
                       <text
                         textAnchor="middle"
                         y="3.5"
-                        fill="#ffffff"
                         fontSize="11"
                         fontWeight="bold"
-                        style={{ pointerEvents: "none" }}
+                        style={{ fill: "var(--rn-color-accent-text)", pointerEvents: "none" }}
                       >
                         {node.isCollapsed ? "+" : "-"}
                       </text>
@@ -480,9 +492,15 @@ export function MindmapViewer({
         role="tabpanel"
         aria-labelledby={`${containerId}-tree-tab`}
         hidden={activeTab !== "tree"}
-        style={{ flex: 1, padding: "16px", overflow: "auto", background: "#ffffff" }}
+        style={{ flex: 1, padding: "16px", overflow: "auto", background: "var(--rn-color-panel)" }}
       >
-        <p style={{ fontSize: "0.9rem", color: "#64748b", marginBottom: "12px" }}>
+        <p
+          style={{
+            fontSize: "0.9rem",
+            color: "var(--rn-color-text-secondary)",
+            marginBottom: "12px"
+          }}
+        >
           Tastaturnavigation: Pfeiltasten Hoch/Runter navigieren, Pfeil Rechts öffnet Zweig, Pfeil
           Links schließt Zweig, Enter/Leertaste springt zur Quelle.
         </p>
@@ -521,8 +539,8 @@ export function MindmapViewer({
                   marginLeft: `${node.depth * 20}px`,
                   borderRadius: "4px",
                   cursor: "pointer",
-                  background: isFocused ? "#e0f2fe" : "transparent",
-                  outline: isFocused ? "2px solid #0284c7" : "none",
+                  background: isFocused ? "var(--rn-color-highlight)" : "transparent",
+                  outline: isFocused ? "2px solid var(--rn-color-focus-ring)" : "none",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between"
@@ -532,7 +550,7 @@ export function MindmapViewer({
                   {node.hasChildren ? (node.isCollapsed ? "[+] " : "[-] ") : "• "}
                   <strong>{node.label}</strong>
                   {node.sourceCitation && (
-                    <small style={{ marginLeft: "8px", color: "#16a34a" }}>
+                    <small style={{ marginLeft: "8px", color: "var(--rn-color-success)" }}>
                       ({node.sourceCitation})
                     </small>
                   )}

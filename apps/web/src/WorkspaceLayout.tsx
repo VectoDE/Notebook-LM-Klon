@@ -7,12 +7,13 @@ import {
   WORKSPACE_VERSION
 } from "@notebook-lm/shared";
 import { type FunctionComponent, useCallback, useEffect, useRef, useState } from "react";
+import { BrandLogo } from "./BrandLogo.js";
 import { type ChatMessage, ChatPanel } from "./ChatPanel.js";
 import { SettingsDrawer } from "./SettingsDrawer.js";
 import { SourcesPanel } from "./SourcesPanel.js";
 import { StudioPanel, type StudioTool } from "./StudioPanel.js";
 import { ChatApiError, mapCitations, streamChat } from "./chat-client.js";
-import { useTheme } from "./useTheme.js";
+import { type ColorMode, type DesignTheme, useTheme } from "./useTheme.js";
 import type { CitationLocation, WorkspaceSource } from "./workspace-types.js";
 
 export const DEFAULT_MINDMAP: MindmapNode = {
@@ -189,7 +190,7 @@ export function WorkspaceLayout({
   notebookId = "nb_active",
   chatFetch
 }: WorkspaceLayoutProps) {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, colorMode, setColorMode, t } = useTheme();
 
   // Panels & Navigation state
   const [activeMobileTab, setActiveMobileTab] = useState<"sources" | "chat" | "studio">(
@@ -344,37 +345,41 @@ export function WorkspaceLayout({
       style={{
         display: "flex",
         flexDirection: "column",
-        height: "100vh",
-        width: "100vw",
+        height: "100dvh",
+        width: "100%",
         overflow: "hidden",
-        background: "var(--rn-color-background, #f8fafd)",
-        color: "var(--rn-color-text-primary, #0f172a)"
+        background: "var(--rn-color-canvas)",
+        color: "var(--rn-color-text-primary)"
       }}
     >
       {/* Workspace Header */}
       <header
         data-testid="workspace-header"
+        className="workspace-header"
         style={{
-          height: "56px",
+          minHeight: "56px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 16px",
-          borderBottom: "1px solid var(--rn-color-border, #e2e8f0)",
-          background: "var(--rn-color-surface, #ffffff)"
+          gap: "12px",
+          padding: "8px 16px",
+          borderBottom: "1px solid var(--rn-color-panel-border)",
+          background: "var(--rn-color-panel)"
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <h1 id="app-title" style={{ fontSize: "1.1rem", margin: 0, fontWeight: 700 }}>
-            RelationNotes
+          <h1 id="app-title" style={{ margin: 0, lineHeight: 0 }}>
+            <BrandLogo height={32} />
           </h1>
           <span
+            className="workspace-version"
             style={{
-              fontSize: "0.75rem",
+              fontSize: "0.875rem",
+              fontFamily: "var(--rn-font-mono)",
               padding: "2px 6px",
               borderRadius: "4px",
-              background: "var(--rn-color-surface-variant, #f1f5f9)",
-              color: "var(--rn-color-text-secondary, #64748b)"
+              background: "var(--rn-color-surface-variant)",
+              color: "var(--rn-color-text-secondary)"
             }}
           >
             v{WORKSPACE_VERSION}
@@ -382,10 +387,13 @@ export function WorkspaceLayout({
         </div>
 
         {/* Center: Role Switcher */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div
+          className="workspace-role"
+          style={{ display: "flex", alignItems: "center", gap: "8px" }}
+        >
           <label
             htmlFor="role-select"
-            style={{ fontSize: "0.8rem", color: "var(--rn-color-text-secondary, #64748b)" }}
+            style={{ fontSize: "0.875rem", color: "var(--rn-color-text-secondary)" }}
           >
             Rolle:
           </label>
@@ -394,14 +402,7 @@ export function WorkspaceLayout({
             value={userRole}
             onChange={(e) => setUserRole(e.target.value as "owner" | "editor" | "viewer")}
             data-testid="role-switcher-select"
-            style={{
-              padding: "4px 8px",
-              borderRadius: "6px",
-              border: "1px solid var(--rn-color-border, #cbd5e1)",
-              background: "transparent",
-              fontSize: "0.85rem",
-              cursor: "pointer"
-            }}
+            className="rn-header-control"
           >
             <option value="owner">Inhaber (Owner)</option>
             <option value="editor">Bearbeiter (Editor)</option>
@@ -410,26 +411,35 @@ export function WorkspaceLayout({
         </div>
 
         {/* Right Header Actions: Theme & Settings */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div
+          className="workspace-actions"
+          style={{ display: "flex", alignItems: "center", gap: "8px" }}
+        >
           {/* Design System Picker */}
           <select
             value={theme}
-            onChange={(e) => setTheme(e.target.value as Parameters<typeof setTheme>[0])}
+            onChange={(e) => setTheme(e.target.value as DesignTheme)}
             data-testid="theme-selector-header"
-            aria-label="Design System wählen"
-            style={{
-              padding: "4px 8px",
-              borderRadius: "6px",
-              border: "1px solid var(--rn-color-border, #cbd5e1)",
-              background: "transparent",
-              fontSize: "0.85rem",
-              cursor: "pointer"
-            }}
+            aria-label={t("themeLabel")}
+            className="rn-header-control"
           >
-            <option value="pure-notebooklm">Pure NotebookLM</option>
-            <option value="immersive-cinema">Immersive Cinema</option>
-            <option value="editorial-calm">Editorial Calm</option>
-            <option value="fusion">Fusion (Standard)</option>
+            <option value="pure">{t("themePure")}</option>
+            <option value="immersive-cinema">{t("themeCinema")}</option>
+            <option value="editorial-calm">{t("themeEditorial")}</option>
+            <option value="fusion">{t("themeFusion")}</option>
+          </select>
+
+          {/* Farbschema: Hell, Dunkel, AAA-Hochkontrast */}
+          <select
+            value={colorMode}
+            onChange={(e) => setColorMode(e.target.value as ColorMode)}
+            data-testid="color-mode-selector-header"
+            aria-label={t("colorModeLabel")}
+            className="rn-header-control"
+          >
+            <option value="light">{t("modeLight")}</option>
+            <option value="dark">{t("modeDark")}</option>
+            <option value="aaa-contrast">{t("modeAAA")}</option>
           </select>
 
           <button
@@ -437,16 +447,8 @@ export function WorkspaceLayout({
             onClick={() => setIsSettingsOpen(true)}
             data-testid="btn-open-settings"
             aria-label="Einstellungen & Compliance öffnen"
-            style={{
-              minHeight: "36px",
-              padding: "6px 12px",
-              borderRadius: "6px",
-              border: "1px solid var(--rn-color-border, #cbd5e1)",
-              background: "transparent",
-              cursor: "pointer",
-              fontSize: "0.85rem",
-              fontWeight: 600
-            }}
+            className="rn-header-control"
+            style={{ fontWeight: 600 }}
           >
             Einstellungen
           </button>
@@ -493,7 +495,7 @@ export function WorkspaceLayout({
           style={{
             flex: "2 1 450px",
             height: "100%",
-            borderRight: "1px solid var(--rn-color-border, #e2e8f0)"
+            borderRight: "1px solid var(--rn-color-panel-border)"
           }}
         >
           <ChatPanel
@@ -537,13 +539,14 @@ export function WorkspaceLayout({
       <nav
         aria-label="Mobile Arbeitsbereich Navigation"
         data-testid="mobile-bottom-nav"
+        className="mobile-bottom-nav"
         style={{
           display: "flex",
           justifyContent: "space-around",
           alignItems: "center",
           height: "56px",
-          borderTop: "1px solid var(--rn-color-border, #e2e8f0)",
-          background: "var(--rn-color-surface, #ffffff)",
+          borderTop: "1px solid var(--rn-color-panel-border)",
+          background: "var(--rn-color-panel)",
           zIndex: 20
         }}
       >
@@ -560,8 +563,8 @@ export function WorkspaceLayout({
             fontWeight: activeMobileTab === "sources" ? 700 : 400,
             color:
               activeMobileTab === "sources"
-                ? "var(--rn-color-primary, #2563eb)"
-                : "var(--rn-color-text-secondary, #64748b)",
+                ? "var(--rn-color-primary)"
+                : "var(--rn-color-text-secondary)",
             cursor: "pointer"
           }}
         >
@@ -581,8 +584,8 @@ export function WorkspaceLayout({
             fontWeight: activeMobileTab === "chat" ? 700 : 400,
             color:
               activeMobileTab === "chat"
-                ? "var(--rn-color-primary, #2563eb)"
-                : "var(--rn-color-text-secondary, #64748b)",
+                ? "var(--rn-color-primary)"
+                : "var(--rn-color-text-secondary)",
             cursor: "pointer"
           }}
         >
@@ -602,8 +605,8 @@ export function WorkspaceLayout({
             fontWeight: activeMobileTab === "studio" ? 700 : 400,
             color:
               activeMobileTab === "studio"
-                ? "var(--rn-color-primary, #2563eb)"
-                : "var(--rn-color-text-secondary, #64748b)",
+                ? "var(--rn-color-primary)"
+                : "var(--rn-color-text-secondary)",
             cursor: "pointer"
           }}
         >
