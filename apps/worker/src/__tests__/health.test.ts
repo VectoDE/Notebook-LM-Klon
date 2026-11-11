@@ -62,7 +62,7 @@ describe("Configuration Profiles (demo vs. full) & /api/v1/health Endpoint", () 
     expect(fullConfig.quotas.maxNotebooksPerUser).toBe(100);
     expect(fullConfig.quotas.maxSourcesPerNotebook).toBe(50);
     expect(fullConfig.quotas.maxChunksPerNotebook).toBe(50_000);
-    expect(fullConfig.quotas.maxSourceBytes).toBe(200 * 1024 * 1024);
+    expect(fullConfig.quotas.maxSourceBytes).toBe(50 * 1024 * 1024);
     expect(fullConfig.quotas.demoNotebookTtlDays).toBeNull();
 
     const fallbackConfig = resolveAppConfig({ APP_PROFILE: "unexpected" as DeploymentProfile });

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
 import { RagRepository } from "../rag-repository.js";
 import {
+  MAX_SOURCE_BYTE_SIZE_LIMIT,
   buildContentDisposition,
   createR2PresignedPutUrl,
   detectMagicBytes,
@@ -451,6 +452,41 @@ describe("Sources Upload Flow Endpoints", () => {
       expect(res.status).toBe(415);
       const problem = (await res.json()) as { code: string };
       expect(problem.code).toBe("UNSUPPORTED_MEDIA_TYPE");
+    });
+
+    it("limits a single file to 50 MB", () => {
+      expect(MAX_SOURCE_BYTE_SIZE_LIMIT).toBe(50 * 1024 * 1024);
+    });
+
+    it("rejects a file of 50 MB + 1 byte with 413", async () => {
+      const res = await app.request(`/api/v1/notebooks/${testNotebookId}/sources`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: "big.pdf",
+          mimeType: "application/pdf",
+          byteSize: MAX_SOURCE_BYTE_SIZE_LIMIT + 1
+        })
+      });
+
+      expect(res.status).toBe(413);
+      const problem = (await res.json()) as { code: string; detail: string };
+      expect(problem.code).toBe("FILE_TOO_LARGE");
+      expect(problem.detail).toContain("50 MB");
+    });
+
+    it("accepts a file of exactly 50 MB", async () => {
+      const res = await app.request(`/api/v1/notebooks/${testNotebookId}/sources`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: "max.pdf",
+          mimeType: "application/pdf",
+          byteSize: MAX_SOURCE_BYTE_SIZE_LIMIT
+        })
+      });
+
+      expect(res.status).toBe(201);
     });
 
     it("initializes source with default title when filename is empty", async () => {
