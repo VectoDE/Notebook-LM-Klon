@@ -303,9 +303,10 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
 
       await expect(r2.put("../escape.txt", "pwned")).rejects.toBeInstanceOf(RangeError);
       await expect(r2.put("nested/../../escape.txt", "pwned")).rejects.toBeInstanceOf(RangeError);
-      expect(existsSync(outside)).toBe(false);
 
-      writeFileSync(outside, "secret");
+      // Exclusive create ("wx") fails with EEXIST if one of the puts above had escaped,
+      // so this proves nothing was written outside without a separate existence check.
+      writeFileSync(outside, "secret", { flag: "wx" });
       await expect(r2.get("../escape.txt")).rejects.toBeInstanceOf(RangeError);
       await expect(r2.head("../escape.txt")).rejects.toBeInstanceOf(RangeError);
       await expect(r2.delete("../escape.txt")).rejects.toBeInstanceOf(RangeError);
