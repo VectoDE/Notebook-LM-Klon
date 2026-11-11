@@ -89,4 +89,48 @@ describe("ChatPanel Component (Sub-Issue #132)", () => {
     expect(html).toContain("citation-pill-1");
     expect(html).toContain("citation-pill-2");
   });
+
+  it("zeigt Fehler mit role=alert und Retry-Button", () => {
+    const html = renderToStaticMarkup(
+      createElement(ChatPanel, {
+        messages: [
+          { id: "m_err", role: "assistant", content: "", error: "Server nicht erreichbar" }
+        ],
+        onRetry: () => undefined
+      })
+    );
+    expect(html).toContain('role="alert"');
+    expect(html).toContain("Server nicht erreichbar");
+    expect(html).toContain("btn-retry-chat");
+    expect(html).toContain("Fehler: Server nicht erreichbar");
+  });
+
+  it("zeigt Stop-Button und Lade-Status waehrend der Generierung", () => {
+    const html = renderToStaticMarkup(
+      createElement(ChatPanel, {
+        messages: [{ id: "m_s", role: "assistant", content: "", isStreaming: true }],
+        isGenerating: true,
+        onStop: () => undefined
+      })
+    );
+    expect(html).toContain("btn-stop-chat");
+    expect(html).not.toContain("btn-send-chat");
+    expect(html).toContain("Antwort wird generiert.");
+    expect(html).toContain('aria-busy="true"');
+    expect(html).toContain('role="log"');
+  });
+
+  it("markiert abgebrochene Antworten und zeigt KI-Kennzeichnung", () => {
+    const html = renderToStaticMarkup(
+      createElement(ChatPanel, {
+        messages: [
+          { id: "m_a", role: "assistant", content: "Teil", aborted: true },
+          { id: "m_b", role: "assistant", content: "Fertig [1]", modelUsed: "gemini-2.5-flash" }
+        ]
+      })
+    );
+    expect(html).toContain("chat-aborted-m_a");
+    expect(html).toContain("KI-generiert");
+    expect(html).toContain("citation-pill-1");
+  });
 });

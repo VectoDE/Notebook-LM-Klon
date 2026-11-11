@@ -6,7 +6,8 @@ import {
   type VideoStoryboard,
   WORKSPACE_VERSION
 } from "@notebook-lm/shared";
-import { type FunctionComponent, useState } from "react";
+import { type FunctionComponent, useCallback, useEffect, useRef, useState } from "react";
+import { ChatApiError, mapCitations, streamChat } from "./chat-client.js";
 import { type ChatMessage, ChatPanel } from "./ChatPanel.js";
 import { SettingsDrawer } from "./SettingsDrawer.js";
 import { SourcesPanel } from "./SourcesPanel.js";
@@ -177,11 +178,16 @@ export const DEFAULT_VIDEO_STORYBOARD: VideoStoryboard = {
 export interface WorkspaceLayoutProps {
   readonly initialTool?: StudioTool | undefined;
   readonly initialPanelTab?: "sources" | "chat" | "studio" | undefined;
+  readonly notebookId?: string | undefined;
+  /** Test-Hook: ersetzt fetch fuer den Chat-Client. */
+  readonly chatFetch?: typeof fetch | undefined;
 }
 
 export function WorkspaceLayout({
   initialTool = "overview",
-  initialPanelTab = "chat"
+  initialPanelTab = "chat",
+  notebookId = "nb_active",
+  chatFetch
 }: WorkspaceLayoutProps) {
   const { theme, setTheme } = useTheme();
 
@@ -207,7 +213,13 @@ export function WorkspaceLayout({
         "Willkommen in Ihrem RelationNotes Arbeitsbereich. Ihre Quellen sind geladen. Sie können Zwischenfragen stellen oder die Studio-Werkzeuge rechts nutzen [1]."
     }
   ]);
-  const [isGenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const chatIdRef = useRef<string | undefined>(undefined);
+  const abortRef = useRef<AbortController | null>(null);
+  const lastPromptRef = useRef<string>("");
+
+  // Laufende Anfrage beim Verlassen abbrechen
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   // Source selection toggles
   const handleToggleSelectSource = (id: string) => {
@@ -252,28 +264,74 @@ export function WorkspaceLayout({
     setActiveMobileTab("sources");
   };
 
-  // Chat send message
-  const handleSendMessage = (text: string) => {
-    const userMsg: ChatMessage = {
-      id: `msg_u_${Date.now()}`,
-      role: "user",
-      content: text
-    };
+  const updateMessage = useCallback((id: string, patch: (m: ChatMessage) => ChatMessage) => {
+    setMessages((prev) => prev.map((m) => (m.id === id ? patch(m) : m)));
+  }, []);
 
-    const assistantMsg: ChatMessage = {
-      id: `msg_a_${Date.now()}`,
-      role: "assistant",
-      content: `Antwort basierend auf Ihren Quellen: "${text}" wird im Single-Worker-Cluster mit D1 und NotebookDO verarbeitet [1].`,
-      citations: [
-        {
-          sourceId: "src_1",
-          page: 1,
-          quote: "Cloudflare Worker serves as the single unified entry point."
+  const handleStopChat = () => {
+    abortRef.current?.abort();
+  };
+
+  // Chat send message: SSE-Stream gegen /api/v1/notebooks/:id/chat
+  const handleSendMessage = async (text: string, options?: { readonly isRetry?: boolean }) => {
+    if (abortRef.current) return;
+    lastPromptRef.current = text;
+    const stamp = Date.now();
+    const assistantId = `msg_a_${stamp}`;
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const retryBase = options?.isRetry
+      ? (prev: ChatMessage[]) => prev.filter((m) => !m.error)
+      : (prev: ChatMessage[]) => [...prev, { id: `msg_u_${stamp}`, role: "user" as const, content: text }];
+    setMessages((prev) => [
+      ...retryBase(prev),
+      { id: assistantId, role: "assistant", content: "", isStreaming: true }
+    ]);
+    setIsGenerating(true);
+
+    const selectedIds = sources.filter((s) => s.isSelected).map((s) => s.id);
+    try {
+      for await (const ev of streamChat({
+        notebookId,
+        message: text,
+        chatId: chatIdRef.current,
+        model: activeModel,
+        sourceIds: selectedIds,
+        signal: controller.signal,
+        fetchImpl: chatFetch
+      })) {
+        if (ev.type === "token") {
+          if (ev.chatId) chatIdRef.current = ev.chatId;
+          updateMessage(assistantId, (m) => ({ ...m, content: m.content + ev.delta }));
+        } else if (ev.type === "citations") {
+          const citations = mapCitations(ev.citations);
+          updateMessage(assistantId, (m) => ({ ...m, citations }));
+        } else if (ev.type === "metadata") {
+          updateMessage(assistantId, (m) => ({ ...m, modelUsed: ev.metadata.model }));
+        } else if (ev.type === "done") {
+          if (ev.chatId) chatIdRef.current = ev.chatId;
+        } else if (ev.type === "error") {
+          updateMessage(assistantId, (m) => ({ ...m, error: ev.message }));
         }
-      ]
-    };
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        updateMessage(assistantId, (m) => ({ ...m, aborted: true }));
+      } else {
+        const message =
+          err instanceof ChatApiError ? err.message : "Unerwarteter Fehler beim Chat.";
+        updateMessage(assistantId, (m) => ({ ...m, error: message }));
+      }
+    } finally {
+      updateMessage(assistantId, (m) => ({ ...m, isStreaming: false }));
+      abortRef.current = null;
+      setIsGenerating(false);
+    }
+  };
 
-    setMessages((prev) => [...prev, userMsg, assistantMsg]);
+  const handleRetryChat = () => {
+    if (lastPromptRef.current) void handleSendMessage(lastPromptRef.current, { isRetry: true });
   };
 
   return (
@@ -440,7 +498,9 @@ export function WorkspaceLayout({
             notebookSummary="Dieses Notebook dokumentiert die vollständige Cloudflare Single-Worker- und In-Memory-Vektor-Architektur für latenzfreie Inferenz."
             messages={messages}
             activeModel={activeModel}
-            onSendMessage={handleSendMessage}
+            onSendMessage={(text) => handleSendMessage(text)}
+            onStop={handleStopChat}
+            onRetry={handleRetryChat}
             onCitationClick={handleCitationClick}
             isGenerating={isGenerating}
           />
