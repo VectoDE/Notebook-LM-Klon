@@ -532,4 +532,38 @@ describe("1-Click Guest Login & Magic-Link Endpoints (Sub-Issues #72 & #73)", ()
 
     close();
   });
+
+  it("strips trailing slashes from appBaseUrl in the magic-link callback URL", async () => {
+    const { adapter, close } = createSqliteAdapter();
+    const repo = new CoreRepository(adapter);
+    const sessionManager = new SessionManager({ repo, saltSecret: "magic-salt" });
+    const sent: string[] = [];
+    const capturingMail = {
+      send: async (opts: { text: string }) => {
+        sent.push(opts.text);
+        return { success: true as const };
+      }
+    };
+    const app = new Hono<{ Bindings: Env }>();
+    app.route(
+      "/api/v1/auth",
+      createGuestAndMagicLinkRoutes({
+        repo,
+        sessionManager,
+        mailAdapter: capturingMail as unknown as ConsoleMailAdapter,
+        appBaseUrl: "https://relationnotes.example.com//",
+        isProduction: false
+      })
+    );
+    const res = await app.request("https://api.example.com/api/v1/auth/magic-link", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "slash@example.com" })
+    });
+    expect(res.status).toBe(200);
+    expect(sent[0]).toContain(
+      "https://relationnotes.example.com/api/v1/auth/magic-link/callback?token="
+    );
+    close();
+  });
 });
