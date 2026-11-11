@@ -145,11 +145,15 @@ export {
   DEFAULT_MAX_TOKENS,
   DEFAULT_OVERLAP_TOKENS,
   MAX_WORDS_LIMIT,
+  MAX_WORDS_PER_SOURCE,
   TextTooLargeError,
   chunkText,
+  countUniqueWords,
+  countWords,
   estimateTokenCount,
   type ChunkInput,
-  type TextChunk
+  type TextChunk,
+  type WordCountChunk
 } from "./chunker.js";
 export {
   quantizeFloat32ToInt8,

@@ -1,11 +1,14 @@
 import {
   IngestChunksBodySchema,
+  countUniqueWords,
   createProblemDetails,
   quantizeFloat32ToInt8
 } from "@notebook-lm/shared";
 import type { Hono } from "hono";
+import { resolveAppConfig } from "./config.js";
 import type { CoreRepository } from "./core-repository.js";
 import type { RagRepository } from "./rag-repository.js";
+import { exceedsWordLimit, sourceWordLimitProblem } from "./word-limit.js";
 
 export const D1_STATEMENT_BATCH_LIMIT = 50;
 
@@ -133,6 +136,29 @@ export function registerChunkIngestionRoutes(
     }
 
     const { chunks: chunkItems, model, markReady } = parseResult.data;
+
+    // Word limit per source: existing chunks (replaced by index) plus this batch.
+    const wordLimit = resolveAppConfig(
+      (c.env ?? {}) as { APP_PROFILE?: string; APP_ORIGIN?: string }
+    ).quotas.maxWordsPerSource;
+    const batchIndexes = new Set(chunkItems.map((item) => item.chunkIndex));
+    const existingChunks = (await ragRepo.getChunksBySource(source.id)).filter(
+      (row) => !batchIndexes.has(row.chunk_index)
+    );
+    const totalWords = countUniqueWords([
+      ...existingChunks.map((row) => ({
+        chunkIndex: row.chunk_index,
+        text: row.text,
+        startOffset: row.start_offset,
+        endOffset: row.end_offset
+      })),
+      ...chunkItems
+    ]);
+    if (exceedsWordLimit(totalWords, wordLimit)) {
+      return c.json(sourceWordLimitProblem(totalWords, wordLimit, c.req.path), 413, {
+        "content-type": "application/problem+json; charset=utf-8"
+      });
+    }
     const now = Date.now();
     const d1 = deps.d1Database ?? c.env.DB;
 

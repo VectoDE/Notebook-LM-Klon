@@ -72,7 +72,7 @@ Cloudflare D1 basiert auf SQLite und unterstützt virtuelle Volltext-Tabellen ü
 | Max. Chunks pro Notebook | 5.000 (≈ 3,8 MB `int8`-Vektoren) | 50.000 (≈ 38 MB `int8`-Vektoren) |
 | Max. Dateigröße pro Quelle | 50 MB | 50 MB |
 | Max. Gesamtgröße pro Notebook | 200 MB | 200 MB |
-| Max. Wörter pro Quelle | 150.000 | 500.000 |
+| Max. Wörter pro Quelle | 500.000 | 500.000 |
 | Max. LLM-Aufrufe pro Nutzer/Tag | 50 | 2.000 |
 | Gast-Konto Lebensdauer (TTL) | 24 Stunden | 24 Stunden |
 | Demo-Notebook Lebensdauer (TTL) | 30 Tage | Unbegrenzt (`null`) |

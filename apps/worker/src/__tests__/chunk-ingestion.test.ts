@@ -154,6 +154,49 @@ describe("Batch Chunk Ingestion & Vector Ingestion API (Sub-Issues #96, #97)", (
     expect(delRes.status).toBe(404);
   });
 
+  it("lehnt Chunks über der Wortgrenze mit 413 SOURCE_WORD_LIMIT ab und speichert nichts", async () => {
+    const mock = createMockDb();
+    mock.sources.set("src_big", {
+      id: "src_big",
+      notebook_id: "nb_1",
+      title: "Gross",
+      original_name: "gross.txt",
+      mime_type: "text/plain",
+      source_type: "txt",
+      byte_size: 100,
+      r2_key: null,
+      r2_etag: null,
+      status: "uploading",
+      error_message: null,
+      created_at: 1000,
+      updated_at: 1000
+    });
+    const ragRepo = new RagRepository(mock.db);
+    const app = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
+    app.use("*", async (c, next) => {
+      c.set("sessionUser", { id: "user_test" });
+      c.env = { APP_PROFILE: "demo" } as unknown as Env;
+      await next();
+    });
+    registerChunkIngestionRoutes(app, { ragRepo, d1Database: mock.db as unknown as D1Database });
+
+    const post = (words: number) =>
+      app.request("/api/v1/sources/src_big/chunks", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ chunks: [{ chunkIndex: 0, text: "wort ".repeat(words) }] })
+      });
+
+    const tooBig = await post(500_001);
+    expect(tooBig.status).toBe(413);
+    expect(((await tooBig.json()) as { code: string }).code).toBe("SOURCE_WORD_LIMIT");
+    expect(mock.chunks.size).toBe(0);
+
+    const exact = await post(500_000);
+    expect(exact.status).toBe(200);
+    expect(mock.chunks.size).toBe(1);
+  });
+
   it("validates request payload (invalid JSON & Zod schema validation errors)", async () => {
     const mock = createMockDb();
     mock.sources.set("src_valid", {
