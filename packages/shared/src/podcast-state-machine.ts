@@ -5,7 +5,7 @@
  * interactive host interjections ('Beitreten / Fragen') via mic or text.
  *
  * States:
- *   - 'idle': No playback active
+ *   - 'idle': No playback active (UI: "Bereit"); JOIN_INTERJECT starts playback and opens the question
  *   - 'playing': Main audio podcast overview playing
  *   - 'paused': Manually paused by user
  *   - 'interjecting': User joined to ask a question (mic listening or typing), main audio faded out
@@ -154,7 +154,13 @@ export class PodcastStateMachine {
       }
 
       case "JOIN_INTERJECT": {
-        if (current === "playing" || current === "paused") {
+        if (current === "idle") {
+          // Aus "Bereit": Wiedergabe startet, die Zwischenfrage öffnet sofort.
+          // Abbrechen führt danach in die laufende Wiedergabe zurück.
+          this.ctx.volume = 1.0;
+          this.transition("playing");
+        }
+        if (this.ctx.state === "playing" || this.ctx.state === "paused") {
           // Record the exact position where audio was paused
           this.ctx.pausedAtMs = this.ctx.currentTimeMs;
           this.ctx.interjectInputMode = event.inputMode ?? "text";
