@@ -13,7 +13,7 @@ describe("SettingsDrawer Component (Sub-Issue #129)", () => {
     expect(html).toBe("");
   });
 
-  it("renders modal dialog with theme options, color modes, languages, model router and compliance notices when open", () => {
+  it("renders modal dialog with languages, model router and compliance notices when open", () => {
     const onClose = vi.fn();
     const onModelChange = vi.fn();
     const html = renderToStaticMarkup(
@@ -37,14 +37,11 @@ describe("SettingsDrawer Component (Sub-Issue #129)", () => {
     expect(html).toContain('data-testid="close-settings-btn"');
     expect(html).toContain('aria-label="Einstellungen schließen"');
     expect(html).toMatch(/class="rn-icon-btn rn-dialog-close"/);
-    expect(html).toContain('data-testid="theme-option-pure"');
-    expect(html).toContain('data-testid="theme-option-immersive-cinema"');
-    expect(html).toContain('data-testid="theme-option-editorial-calm"');
-    expect(html).toContain('data-testid="theme-option-fusion"');
-    expect(html).toContain('data-testid="mode-option-light"');
-    expect(html).toContain('data-testid="mode-option-dark"');
-    expect(html).toContain('data-testid="mode-option-aaa-contrast"');
-    expect(html).toContain('data-testid="mode-option-system"');
+    // Darstellung steht nur noch im Kopfmenü bzw. Menü-Sheet (Issue #319)
+    expect(html).not.toContain("theme-option-");
+    expect(html).not.toContain("mode-option-");
+    expect(html).not.toContain("reduce-motion-toggle");
+    expect(html).toContain("Design, Farbschema und Bewegung stellen Sie unter „Darstellung“ ein.");
     expect(html).toContain('data-testid="lang-option-de"');
     expect(html).toContain('data-testid="lang-option-en"');
     expect(html).toContain('data-testid="model-router-select"');
@@ -53,12 +50,17 @@ describe("SettingsDrawer Component (Sub-Issue #129)", () => {
     expect(html).not.toContain("AES-256-GCM");
     expect(html).toContain("EU AI Act");
     expect(html).toContain("DSGVO &amp; Datenschutz");
-    // Abschnitte in Satzschreibung und Hinweise, wann und wo eine Einstellung gilt
-    expect(html).toContain(
-      'id="theme-section-title" class="rn-drawer-section-title">Darstellung</h3>'
-    );
+    // Reihenfolge: Sprache, KI-Modell, eigene Schlüssel, EU AI Act
+    const order = [
+      "lang-section-title",
+      "model-section-title",
+      "byok-section-title",
+      "compliance-section-title"
+    ].map((id) => html.indexOf(`id="${id}"`));
+    expect(order.every((pos) => pos > 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(html).toContain("BYOK steht für „Bring Your Own Key“");
     expect(html).toContain("Gilt für neue Antworten.");
-    expect(html).toContain("Design und Farbschema werden auf diesem Gerät gespeichert.");
     expect(html).toContain("Gilt für die Oberfläche und wird auf diesem Gerät gespeichert.");
     expect(html).toContain('<span lang="en">English</span>');
   });

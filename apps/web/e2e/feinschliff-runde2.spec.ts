@@ -8,17 +8,16 @@ import { DESIGNS, MODES, chooseDesign, openPanel } from "./helpers";
  * „Bewegung reduzieren“, Trefferflächen der Kästchen, Rand der Ablagezone, Fehlertexte.
  */
 
-async function openSettings(page: Page) {
+/** Darstellung öffnen: Menü-Sheet auf dem Telefon, sonst das Kopfmenü. */
+async function openAppearance(page: Page) {
   const menu = page.getByTestId("btn-open-menu");
-  if (await menu.isVisible()) {
-    await menu.click();
-    await page.getByTestId("sheet-open-settings").click();
-  } else {
-    await page.getByTestId("btn-open-settings").click();
-  }
-  const drawer = page.getByTestId("settings-drawer");
-  await expect(drawer).toBeVisible();
-  return drawer;
+  const narrow = await menu.isVisible();
+  await (narrow ? menu : page.getByTestId("btn-open-appearance")).click();
+  const container = page.getByTestId(narrow ? "nav-sheet" : "appearance-menu");
+  await expect(container).toBeVisible();
+  // Erst messen, wenn die Einblendung (Skalierung) fertig ist
+  await container.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
+  return container;
 }
 
 /** Kontrastverhältnis zweier rgb()-Farben nach WCAG. */
@@ -108,7 +107,8 @@ test.describe("Farbschema-Auswahl", () => {
     test(`${width} px: alle Optionen gleich hoch und einzeilig`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/");
-      const drawer = await openSettings(page);
+      // Farbschema steht in der Darstellung (Kopfmenü bzw. Menü-Sheet, Issue #319)
+      const drawer = await openAppearance(page);
       const rows = drawer.locator(".rn-choice:has([data-testid^='mode-option-'])");
       await expect(rows).toHaveCount(4);
       const boxes = await rows.evaluateAll((els) =>
@@ -269,7 +269,8 @@ test.describe("Bewegung", () => {
         );
       expect(await infinite()).toBeGreaterThan(0);
 
-      const drawer = await openSettings(page);
+      // Der Schalter gehört zur Darstellung (Issue #319)
+      const drawer = await openAppearance(page);
       const toggle = drawer.getByRole("checkbox", { name: "Bewegung reduzieren" });
       await expect(toggle).not.toBeChecked();
       await toggle.check();
@@ -283,7 +284,7 @@ test.describe("Bewegung", () => {
       expect(await infinite()).toBe(0);
 
       // Wieder aus: Hintergrund läuft wieder
-      const again = await openSettings(page);
+      const again = await openAppearance(page);
       await again.getByRole("checkbox", { name: "Bewegung reduzieren" }).uncheck();
       await expect(page.locator("html")).not.toHaveAttribute("data-reduce-motion", "true");
       await page.keyboard.press("Escape");
@@ -295,7 +296,7 @@ test.describe("Bewegung", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.addInitScript(() => localStorage.setItem("rn_language", "en"));
     await page.goto("/");
-    const drawer = await openSettings(page);
+    const drawer = await openAppearance(page);
     await expect(drawer.getByRole("checkbox", { name: "Reduce motion" })).toBeVisible();
   });
 });

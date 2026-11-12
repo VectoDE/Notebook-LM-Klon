@@ -137,11 +137,19 @@ for (const width of [600, 768, 1024, 1440]) {
       expect(await smallTargets(page)).toEqual([]);
       expect(await findLayoutProblems(page)).toEqual([]);
 
-      await expect(page.getByTestId("top-tab-chat")).toHaveAttribute("aria-current", "true");
+      // Unter 900 px schalten die Reiter um (aria-current), ab 900 px springen sie (Issue #319)
+      if (width < 900) {
+        await expect(page.getByTestId("top-tab-chat")).toHaveAttribute("aria-current", "true");
+      }
       await page.getByTestId("top-tab-studio").click();
-      await expect(page.getByTestId("top-tab-studio")).toHaveAttribute("aria-current", "true");
-      await expect(page.getByTestId("top-tab-chat")).not.toHaveAttribute("aria-current", "true");
+      if (width < 900) {
+        await expect(page.getByTestId("top-tab-studio")).toHaveAttribute("aria-current", "true");
+        await expect(page.getByTestId("top-tab-chat")).not.toHaveAttribute("aria-current", "true");
+      } else {
+        await expect(page.locator("[data-testid^='top-tab-'][aria-current]")).toHaveCount(0);
+      }
       await expect(page.locator("[data-panel='studio']")).toBeVisible();
+      await expect(page.locator("[data-panel='studio']")).toBeFocused();
 
       // Menü per Tastatur: öffnen, Fokus hinein, Escape schließt, Fokus zurück
       const trigger = page.getByTestId("btn-open-appearance");
@@ -175,7 +183,7 @@ for (const width of [600, 768, 1024, 1440]) {
       await chooseDesign(page, "editorial-calm", "dark");
       await expect(page.locator("html")).toHaveAttribute("data-design", "editorial-calm");
 
-      // Einstellungen aus der Reiterleiste
+      // Einstellungen aus dem Kopf (neben der Darstellung, nicht in der Navigation)
       await page.getByTestId("btn-open-settings").click();
       await expect(page.getByRole("dialog", { name: /Einstellungen/ })).toBeVisible();
     });

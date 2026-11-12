@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon.js";
 import { shouldReduceMotion } from "./theme-preferences.js";
+import { useTheme } from "./useTheme.js";
 import type { CitationLocation } from "./workspace-types.js";
 
 export interface ChatMessage {
@@ -184,6 +185,8 @@ export function ChatPanel({
   };
 
   const canSend = inputText.trim().length > 0 && !isGenerating;
+  // Glossar (Issue #319): deutsche Begriffe aus dem Sprachkatalog
+  const { t } = useTheme();
 
   return (
     <section aria-label="Wissens- und Chat-Panel" className="chat-panel" data-testid="chat-panel">
@@ -203,11 +206,11 @@ export function ChatPanel({
           {/* Zusammenfassung des Notebooks */}
           {notebookSummary && (
             <article
-              aria-label="Executive Notebook Summary"
+              aria-label={t("chatSummaryAria")}
               data-testid="executive-summary-card"
               className="rn-summary"
             >
-              <p className="rn-eyebrow">Executive Summary</p>
+              <p className="rn-eyebrow">{t("chatSummaryLabel")}</p>
               <h2 className="rn-summary-title">{notebookTitle}</h2>
               <p className="rn-summary-text">{notebookSummary}</p>
             </article>

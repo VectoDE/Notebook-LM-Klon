@@ -28,8 +28,21 @@ export const STORAGE_KEYS = {
   theme: "rn_design",
   colorMode: "rn_color_mode",
   language: "rn_language",
-  reduceMotion: "rn_reduce_motion"
+  reduceMotion: "rn_reduce_motion",
+  model: "rn_model"
 } as const;
+
+/** Wählbare KI-Modelle (Reihenfolge wie in den Einstellungen); das erste ist der Standard. */
+export const MODEL_IDS = [
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
+  "claude-3-7-sonnet",
+  "gpt-4o",
+  "deepseek-r1",
+  "ollama-local"
+] as const;
+export type ModelId = (typeof MODEL_IDS)[number];
+export const DEFAULT_MODEL: ModelId = MODEL_IDS[0];
 
 /** Ältere gespeicherte Werte (vor Issue #252) auf die neuen Namen abbilden. */
 const LEGACY_THEME_KEY = "rn_theme";
@@ -150,6 +163,34 @@ export function applyReduceMotion(
     storage?.setItem(STORAGE_KEYS.reduceMotion, enabled ? "true" : "false");
   } catch {
     // Speichern nicht möglich: Wahl gilt nur für diese Sitzung.
+  }
+}
+
+/**
+ * Gespeicherte Modellwahl (Issue #319): nur bekannte Modelle, sonst (auch bei Lesefehlern)
+ * der Standard.
+ */
+export function readStoredModel(storage: Pick<Storage, "getItem"> | undefined): ModelId {
+  return pick(safeRead(storage, STORAGE_KEYS.model), MODEL_IDS) ?? DEFAULT_MODEL;
+}
+
+/** Speichert die Modellwahl; unbekannte Werte werden ignoriert, Speicherfehler auch. */
+export function storeModel(storage: Pick<Storage, "setItem"> | undefined, model: string): void {
+  if (!(MODEL_IDS as readonly string[]).includes(model)) return;
+  try {
+    storage?.setItem(STORAGE_KEYS.model, model);
+  } catch {
+    // Speichern nicht möglich: Wahl gilt nur für diese Sitzung.
+  }
+}
+
+/** localStorage des Browsers, falls vorhanden und zugänglich (sonst undefined). */
+export function browserStorage(): Storage | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    return window.localStorage;
+  } catch {
+    return undefined;
   }
 }
 

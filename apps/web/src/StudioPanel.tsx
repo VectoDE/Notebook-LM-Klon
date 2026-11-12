@@ -20,6 +20,7 @@ import {
   exportQuizToJson,
   triggerBrowserDownload
 } from "./artifact-exporters.js";
+import { useTheme } from "./useTheme.js";
 import type { CitationLocation } from "./workspace-types.js";
 
 export type StudioTool =
@@ -73,6 +74,8 @@ export function StudioPanel({
 }: StudioPanelProps) {
   const [currentTool, setCurrentTool] = useState<StudioTool>(activeTool);
   const [isDeepDiveOpen, setIsDeepDiveOpen] = useState(false);
+  // Glossar (Issue #319): deutsche Begriffe und erklärte Kürzel aus dem Sprachkatalog
+  const { t } = useTheme();
 
   const selectTool = (tool: StudioTool) => {
     setCurrentTool(tool);
@@ -107,10 +110,10 @@ export function StudioPanel({
     {
       id: "audio",
       icon: "audio",
-      title: "Audio-Overview",
+      title: t("studioAudioCard"),
       description: "Zwei-Sprecher-Podcast mit interaktiver Host-Zwischenfrage.",
       primary: {
-        label: "Player öffnen",
+        label: t("studioAudioOpen"),
         testId: "btn-open-audio-tool",
         run: () => selectTool("audio")
       },
@@ -125,8 +128,8 @@ export function StudioPanel({
     {
       id: "video",
       icon: "video",
-      title: "Video-Overview",
-      description: "Animierte Folien, Diagramme und WebM-Videoexport.",
+      title: t("studioVideoCard"),
+      description: t("studioVideoDesc"),
       primary: {
         label: "Video ansehen",
         testId: "btn-open-video-tool",
@@ -155,7 +158,7 @@ export function StudioPanel({
       id: "flashcards",
       icon: "cards",
       title: "Lernkarten",
-      description: "Spaced-Repetition-Karten (SM-2) mit Anki-CSV-Export.",
+      description: t("studioFlashcardsDesc"),
       primary: {
         label: "Lernen",
         testId: "btn-open-flashcards-tool",
