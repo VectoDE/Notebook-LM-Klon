@@ -8,6 +8,7 @@ import {
   FIT_PADDING,
   MindmapViewer,
   NODE_FONT_SIZE,
+  PAN_STEP,
   PHONE_QUERY,
   TOGGLE_RADIUS,
   buildParentMap,
@@ -17,6 +18,7 @@ import {
   flattenLayoutNodes,
   initialMindmapTab,
   nodeWidthFor,
+  panDeltaForKey,
   resolveActiveId,
   tabKeyTarget,
   treeKeyAction
@@ -306,5 +308,23 @@ describe("MindmapViewer Layout Engine & Component (Sub-Issue #122)", () => {
       const html = renderToStaticMarkup(createElement(MindmapViewer, { rootNode: sampleTree }));
       expect(html).not.toContain("rn-eyebrow");
     });
+  });
+});
+
+describe("Mindmap-Grafikpanel per Tastatur (#314)", () => {
+  it("Pfeiltasten verschieben die Ansicht, mit Umschalt dreifach", () => {
+    expect(panDeltaForKey("ArrowRight", false)).toEqual({ x: -PAN_STEP, y: 0 });
+    expect(panDeltaForKey("ArrowLeft", false)).toEqual({ x: PAN_STEP, y: 0 });
+    expect(panDeltaForKey("ArrowDown", false)).toEqual({ x: 0, y: -PAN_STEP });
+    expect(panDeltaForKey("ArrowUp", true)).toEqual({ x: 0, y: PAN_STEP * 3 });
+    expect(panDeltaForKey("Enter", false)).toBeUndefined();
+  });
+
+  it("das scrollbare Grafikpanel ist fokussierbar und über den Reiter benannt", () => {
+    const html = renderToStaticMarkup(
+      createElement(MindmapViewer, { rootNode: sampleTree, title: "Test" })
+    );
+    expect(html).toMatch(/role="tabpanel"[^>]*-visual-tab"[^>]*tabindex="0"/);
+    expect(html).toContain("Pfeiltasten verschieben die Ansicht");
   });
 });

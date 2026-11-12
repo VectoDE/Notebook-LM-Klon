@@ -359,6 +359,33 @@ export function tabKeyTarget(current: MindmapTab, key: string): MindmapTab | und
   }
 }
 
+/** Schritt für das Verschieben der Grafik per Pfeiltaste in px; mit Umschalt dreifach. */
+export const PAN_STEP = 40;
+
+/**
+ * Pfeiltasten im Grafikpanel verschieben die Ansicht (#314, WCAG 2.1.1).
+ * Pfeil rechts zeigt mehr vom rechten Teil, die Grafik wandert also nach links.
+ * Liefert die Verschiebung oder undefined für andere Tasten.
+ */
+export function panDeltaForKey(
+  key: string,
+  shiftKey: boolean
+): { readonly x: number; readonly y: number } | undefined {
+  const step = shiftKey ? PAN_STEP * 3 : PAN_STEP;
+  switch (key) {
+    case "ArrowRight":
+      return { x: -step, y: 0 };
+    case "ArrowLeft":
+      return { x: step, y: 0 };
+    case "ArrowDown":
+      return { x: 0, y: -step };
+    case "ArrowUp":
+      return { x: 0, y: step };
+    default:
+      return undefined;
+  }
+}
+
 export function MindmapViewer({
   rootNode,
   title = "Wissens-Mindmap",
@@ -556,10 +583,19 @@ export function MindmapViewer({
         hidden={activeTab !== "visual"}
         className="rn-mindmap-canvas"
         ref={canvasRef}
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: Scrollbare Fläche (WCAG 2.1.1), Pfeiltasten verschieben die Ansicht (#314).
+        tabIndex={0}
+        data-testid="mindmap-visual-panel"
+        onKeyDown={(event) => {
+          const delta = panDeltaForKey(event.key, event.shiftKey);
+          if (!delta) return;
+          event.preventDefault();
+          setPan((p) => ({ x: p.x + delta.x, y: p.y + delta.y }));
+        }}
       >
         <p id={`${containerId}-visual-hint`} className="rn-visually-hidden">
-          Die Grafik ist nur zum Ansehen. Alle Punkte der Mindmap stehen im Reiter Baumliste, dort
-          per Tastatur und Screenreader bedienbar.
+          Die Grafik ist nur zum Ansehen; Pfeiltasten verschieben die Ansicht. Alle Punkte der
+          Mindmap stehen im Reiter Baumliste, dort per Tastatur und Screenreader bedienbar.
         </p>
         <svg
           data-testid="mindmap-svg"

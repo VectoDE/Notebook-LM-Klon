@@ -15,7 +15,7 @@ import {
   calculateSM2,
   createInitialSM2State
 } from "@notebook-lm/shared";
-import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useState } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useId, useState } from "react";
 
 export interface FlashcardsViewerProps {
   readonly cards: readonly FlashcardItem[];
@@ -51,6 +51,7 @@ export function FlashcardsViewer({
   onCardReviewed,
   initialStates = {}
 }: FlashcardsViewerProps) {
+  const ratingDescId = useId();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [cardStates, setCardStates] = useState<Record<number, SM2State>>(() => ({
@@ -146,14 +147,14 @@ export function FlashcardsViewer({
   }
 
   const ratings = [
-    { id: "again", label: "Nochmal", key: "1", aria: "Nochmal (Taste 1) - Falsch erinnert" },
-    { id: "hard", label: "Schwer", key: "2", aria: "Schwer (Taste 2) - Mit Mühe erinnert" },
-    { id: "good", label: "Gut", key: "3", aria: "Gut (Taste 3) - Nach kurzem Zögern erinnert" },
+    { id: "again", label: "Nochmal", key: "1", hint: "Falsch erinnert" },
+    { id: "hard", label: "Schwer", key: "2", hint: "Mit Mühe erinnert" },
+    { id: "good", label: "Gut", key: "3", hint: "Nach kurzem Zögern erinnert" },
     {
       id: "easy",
       label: "Einfach",
       key: "4",
-      aria: "Einfach (Taste 4) - Sofort fehlerfrei gewusst"
+      hint: "Sofort fehlerfrei gewusst"
     }
   ] as const;
 
@@ -236,16 +237,23 @@ export function FlashcardsViewer({
             key={r.id}
             type="button"
             disabled={!isFlipped}
-            aria-label={r.aria}
+            // Name = sichtbarer Text (WCAG 2.5.3), Zusatz als Beschreibung und Tastenkürzel
+            aria-describedby={`${ratingDescId}-${r.id}`}
+            aria-keyshortcuts={r.key}
             onClick={() => handleRating(r.id)}
             className="rn-rating"
             data-rating={r.id}
           >
-            <span className="rn-rating-label">{r.label}</span>
+            <span className="rn-rating-label">{r.label}</span>{" "}
             <kbd className="rn-rating-key">{r.key}</kbd>
           </button>
         ))}
       </div>
+      {ratings.map((r) => (
+        <span key={r.id} id={`${ratingDescId}-${r.id}`} hidden>
+          {`Taste ${r.key}: ${r.hint}`}
+        </span>
+      ))}
 
       {/* Navigation pagination buttons */}
       <nav aria-label="Kartenauswahl" className="rn-tool-actions-row rn-tool-actions-row--split">
