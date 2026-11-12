@@ -12,7 +12,9 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   useCallback,
   useId,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState
 } from "react";
 
@@ -73,6 +75,53 @@ export function nodeWidthFor(label: string, hasChildren: boolean): number {
   const reserve = LABEL_PADDING_LEFT * 2 + (hasChildren ? TOGGLE_RESERVE : 0);
   return Math.max(NODE_WIDTH, text + reserve);
 }
+export interface MindmapFit {
+  readonly zoom: number;
+  readonly pan: { readonly x: number; readonly y: number };
+}
+
+/** Rand um die eingepasste Mindmap in px. */
+export const FIT_PADDING = 24;
+/** Kleinster Zoom beim Einpassen: Beschriftung bleibt bei 14 px mal 0,8 noch lesbar. */
+const MIN_FIT_ZOOM = 0.8;
+const MAX_FIT_ZOOM = 1;
+
+/**
+ * Passt die Mindmap in die sichtbare Fläche ein: so groß wie möglich (höchstens 100 %,
+ * mindestens 80 %, damit die Schrift lesbar bleibt), vertikal mittig. Passt sie auch bei 80 % nicht in die Breite,
+ * bleibt die Wurzel links am Rand sichtbar, der Rest ist per Scrollen erreichbar.
+ */
+export function fitMindmap(
+  nodes: readonly { x: number; y: number; width: number; height: number }[],
+  viewport: { width: number; height: number }
+): MindmapFit {
+  if (nodes.length === 0 || viewport.width <= 0 || viewport.height <= 0) {
+    return { zoom: 1, pan: { x: FIT_PADDING, y: FIT_PADDING } };
+  }
+  const minX = Math.min(...nodes.map((n) => n.x));
+  const minY = Math.min(...nodes.map((n) => n.y));
+  const maxX = Math.max(...nodes.map((n) => n.x + n.width));
+  const maxY = Math.max(...nodes.map((n) => n.y + n.height));
+  const contentW = maxX - minX;
+  const contentH = maxY - minY;
+  const zoom = Math.max(
+    MIN_FIT_ZOOM,
+    Math.min(
+      MAX_FIT_ZOOM,
+      (viewport.width - 2 * FIT_PADDING) / contentW,
+      (viewport.height - 2 * FIT_PADDING) / contentH
+    )
+  );
+  const scaledW = contentW * zoom;
+  const scaledH = contentH * zoom;
+  const x =
+    scaledW <= viewport.width - 2 * FIT_PADDING
+      ? (viewport.width - scaledW) / 2 - minX * zoom
+      : FIT_PADDING - minX * zoom;
+  const y = Math.max(FIT_PADDING, (viewport.height - scaledH) / 2) - minY * zoom;
+  return { zoom: Number(zoom.toFixed(2)), pan: { x: Math.round(x), y: Math.round(y) } };
+}
+
 const HORIZONTAL_SPACING = 90;
 const VERTICAL_SPACING = 24;
 
@@ -175,6 +224,7 @@ export function MindmapViewer({
   const [pan, setPan] = useState({ x: 20, y: 20 });
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(() => new Set());
   const [focusedNodeId, setFocusedNodeId] = useState<string>(rootNode.id);
+  const canvasRef = useRef<HTMLDivElement | null>(null);
   const [activeTab, setActiveTab] = useState<"visual" | "tree">("visual");
 
   const toggleCollapse = useCallback((id: string) => {
@@ -284,6 +334,26 @@ export function MindmapViewer({
 
   const containerId = useId();
 
+  // Beim Öffnen und bei "Reset" einpassen: die Wurzel steht immer sichtbar in der Fläche.
+  const fitToView = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const fit = fitMindmap(flatVisibleNodes, {
+      width: canvas.clientWidth,
+      height: canvas.clientHeight
+    });
+    setZoom(fit.zoom);
+    setPan(fit.pan);
+    canvas.scrollTo({ left: 0, top: 0 });
+  }, [flatVisibleNodes]);
+
+  const fittedOnce = useRef(false);
+  useLayoutEffect(() => {
+    if (fittedOnce.current || activeTab !== "visual") return;
+    fittedOnce.current = true;
+    fitToView();
+  }, [activeTab, fitToView]);
+
   return (
     <section aria-label={`Mindmap: ${title}`} className="rn-tool-view rn-mindmap">
       <header className="rn-mindmap-head">
@@ -342,10 +412,7 @@ export function MindmapViewer({
               type="button"
               className="rn-btn rn-btn--ghost rn-btn--compact"
               aria-label="Ansicht zurücksetzen"
-              onClick={() => {
-                setZoom(1.0);
-                setPan({ x: 20, y: 20 });
-              }}
+              onClick={fitToView}
             >
               Reset
             </button>
@@ -359,6 +426,7 @@ export function MindmapViewer({
         aria-labelledby={`${containerId}-visual-tab`}
         hidden={activeTab !== "visual"}
         className="rn-mindmap-canvas"
+        ref={canvasRef}
       >
         <svg
           data-testid="mindmap-svg"

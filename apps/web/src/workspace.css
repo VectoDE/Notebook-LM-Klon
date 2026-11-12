@@ -1892,6 +1892,7 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
 
 .rn-quiz-question {
   padding: 0;
+  margin-bottom: var(--rn-space-4);
   font-family: var(--rn-font-family-headings);
   font-size: var(--rn-text-base);
   font-weight: 600;
@@ -1927,7 +1928,8 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   background: var(--rn-color-surface-variant);
 }
 
-.rn-quiz-option:has(.rn-quiz-radio:checked) {
+/* Auswahl-Optik nur, solange noch kein Ergebnis feststeht: richtig/falsch (data-state) gewinnt */
+.rn-quiz-option[data-state="open"]:has(.rn-quiz-radio:checked) {
   border-color: var(--rn-color-primary);
   box-shadow: inset 0 0 0 1px var(--rn-color-primary);
 }
@@ -1959,7 +1961,7 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   color: var(--rn-color-text-secondary);
 }
 
-.rn-quiz-option:has(.rn-quiz-radio:checked) .rn-quiz-option-letter {
+.rn-quiz-option[data-state="open"]:has(.rn-quiz-radio:checked) .rn-quiz-option-letter {
   background: var(--rn-color-accent);
   border-color: var(--rn-color-accent);
   color: var(--rn-color-accent-text);
@@ -1997,9 +1999,18 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
 }
 
 .rn-quiz-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rn-space-1);
   font-size: var(--rn-text-small);
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+.rn-quiz-flag-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
 }
 
 .rn-quiz-explanation {
@@ -2132,9 +2143,33 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   background: var(--rn-color-surface-variant);
 }
 
+/* Kartennavigation: gleiche Spalten und Ränder wie die Bewertungsreihe */
+.rn-cards .rn-tool-actions-row--split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--rn-space-2);
+}
+
+.rn-cards .rn-tool-actions-row--split .rn-btn {
+  width: 100%;
+  border-color: var(--rn-color-border);
+}
+
+.rn-cards .rn-tool-actions-row--split .rn-btn:disabled {
+  border-color: var(--rn-color-panel-border);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-flashcard-foot .rn-link-btn {
+  padding-inline: 0;
+  text-align: start;
+}
+
 .rn-rating:disabled {
   cursor: not-allowed;
-  border-style: dashed;
+  border-color: var(--rn-color-panel-border);
+  background: var(--rn-color-surface-variant);
   color: var(--rn-color-text-secondary);
 }
 
