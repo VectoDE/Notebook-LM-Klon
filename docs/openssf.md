@@ -14,7 +14,7 @@ Das Projekt **RelationNotes – NotebookLM & RelationFlow Knowledge Studio** set
 | **SAST** | `.github/workflows/codeql.yml` führt bei jedem Push/PR sowie wöchentlich CodeQL-Analysen (`security-extended,security-and-quality`) aus. | 10/10 |
 | **Vulnerabilities** | `.github/workflows/ci.yml` prüft das Lockfile bei jedem Lauf mit `osv-scanner` und den Quellcode mit `gitleaks` (`.github/gitleaks.toml`, aktuell **0 Befunde** bei 183 Paketen). | 10/10 |
 | **Security-Policy** | `.github/SECURITY.md` dokumentiert den Coordinated-Vulnerability-Disclosure-Prozess, Reaktionszeiten und Sicherheitsmechanismen. | 10/10 |
-| **License** | `LICENSE` im Repository-Root enthält den vollständigen `Apache-2.0`-Lizenztext. | 10/10 |
+| **License** | `LICENSE` im Repository-Root enthält den vollständigen `MIT`-Lizenztext. | 10/10 |
 | **Branch-Protection** | Der `main`-Branch ist geschützt (Pull-Request-Pflicht, Status-Checks `quality-and-tests`, `secret-and-dependency-scan`, `verify-subissue-checklists`, lineare Historie, kein Force-Push). | Hoch |
 | **Signed-Releases & Provenance** | Gestaffelte Releases (`v0.1.0` bis `v1.0.0`) werden mit CycloneDX-SBOM und SLSA-Build-Provenance veröffentlicht. | Geplant / Aktiv |
 

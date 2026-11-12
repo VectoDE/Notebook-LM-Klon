@@ -65,8 +65,8 @@ describe("OpenSSF Scorecard, Governance & Clean Root Structure (#59, #60, #61, #
 
   it("verifies presence and required sections of LICENSE and .github/* governance files (#60, #108)", () => {
     const license = readFileSync(join(REPO_ROOT, "LICENSE"), "utf-8");
-    expect(license).toContain("Apache License");
-    expect(license).toContain("Version 2.0, January 2004");
+    expect(license).toContain("MIT License");
+    expect(license).toContain("Permission is hereby granted, free of charge");
 
     const security = readFileSync(join(REPO_ROOT, ".github/SECURITY.md"), "utf-8");
     expect(security).toContain("Coordinated Vulnerability Disclosure");

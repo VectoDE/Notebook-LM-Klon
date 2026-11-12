@@ -17,7 +17,7 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/VectoDE/Notebook-LM-Klon/badge)](https://scorecard.dev/viewer/?uri=github.com/VectoDE/Notebook-LM-Klon)
 [![Test Coverage: 100%](https://img.shields.io/badge/Coverage-100%25-10B981?style=flat&logo=vitest&logoColor=white)](vitest.config.ts)
 [![Accessibility: WCAG 2.2 AAA](https://img.shields.io/badge/Accessibility-WCAG_2.2_AAA-2563EB?style=flat)](docs/accessibility-wcag-aaa.md)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-F59E0B.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-F59E0B.svg)](LICENSE)
 
 [**Offizielles GitHub Wiki**](https://github.com/VectoDE/Notebook-LM-Klon/wiki) · [**Systemarchitektur**](docs/architecture.md) · [**Hybrid-RAG & Vektoren**](docs/rag-and-vectors.md) · [**RelationFlow-Brücke**](docs/relationflow-integration.md) · [**Security & DSGVO**](docs/security-and-compliance.md) · [**WCAG 2.2 AAA**](docs/accessibility-wcag-aaa.md)
 
@@ -220,7 +220,7 @@ Notebook-LM-Klon/
 │   └── wiki/                       # 1:1 synchronisierte GitHub-Wiki-Seiten (Home, _Sidebar, _Footer, Kapitel 1–8)
 ├── biome.json                      # Linter, Formatter & 29 WAI-ARIA A11y-Regeln
 ├── CHANGELOG.md                    # Versionshistorie nach Keep a Changelog
-├── LICENSE                         # Apache License 2.0
+├── LICENSE                         # MIT License
 ├── package.json                    # Monorepo-Skripte & Root-Konfiguration
 ├── pnpm-workspace.yaml             # Workspace-Definition (packages/*, apps/*)
 ├── tsconfig.base.json              # Strikte TypeScript-Basis-Konfiguration
@@ -250,5 +250,5 @@ Sämtliche Architekturentscheidungen (ADRs #1–#110) sind im Ordner [`docs/`](d
 - **Engineering-Methodik & Transparenz:** Dieses Projekt wird nach strengem Software-Engineering-Maßstab entwickelt: Spezifikationsgetriebene Architektur (110 dokumentierte ADRs), striktes `1 Issue = 1 Branch = 1 PR`-Vorgehen mit Echtzeit-Checklisten-Verifikation, **100 % automatisierte Testabdeckung** (Unit, Integration, Contract, Property-Based Fuzzing, Security, A11y) sowie **OpenSSF-Härtung**. Moderne KI-Entwicklungswerkzeuge werden als Produktivitätsmultiplikator unter menschlicher Architekturhoheit eingesetzt; jede Zeile Code durchläuft deterministische Typ-, Linter-, Security- und Test-Gates.
 - **Beitragsrichtlinien:** Siehe [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) und [`.github/CODE_OF_CONDUCT.md`](.github/CODE_OF_CONDUCT.md).
 - **Sicherheitsmeldungen:** Bitte nutze für Schwachstellenmeldungen ausschließlich unser [Private Vulnerability Reporting](https://github.com/VectoDE/Notebook-LM-Klon/security/advisories/new) gemäß [`.github/SECURITY.md`](.github/SECURITY.md).
-- **Lizenz:** Veröffentlicht unter der [Apache License 2.0](LICENSE). Copyright (c) 2026 VectoDE.
+- **Lizenz:** Veröffentlicht unter der [MIT-Lizenz](LICENSE). Copyright (c) 2026 Tim Hauke.
 - **Schriften (SIL Open Font License 1.1):** Die Web-App liefert alle Schriften selbst gehostet aus (kein externes CDN), je Design eine eigene: Pure Inter, Editorial Calm Source Serif 4, Immersive Cinema Space Grotesk, Fusion Geist, dazu JetBrains Mono für Zeitstempel. Lizenztexte: [Inter](apps/web/public/fonts/LICENSES/Inter-OFL.txt), [Source Serif 4](apps/web/public/fonts/LICENSES/SourceSerif4-OFL.txt), [Space Grotesk](apps/web/public/fonts/LICENSES/SpaceGrotesk-OFL.txt), [Geist](apps/web/public/fonts/LICENSES/Geist-OFL.txt), [JetBrains Mono](apps/web/public/fonts/LICENSES/JetBrainsMono-OFL.txt). Im Build liegen sie unter `/fonts/LICENSES/`.
