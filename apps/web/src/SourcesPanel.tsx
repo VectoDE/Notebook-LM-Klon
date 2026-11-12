@@ -236,12 +236,12 @@ export function SourcesPanel({
                     data-testid={`source-checkbox-${source.id}`}
                     className="rn-checkbox"
                   />
-                  <span className="rn-source-type" aria-hidden="true">
-                    {sourceTypeLabel(source.mimeType)}
-                  </span>
                   <div className="rn-source-text">
                     <span className="rn-source-title">{source.title}</span>
                     <small className="rn-source-meta">
+                      <span className="rn-source-type" aria-hidden="true">
+                        {sourceTypeLabel(source.mimeType)}
+                      </span>
                       {source.originalName} · {Math.round(source.byteSize / 1024)} KB
                     </small>
                   </div>
