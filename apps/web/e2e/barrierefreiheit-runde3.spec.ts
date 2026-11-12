@@ -312,7 +312,8 @@ test.describe("Geringe Höhe (#323 A6)", () => {
   test("normale Höhen bleiben unverändert", async ({ page }) => {
     for (const [width, height, header, nav] of [
       [390, 844, 61, 72],
-      [1440, 900, 64, 0]
+      // Obere Leiste am Desktop 56 px (Issue #328)
+      [1440, 900, 56, 0]
     ] as const) {
       await page.setViewportSize({ width, height });
       await page.goto("/");

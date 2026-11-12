@@ -42,8 +42,17 @@
   --rn-focus-outline-width: 3px;
   --rn-focus-outline-offset: 2px;
   --rn-panel-radius: var(--rn-radius-panel);
-  --rn-color-panel-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 12px 32px -16px
-    rgba(15, 23, 42, 0.22);
+  /* Obere Leiste ab 600 px (Issue #328) */
+  --rn-header-h: 56px;
+  /* Schatten dezent überall (Issue #328): Panels, Karten, Knöpfe */
+  --rn-color-panel-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 24px -14px rgba(15, 23, 42, 0.16);
+  --rn-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05), 0 2px 8px -4px rgba(15, 23, 42, 0.08);
+  --rn-shadow-card-hover: 0 2px 4px rgba(15, 23, 42, 0.06), 0 12px 24px -12px rgba(15, 23, 42, 0.2);
+  --rn-shadow-button: 0 1px 2px rgba(15, 23, 42, 0.12);
+  --rn-shadow-button-hover: 0 4px 12px -4px rgba(15, 23, 42, 0.28);
+  /* Bewegung (Issue #328): spürbares Einblenden, Anheben und Drücken */
+  --rn-press-scale: 0.97;
+  --rn-lift: -2px;
 
   /* Schriftstufen: Titel > Untertitel > Text > Meta. Basis sind die erzeugten Größen unten,
      Minimum bleibt --rn-text-small (14 px). */
@@ -62,28 +71,29 @@
   --rn-color-surface: var(--rn-color-panel);
 }
 
-/* Schatten je Design: Tiefe statt Kasten */
+/* Schatten je Design: dezent, in der Farbe des Designs getönt (Issue #328) */
 html[data-design="pure"] {
-  --rn-color-panel-shadow: 0 1px 2px rgba(22, 22, 42, 0.04), 0 16px 40px -20px
-    rgba(55, 48, 163, 0.28);
+  --rn-color-panel-shadow: 0 1px 2px rgba(22, 22, 42, 0.04), 0 10px 28px -18px
+    rgba(55, 48, 163, 0.22);
 }
 html[data-design="immersive-cinema"] {
-  --rn-color-panel-shadow: 0 0 0 1px rgba(255, 255, 255, 0.02) inset, 0 24px 60px -24px
-    rgba(0, 0, 0, 0.7);
+  --rn-color-panel-shadow: 0 0 0 1px rgba(255, 255, 255, 0.02) inset, 0 16px 40px -24px
+    rgba(20, 15, 36, 0.4);
 }
 html[data-design="editorial-calm"] {
-  --rn-color-panel-shadow: none;
+  --rn-color-panel-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 html[data-design="fusion"] {
-  --rn-color-panel-shadow: 0 1px 1px rgba(16, 32, 27, 0.06), 0 20px 48px -24px
-    rgba(19, 78, 74, 0.35);
+  --rn-color-panel-shadow: 0 1px 1px rgba(16, 32, 27, 0.05), 0 12px 32px -20px
+    rgba(19, 78, 74, 0.28);
 }
 html[data-design][data-color-mode="dark"] {
-  --rn-color-panel-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 24px 56px -28px
-    rgba(0, 0, 0, 0.8);
-}
-html[data-color-mode="dark"][data-design="editorial-calm"] {
-  --rn-color-panel-shadow: none;
+  --rn-color-panel-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 16px 40px -24px
+    rgba(0, 0, 0, 0.7);
+  --rn-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --rn-shadow-card-hover: 0 12px 28px -14px rgba(0, 0, 0, 0.7);
+  --rn-shadow-button: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --rn-shadow-button-hover: 0 6px 16px -6px rgba(0, 0, 0, 0.7);
 }
 html[data-design="pure"] {
   --rn-shadow-popover: 0 18px 48px -18px rgba(55, 48, 163, 0.32);
@@ -112,8 +122,11 @@ html[data-color-mode="aaa-contrast"] {
   --rn-shadow-popover: none;
   --rn-shadow-dialog: none;
   --rn-color-scrim: rgb(0 0 0 / 0.75);
-  --rn-panel-radius: 6px;
   --rn-color-panel-shadow: none;
+  --rn-shadow-card: none;
+  --rn-shadow-card-hover: none;
+  --rn-shadow-button: none;
+  --rn-shadow-button-hover: none;
   --rn-focus-outline-offset: 3px;
 }
 
@@ -126,6 +139,8 @@ html[data-color-mode="aaa-contrast"] {
     --rn-motion-fast: 0ms;
     --rn-motion-medium: 0ms;
     --rn-motion-slow: 0ms;
+    --rn-press-scale: 1;
+    --rn-lift: 0px;
   }
   *,
   *::before,
@@ -145,6 +160,8 @@ html[data-reduce-motion="true"][data-design] {
   --rn-motion-fast: 0ms;
   --rn-motion-medium: 0ms;
   --rn-motion-slow: 0ms;
+  --rn-press-scale: 1;
+  --rn-lift: 0px;
 }
 
 html[data-reduce-motion="true"] *,
@@ -161,123 +178,6 @@ html[data-reduce-motion="true"] *::after {
    ========================================================================== */
 /* @tokens:start */
 :root,
-html[data-design="fusion"] {
-  --rn-font-family-body: "Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif;
-  --rn-font-family-headings: "Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif;
-  --rn-font-family-ui: "Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif;
-  --rn-text-base: 1rem;
-  --rn-text-small: 0.875rem;
-  --rn-text-h2: 1.5rem;
-  --rn-text-h3: 1.125rem;
-  --rn-text-lead: 1.3125rem;
-  --rn-line-body: 1.6;
-  --rn-line-heading: 1.1;
-  --rn-tracking-heading: -0.03em;
-  --rn-weight-heading: 700;
-  --rn-gap-workspace: 8px;
-  --rn-pad-panel: 20px;
-  --rn-pad-header: 12px 20px;
-  --rn-radius-sm: 8px;
-  --rn-radius-md: 12px;
-  --rn-radius-lg: 16px;
-  --rn-radius-panel: 18px;
-  --rn-enter-duration: 260ms;
-  --rn-enter-distance: 10px;
-  --rn-transition-speed: 200ms;
-  --rn-transition-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-:root {
-  color-scheme: light;
-  --rn-color-canvas: #f4f6f2;
-  --rn-color-panel: #ffffff;
-  --rn-color-surface-variant: #eaefe8;
-  --rn-color-border: #59665f;
-  --rn-color-panel-border: #d7ded6;
-  --rn-color-text-primary: #10201b;
-  --rn-color-text-secondary: #2e3e38;
-  --rn-color-text-muted: #34443e;
-  --rn-color-primary: #134e4a;
-  --rn-color-accent: #134e4a;
-  --rn-color-accent-hover: #042f2e;
-  --rn-color-accent-text: #ffffff;
-  --rn-color-brand: #0d9488;
-  --rn-color-focus-ring: #134e4a;
-  --rn-color-highlight: #fde68a;
-  --rn-color-error: #991b1b;
-  --rn-color-error-surface: #fef2f2;
-  --rn-color-success: #14532d;
-  --rn-color-success-surface: #f0fdf4;
-  --rn-color-stage-bg: #0f1f1c;
-  --rn-color-stage-text: #f4f6f2;
-  --rn-color-stage-muted: #cfdad5;
-  --rn-color-stage-accent: #fcd34d;
-  --rn-color-logo-tile: #0f766e;
-  --rn-color-logo-accent: #b45309;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-color-mode]) {
-    color-scheme: dark;
-    --rn-color-canvas: #0c1513;
-    --rn-color-panel: #14201d;
-    --rn-color-surface-variant: #1c2b27;
-    --rn-color-border: #93a8a0;
-    --rn-color-panel-border: #26362f;
-    --rn-color-text-primary: #f1f5f2;
-    --rn-color-text-secondary: #d6e0db;
-    --rn-color-text-muted: #c8d4ce;
-    --rn-color-primary: #99f6e4;
-    --rn-color-accent: #5eead4;
-    --rn-color-accent-hover: #99f6e4;
-    --rn-color-accent-text: #0c1513;
-    --rn-color-brand: #14b8a6;
-    --rn-color-focus-ring: #fcd34d;
-    --rn-color-highlight: #713f12;
-    --rn-color-error: #fecaca;
-    --rn-color-error-surface: #3b1a24;
-    --rn-color-success: #bbf7d0;
-    --rn-color-success-surface: #13302a;
-    --rn-color-stage-bg: #050b0a;
-    --rn-color-stage-text: #f1f5f2;
-    --rn-color-stage-muted: #c8d4ce;
-    --rn-color-stage-accent: #fcd34d;
-    --rn-color-logo-tile: #14b8a6;
-    --rn-color-logo-accent: #fcd34d;
-  }
-}
-
-@media (prefers-contrast: more) {
-  :root:not([data-color-mode]) {
-    color-scheme: dark;
-    --rn-color-canvas: #000000;
-    --rn-color-panel: #0a0a0a;
-    --rn-color-surface-variant: #171717;
-    --rn-color-border: #ffffff;
-    --rn-color-panel-border: #a3a3a3;
-    --rn-color-text-primary: #ffffff;
-    --rn-color-text-secondary: #f5f5f5;
-    --rn-color-text-muted: #e5e5e5;
-    --rn-color-primary: #fde047;
-    --rn-color-accent: #fde047;
-    --rn-color-accent-hover: #ffffff;
-    --rn-color-accent-text: #000000;
-    --rn-color-brand: #2dd4bf;
-    --rn-color-focus-ring: #fde047;
-    --rn-color-highlight: #713f12;
-    --rn-color-error: #fecaca;
-    --rn-color-error-surface: #0a0a0a;
-    --rn-color-success: #bbf7d0;
-    --rn-color-success-surface: #0a0a0a;
-    --rn-color-stage-bg: #000000;
-    --rn-color-stage-text: #ffffff;
-    --rn-color-stage-muted: #f5f5f5;
-    --rn-color-stage-accent: #fde047;
-    --rn-color-logo-tile: #14b8a6;
-    --rn-color-logo-accent: #fde047;
-  }
-}
-
 html[data-design="pure"] {
   --rn-font-family-body: "Inter Variable", "Inter", system-ui, sans-serif;
   --rn-font-family-headings: "Inter Variable", "Inter", system-ui, sans-serif;
@@ -294,14 +194,108 @@ html[data-design="pure"] {
   --rn-gap-workspace: 12px;
   --rn-pad-panel: 20px;
   --rn-pad-header: 12px 20px;
-  --rn-radius-sm: 10px;
-  --rn-radius-md: 16px;
-  --rn-radius-lg: 24px;
-  --rn-radius-panel: 28px;
-  --rn-enter-duration: 240ms;
-  --rn-enter-distance: 6px;
-  --rn-transition-speed: 180ms;
+  --rn-radius-sm: 8px;
+  --rn-radius-md: 12px;
+  --rn-radius-lg: 12px;
+  --rn-radius-panel: 12px;
+  --rn-enter-duration: 280ms;
+  --rn-enter-distance: 12px;
+  --rn-transition-speed: 200ms;
   --rn-transition-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+:root {
+  color-scheme: light;
+  --rn-color-canvas: #f7f7fc;
+  --rn-color-panel: #ffffff;
+  --rn-color-surface-variant: #eeeef9;
+  --rn-color-field: #ffffff;
+  --rn-color-border: #5f5f7a;
+  --rn-color-panel-border: #e3e3f0;
+  --rn-color-text-primary: #16162a;
+  --rn-color-text-secondary: #3a3a55;
+  --rn-color-text-muted: #3a3a55;
+  --rn-color-primary: #3730a3;
+  --rn-color-accent: #3730a3;
+  --rn-color-accent-hover: #312e81;
+  --rn-color-accent-text: #ffffff;
+  --rn-color-brand: #6366f1;
+  --rn-color-focus-ring: #3730a3;
+  --rn-color-highlight: #e0e7ff;
+  --rn-color-error: #991b1b;
+  --rn-color-error-surface: #fef2f2;
+  --rn-color-success: #14532d;
+  --rn-color-success-surface: #f0fdf4;
+  --rn-color-stage-bg: #16162a;
+  --rn-color-stage-text: #f7f7fc;
+  --rn-color-stage-muted: #d4d4e8;
+  --rn-color-stage-accent: #c7d2fe;
+  --rn-color-logo-tile: #4f46e5;
+  --rn-color-logo-accent: #4f46e5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-mode]) {
+    color-scheme: dark;
+    --rn-color-canvas: #121220;
+    --rn-color-panel: #1b1b2c;
+    --rn-color-surface-variant: #26263a;
+    --rn-color-field: #0e0e1a;
+    --rn-color-border: #9a9ab8;
+    --rn-color-panel-border: #303046;
+    --rn-color-text-primary: #f1f1fa;
+    --rn-color-text-secondary: #d9d9ea;
+    --rn-color-text-muted: #cacadf;
+    --rn-color-primary: #c7d2fe;
+    --rn-color-accent: #c7d2fe;
+    --rn-color-accent-hover: #e0e7ff;
+    --rn-color-accent-text: #121220;
+    --rn-color-brand: #818cf8;
+    --rn-color-focus-ring: #c7d2fe;
+    --rn-color-highlight: #312e81;
+    --rn-color-error: #fecaca;
+    --rn-color-error-surface: #3b1219;
+    --rn-color-success: #bbf7d0;
+    --rn-color-success-surface: #0f2a1c;
+    --rn-color-stage-bg: #0b0b16;
+    --rn-color-stage-text: #f7f7fc;
+    --rn-color-stage-muted: #cacadf;
+    --rn-color-stage-accent: #c7d2fe;
+    --rn-color-logo-tile: #6366f1;
+    --rn-color-logo-accent: #c7d2fe;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root:not([data-color-mode]) {
+    color-scheme: light;
+    --rn-color-canvas: #ffffff;
+    --rn-color-panel: #ffffff;
+    --rn-color-surface-variant: #f1f1fa;
+    --rn-color-field: #ffffff;
+    --rn-color-border: #16162a;
+    --rn-color-panel-border: #3a3a55;
+    --rn-color-text-primary: #000000;
+    --rn-color-text-secondary: #16162a;
+    --rn-color-text-muted: #22223a;
+    --rn-color-primary: #312e81;
+    --rn-color-accent: #312e81;
+    --rn-color-accent-hover: #000000;
+    --rn-color-accent-text: #ffffff;
+    --rn-color-brand: #3730a3;
+    --rn-color-focus-ring: #312e81;
+    --rn-color-highlight: #fef08a;
+    --rn-color-error: #7f1d1d;
+    --rn-color-error-surface: #ffffff;
+    --rn-color-success: #14532d;
+    --rn-color-success-surface: #ffffff;
+    --rn-color-stage-bg: #000000;
+    --rn-color-stage-text: #ffffff;
+    --rn-color-stage-muted: #f1f1fa;
+    --rn-color-stage-accent: #c7d2fe;
+    --rn-color-logo-tile: #312e81;
+    --rn-color-logo-accent: #312e81;
+  }
 }
 
 html[data-design="pure"][data-color-mode="light"] {
@@ -309,6 +303,7 @@ html[data-design="pure"][data-color-mode="light"] {
   --rn-color-canvas: #f7f7fc;
   --rn-color-panel: #ffffff;
   --rn-color-surface-variant: #eeeef9;
+  --rn-color-field: #ffffff;
   --rn-color-border: #5f5f7a;
   --rn-color-panel-border: #e3e3f0;
   --rn-color-text-primary: #16162a;
@@ -338,6 +333,7 @@ html[data-design="pure"][data-color-mode="dark"] {
   --rn-color-canvas: #121220;
   --rn-color-panel: #1b1b2c;
   --rn-color-surface-variant: #26263a;
+  --rn-color-field: #0e0e1a;
   --rn-color-border: #9a9ab8;
   --rn-color-panel-border: #303046;
   --rn-color-text-primary: #f1f1fa;
@@ -367,6 +363,7 @@ html[data-design="pure"][data-color-mode="aaa-contrast"] {
   --rn-color-canvas: #ffffff;
   --rn-color-panel: #ffffff;
   --rn-color-surface-variant: #f1f1fa;
+  --rn-color-field: #ffffff;
   --rn-color-border: #16162a;
   --rn-color-panel-border: #3a3a55;
   --rn-color-text-primary: #000000;
@@ -377,7 +374,7 @@ html[data-design="pure"][data-color-mode="aaa-contrast"] {
   --rn-color-accent-hover: #000000;
   --rn-color-accent-text: #ffffff;
   --rn-color-brand: #3730a3;
-  --rn-color-focus-ring: #000000;
+  --rn-color-focus-ring: #312e81;
   --rn-color-highlight: #fef08a;
   --rn-color-error: #7f1d1d;
   --rn-color-error-surface: #ffffff;
@@ -411,11 +408,11 @@ html[data-design="immersive-cinema"] {
   --rn-pad-panel: 20px;
   --rn-pad-header: 12px 20px;
   --rn-radius-sm: 8px;
-  --rn-radius-md: 14px;
-  --rn-radius-lg: 20px;
-  --rn-radius-panel: 20px;
+  --rn-radius-md: 12px;
+  --rn-radius-lg: 12px;
+  --rn-radius-panel: 12px;
   --rn-enter-duration: 300ms;
-  --rn-enter-distance: 18px;
+  --rn-enter-distance: 24px;
   --rn-transition-speed: 280ms;
   --rn-transition-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -425,6 +422,7 @@ html[data-design="immersive-cinema"][data-color-mode="light"] {
   --rn-color-canvas: #eeeaf6;
   --rn-color-panel: #ffffff;
   --rn-color-surface-variant: #f5f2fa;
+  --rn-color-field: #ffffff;
   --rn-color-border: #5e5670;
   --rn-color-panel-border: #dcd5e8;
   --rn-color-text-primary: #140f24;
@@ -454,6 +452,7 @@ html[data-design="immersive-cinema"][data-color-mode="dark"] {
   --rn-color-canvas: #0a0814;
   --rn-color-panel: #151126;
   --rn-color-surface-variant: #1f1934;
+  --rn-color-field: #07051a;
   --rn-color-border: #a49cb8;
   --rn-color-panel-border: #2b2442;
   --rn-color-text-primary: #f5f3ff;
@@ -464,7 +463,7 @@ html[data-design="immersive-cinema"][data-color-mode="dark"] {
   --rn-color-accent-hover: #fae8ff;
   --rn-color-accent-text: #0a0814;
   --rn-color-brand: #d946ef;
-  --rn-color-focus-ring: #67e8f9;
+  --rn-color-focus-ring: #f0abfc;
   --rn-color-highlight: #4a1d5c;
   --rn-color-error: #fca5a5;
   --rn-color-error-surface: #2a1020;
@@ -483,6 +482,7 @@ html[data-design="immersive-cinema"][data-color-mode="aaa-contrast"] {
   --rn-color-canvas: #05040b;
   --rn-color-panel: #0a0814;
   --rn-color-surface-variant: #151126;
+  --rn-color-field: #000000;
   --rn-color-border: #e9e5f5;
   --rn-color-panel-border: #a49cb8;
   --rn-color-text-primary: #ffffff;
@@ -508,10 +508,10 @@ html[data-design="immersive-cinema"][data-color-mode="aaa-contrast"] {
 }
 
 html[data-design="editorial-calm"] {
-  --rn-font-family-body: "Source Serif 4 Variable", "Source Serif 4", Georgia, serif;
+  --rn-font-family-body: "Inter Variable", "Inter", system-ui, sans-serif;
   --rn-font-family-headings: "Source Serif 4 Variable", "Source Serif 4", Georgia, serif;
   --rn-font-family-ui: "Inter Variable", "Inter", system-ui, sans-serif;
-  --rn-text-base: 1.0625rem;
+  --rn-text-base: 1rem;
   --rn-text-small: 0.875rem;
   --rn-text-h2: 1.5rem;
   --rn-text-h3: 1.1875rem;
@@ -523,12 +523,12 @@ html[data-design="editorial-calm"] {
   --rn-gap-workspace: 0px;
   --rn-pad-panel: 28px;
   --rn-pad-header: 16px 28px;
-  --rn-radius-sm: 4px;
-  --rn-radius-md: 6px;
-  --rn-radius-lg: 8px;
+  --rn-radius-sm: 6px;
+  --rn-radius-md: 12px;
+  --rn-radius-lg: 12px;
   --rn-radius-panel: 0px;
   --rn-enter-duration: 280ms;
-  --rn-enter-distance: 0px;
+  --rn-enter-distance: 10px;
   --rn-transition-speed: 240ms;
   --rn-transition-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -538,6 +538,7 @@ html[data-design="editorial-calm"][data-color-mode="light"] {
   --rn-color-canvas: #f8fafc;
   --rn-color-panel: #ffffff;
   --rn-color-surface-variant: #f1f5f9;
+  --rn-color-field: #ffffff;
   --rn-color-border: #64748b;
   --rn-color-panel-border: #e2e8f0;
   --rn-color-text-primary: #0f172a;
@@ -567,6 +568,7 @@ html[data-design="editorial-calm"][data-color-mode="dark"] {
   --rn-color-canvas: #0b1220;
   --rn-color-panel: #131c2e;
   --rn-color-surface-variant: #1c2840;
+  --rn-color-field: #08101d;
   --rn-color-border: #94a3b8;
   --rn-color-panel-border: #273449;
   --rn-color-text-primary: #f8fafc;
@@ -596,6 +598,7 @@ html[data-design="editorial-calm"][data-color-mode="aaa-contrast"] {
   --rn-color-canvas: #ffffff;
   --rn-color-panel: #ffffff;
   --rn-color-surface-variant: #f1f5f9;
+  --rn-color-field: #ffffff;
   --rn-color-border: #0f172a;
   --rn-color-panel-border: #334155;
   --rn-color-text-primary: #000000;
@@ -606,7 +609,7 @@ html[data-design="editorial-calm"][data-color-mode="aaa-contrast"] {
   --rn-color-accent-hover: #0f172a;
   --rn-color-accent-text: #ffffff;
   --rn-color-brand: #1e40af;
-  --rn-color-focus-ring: #000000;
+  --rn-color-focus-ring: #1e3a8a;
   --rn-color-highlight: #fef08a;
   --rn-color-error: #7f1d1d;
   --rn-color-error-surface: #ffffff;
@@ -620,11 +623,38 @@ html[data-design="editorial-calm"][data-color-mode="aaa-contrast"] {
   --rn-color-logo-accent: #1e3a8a;
 }
 
+html[data-design="fusion"] {
+  --rn-font-family-body: "Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif;
+  --rn-font-family-headings: "Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif;
+  --rn-font-family-ui: "Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif;
+  --rn-text-base: 1rem;
+  --rn-text-small: 0.875rem;
+  --rn-text-h2: 1.5rem;
+  --rn-text-h3: 1.125rem;
+  --rn-text-lead: 1.3125rem;
+  --rn-line-body: 1.6;
+  --rn-line-heading: 1.1;
+  --rn-tracking-heading: -0.03em;
+  --rn-weight-heading: 700;
+  --rn-gap-workspace: 8px;
+  --rn-pad-panel: 20px;
+  --rn-pad-header: 12px 20px;
+  --rn-radius-sm: 8px;
+  --rn-radius-md: 12px;
+  --rn-radius-lg: 12px;
+  --rn-radius-panel: 12px;
+  --rn-enter-duration: 280ms;
+  --rn-enter-distance: 16px;
+  --rn-transition-speed: 220ms;
+  --rn-transition-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 html[data-design="fusion"][data-color-mode="light"] {
   color-scheme: light;
   --rn-color-canvas: #f4f6f2;
   --rn-color-panel: #ffffff;
   --rn-color-surface-variant: #eaefe8;
+  --rn-color-field: #ffffff;
   --rn-color-border: #59665f;
   --rn-color-panel-border: #d7ded6;
   --rn-color-text-primary: #10201b;
@@ -654,6 +684,7 @@ html[data-design="fusion"][data-color-mode="dark"] {
   --rn-color-canvas: #0c1513;
   --rn-color-panel: #14201d;
   --rn-color-surface-variant: #1c2b27;
+  --rn-color-field: #081210;
   --rn-color-border: #93a8a0;
   --rn-color-panel-border: #26362f;
   --rn-color-text-primary: #f1f5f2;
@@ -664,7 +695,7 @@ html[data-design="fusion"][data-color-mode="dark"] {
   --rn-color-accent-hover: #99f6e4;
   --rn-color-accent-text: #0c1513;
   --rn-color-brand: #14b8a6;
-  --rn-color-focus-ring: #fcd34d;
+  --rn-color-focus-ring: #5eead4;
   --rn-color-highlight: #713f12;
   --rn-color-error: #fecaca;
   --rn-color-error-surface: #3b1a24;
@@ -683,6 +714,7 @@ html[data-design="fusion"][data-color-mode="aaa-contrast"] {
   --rn-color-canvas: #000000;
   --rn-color-panel: #0a0a0a;
   --rn-color-surface-variant: #171717;
+  --rn-color-field: #000000;
   --rn-color-border: #ffffff;
   --rn-color-panel-border: #a3a3a3;
   --rn-color-text-primary: #ffffff;
@@ -737,6 +769,12 @@ h4 {
   color: var(--rn-color-text-primary);
 }
 
+/* Umbruch statt Überlauf (WCAG 1.4.10, 1.4.4; Issue #328): lange Wörter wie
+   „Management-Zusammenfassung“ brechen bei 400 % Zoom und 200 % Text innerhalb der Spalte */
+:where(h1, h2, h3, h4, p) {
+  overflow-wrap: anywhere;
+}
+
 /* Bedienelemente übernehmen Schrift und Farbe des Designs */
 button,
 input,
@@ -747,22 +785,24 @@ textarea {
   color: inherit;
 }
 
-/* Buttons ohne eigene Gestaltung: keine UA-Grautöne, sondern Design-Farben */
+/* Buttons ohne eigene Gestaltung: keine UA-Grautöne, sondern Design-Farben, als Pille */
 :where(button) {
   background-color: var(--rn-color-surface-variant);
   color: var(--rn-color-text-primary);
   border: 1px solid var(--rn-color-border);
-  border-radius: var(--rn-radius-sm);
+  border-radius: var(--rn-radius-pill);
 }
 
 :where(button:disabled) {
   cursor: not-allowed;
 }
 
+/* Eingabefelder (Issue #328): klarer Rand (mindestens 3:1), eigene Feldfläche
+   (Weiß im Hellen, tiefer liegende Fläche im Dunkeln), Fokus 3 px in Markenfarbe */
 input,
 select,
 textarea {
-  background-color: var(--rn-color-panel);
+  background-color: var(--rn-color-field);
   color: var(--rn-color-text-primary);
   border-color: var(--rn-color-border);
 }
@@ -840,11 +880,11 @@ summary:focus-visible,
 }
 
 /* ==========================================================================
-   Atmosphäre und Bewegung je Design
-   Pure: ruhige Klarheit (weiches Licht, keine Dauerbewegung)
+   Atmosphäre und Bewegung je Design (Issue #328: Verlauf nur in Fusion, dezent)
+   Pure: ruhige Klarheit (klare Fläche, weiches Einblenden, spürbare Knöpfe)
    Editorial Calm: Ruhe und Lesen (Papier, feine Linien, sanftes Einblenden)
-   Immersive Cinema: Tiefe und Kino (treibendes Licht, Lichtkante, gestaffelte Einblendung)
-   Fusion: Energie und Bewegung (fließender Farbverlauf, laufende Akzentlinie)
+   Immersive Cinema: Tiefe und Kino (Lichtkante, gestaffelte Einblendung mit Unschärfe)
+   Fusion: Energie und Bewegung (dezent fließender Farbverlauf, laufende Akzentlinie)
    Text steht immer auf deckenden Panelflächen, Kontrastwerte bleiben gültig.
    AAA-Hochkontrast: flache Fläche ohne Verläufe. Bei prefers-reduced-motion keine Animation.
    ========================================================================== */
@@ -856,18 +896,6 @@ summary:focus-visible,
   to {
     opacity: 1;
     transform: none;
-  }
-}
-
-@keyframes rn-cinema-drift {
-  0% {
-    transform: translate3d(-6%, -4%, 0) rotate(0deg) scale(1);
-  }
-  50% {
-    transform: translate3d(5%, 3%, 0) rotate(8deg) scale(1.12);
-  }
-  100% {
-    transform: translate3d(-6%, -4%, 0) rotate(0deg) scale(1);
   }
 }
 
@@ -895,10 +923,10 @@ summary:focus-visible,
 
 @keyframes rn-cinema-sweep {
   from {
-    background-position: 120% 0;
+    transform: translateX(-100%);
   }
   to {
-    background-position: -120% 0;
+    transform: translateX(300%);
   }
 }
 
@@ -1012,29 +1040,9 @@ html[data-color-mode="aaa-contrast"] .workspace-panel article {
   border-color: var(--rn-color-border) !important;
 }
 
-/* --- Pure: ruhige Klarheit --- */
-html[data-design="pure"] .workspace-shell::before {
-  background: radial-gradient(
-      55% 45% at 0% 0%,
-      color-mix(in srgb, var(--rn-color-brand) 16%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      45% 40% at 100% 100%,
-      color-mix(in srgb, var(--rn-color-primary) 10%, transparent),
-      transparent 70%
-    ), var(--rn-color-canvas);
-}
+/* --- Pure: ruhige Klarheit (klare Grundfläche aus Ebene 3) --- */
 
 /* --- Editorial Calm: Ruhe und Lesen --- */
-html[data-design="editorial-calm"] .workspace-shell::before {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--rn-color-brand) 6%, var(--rn-color-canvas)) 0%,
-    var(--rn-color-canvas) 40%
-  );
-}
-
 html[data-design="editorial-calm"] .workspace-header::after {
   content: "";
   position: absolute;
@@ -1062,48 +1070,21 @@ html[data-design="editorial-calm"]
   hyphens: manual;
 }
 
-/* --- Immersive Cinema: Tiefe und Kino --- */
-html[data-design="immersive-cinema"] .workspace-shell::before {
-  inset: -25%;
-  background: radial-gradient(
-      40% 35% at 20% 25%,
-      color-mix(in srgb, var(--rn-color-brand) 30%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      35% 40% at 80% 70%,
-      color-mix(in srgb, var(--rn-color-stage-accent) 24%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      30% 30% at 60% 15%,
-      color-mix(in srgb, var(--rn-color-primary) 18%, transparent),
-      transparent 70%
-    ), var(--rn-color-canvas);
-  animation: rn-cinema-drift 28s ease-in-out infinite;
-  will-change: transform;
-}
-
+/* --- Immersive Cinema: Tiefe und Kino (ohne Verlauf: Tiefe aus Schatten und Licht) --- */
 html[data-design="immersive-cinema"] .workspace-header {
   animation: rn-cinema-focus-in var(--rn-motion-slow) var(--rn-transition-ease) both;
 }
 
+/* Lichtkante: ein deckendes Lichtsegment wandert über die Unterkante der Leiste */
 html[data-design="immersive-cinema"] .workspace-header::after {
   content: "";
   position: absolute;
   left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 1px;
+  bottom: 0;
+  width: 25%;
+  height: 2px;
   pointer-events: none;
-  background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--rn-color-brand) 40%,
-      var(--rn-color-stage-accent) 60%,
-      transparent 100%
-    )
-    0 0 / 50% 100% no-repeat;
+  background: var(--rn-color-brand);
   animation: rn-cinema-sweep 16s linear infinite;
 }
 
@@ -1125,7 +1106,6 @@ html[data-design="immersive-cinema"] .rn-cinema-enter {
 }
 
 html[data-design="immersive-cinema"] :where(button, .rn-control):hover {
-  transform: translateY(-1px);
   box-shadow: 0 6px 20px -6px color-mix(in srgb, var(--rn-color-brand) 70%, transparent);
 }
 
@@ -1133,17 +1113,17 @@ html[data-design="immersive-cinema"] :where(button, .rn-control):hover {
 html[data-design="fusion"] .workspace-shell::before {
   background: radial-gradient(
       40% 50% at 10% 20%,
-      color-mix(in srgb, var(--rn-color-brand) 26%, transparent),
+      color-mix(in srgb, var(--rn-color-brand) 12%, transparent),
       transparent 70%
     ),
     radial-gradient(
       35% 45% at 90% 10%,
-      color-mix(in srgb, var(--rn-color-stage-accent) 30%, transparent),
+      color-mix(in srgb, var(--rn-color-stage-accent) 14%, transparent),
       transparent 70%
     ),
     radial-gradient(
       45% 50% at 70% 90%,
-      color-mix(in srgb, var(--rn-color-highlight) 60%, transparent),
+      color-mix(in srgb, var(--rn-color-highlight) 30%, transparent),
       transparent 70%
     ), var(--rn-color-canvas);
   background-size: 160% 160%;
@@ -1174,13 +1154,70 @@ html[data-design="fusion"] .workspace-panel {
 }
 
 html[data-design="fusion"] :where(button, .rn-control):hover {
-  transform: translateY(-1px);
   box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--rn-color-brand) 80%, transparent);
+}
+
+/* --- Bewegung in allen Designs (Issue #328): Knöpfe heben sich beim Überfahren und
+   geben beim Drücken nach, Karten heben sich, Panels blenden gestaffelt ein. Bei
+   reduzierter Bewegung (Gerät oder Schalter) sind --rn-lift und --rn-press-scale neutral. */
+:where(
+    .rn-btn,
+    .rn-icon-btn,
+    .rn-chip,
+    .rn-send,
+    .rn-rating,
+    .rn-link-btn,
+    .rn-stage-btn
+  ):hover:not(:disabled) {
+  transform: translateY(var(--rn-lift));
+}
+
+:where(.rn-btn--primary, .rn-btn--secondary, .rn-send, .rn-rating) {
+  box-shadow: var(--rn-shadow-button);
+}
+
+:where(.rn-btn--primary, .rn-btn--secondary, .rn-send, .rn-rating):hover:not(:disabled) {
+  box-shadow: var(--rn-shadow-button-hover);
+}
+
+:where(button, .rn-control--button):active:not(:disabled) {
+  transform: scale(var(--rn-press-scale));
+  transition-duration: var(--rn-motion-fast);
+}
+
+:where(.rn-tool, .rn-summary) {
+  box-shadow: var(--rn-shadow-card);
+  transition: transform var(--rn-transition-base), box-shadow var(--rn-transition-base),
+    border-color var(--rn-transition-base);
+}
+
+:where(.rn-tool):hover {
+  transform: translateY(var(--rn-lift));
+  box-shadow: var(--rn-shadow-card-hover);
+}
+
+.rn-icon {
+  transition: transform var(--rn-transition-base);
+}
+
+:where(.rn-btn, .rn-icon-btn, .rn-control--button):hover > .rn-icon {
+  transform: scale(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.rn-btn, .rn-icon-btn, .rn-control--button):hover > .rn-icon {
+    transform: none;
+  }
+}
+
+html[data-reduce-motion="true"]
+  :where(.rn-btn, .rn-icon-btn, .rn-control--button):hover
+  > .rn-icon {
+  transform: none;
 }
 
 /* --- AAA-Hochkontrast: flach, ohne Verläufe und Lichtkanten --- */
 html[data-color-mode="aaa-contrast"] .workspace-shell::before {
-  inset: 0;
   background: var(--rn-color-canvas);
   animation: none;
 }
