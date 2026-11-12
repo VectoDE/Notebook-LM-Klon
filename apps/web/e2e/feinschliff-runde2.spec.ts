@@ -15,6 +15,8 @@ async function openAppearance(page: Page) {
   await (narrow ? menu : page.getByTestId("btn-open-appearance")).click();
   const container = page.getByTestId(narrow ? "nav-sheet" : "appearance-menu");
   await expect(container).toBeVisible();
+  // Erst messen, wenn die Einblendung (Skalierung) fertig ist
+  await container.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
   return container;
 }
 
