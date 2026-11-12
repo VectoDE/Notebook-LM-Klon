@@ -2534,29 +2534,148 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   box-shadow: var(--rn-color-panel-shadow);
 }
 
+.rn-video:focus-visible {
+  outline: 3px solid var(--rn-color-stage-accent);
+  outline-offset: 2px;
+}
+
+/* Die Leinwand malt nur den Folienverlauf; Text steht als HTML darüber und wächst mit.
+   aspect-ratio ist nur das Mindestmaß, längere Folien machen die Fläche höher. */
 .rn-video-screen {
   position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: var(--rn-space-3);
+  box-sizing: border-box;
   aspect-ratio: 16 / 9;
   width: 100%;
-  overflow: hidden;
+  min-width: 0;
+  padding: clamp(var(--rn-space-4), 5%, var(--rn-space-8));
   border-radius: var(--rn-radius-md);
   background: var(--rn-color-stage-bg);
-  box-shadow: inset 0 0 0 1px var(--rn-stage-line);
 }
 
 .rn-video-canvas {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  border-radius: inherit;
+}
+
+.rn-video-slide {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--rn-space-2);
+  min-width: 0;
+  color: var(--rn-color-stage-text);
+  overflow-wrap: anywhere;
+}
+
+.rn-video-kicker {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rn-video-title {
+  margin: 0;
+  padding-bottom: var(--rn-space-2);
+  border-bottom: 3px solid var(--rn-color-stage-accent);
+  justify-self: start;
+  /* Größe kommt aus dem Design (--rn-text-h3), die Farbe bleibt Bühnentext */
+  color: var(--rn-color-stage-text);
+}
+
+.rn-video-body {
+  display: grid;
+  gap: var(--rn-space-3);
+}
+
+.rn-video-points {
+  display: grid;
+  gap: var(--rn-space-1);
+  margin: 0;
+  padding-left: 1.25em;
+  font-size: var(--rn-text-base);
+  line-height: 1.45;
+}
+
+.rn-video-points li::marker {
+  color: var(--rn-color-stage-accent);
+}
+
+.rn-video-chart {
+  display: grid;
+  gap: var(--rn-space-2);
+  margin: 0;
+}
+
+.rn-video-chart-title {
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+}
+
+.rn-video-bars {
+  display: grid;
+  gap: var(--rn-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-video-bar {
+  display: grid;
+  grid-template-columns: minmax(3rem, auto) 1fr auto;
+  align-items: center;
+  gap: var(--rn-space-2);
+  font-size: var(--rn-text-small);
+}
+
+.rn-video-bar-track {
+  width: 100%;
+  height: 10px;
+  color: var(--rn-color-stage-accent);
+}
+
+.rn-video-bar-value {
+  font-family: var(--rn-font-mono);
+  font-weight: 600;
+}
+
+.rn-video-source {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  font-style: italic;
+  line-height: 1.45;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rn-video-slide {
+    animation: rn-video-slide-in 400ms ease-out both;
+  }
+}
+
+@keyframes rn-video-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .rn-video-subtitle {
-  position: absolute;
-  left: 50%;
-  bottom: var(--rn-space-4);
-  max-width: calc(100% - 2 * var(--rn-space-4));
-  transform: translateX(-50%);
+  position: relative;
+  justify-self: center;
+  align-self: end;
+  max-width: 100%;
   padding: var(--rn-space-1) var(--rn-space-3);
   border-radius: var(--rn-radius-sm);
   background: var(--rn-color-stage-bg);
@@ -2565,6 +2684,53 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   font-weight: 600;
   line-height: 1.4;
   text-align: center;
+}
+
+/* Umschalter (Untertitel, Audiodeskription): nicht wie die Hauptaktion, sondern
+   getönte Fläche plus Häkchen im Kästchen, sobald aria-pressed="true". */
+.rn-stage-btn.rn-video-toggle,
+.rn-stage-btn.rn-video-toggle[aria-pressed="true"] {
+  padding-left: var(--rn-space-3);
+  color: var(--rn-color-stage-text);
+}
+
+.rn-stage-btn.rn-video-toggle[aria-pressed="false"] {
+  border-color: var(--rn-color-stage-muted);
+  background: transparent;
+}
+
+.rn-stage-btn.rn-video-toggle[aria-pressed="true"] {
+  border-color: var(--rn-color-stage-accent);
+  background: color-mix(in srgb, var(--rn-color-stage-accent) 18%, var(--rn-color-stage-bg));
+}
+
+.rn-video-toggle-box {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+}
+
+.rn-video-toggle-check {
+  visibility: hidden;
+}
+
+.rn-video-toggle[aria-pressed="true"] .rn-video-toggle-box {
+  border-color: var(--rn-color-stage-accent);
+  background: var(--rn-color-stage-accent);
+  color: var(--rn-color-stage-bg);
+}
+
+.rn-video-toggle[aria-pressed="true"] .rn-video-toggle-check {
+  visibility: visible;
+}
+
+html[data-color-mode="aaa-contrast"] .rn-stage-btn.rn-video-toggle[aria-pressed="true"] {
+  border-width: 2px;
+  background: var(--rn-color-stage-bg);
 }
 
 .rn-video-timeline {
