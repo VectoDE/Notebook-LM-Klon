@@ -1,7 +1,6 @@
 import {
   HealthResponseSchema,
   type ServiceStatus,
-  WORKSPACE_VERSION,
   createProblemDetails
 } from "@notebook-lm/shared";
 import { Hono } from "hono";
@@ -48,8 +47,7 @@ import { applySecurityHeaders } from "./security-headers.js";
 import { SessionManager } from "./session.js";
 import { registerSourcesUploadRoutes } from "./sources-upload.js";
 import { registerUrlImportRoutes } from "./url-importer.js";
-
-export const WORKER_VERSION = WORKSPACE_VERSION;
+import { WORKER_VERSION } from "./version.js";
 
 declare module "hono" {
   interface ContextVariableMap {

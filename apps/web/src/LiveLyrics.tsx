@@ -101,13 +101,13 @@ export function LiveLyrics({
               fontWeight: isActive ? 600 : 400,
               color: isActive ? "var(--rn-color-text-primary)" : "var(--rn-color-text-muted)",
               padding: "8px 12px",
-              borderRadius: "12px",
+              borderRadius: "var(--rn-radius-md)",
               background: isActive ? "rgba(255, 255, 255, 0.08)" : "transparent"
             }}
           >
             <div
               style={{
-                fontSize: "0.75rem",
+                fontSize: "0.875rem",
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 marginBottom: "4px",

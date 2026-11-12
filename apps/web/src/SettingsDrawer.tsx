@@ -99,7 +99,7 @@ export function SettingsDrawer({
             data-testid="close-settings-btn"
             style={{
               cursor: "pointer",
-              borderRadius: "8px",
+              borderRadius: "var(--rn-radius-sm)",
               border: "1px solid var(--rn-color-panel-border)",
               background: "transparent",
               color: "inherit",
@@ -126,7 +126,7 @@ export function SettingsDrawer({
                 className="rn-touch-target"
                 style={{
                   padding: "8px 12px",
-                  borderRadius: "12px",
+                  borderRadius: "var(--rn-radius-md)",
                   border:
                     theme === th
                       ? "2px solid var(--rn-color-accent)"
@@ -162,7 +162,7 @@ export function SettingsDrawer({
                 style={{
                   flex: 1,
                   padding: "8px 10px",
-                  borderRadius: "12px",
+                  borderRadius: "var(--rn-radius-md)",
                   border:
                     colorMode === cm
                       ? "2px solid var(--rn-color-accent)"
@@ -196,7 +196,7 @@ export function SettingsDrawer({
                 style={{
                   flex: 1,
                   padding: "8px 10px",
-                  borderRadius: "12px",
+                  borderRadius: "var(--rn-radius-md)",
                   border:
                     language === lang
                       ? "2px solid var(--rn-color-accent)"
@@ -227,7 +227,7 @@ export function SettingsDrawer({
             style={{
               width: "100%",
               padding: "10px",
-              borderRadius: "12px",
+              borderRadius: "var(--rn-radius-md)",
               border: "1px solid var(--rn-color-panel-border)",
               background: "var(--rn-color-canvas)",
               color: "inherit"
@@ -265,7 +265,7 @@ export function SettingsDrawer({
           style={{
             marginTop: "auto",
             padding: "16px",
-            borderRadius: "12px",
+            borderRadius: "var(--rn-radius-md)",
             background: "var(--rn-color-canvas)",
             border: "1px solid var(--rn-color-panel-border)",
             display: "flex",
@@ -278,14 +278,14 @@ export function SettingsDrawer({
           </h3>
           <p
             style={{
-              fontSize: "0.825rem",
+              fontSize: "0.875rem",
               margin: 0,
               color: "var(--rn-color-text-secondary)"
             }}
           >
             {t("aiActBadge")}
           </p>
-          <div style={{ fontSize: "0.825rem", color: "var(--rn-color-text-secondary)" }}>
+          <div style={{ fontSize: "0.875rem", color: "var(--rn-color-text-secondary)" }}>
             <strong>{t("gdprTitle")}: </strong>
             {t("gdprText")}
           </div>

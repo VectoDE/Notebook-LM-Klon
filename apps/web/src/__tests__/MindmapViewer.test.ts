@@ -2,7 +2,14 @@ import type { MindmapNode } from "@notebook-lm/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { MindmapViewer, computeMindmapLayout, flattenLayoutNodes } from "../MindmapViewer.js";
+import {
+  MindmapViewer,
+  NODE_FONT_SIZE,
+  TOGGLE_RADIUS,
+  computeMindmapLayout,
+  flattenLayoutNodes,
+  nodeWidthFor
+} from "../MindmapViewer.js";
 
 const sampleTree: MindmapNode = {
   id: "root",
@@ -82,5 +89,40 @@ describe("MindmapViewer Layout Engine & Component (Sub-Issue #122)", () => {
     expect(layout.layoutNode.children).toHaveLength(0);
     expect(layout.connections).toHaveLength(0);
     expect(layout.totalHeight).toBe(44);
+  });
+
+  it("schneidet die Wurzel-Beschriftung nicht ab (Knoten wächst mit dem Text)", () => {
+    const longRoot: MindmapNode = {
+      id: "r",
+      label: "Cloudflare Edge Stack mit Durable Objects und D1",
+      children: [{ id: "c", label: "Kind" }]
+    };
+    const layout = computeMindmapLayout(longRoot, new Set());
+    const root = layout.layoutNode;
+    // 14 px Inter: höchstens ~8,6 px je Zeichen; Rand links/rechts plus Platz für den Knopf
+    const needed = longRoot.label.length * 8.6 + 32 + 40;
+    expect(root.width).toBeGreaterThanOrEqual(needed);
+    // Kinder beginnen rechts vom breiteren Wurzelknoten, die Kante startet an dessen Rand
+    const child = root.children[0];
+    expect(child?.x).toBeGreaterThan(root.x + root.width);
+    expect(layout.connections[0]?.fromX).toBe(root.x + root.width);
+    // Kurze Beschriftungen behalten die Mindestbreite
+    expect(nodeWidthFor("Kind", false)).toBe(180);
+    expect(nodeWidthFor("x".repeat(30), true)).toBeGreaterThan(nodeWidthFor("x".repeat(30), false));
+  });
+
+  it("hat ausreichend große Bedienziele (24 px Knoten-Knopf, 44 px Hauptaktionen)", () => {
+    expect(TOGGLE_RADIUS * 2).toBeGreaterThanOrEqual(24);
+    expect(NODE_FONT_SIZE).toBeGreaterThanOrEqual(14);
+    const html = renderToStaticMarkup(createElement(MindmapViewer, { rootNode: sampleTree }));
+    expect(html).toContain('data-testid="mindmap-toolbar"');
+    expect(html).toMatch(/data-testid="mindmap-toolbar"[^>]*style="[^"]*gap:12px/);
+    // Reiter, Zoom und Zurücksetzen: jeweils mindestens 44 px hoch
+    const buttons = html.match(/<button[^>]*>/g) ?? [];
+    expect(buttons.length).toBeGreaterThanOrEqual(5);
+    for (const b of buttons) {
+      expect(b).toContain("min-height:44px");
+    }
+    expect(html).toContain(`r="${TOGGLE_RADIUS}"`);
   });
 });

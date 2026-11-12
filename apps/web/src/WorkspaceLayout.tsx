@@ -9,6 +9,7 @@ import {
 import { type FunctionComponent, useCallback, useEffect, useRef, useState } from "react";
 import { BrandLogo } from "./BrandLogo.js";
 import { type ChatMessage, ChatPanel } from "./ChatPanel.js";
+import { Icon, type IconName } from "./Icon.js";
 import { SettingsDrawer } from "./SettingsDrawer.js";
 import { SourcesPanel } from "./SourcesPanel.js";
 import { StudioPanel, type StudioTool } from "./StudioPanel.js";
@@ -184,6 +185,47 @@ export interface WorkspaceLayoutProps {
   readonly chatFetch?: typeof fetch | undefined;
 }
 
+/** Unter 600 px steht die Kopfzeile in zwei Zeilen; dort gelten Kurzbezeichnungen. */
+const NARROW_HEADER_QUERY = "(max-width: 599.98px)";
+
+/** Kurze, sprachneutrale Namen, damit die Auswahlfelder mobil nichts abschneiden. */
+const SHORT_THEME_LABELS: Record<DesignTheme, string> = {
+  pure: "Pure",
+  "immersive-cinema": "Cinema",
+  "editorial-calm": "Editorial",
+  fusion: "Fusion"
+};
+
+type PanelTab = "sources" | "chat" | "studio";
+
+/** Reiter der unteren Leiste: kurze sichtbare Namen, vollständige Namen für Screenreader. */
+const MOBILE_TABS: readonly {
+  readonly id: PanelTab;
+  readonly label: string;
+  readonly ariaLabel: string;
+  readonly icon: IconName;
+}[] = [
+  { id: "sources", label: "Quellen", ariaLabel: "Quellen", icon: "sources" },
+  { id: "chat", label: "Chat", ariaLabel: "Chat & Zitate", icon: "chat" },
+  { id: "studio", label: "Studio", ariaLabel: "Studio (6 Werkzeuge)", icon: "studio" }
+];
+
+/** Reagiert auf eine Media Query; ohne window (Server-Rendering) immer false. */
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(
+    () => typeof window !== "undefined" && Boolean(window.matchMedia?.(query).matches)
+  );
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mql = window.matchMedia(query);
+    const update = () => setMatches(mql.matches);
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, [query]);
+  return matches;
+}
+
 export function WorkspaceLayout({
   initialTool = "overview",
   initialPanelTab = "chat",
@@ -191,11 +233,10 @@ export function WorkspaceLayout({
   chatFetch
 }: WorkspaceLayoutProps) {
   const { theme, setTheme, colorMode, setColorMode, t } = useTheme();
+  const isNarrowHeader = useMediaQuery(NARROW_HEADER_QUERY);
 
   // Panels & Navigation state
-  const [activeMobileTab, setActiveMobileTab] = useState<"sources" | "chat" | "studio">(
-    initialPanelTab
-  );
+  const [activeMobileTab, setActiveMobileTab] = useState<PanelTab>(initialPanelTab);
   const [sources, setSources] = useState<WorkspaceSource[]>(DEFAULT_SOURCES);
   const [activeCitation, setActiveCitation] = useState<CitationLocation | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -339,143 +380,104 @@ export function WorkspaceLayout({
   };
 
   return (
-    <div
-      className="workspace-shell"
-      data-testid="workspace-shell"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100dvh",
-        width: "100%",
-        overflow: "hidden",
-        background: "var(--rn-color-canvas)",
-        color: "var(--rn-color-text-primary)"
-      }}
-    >
-      {/* Workspace Header */}
-      <header
-        data-testid="workspace-header"
-        className="workspace-header"
-        style={{
-          minHeight: "56px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "12px",
-          padding: "8px 16px",
-          borderBottom: "1px solid var(--rn-color-panel-border)",
-          background: "var(--rn-color-panel)"
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <h1 id="app-title" style={{ margin: 0, lineHeight: 0 }}>
+    <div className="workspace-shell" data-testid="workspace-shell">
+      {/* Workspace Header: ein Bedienelement-System (gleiche Höhe, Schrift, Radius, Rand) */}
+      <header data-testid="workspace-header" className="workspace-header">
+        <div className="workspace-brand">
+          <h1 id="app-title" className="workspace-title">
             <BrandLogo height={32} />
           </h1>
-          <span
-            className="workspace-version"
-            style={{
-              fontSize: "0.875rem",
-              fontFamily: "var(--rn-font-mono)",
-              padding: "2px 6px",
-              borderRadius: "4px",
-              background: "var(--rn-color-surface-variant)",
-              color: "var(--rn-color-text-secondary)"
-            }}
-          >
-            v{WORKSPACE_VERSION}
-          </span>
+          <span className="workspace-version">v{WORKSPACE_VERSION}</span>
         </div>
 
-        {/* Center: Role Switcher */}
-        <div
-          className="workspace-role"
-          style={{ display: "flex", alignItems: "center", gap: "8px" }}
-        >
-          <label
-            htmlFor="role-select"
-            style={{ fontSize: "0.875rem", color: "var(--rn-color-text-secondary)" }}
-          >
-            Rolle:
-          </label>
-          <select
-            id="role-select"
-            value={userRole}
-            onChange={(e) => setUserRole(e.target.value as "owner" | "editor" | "viewer")}
-            data-testid="role-switcher-select"
-            className="rn-header-control"
-          >
-            <option value="owner">Inhaber (Owner)</option>
-            <option value="editor">Bearbeiter (Editor)</option>
-            <option value="viewer">Betrachter (Viewer)</option>
-          </select>
+        {/* Rolle: sichtbare Beschriftung im Feld, gemeinsame Grundlinie mit dem Wert */}
+        <div className="workspace-role">
+          <div className="rn-control">
+            <label htmlFor="role-select" className="rn-control-lead workspace-role-label">
+              Rolle
+            </label>
+            <select
+              id="role-select"
+              value={userRole}
+              onChange={(e) => setUserRole(e.target.value as "owner" | "editor" | "viewer")}
+              data-testid="role-switcher-select"
+              className="rn-control-input"
+            >
+              <option value="owner">{isNarrowHeader ? "Inhaber" : "Inhaber (Owner)"}</option>
+              <option value="editor">
+                {isNarrowHeader ? "Bearbeiter" : "Bearbeiter (Editor)"}
+              </option>
+              <option value="viewer">
+                {isNarrowHeader ? "Betrachter" : "Betrachter (Viewer)"}
+              </option>
+            </select>
+            <Icon name="chevron" size={16} className="rn-control-chevron" />
+          </div>
         </div>
 
-        {/* Right Header Actions: Theme & Settings */}
-        <div
-          className="workspace-actions"
-          style={{ display: "flex", alignItems: "center", gap: "8px" }}
-        >
-          {/* Design System Picker */}
-          <select
-            value={theme}
-            onChange={(e) => setTheme(e.target.value as DesignTheme)}
-            data-testid="theme-selector-header"
-            aria-label={t("themeLabel")}
-            className="rn-header-control"
-          >
-            <option value="pure">{t("themePure")}</option>
-            <option value="immersive-cinema">{t("themeCinema")}</option>
-            <option value="editorial-calm">{t("themeEditorial")}</option>
-            <option value="fusion">{t("themeFusion")}</option>
-          </select>
+        {/* Design, Farbschema, Einstellungen */}
+        <div className="workspace-actions">
+          <div className="rn-control">
+            <Icon name="palette" size={18} className="rn-control-lead rn-control-icon" />
+            <select
+              value={theme}
+              onChange={(e) => setTheme(e.target.value as DesignTheme)}
+              data-testid="theme-selector-header"
+              aria-label={t("themeLabel")}
+              className="rn-control-input"
+            >
+              <option value="pure">
+                {isNarrowHeader ? SHORT_THEME_LABELS.pure : t("themePure")}
+              </option>
+              <option value="immersive-cinema">
+                {isNarrowHeader ? SHORT_THEME_LABELS["immersive-cinema"] : t("themeCinema")}
+              </option>
+              <option value="editorial-calm">
+                {isNarrowHeader ? SHORT_THEME_LABELS["editorial-calm"] : t("themeEditorial")}
+              </option>
+              <option value="fusion">
+                {isNarrowHeader ? SHORT_THEME_LABELS.fusion : t("themeFusion")}
+              </option>
+            </select>
+            <Icon name="chevron" size={16} className="rn-control-chevron" />
+          </div>
 
           {/* Farbschema: Hell, Dunkel, AAA-Hochkontrast */}
-          <select
-            value={colorMode}
-            onChange={(e) => setColorMode(e.target.value as ColorMode)}
-            data-testid="color-mode-selector-header"
-            aria-label={t("colorModeLabel")}
-            className="rn-header-control"
-          >
-            <option value="light">{t("modeLight")}</option>
-            <option value="dark">{t("modeDark")}</option>
-            <option value="aaa-contrast">{t("modeAAA")}</option>
-          </select>
+          <div className="rn-control">
+            <Icon name="contrast" size={18} className="rn-control-lead rn-control-icon" />
+            <select
+              value={colorMode}
+              onChange={(e) => setColorMode(e.target.value as ColorMode)}
+              data-testid="color-mode-selector-header"
+              aria-label={t("colorModeLabel")}
+              className="rn-control-input"
+            >
+              <option value="light">{t("modeLight")}</option>
+              <option value="dark">{t("modeDark")}</option>
+              <option value="aaa-contrast">{isNarrowHeader ? "AAA" : t("modeAAA")}</option>
+            </select>
+            <Icon name="chevron" size={16} className="rn-control-chevron" />
+          </div>
 
           <button
             type="button"
             onClick={() => setIsSettingsOpen(true)}
             data-testid="btn-open-settings"
             aria-label="Einstellungen & Compliance öffnen"
-            className="rn-header-control"
-            style={{ fontWeight: 600 }}
+            className="rn-control rn-control--button workspace-settings-button"
           >
-            Einstellungen
+            <Icon name="settings" size={18} />
+            {!isNarrowHeader && <span>Einstellungen</span>}
           </button>
         </div>
       </header>
 
       {/* Main 3-Panel Workspace Container */}
-      <div
-        id="workspace-main"
-        data-testid="workspace-3panel-container"
-        style={{
-          flex: 1,
-          display: "flex",
-          position: "relative",
-          overflow: "hidden"
-        }}
-      >
+      <div id="workspace-main" data-testid="workspace-3panel-container" className="workspace-main">
         {/* Panel 1: Left Sources Panel */}
         <div
           data-testid="panel-left-wrapper"
           className={`workspace-panel panel-left ${activeMobileTab === "sources" ? "panel-active" : ""}`}
-          style={{
-            flex: "1 1 300px",
-            minWidth: "260px",
-            maxWidth: "380px",
-            height: "100%"
-          }}
         >
           <SourcesPanel
             sources={sources}
@@ -492,11 +494,6 @@ export function WorkspaceLayout({
         <div
           data-testid="panel-center-wrapper"
           className={`workspace-panel panel-center ${activeMobileTab === "chat" ? "panel-active" : ""}`}
-          style={{
-            flex: "2 1 450px",
-            height: "100%",
-            borderRight: "1px solid var(--rn-color-panel-border)"
-          }}
         >
           <ChatPanel
             notebookTitle="Cloudflare Edge Stack Architecture"
@@ -515,12 +512,6 @@ export function WorkspaceLayout({
         <div
           data-testid="panel-right-wrapper"
           className={`workspace-panel panel-right ${activeMobileTab === "studio" ? "panel-active" : ""}`}
-          style={{
-            flex: "1.5 1 340px",
-            minWidth: "300px",
-            maxWidth: "460px",
-            height: "100%"
-          }}
         >
           <StudioPanel
             notebookTitle="Cloudflare Edge Stack Architecture"
@@ -535,83 +526,33 @@ export function WorkspaceLayout({
         </div>
       </div>
 
-      {/* Mobile & Tablet Bottom Navigation Bar */}
+      {/* Untere Reiterleiste (unter 900 px): im Daumenbereich, Symbol und Kurzname */}
       <nav
         aria-label="Mobile Arbeitsbereich Navigation"
         data-testid="mobile-bottom-nav"
         className="mobile-bottom-nav"
-        style={{
-          display: "flex",
-          justifyContent: "space-around",
-          alignItems: "center",
-          height: "56px",
-          borderTop: "1px solid var(--rn-color-panel-border)",
-          background: "var(--rn-color-panel)",
-          zIndex: 20
-        }}
       >
-        <button
-          type="button"
-          onClick={() => setActiveMobileTab("sources")}
-          aria-current={activeMobileTab === "sources" ? "page" : undefined}
-          data-testid="tab-btn-sources"
-          style={{
-            flex: 1,
-            height: "100%",
-            border: "none",
-            background: "transparent",
-            fontWeight: activeMobileTab === "sources" ? 700 : 400,
-            color:
-              activeMobileTab === "sources"
-                ? "var(--rn-color-primary)"
-                : "var(--rn-color-text-secondary)",
-            cursor: "pointer"
-          }}
-        >
-          Quellen ({sources.length})
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveMobileTab("chat")}
-          aria-current={activeMobileTab === "chat" ? "page" : undefined}
-          data-testid="tab-btn-chat"
-          style={{
-            flex: 1,
-            height: "100%",
-            border: "none",
-            background: "transparent",
-            fontWeight: activeMobileTab === "chat" ? 700 : 400,
-            color:
-              activeMobileTab === "chat"
-                ? "var(--rn-color-primary)"
-                : "var(--rn-color-text-secondary)",
-            cursor: "pointer"
-          }}
-        >
-          Chat & Zitate
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveMobileTab("studio")}
-          aria-current={activeMobileTab === "studio" ? "page" : undefined}
-          data-testid="tab-btn-studio"
-          style={{
-            flex: 1,
-            height: "100%",
-            border: "none",
-            background: "transparent",
-            fontWeight: activeMobileTab === "studio" ? 700 : 400,
-            color:
-              activeMobileTab === "studio"
-                ? "var(--rn-color-primary)"
-                : "var(--rn-color-text-secondary)",
-            cursor: "pointer"
-          }}
-        >
-          Studio (6 Tools)
-        </button>
+        {MOBILE_TABS.map((tab) => {
+          const isActive = activeMobileTab === tab.id;
+          const isSources = tab.id === "sources";
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveMobileTab(tab.id)}
+              aria-current={isActive ? "page" : undefined}
+              aria-label={isSources ? `Quellen (${sources.length})` : tab.ariaLabel}
+              data-testid={`tab-btn-${tab.id}`}
+              className="rn-tab"
+            >
+              <span className="rn-tab-indicator">
+                <Icon name={tab.icon} size={22} />
+                {isSources && <span className="rn-tab-count">{sources.length}</span>}
+              </span>
+              <span className="rn-tab-label">{tab.label}</span>
+            </button>
+          );
+        })}
       </nav>
 
       {/* Settings & Compliance Drawer Modal */}

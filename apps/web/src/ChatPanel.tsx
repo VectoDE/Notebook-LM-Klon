@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { Icon } from "./Icon.js";
 import type { CitationLocation } from "./workspace-types.js";
 
 export interface ChatMessage {
@@ -51,10 +52,16 @@ export function ChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll on mount and updates
+  // Mitscrollen erst bei neuen Inhalten, nicht beim Öffnen: so bleibt die Zusammenfassung
+  // oben sichtbar (vor allem auf dem Telefon)
+  // (Vergleich mit dem zuletzt gesehenen Stand, robust gegen doppelte Effekte im StrictMode)
+  const contentKey = `${messages.length}:${messages[messages.length - 1]?.content ?? ""}`;
+  const seenKey = useRef(contentKey);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth" });
-  });
+    if (seenKey.current === contentKey) return;
+    seenKey.current = contentKey;
+    messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+  }, [contentKey]);
 
   // Fokus zurueck ins Eingabefeld, sobald die Generierung endet (Tastaturbedienung)
   const wasGenerating = useRef(false);
@@ -155,27 +162,12 @@ export function ChatPanel({
             <button
               key={`${messageId}-pill-${part.num}`}
               type="button"
-              className="citation-pill"
+              className="citation-pill rn-cite"
               data-testid={`citation-pill-${part.num}`}
               aria-label={`Zitat ${part.num} in Quelle anzeigen`}
               onClick={() => onCitationClick?.(citation)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                verticalAlign: "baseline",
-                fontSize: "0.75rem",
-                fontWeight: 700,
-                color: "var(--rn-color-primary)",
-                background: "var(--rn-color-surface-variant)",
-                border: "1px solid var(--rn-color-primary)",
-                borderRadius: "12px",
-                padding: "1px 6px",
-                margin: "0 3px",
-                cursor: "pointer"
-              }}
             >
-              [{part.num}]
+              {part.num}
             </button>
           );
         })}
@@ -183,316 +175,145 @@ export function ChatPanel({
     );
   };
 
+  const canSend = inputText.trim().length > 0 && !isGenerating;
+
   return (
-    <section
-      aria-label="Wissens- und Chat-Panel"
-      className="chat-panel"
-      data-testid="chat-panel"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        position: "relative",
-        background: "var(--rn-color-canvas)",
-        color: "var(--rn-color-text-primary)"
-      }}
-    >
+    <section aria-label="Wissens- und Chat-Panel" className="chat-panel" data-testid="chat-panel">
       {/* Statusmeldungen fuer Screenreader (nicht pro Token, sondern pro Zustand) */}
       <output
         aria-live="polite"
         aria-atomic="true"
         data-testid="chat-status-live"
-        style={{
-          position: "absolute",
-          width: "1px",
-          height: "1px",
-          overflow: "hidden",
-          clip: "rect(0 0 0 0)",
-          whiteSpace: "nowrap"
-        }}
+        className="rn-visually-hidden"
       >
         {statusText}
       </output>
 
-      {/* Messages Scroll Area */}
-      <div
-        role="log"
-        aria-label="Chat-Verlauf"
-        aria-busy={isGenerating}
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "24px 20px 100px 20px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "16px"
-        }}
-      >
-        {/* Executive Summary Card */}
-        {notebookSummary && (
-          <article
-            aria-label="Executive Notebook Summary"
-            data-testid="executive-summary-card"
-            style={{
-              padding: "16px 20px",
-              borderRadius: "16px",
-              background: "var(--rn-color-panel)",
-              border: "1px solid var(--rn-color-border)",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)"
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "8px"
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "0.8rem",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  color: "var(--rn-color-primary)"
-                }}
-              >
-                Executive Summary
-              </span>
-              <span style={{ fontSize: "0.8rem", color: "var(--rn-color-text-secondary)" }}>
-                • {notebookTitle}
-              </span>
-            </div>
-            <p
-              style={{
-                margin: 0,
-                fontSize: "0.95rem",
-                lineHeight: 1.6,
-                color: "var(--rn-color-text-primary)"
-              }}
-            >
-              {notebookSummary}
-            </p>
-          </article>
-        )}
-
-        {/* Prompt Chips */}
-        {promptChips.length > 0 && (
-          <div
-            aria-label="Vorschlags-Fragen"
-            data-testid="prompt-chips-container"
-            style={{ display: "flex", flexWrap: "wrap", gap: "8px", margin: "8px 0" }}
-          >
-            {promptChips.map((chip) => (
-              <button
-                key={`chip-${chip}`}
-                type="button"
-                onClick={() => handleChipClick(chip)}
-                data-testid={`prompt-chip-${chip}`}
-                style={{
-                  minHeight: "36px",
-                  padding: "6px 14px",
-                  borderRadius: "20px",
-                  background: "var(--rn-color-panel)",
-                  border: "1px solid var(--rn-color-border)",
-                  color: "var(--rn-color-text-primary)",
-                  fontSize: "0.85rem",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  transition: "background 150ms ease"
-                }}
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Chat History */}
-        {messages.map((msg) => {
-          const isUser = msg.role === "user";
-
-          return (
+      {/* Verlauf */}
+      <div role="log" aria-label="Chat-Verlauf" aria-busy={isGenerating} className="chat-log">
+        <div className="chat-column">
+          {/* Zusammenfassung des Notebooks */}
+          {notebookSummary && (
             <article
-              key={msg.id}
-              data-testid={`chat-message-${msg.id}`}
-              style={{
-                alignSelf: isUser ? "flex-end" : "flex-start",
-                maxWidth: "85%",
-                borderRadius: "18px",
-                padding: "14px 18px",
-                background: isUser ? "var(--rn-color-accent)" : "var(--rn-color-panel)",
-                color: isUser ? "var(--rn-color-accent-text)" : "var(--rn-color-text-primary)",
-                border: isUser ? "none" : "1px solid var(--rn-color-border)",
-                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.04)"
-              }}
+              aria-label="Executive Notebook Summary"
+              data-testid="executive-summary-card"
+              className="rn-summary"
             >
-              <div
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  marginBottom: "4px",
-                  color: isUser ? "var(--rn-color-accent-text)" : "var(--rn-color-text-secondary)",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center"
-                }}
-              >
-                <span>{isUser ? "Sie" : "RelationNotes Assistent"}</span>
-                {!isUser && (
-                  <button
-                    type="button"
-                    onClick={() => handleReadAloud(msg.content)}
-                    data-testid={`btn-read-aloud-${msg.id}`}
-                    aria-label="Antwort vorlesen"
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: "0.75rem",
-                      color: "var(--rn-color-primary)",
-                      fontWeight: 600,
-                      padding: "2px 6px"
-                    }}
-                  >
-                    Vorlesen
-                  </button>
-                )}
-              </div>
+              <p className="rn-eyebrow">Executive Summary</p>
+              <h2 className="rn-summary-title">{notebookTitle}</h2>
+              <p className="rn-summary-text">{notebookSummary}</p>
+            </article>
+          )}
 
-              <div
-                data-testid={`message-content-${msg.id}`}
-                style={{ fontSize: "0.95rem", lineHeight: 1.6 }}
-              >
-                {msg.isStreaming && msg.content.length === 0
-                  ? "Antwort wird erstellt …"
-                  : renderMessageContent(msg.id, msg.content, msg.citations)}
-              </div>
-
-              {msg.error && (
-                <div
-                  role="alert"
-                  data-testid={`chat-error-${msg.id}`}
-                  style={{
-                    marginTop: "8px",
-                    padding: "8px 12px",
-                    borderRadius: "8px",
-                    background: "var(--rn-color-error-surface)",
-                    color: "var(--rn-color-error)",
-                    border: "1px solid var(--rn-color-error)",
-                    fontSize: "0.85rem"
-                  }}
+          {/* Vorschlagsfragen */}
+          {promptChips.length > 0 && (
+            <div
+              aria-label="Vorschlags-Fragen"
+              data-testid="prompt-chips-container"
+              className="rn-chips"
+            >
+              {promptChips.map((chip) => (
+                <button
+                  key={`chip-${chip}`}
+                  type="button"
+                  onClick={() => handleChipClick(chip)}
+                  data-testid={`prompt-chip-${chip}`}
+                  className="rn-chip"
                 >
-                  {msg.error}
-                  {onRetry && (
-                    <button
-                      type="button"
-                      onClick={onRetry}
-                      disabled={isGenerating}
-                      data-testid="btn-retry-chat"
-                      style={{
-                        marginLeft: "12px",
-                        minHeight: "32px",
-                        padding: "2px 10px",
-                        borderRadius: "6px",
-                        border: "1px solid var(--rn-color-error)",
-                        background: "transparent",
-                        color: "var(--rn-color-error)",
-                        cursor: "pointer",
-                        fontWeight: 600
-                      }}
-                    >
-                      Erneut versuchen
-                    </button>
+                  {chip}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Nachrichten */}
+          {messages.map((msg) => {
+            const isUser = msg.role === "user";
+
+            return (
+              <article
+                key={msg.id}
+                data-testid={`chat-message-${msg.id}`}
+                className={`rn-msg ${isUser ? "rn-msg--user" : "rn-msg--assistant"}`}
+              >
+                <div className="rn-msg-meta">
+                  {isUser ? (
+                    <span className="rn-msg-author">Sie</span>
+                  ) : (
+                    <>
+                      <span className="rn-msg-author">
+                        <span className="rn-avatar" aria-hidden="true" />
+                        RelationNotes Assistent
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleReadAloud(msg.content)}
+                        data-testid={`btn-read-aloud-${msg.id}`}
+                        aria-label="Antwort vorlesen"
+                        className="rn-btn rn-btn--ghost rn-btn--compact"
+                      >
+                        <Icon name="speaker" size={18} />
+                        Vorlesen
+                      </button>
+                    </>
                   )}
                 </div>
-              )}
 
-              {msg.aborted && (
-                <div
-                  data-testid={`chat-aborted-${msg.id}`}
-                  style={{
-                    marginTop: "8px",
-                    fontSize: "0.8rem",
-                    color: "var(--rn-color-text-secondary)"
-                  }}
-                >
-                  Generierung abgebrochen.
+                <div data-testid={`message-content-${msg.id}`} className="rn-msg-body">
+                  {msg.isStreaming && msg.content.length === 0
+                    ? "Antwort wird erstellt …"
+                    : renderMessageContent(msg.id, msg.content, msg.citations)}
+                  {msg.isStreaming && (
+                    <span
+                      aria-live="polite"
+                      aria-atomic="false"
+                      data-testid="streaming-indicator"
+                      className="rn-caret"
+                    />
+                  )}
                 </div>
-              )}
 
-              {!isUser && msg.modelUsed && !msg.isStreaming && (
-                <div
-                  data-testid={`ai-label-${msg.id}`}
-                  style={{
-                    marginTop: "8px",
-                    fontSize: "0.75rem",
-                    color: "var(--rn-color-text-secondary)"
-                  }}
-                >
-                  KI-generiert · {msg.modelUsed}
-                </div>
-              )}
+                {msg.error && (
+                  <div role="alert" data-testid={`chat-error-${msg.id}`} className="rn-msg-error">
+                    <span>{msg.error}</span>
+                    {onRetry && (
+                      <button
+                        type="button"
+                        onClick={onRetry}
+                        disabled={isGenerating}
+                        data-testid="btn-retry-chat"
+                        className="rn-btn rn-btn--danger rn-btn--compact"
+                      >
+                        Erneut versuchen
+                      </button>
+                    )}
+                  </div>
+                )}
 
-              {msg.isStreaming && (
-                <div
-                  aria-live="polite"
-                  aria-atomic="false"
-                  data-testid="streaming-indicator"
-                  style={{
-                    display: "inline-block",
-                    width: "8px",
-                    height: "14px",
-                    marginLeft: "4px",
-                    background: "var(--rn-color-accent)",
-                    verticalAlign: "middle"
-                  }}
-                />
-              )}
-            </article>
-          );
-        })}
+                {msg.aborted && (
+                  <p data-testid={`chat-aborted-${msg.id}`} className="rn-msg-note">
+                    Generierung abgebrochen.
+                  </p>
+                )}
 
-        <div ref={messagesEndRef} />
+                {!isUser && msg.modelUsed && !msg.isStreaming && (
+                  <p data-testid={`ai-label-${msg.id}`} className="rn-msg-note">
+                    KI-generiert · {msg.modelUsed}
+                  </p>
+                )}
+              </article>
+            );
+          })}
+
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      {/* Floating Pill Input Bar */}
-      <footer
-        style={{
-          position: "absolute",
-          bottom: "16px",
-          left: "20px",
-          right: "20px",
-          zIndex: 10
-        }}
-      >
-        <form
-          onSubmit={handleSubmit}
-          data-testid="floating-pill-input-bar"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            background: "var(--rn-color-panel)",
-            borderRadius: "32px",
-            padding: "6px 8px 6px 18px",
-            border: "1px solid var(--rn-color-border)",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.08)"
-          }}
-        >
-          {/* Active Model / Auto Router Badge */}
-          <span
-            data-testid="active-model-badge"
-            style={{
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              padding: "4px 8px",
-              borderRadius: "12px",
-              background: "var(--rn-color-surface-variant)",
-              color: "var(--rn-color-text-secondary)"
-            }}
-          >
+      {/* Eingabe: liegt unter dem Verlauf, verdeckt nichts */}
+      <footer className="chat-dock">
+        <form onSubmit={handleSubmit} data-testid="floating-pill-input-bar" className="rn-composer">
+          <span data-testid="active-model-badge" className="rn-model-badge">
+            <span className="rn-model-dot" aria-hidden="true" />
             {activeModel}
           </span>
 
@@ -504,20 +325,12 @@ export function ChatPanel({
             onKeyDown={(e) => {
               if (e.key === "Escape" && isGenerating) onStop?.();
             }}
-            placeholder="Frage zu den Quellen stellen oder Thema vertiefen..."
+            placeholder="Frage zu den Quellen stellen …"
             aria-label="Frage zu den Quellen eingeben"
             readOnly={isGenerating}
             aria-busy={isGenerating}
             data-testid="chat-input-field"
-            style={{
-              flex: 1,
-              border: "none",
-              outline: "none",
-              background: "transparent",
-              fontSize: "0.95rem",
-              color: "var(--rn-color-text-primary)",
-              minHeight: "44px"
-            }}
+            className="rn-composer-input"
           />
 
           {isGenerating && onStop ? (
@@ -526,43 +339,19 @@ export function ChatPanel({
               onClick={onStop}
               data-testid="btn-stop-chat"
               aria-label="Generierung stoppen"
-              style={{
-                minWidth: "44px",
-                minHeight: "44px",
-                borderRadius: "50%",
-                border: "none",
-                background: "var(--rn-color-error)",
-                color: "var(--rn-color-panel)",
-                cursor: "pointer",
-                fontWeight: 700,
-                fontSize: "1rem"
-              }}
+              className="rn-send rn-send--stop"
             >
-              ■
+              <Icon name="stop" />
             </button>
           ) : (
             <button
               type="submit"
-              disabled={!inputText.trim() || isGenerating}
+              disabled={!canSend}
               data-testid="btn-send-chat"
               aria-label="Frage absenden"
-              style={{
-                minWidth: "44px",
-                minHeight: "44px",
-                borderRadius: "50%",
-                border: "none",
-                background: "var(--rn-color-accent)",
-                color: "var(--rn-color-accent-text)",
-                cursor: inputText.trim() && !isGenerating ? "pointer" : "default",
-                opacity: inputText.trim() && !isGenerating ? 1 : 0.4,
-                fontWeight: 700,
-                fontSize: "1.1rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
+              className="rn-send"
             >
-              ➤
+              <Icon name="send" />
             </button>
           )}
         </form>

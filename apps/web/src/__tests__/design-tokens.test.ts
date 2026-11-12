@@ -6,13 +6,17 @@ import {
   CONTRAST_RULES,
   DESIGN_TOKENS,
   MIN_RATIO,
+  MIXED_SURFACES,
+  SCALE,
   THEMES,
   TOKEN_CSS_NAMES,
   TYPOGRAPHY,
   auditContrast,
+  auditMixedSurfaces,
   buildThemeCss,
   colorSchemeFor,
   contrastRatio,
+  mixSrgb,
   parseHex,
   relativeLuminance,
   tokensToCssDeclarations
@@ -57,16 +61,44 @@ describe("Design-Tokens: Vollständigkeit", () => {
     }
   });
 
-  it("nutzt #2563EB nie als Text- oder Buttonfarbe im hellen Modus", () => {
+  it("Editorial Calm nutzt Everlast-Blau: #2563EB nur als Fläche, Text #1E40AF", () => {
+    const light = DESIGN_TOKENS["editorial-calm"].light;
+    expect(light.brand).toBe("#2563EB");
+    expect(light.logoTile).toBe("#2563EB");
+    expect(light.primary).toBe("#1E40AF");
+    expect(light.accent).toBe("#1E40AF");
+    expect(light.focusRing).toBe("#1E40AF");
     for (const theme of THEMES) {
-      const light = DESIGN_TOKENS[theme].light;
-      expect(light.primary).not.toBe("#2563EB");
-      expect(light.accent).not.toBe("#2563EB");
-      expect(light.brand).toBe("#2563EB");
+      for (const mode of COLOR_MODES) {
+        const t = DESIGN_TOKENS[theme][mode];
+        // #2563EB erreicht auf Weiß nur 5,17:1 und ist daher nie Textfarbe
+        for (const key of ["textPrimary", "textSecondary", "textMuted", "primary"] as const) {
+          expect(t[key]).not.toBe("#2563EB");
+        }
+      }
     }
-    // Pure und Fusion: Text und Buttons #1E40AF (8,72:1)
-    expect(DESIGN_TOKENS.pure.light.primary).toBe("#1E40AF");
-    expect(DESIGN_TOKENS.fusion.light.accent).toBe("#1E40AF");
+  });
+
+  it("gibt jedem Design eine eigene Farbwelt (Zuordnung 2026-11-12)", () => {
+    for (const mode of COLOR_MODES) {
+      for (const key of ["primary", "brand", "logoTile"] as const) {
+        const values = THEMES.map((theme) => DESIGN_TOKENS[theme][mode][key]);
+        expect(new Set(values).size).toBe(THEMES.length);
+      }
+    }
+    // Fusion übernimmt nicht mehr die Palette von Pure
+    for (const mode of COLOR_MODES) {
+      expect(DESIGN_TOKENS.fusion[mode]).not.toEqual(DESIGN_TOKENS.pure[mode]);
+      expect(DESIGN_TOKENS.fusion[mode].canvas).not.toBe(DESIGN_TOKENS.pure[mode].canvas);
+    }
+    // Pure verwendet weder Everlast- noch Google-Blauwerte
+    const foreignBlues = ["#1A73E8", "#0B57D0", "#4285F4", "#1967D2", "#2563EB", "#1E40AF"];
+    for (const mode of COLOR_MODES) {
+      const values = Object.values(DESIGN_TOKENS.pure[mode]);
+      for (const blue of foreignBlues) {
+        expect(values).not.toContain(blue);
+      }
+    }
   });
 
   it("unterscheidet Hell und Dunkel je Design deutlich (Grundfläche)", () => {
@@ -78,11 +110,39 @@ describe("Design-Tokens: Vollständigkeit", () => {
     }
   });
 
-  it("weist jedem Design Schriften zu (Serif für Editorial und Fusion-Titel)", () => {
-    expect(TYPOGRAPHY["editorial-calm"].body).toContain("Source Serif 4");
-    expect(TYPOGRAPHY.fusion.headings).toContain("Source Serif 4");
-    expect(TYPOGRAPHY.pure.body).toContain("Inter");
-    expect(TYPOGRAPHY["immersive-cinema"].ui).toContain("Inter");
+  it("gibt jedem Design eine eigene Schrift (Zuordnung Design-Umbau)", () => {
+    expect(TYPOGRAPHY.pure.body).toMatch(/^"Inter Variable"/);
+    expect(TYPOGRAPHY["editorial-calm"].body).toMatch(/^"Source Serif 4 Variable"/);
+    expect(TYPOGRAPHY["editorial-calm"].headings).toMatch(/^"Source Serif 4 Variable"/);
+    expect(TYPOGRAPHY["immersive-cinema"].body).toMatch(/^"Space Grotesk Variable"/);
+    expect(TYPOGRAPHY.fusion.body).toMatch(/^"Geist Variable"/);
+    const primaries = THEMES.map((t) => TYPOGRAPHY[t].headings.split(",")[0]);
+    expect(new Set(primaries).size).toBe(THEMES.length);
+  });
+
+  it("legt Skala, Abstände (4-px-Raster), Radien und Bewegung je Design fest", () => {
+    for (const theme of THEMES) {
+      const c = SCALE[theme];
+      expect(c.textBase).toBeGreaterThanOrEqual(1);
+      expect(c.textSmall).toBeGreaterThanOrEqual(0.875);
+      expect(c.textH3).toBeGreaterThan(c.textBase);
+      expect(c.textH2).toBeGreaterThan(c.textH3);
+      for (const px of [c.gapWorkspace, c.padPanel, c.padHeaderY, c.padHeaderX]) {
+        expect(px % 4).toBe(0);
+      }
+      expect(c.radiusSm).toBeLessThanOrEqual(c.radiusMd);
+      expect(c.radiusMd).toBeLessThanOrEqual(c.radiusLg);
+      expect(c.enterMs).toBeLessThanOrEqual(700); // subtil bis mittel
+    }
+    // Die Designs unterscheiden sich wirklich (nicht nur Farbe)
+    const fingerprints = THEMES.map((t) => {
+      const c = SCALE[t];
+      return [c.textH2, c.radiusPanel, c.gapWorkspace, c.trackingHeading, c.ease].join("|");
+    });
+    expect(new Set(fingerprints).size).toBe(THEMES.length);
+    const css = buildThemeCss();
+    expect(css).toContain("--rn-radius-panel: 0px;");
+    expect(css).toContain("--rn-text-base: 1.0625rem;");
   });
 });
 
@@ -139,5 +199,37 @@ describe("themes.css ist synchron zu design-tokens.ts", () => {
 
   it("verwendet nur das Attribut data-design (nicht data-theme)", () => {
     expect(css).not.toContain("data-theme");
+  });
+});
+
+describe("Getönte Dekorflächen (workspace.css)", () => {
+  const workspaceCss = readFileSync(resolve(import.meta.dirname, "../workspace.css"), "utf8");
+
+  it("mischt wie CSS color-mix in sRGB", () => {
+    expect(mixSrgb("#000000", "#ffffff", 0.5)).toBe("#808080");
+    expect(mixSrgb("#ff0000", "#0000ff", 1)).toBe("#ff0000");
+    expect(mixSrgb("#ff0000", "#0000ff", 0)).toBe("#0000ff");
+  });
+
+  it("hält auf jeder Mischfläche Text 7:1 und Symbole 3:1 (Hell und Dunkel)", () => {
+    const results = auditMixedSurfaces();
+    expect(results.length).toBeGreaterThan(30);
+    const failures = results
+      .filter((r) => !r.passes)
+      .map((r) => `${r.theme}/${r.mode} ${r.surface} ${r.foreground}: ${r.ratio.toFixed(2)}`);
+    expect(failures).toEqual([]);
+    for (const r of results) expect(r.ratio).toBeGreaterThanOrEqual(MIN_RATIO[r.kind]);
+  });
+
+  it("prüft genau die Mischungen, die workspace.css verwendet", () => {
+    for (const surface of MIXED_SURFACES) {
+      const [a, b, share] = surface.mix;
+      if (a === b) {
+        expect(workspaceCss, surface.name).toContain(`var(${TOKEN_CSS_NAMES[a]})`);
+        continue;
+      }
+      const declaration = `color-mix(in srgb, var(${TOKEN_CSS_NAMES[a]}) ${Math.round(share * 100)}%, var(${TOKEN_CSS_NAMES[b]}))`;
+      expect(workspaceCss, surface.name).toContain(declaration);
+    }
   });
 });

@@ -5,9 +5,16 @@
  * Einzige Quelle für alle Farbwerte: themes.css spiegelt diese Tabelle 1:1
  * (per Test abgesichert), die Kontrast-Tests rechnen direkt mit diesen Werten.
  *
- * Grundregeln (Design-Richtungen 2026-11-11):
- * - Text, Links, Buttons und Fokus nutzen #1E40AF (8,72:1 auf Weiß) bzw. eine
- *   hellere AAA-Stufe auf dunklem Grund. #2563EB nur für Flächen und Grafik.
+ * Zuordnung (Inhaber, 2026-11-12), jedes Design hat eine eigene Farbwelt:
+ * - Pure: ruhige, helle Arbeitsfläche mit weichen Panels (Anmutung wie NotebookLM),
+ *   eigene Farbe Indigo/Lavendel, keine Google-Farbwerte.
+ * - Immersive Cinema: Nacht-Violett mit Fuchsia- und Cyan-Licht, eigene Bewegungssprache
+ *   (siehe themes.css, abgeschaltet bei prefers-reduced-motion).
+ * - Editorial Calm: Everlast/RelationFlow. Everlast-Blau #2563EB nur für Flächen und
+ *   Grafik, Text, Links und Buttons #1E40AF (8,72:1 auf Weiß), Slate-Neutraltöne.
+ * - Fusion: Petrol/Teal mit Bernstein, eigenständig (nicht die Palette von Pure).
+ *
+ * Grundregeln:
  * - Jede Textfarbe erreicht auf jeder Fläche, auf der sie stehen kann, mindestens 7:1
  *   (WCAG 2.2 SC 1.4.6, AAA). Rahmen, Fokus und Grafik mindestens 3:1 (SC 1.4.11).
  */
@@ -70,19 +77,324 @@ export interface TypographyTokens {
   readonly ui: string;
 }
 
-const SANS = '"Inter Variable", "Inter", system-ui, sans-serif';
+const INTER = '"Inter Variable", "Inter", system-ui, sans-serif';
 const SERIF = '"Source Serif 4 Variable", "Source Serif 4", Georgia, serif';
+const GROTESK =
+  '"Space Grotesk Variable", "Space Grotesk", "Inter Variable", system-ui, sans-serif';
+const GEIST = '"Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif';
 export const FONT_MONO = '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace';
 
+/**
+ * Eine eigene Schrift je Design (alle SIL OFL 1.1, selbst gehostet, Lizenzen unter
+ * public/fonts/LICENSES):
+ * - Pure: Inter, neutrale Klarheit für die Arbeitsfläche.
+ * - Editorial Calm: Source Serif 4 für Lesen und Überschriften, Inter nur für Bedienelemente.
+ * - Immersive Cinema: Space Grotesk, technisch-filmischer Charakter.
+ * - Fusion: Geist, präzise und energisch.
+ */
 export const TYPOGRAPHY: Record<DesignTheme, TypographyTokens> = {
-  pure: { body: SANS, headings: SANS, ui: SANS },
-  "immersive-cinema": { body: SANS, headings: SANS, ui: SANS },
-  "editorial-calm": { body: SERIF, headings: SERIF, ui: SANS },
-  fusion: { body: SANS, headings: SERIF, ui: SANS }
+  pure: { body: INTER, headings: INTER, ui: INTER },
+  "immersive-cinema": { body: GROTESK, headings: GROTESK, ui: GROTESK },
+  "editorial-calm": { body: SERIF, headings: SERIF, ui: INTER },
+  fusion: { body: GEIST, headings: GEIST, ui: GEIST }
+};
+
+/**
+ * Typografie-Skala, Abstände (4-px-Raster), Radien, Schatten und Bewegung je Design.
+ * Werte in px bzw. ms; Schriftgrößen in rem (1 rem = 16 px).
+ */
+export interface ScaleTokens {
+  /** Fließtext (mindestens 1 rem) */
+  readonly textBase: number;
+  /** Kleinste Schrift (mindestens 0,875 rem) */
+  readonly textSmall: number;
+  /** Paneltitel (h2) */
+  readonly textH2: number;
+  /** Kartentitel (h3) */
+  readonly textH3: number;
+  readonly lineBody: number;
+  readonly lineHeading: number;
+  /** Buchstabenabstand der Überschriften in em */
+  readonly trackingHeading: number;
+  readonly weightHeading: number;
+  /** Abstand zwischen und um die Panels (px, Vielfaches von 4) */
+  readonly gapWorkspace: number;
+  /** Innenabstand der Panels (px, Vielfaches von 4) */
+  readonly padPanel: number;
+  /** Innenabstand der Kopfzeile, vertikal / horizontal (px, Vielfaches von 4) */
+  readonly padHeaderY: number;
+  readonly padHeaderX: number;
+  readonly radiusSm: number;
+  readonly radiusMd: number;
+  readonly radiusLg: number;
+  readonly radiusPanel: number;
+  /** Dauer der Einblendung in ms und Weg in px */
+  readonly enterMs: number;
+  readonly enterDistance: number;
+  /** Dauer von Zustandswechseln (Hover, Farbe) in ms */
+  readonly transitionMs: number;
+  readonly ease: string;
+}
+
+export const SCALE: Record<DesignTheme, ScaleTokens> = {
+  pure: {
+    textBase: 1,
+    textSmall: 0.875,
+    textH2: 1.25,
+    textH3: 1.0625,
+    lineBody: 1.6,
+    lineHeading: 1.25,
+    trackingHeading: -0.012,
+    weightHeading: 600,
+    gapWorkspace: 12,
+    padPanel: 20,
+    padHeaderY: 12,
+    padHeaderX: 20,
+    radiusSm: 10,
+    radiusMd: 16,
+    radiusLg: 24,
+    radiusPanel: 28,
+    enterMs: 360,
+    enterDistance: 6,
+    transitionMs: 180,
+    ease: "cubic-bezier(0.25, 0.1, 0.25, 1)"
+  },
+  "immersive-cinema": {
+    textBase: 1,
+    textSmall: 0.875,
+    textH2: 1.375,
+    textH3: 1.125,
+    lineBody: 1.55,
+    lineHeading: 1.15,
+    trackingHeading: -0.025,
+    weightHeading: 600,
+    gapWorkspace: 12,
+    padPanel: 20,
+    padHeaderY: 12,
+    padHeaderX: 20,
+    radiusSm: 8,
+    radiusMd: 14,
+    radiusLg: 20,
+    radiusPanel: 20,
+    enterMs: 640,
+    enterDistance: 18,
+    transitionMs: 280,
+    ease: "cubic-bezier(0.16, 1, 0.3, 1)"
+  },
+  "editorial-calm": {
+    textBase: 1.0625,
+    textSmall: 0.875,
+    textH2: 1.5,
+    textH3: 1.1875,
+    lineBody: 1.7,
+    lineHeading: 1.2,
+    trackingHeading: -0.005,
+    weightHeading: 600,
+    gapWorkspace: 0,
+    padPanel: 28,
+    padHeaderY: 16,
+    padHeaderX: 28,
+    radiusSm: 4,
+    radiusMd: 6,
+    radiusLg: 8,
+    radiusPanel: 0,
+    enterMs: 480,
+    enterDistance: 0,
+    transitionMs: 240,
+    ease: "cubic-bezier(0.4, 0, 0.2, 1)"
+  },
+  fusion: {
+    textBase: 1,
+    textSmall: 0.875,
+    textH2: 1.5,
+    textH3: 1.125,
+    lineBody: 1.6,
+    lineHeading: 1.1,
+    trackingHeading: -0.03,
+    weightHeading: 700,
+    gapWorkspace: 8,
+    padPanel: 20,
+    padHeaderY: 12,
+    padHeaderX: 20,
+    radiusSm: 8,
+    radiusMd: 12,
+    radiusLg: 16,
+    radiusPanel: 18,
+    enterMs: 420,
+    enterDistance: 10,
+    transitionMs: 200,
+    ease: "cubic-bezier(0.2, 0.8, 0.2, 1)"
+  }
 };
 
 export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> = {
   pure: {
+    light: {
+      canvas: "#F7F7FC",
+      panel: "#FFFFFF",
+      surfaceVariant: "#EEEEF9",
+      border: "#5F5F7A",
+      divider: "#E3E3F0",
+      textPrimary: "#16162A",
+      textSecondary: "#3A3A55",
+      textMuted: "#3A3A55",
+      primary: "#3730A3",
+      accent: "#3730A3",
+      accentHover: "#312E81",
+      accentText: "#FFFFFF",
+      brand: "#6366F1",
+      focusRing: "#3730A3",
+      highlight: "#E0E7FF",
+      error: "#991B1B",
+      errorSurface: "#FEF2F2",
+      success: "#14532D",
+      successSurface: "#F0FDF4",
+      stageBg: "#16162A",
+      stageText: "#F7F7FC",
+      stageMuted: "#D4D4E8",
+      stageAccent: "#C7D2FE",
+      logoTile: "#4F46E5",
+      logoAccent: "#4F46E5"
+    },
+    dark: {
+      canvas: "#121220",
+      panel: "#1B1B2C",
+      surfaceVariant: "#26263A",
+      border: "#9A9AB8",
+      divider: "#303046",
+      textPrimary: "#F1F1FA",
+      textSecondary: "#D9D9EA",
+      textMuted: "#CACADF",
+      primary: "#C7D2FE",
+      accent: "#C7D2FE",
+      accentHover: "#E0E7FF",
+      accentText: "#121220",
+      brand: "#818CF8",
+      focusRing: "#C7D2FE",
+      highlight: "#312E81",
+      error: "#FECACA",
+      errorSurface: "#3B1219",
+      success: "#BBF7D0",
+      successSurface: "#0F2A1C",
+      stageBg: "#0B0B16",
+      stageText: "#F7F7FC",
+      stageMuted: "#CACADF",
+      stageAccent: "#C7D2FE",
+      logoTile: "#6366F1",
+      logoAccent: "#C7D2FE"
+    },
+    "aaa-contrast": {
+      canvas: "#FFFFFF",
+      panel: "#FFFFFF",
+      surfaceVariant: "#F1F1FA",
+      border: "#16162A",
+      divider: "#3A3A55",
+      textPrimary: "#000000",
+      textSecondary: "#16162A",
+      textMuted: "#22223A",
+      primary: "#312E81",
+      accent: "#312E81",
+      accentHover: "#000000",
+      accentText: "#FFFFFF",
+      brand: "#3730A3",
+      focusRing: "#000000",
+      highlight: "#FEF08A",
+      error: "#7F1D1D",
+      errorSurface: "#FFFFFF",
+      success: "#14532D",
+      successSurface: "#FFFFFF",
+      stageBg: "#000000",
+      stageText: "#FFFFFF",
+      stageMuted: "#F1F1FA",
+      stageAccent: "#C7D2FE",
+      logoTile: "#312E81",
+      logoAccent: "#312E81"
+    }
+  },
+  "immersive-cinema": {
+    light: {
+      canvas: "#EEEAF6",
+      panel: "#FFFFFF",
+      surfaceVariant: "#F5F2FA",
+      border: "#5E5670",
+      divider: "#DCD5E8",
+      textPrimary: "#140F24",
+      textSecondary: "#352D48",
+      textMuted: "#3F3754",
+      primary: "#701A75",
+      accent: "#701A75",
+      accentHover: "#4A044E",
+      accentText: "#FFFFFF",
+      brand: "#C026D3",
+      focusRing: "#701A75",
+      highlight: "#FAE8FF",
+      error: "#991B1B",
+      errorSurface: "#FEF2F2",
+      success: "#14532D",
+      successSurface: "#F0FDF4",
+      stageBg: "#0D0A1A",
+      stageText: "#F5F3FF",
+      stageMuted: "#D8D2E8",
+      stageAccent: "#67E8F9",
+      logoTile: "#A21CAF",
+      logoAccent: "#A21CAF"
+    },
+    dark: {
+      canvas: "#0A0814",
+      panel: "#151126",
+      surfaceVariant: "#1F1934",
+      border: "#A49CB8",
+      divider: "#2B2442",
+      textPrimary: "#F5F3FF",
+      textSecondary: "#DDD6F0",
+      textMuted: "#CFC7E4",
+      primary: "#F0ABFC",
+      accent: "#F0ABFC",
+      accentHover: "#FAE8FF",
+      accentText: "#0A0814",
+      brand: "#D946EF",
+      focusRing: "#67E8F9",
+      highlight: "#4A1D5C",
+      error: "#FCA5A5",
+      errorSurface: "#2A1020",
+      success: "#86EFAC",
+      successSurface: "#0C2420",
+      stageBg: "#05040B",
+      stageText: "#F5F3FF",
+      stageMuted: "#CFC7E4",
+      stageAccent: "#67E8F9",
+      logoTile: "#C026D3",
+      logoAccent: "#F0ABFC"
+    },
+    "aaa-contrast": {
+      canvas: "#05040B",
+      panel: "#0A0814",
+      surfaceVariant: "#151126",
+      border: "#E9E5F5",
+      divider: "#A49CB8",
+      textPrimary: "#FFFFFF",
+      textSecondary: "#F5F3FF",
+      textMuted: "#E9E5F5",
+      primary: "#A5F3FC",
+      accent: "#A5F3FC",
+      accentHover: "#FFFFFF",
+      accentText: "#05040B",
+      brand: "#E879F9",
+      focusRing: "#A5F3FC",
+      highlight: "#164E63",
+      error: "#FECACA",
+      errorSurface: "#0A0814",
+      success: "#BBF7D0",
+      successSurface: "#0A0814",
+      stageBg: "#000000",
+      stageText: "#FFFFFF",
+      stageMuted: "#F5F3FF",
+      stageAccent: "#A5F3FC",
+      logoTile: "#C026D3",
+      logoAccent: "#A5F3FC"
+    }
+  },
+  "editorial-calm": {
     light: {
       canvas: "#F8FAFC",
       panel: "#FFFFFF",
@@ -111,26 +423,26 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       logoAccent: "#2563EB"
     },
     dark: {
-      canvas: "#111318",
-      panel: "#1B1E25",
-      surfaceVariant: "#252932",
+      canvas: "#0B1220",
+      panel: "#131C2E",
+      surfaceVariant: "#1C2840",
       border: "#94A3B8",
-      divider: "#2F3540",
-      textPrimary: "#F1F5F9",
-      textSecondary: "#D7DEE8",
+      divider: "#273449",
+      textPrimary: "#F8FAFC",
+      textSecondary: "#E2E8F0",
       textMuted: "#CBD5E1",
       primary: "#BFDBFE",
-      accent: "#BFDBFE",
-      accentHover: "#DBEAFE",
-      accentText: "#111318",
+      accent: "#93C5FD",
+      accentHover: "#BFDBFE",
+      accentText: "#0B1220",
       brand: "#3B82F6",
-      focusRing: "#BFDBFE",
+      focusRing: "#93C5FD",
       highlight: "#1E3A8A",
       error: "#FECACA",
       errorSurface: "#3B1219",
       success: "#BBF7D0",
       successSurface: "#0F2A1C",
-      stageBg: "#0B0D12",
+      stageBg: "#050A16",
       stageText: "#F8FAFC",
       stageMuted: "#CBD5E1",
       stageAccent: "#93C5FD",
@@ -165,226 +477,60 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       logoAccent: "#1E3A8A"
     }
   },
-  "immersive-cinema": {
-    light: {
-      canvas: "#E8ECF6",
-      panel: "#FFFFFF",
-      surfaceVariant: "#F1F4FA",
-      border: "#5B6478",
-      divider: "#D5DBE8",
-      textPrimary: "#0B1020",
-      textSecondary: "#283044",
-      textMuted: "#3A4358",
-      primary: "#1E40AF",
-      accent: "#1E40AF",
-      accentHover: "#1E3A8A",
-      accentText: "#FFFFFF",
-      brand: "#2563EB",
-      focusRing: "#1E40AF",
-      highlight: "#DBEAFE",
-      error: "#991B1B",
-      errorSurface: "#FEF2F2",
-      success: "#14532D",
-      successSurface: "#F0FDF4",
-      stageBg: "#0B1020",
-      stageText: "#F1F5F9",
-      stageMuted: "#CBD5E1",
-      stageAccent: "#67E8F9",
-      logoTile: "#2563EB",
-      logoAccent: "#2563EB"
-    },
-    dark: {
-      canvas: "#0B1020",
-      panel: "#151B30",
-      surfaceVariant: "#1D2540",
-      border: "#94A3B8",
-      divider: "#28314F",
-      textPrimary: "#F1F5F9",
-      textSecondary: "#CBD5E1",
-      textMuted: "#CBD5E1",
-      primary: "#93C5FD",
-      accent: "#93C5FD",
-      accentHover: "#BFDBFE",
-      accentText: "#0B1020",
-      brand: "#3B82F6",
-      focusRing: "#67E8F9",
-      highlight: "#1E3A8A",
-      error: "#FCA5A5",
-      errorSurface: "#2A1020",
-      success: "#86EFAC",
-      successSurface: "#0C2420",
-      stageBg: "#05070F",
-      stageText: "#F1F5F9",
-      stageMuted: "#CBD5E1",
-      stageAccent: "#67E8F9",
-      logoTile: "#2563EB",
-      logoAccent: "#93C5FD"
-    },
-    "aaa-contrast": {
-      canvas: "#05070F",
-      panel: "#0B1020",
-      surfaceVariant: "#151B30",
-      border: "#E2E8F0",
-      divider: "#94A3B8",
-      textPrimary: "#FFFFFF",
-      textSecondary: "#F1F5F9",
-      textMuted: "#E2E8F0",
-      primary: "#A5F3FC",
-      accent: "#A5F3FC",
-      accentHover: "#FFFFFF",
-      accentText: "#05070F",
-      brand: "#60A5FA",
-      focusRing: "#A5F3FC",
-      highlight: "#164E63",
-      error: "#FECACA",
-      errorSurface: "#0B1020",
-      success: "#BBF7D0",
-      successSurface: "#0B1020",
-      stageBg: "#000000",
-      stageText: "#FFFFFF",
-      stageMuted: "#F1F5F9",
-      stageAccent: "#A5F3FC",
-      logoTile: "#2563EB",
-      logoAccent: "#A5F3FC"
-    }
-  },
-  "editorial-calm": {
-    light: {
-      canvas: "#FAF8F3",
-      panel: "#FFFDF8",
-      surfaceVariant: "#EFEBE0",
-      border: "#6B645D",
-      divider: "#DDD6C8",
-      textPrimary: "#1C1917",
-      textSecondary: "#44403C",
-      textMuted: "#44403C",
-      primary: "#1E3A8A",
-      accent: "#1E3A8A",
-      accentHover: "#172554",
-      accentText: "#FAF8F3",
-      brand: "#2563EB",
-      focusRing: "#1E3A8A",
-      highlight: "#FDE7C7",
-      error: "#7F1D1D",
-      errorSurface: "#FDF2F2",
-      success: "#14532D",
-      successSurface: "#F0F7EE",
-      stageBg: "#1C1917",
-      stageText: "#FAF8F3",
-      stageMuted: "#D6D3D1",
-      stageAccent: "#FDBA74",
-      logoTile: "#2563EB",
-      logoAccent: "#2563EB"
-    },
-    dark: {
-      canvas: "#1C1917",
-      panel: "#26221F",
-      surfaceVariant: "#312C28",
-      border: "#A8A29E",
-      divider: "#3D3732",
-      textPrimary: "#FAF8F3",
-      textSecondary: "#E7E5E4",
-      textMuted: "#D6D3D1",
-      primary: "#BFDBFE",
-      accent: "#BFDBFE",
-      accentHover: "#DBEAFE",
-      accentText: "#1C1917",
-      brand: "#3B82F6",
-      focusRing: "#FDBA74",
-      highlight: "#5B3A1A",
-      error: "#FECACA",
-      errorSurface: "#3A1A18",
-      success: "#BBF7D0",
-      successSurface: "#1A2A1C",
-      stageBg: "#0F0D0C",
-      stageText: "#FAF8F3",
-      stageMuted: "#D6D3D1",
-      stageAccent: "#FDBA74",
-      logoTile: "#2563EB",
-      logoAccent: "#93C5FD"
-    },
-    "aaa-contrast": {
-      canvas: "#FFFDF7",
-      panel: "#FFFFFF",
-      surfaceVariant: "#F5F0E6",
-      border: "#1C1917",
-      divider: "#44403C",
-      textPrimary: "#000000",
-      textSecondary: "#1C1917",
-      textMuted: "#292524",
-      primary: "#172554",
-      accent: "#172554",
-      accentHover: "#000000",
-      accentText: "#FFFFFF",
-      brand: "#1E40AF",
-      focusRing: "#000000",
-      highlight: "#FEF08A",
-      error: "#7F1D1D",
-      errorSurface: "#FFFFFF",
-      success: "#14532D",
-      successSurface: "#FFFFFF",
-      stageBg: "#000000",
-      stageText: "#FFFFFF",
-      stageMuted: "#F5F5F4",
-      stageAccent: "#FED7AA",
-      logoTile: "#172554",
-      logoAccent: "#172554"
-    }
-  },
   fusion: {
     light: {
-      canvas: "#F8FAFC",
+      canvas: "#F4F6F2",
       panel: "#FFFFFF",
-      surfaceVariant: "#F1F5F9",
-      border: "#64748B",
-      divider: "#E2E8F0",
-      textPrimary: "#0F172A",
-      textSecondary: "#334155",
-      textMuted: "#334155",
-      primary: "#1E40AF",
-      accent: "#1E40AF",
-      accentHover: "#1E3A8A",
+      surfaceVariant: "#EAEFE8",
+      border: "#59665F",
+      divider: "#D7DED6",
+      textPrimary: "#10201B",
+      textSecondary: "#2E3E38",
+      textMuted: "#34443E",
+      primary: "#134E4A",
+      accent: "#134E4A",
+      accentHover: "#042F2E",
       accentText: "#FFFFFF",
-      brand: "#2563EB",
-      focusRing: "#1E40AF",
-      highlight: "#FDE7C7",
+      brand: "#0D9488",
+      focusRing: "#134E4A",
+      highlight: "#FDE68A",
       error: "#991B1B",
       errorSurface: "#FEF2F2",
       success: "#14532D",
       successSurface: "#F0FDF4",
-      stageBg: "#0F172A",
-      stageText: "#F8FAFC",
-      stageMuted: "#CBD5E1",
-      stageAccent: "#7DD3FC",
-      logoTile: "#2563EB",
-      logoAccent: "#2563EB"
+      stageBg: "#0F1F1C",
+      stageText: "#F4F6F2",
+      stageMuted: "#CFDAD5",
+      stageAccent: "#FCD34D",
+      logoTile: "#0F766E",
+      logoAccent: "#B45309"
     },
     dark: {
-      canvas: "#0F172A",
-      panel: "#1E293B",
-      surfaceVariant: "#273449",
-      border: "#94A3B8",
-      divider: "#334155",
-      textPrimary: "#F8FAFC",
-      textSecondary: "#E2E8F0",
-      textMuted: "#CBD5E1",
-      primary: "#BAE6FD",
-      accent: "#7DD3FC",
-      accentHover: "#BAE6FD",
-      accentText: "#0F172A",
-      brand: "#3B82F6",
-      focusRing: "#7DD3FC",
-      highlight: "#7C2D12",
+      canvas: "#0C1513",
+      panel: "#14201D",
+      surfaceVariant: "#1C2B27",
+      border: "#93A8A0",
+      divider: "#26362F",
+      textPrimary: "#F1F5F2",
+      textSecondary: "#D6E0DB",
+      textMuted: "#C8D4CE",
+      primary: "#99F6E4",
+      accent: "#5EEAD4",
+      accentHover: "#99F6E4",
+      accentText: "#0C1513",
+      brand: "#14B8A6",
+      focusRing: "#FCD34D",
+      highlight: "#713F12",
       error: "#FECACA",
       errorSurface: "#3B1A24",
       success: "#BBF7D0",
       successSurface: "#13302A",
-      stageBg: "#020617",
-      stageText: "#F8FAFC",
-      stageMuted: "#CBD5E1",
-      stageAccent: "#7DD3FC",
-      logoTile: "#3B82F6",
-      logoAccent: "#7DD3FC"
+      stageBg: "#050B0A",
+      stageText: "#F1F5F2",
+      stageMuted: "#C8D4CE",
+      stageAccent: "#FCD34D",
+      logoTile: "#14B8A6",
+      logoAccent: "#FCD34D"
     },
     "aaa-contrast": {
       canvas: "#000000",
@@ -399,7 +545,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       accent: "#FDE047",
       accentHover: "#FFFFFF",
       accentText: "#000000",
-      brand: "#60A5FA",
+      brand: "#2DD4BF",
       focusRing: "#FDE047",
       highlight: "#713F12",
       error: "#FECACA",
@@ -410,7 +556,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       stageText: "#FFFFFF",
       stageMuted: "#F5F5F5",
       stageAccent: "#FDE047",
-      logoTile: "#2563EB",
+      logoTile: "#14B8A6",
       logoAccent: "#FDE047"
     }
   }
@@ -538,6 +684,137 @@ export function auditContrast(theme: DesignTheme, mode: ColorMode): ContrastResu
   );
 }
 
+/**
+ * Mischt zwei Farben wie CSS `color-mix(in srgb, a share%, b)`: lineare Mischung der
+ * sRGB-Kanäle, gerundet auf ganze Werte.
+ */
+export function mixSrgb(a: string, b: string, shareOfA: number): string {
+  const ca = parseHex(a);
+  const cb = parseHex(b);
+  const mixed = ca.map((v, i) => Math.round(v * shareOfA + (cb[i] as number) * (1 - shareOfA)));
+  return `#${mixed.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/**
+ * Getönte Flächen aus workspace.css (Kacheln, Kartenverläufe, Reitermarke). Jede Fläche
+ * ist eine Mischung aus zwei Tokens; darauf stehende Texte brauchen 7:1, Symbole 3:1.
+ * Gilt für Hell und Dunkel; im AAA-Modus sind diese Flächen abgeschaltet.
+ */
+export interface MixedSurface {
+  readonly theme: DesignTheme;
+  readonly name: string;
+  readonly mix: readonly [keyof ColorTokens, keyof ColorTokens, number];
+  readonly text: readonly (keyof ColorTokens)[];
+  readonly graphics: readonly (keyof ColorTokens)[];
+}
+
+export const MIXED_SURFACES: readonly MixedSurface[] = [
+  {
+    theme: "pure",
+    name: "Werkzeugkachel und Dateiart",
+    mix: ["brand", "panel", 0.12],
+    text: ["primary"],
+    graphics: ["primary"]
+  },
+  {
+    theme: "pure",
+    name: "Zusammenfassung, Verlaufsanfang",
+    mix: ["brand", "panel", 0.09],
+    text: ["textPrimary", "textSecondary", "primary"],
+    graphics: []
+  },
+  {
+    theme: "immersive-cinema",
+    name: "Karte und Zusammenfassung, Verlaufsanfang",
+    mix: ["brand", "panel", 0.07],
+    text: ["textPrimary", "textSecondary", "primary"],
+    graphics: ["accent"]
+  },
+  {
+    theme: "immersive-cinema",
+    name: "Kachel, Markenende",
+    mix: ["brand", "panel", 0.32],
+    text: ["textPrimary"],
+    graphics: ["textPrimary"]
+  },
+  {
+    theme: "immersive-cinema",
+    name: "Kachel, Akzentende",
+    mix: ["stageAccent", "panel", 0.22],
+    text: ["textPrimary"],
+    graphics: ["textPrimary"]
+  },
+  {
+    theme: "immersive-cinema",
+    name: "Reitermarke",
+    mix: ["brand", "panel", 0.22],
+    text: [],
+    graphics: ["primary"]
+  },
+  {
+    theme: "fusion",
+    name: "Werkzeugkachel, Markenende",
+    mix: ["brand", "brand", 1],
+    text: [],
+    graphics: ["stageBg"]
+  },
+  {
+    theme: "fusion",
+    name: "Werkzeugkachel, Akzentende",
+    mix: ["stageAccent", "stageAccent", 1],
+    text: [],
+    graphics: ["stageBg"]
+  },
+  {
+    theme: "fusion",
+    name: "Dateiart",
+    mix: ["stageAccent", "panel", 0.16],
+    text: ["primary"],
+    graphics: []
+  },
+  {
+    theme: "fusion",
+    name: "Reitermarke",
+    mix: ["stageAccent", "panel", 0.3],
+    text: [],
+    graphics: ["primary"]
+  }
+];
+
+export interface MixedSurfaceResult {
+  readonly theme: DesignTheme;
+  readonly mode: ColorMode;
+  readonly surface: string;
+  readonly foreground: keyof ColorTokens;
+  readonly kind: ContrastKind;
+  readonly ratio: number;
+  readonly passes: boolean;
+}
+
+/** Prüft alle getönten Flächen in Hell und Dunkel. */
+export function auditMixedSurfaces(): MixedSurfaceResult[] {
+  return MIXED_SURFACES.flatMap((surface) =>
+    (["light", "dark"] as const).flatMap((mode) => {
+      const tokens = DESIGN_TOKENS[surface.theme][mode];
+      const [a, b, share] = surface.mix;
+      const background = mixSrgb(tokens[a], tokens[b], share);
+      const check = (kind: ContrastKind) => (foreground: keyof ColorTokens) => {
+        const ratio = contrastRatio(tokens[foreground], background);
+        return {
+          theme: surface.theme,
+          mode,
+          surface: surface.name,
+          foreground,
+          kind,
+          ratio,
+          passes: ratio >= MIN_RATIO[kind]
+        };
+      };
+      return [...surface.text.map(check("text")), ...surface.graphics.map(check("ui"))];
+    })
+  );
+}
+
 /** CSS-Deklarationen (ohne Selektor) für eine Kombination, für themes.css und Tests. */
 export function tokensToCssDeclarations(theme: DesignTheme, mode: ColorMode): string[] {
   const tokens = DESIGN_TOKENS[theme][mode];
@@ -570,10 +847,30 @@ function modeDeclarations(theme: DesignTheme, mode: ColorMode): string[] {
 
 function typographyDeclarations(theme: DesignTheme): string[] {
   const t = TYPOGRAPHY[theme];
+  const c = SCALE[theme];
   return [
     `--rn-font-family-body: ${t.body};`,
     `--rn-font-family-headings: ${t.headings};`,
-    `--rn-font-family-ui: ${t.ui};`
+    `--rn-font-family-ui: ${t.ui};`,
+    `--rn-text-base: ${c.textBase}rem;`,
+    `--rn-text-small: ${c.textSmall}rem;`,
+    `--rn-text-h2: ${c.textH2}rem;`,
+    `--rn-text-h3: ${c.textH3}rem;`,
+    `--rn-line-body: ${c.lineBody};`,
+    `--rn-line-heading: ${c.lineHeading};`,
+    `--rn-tracking-heading: ${c.trackingHeading}em;`,
+    `--rn-weight-heading: ${c.weightHeading};`,
+    `--rn-gap-workspace: ${c.gapWorkspace}px;`,
+    `--rn-pad-panel: ${c.padPanel}px;`,
+    `--rn-pad-header: ${c.padHeaderY}px ${c.padHeaderX}px;`,
+    `--rn-radius-sm: ${c.radiusSm}px;`,
+    `--rn-radius-md: ${c.radiusMd}px;`,
+    `--rn-radius-lg: ${c.radiusLg}px;`,
+    `--rn-radius-panel: ${c.radiusPanel}px;`,
+    `--rn-enter-duration: ${c.enterMs}ms;`,
+    `--rn-enter-distance: ${c.enterDistance}px;`,
+    `--rn-transition-speed: ${c.transitionMs}ms;`,
+    `--rn-transition-ease: ${c.ease};`
   ];
 }
 

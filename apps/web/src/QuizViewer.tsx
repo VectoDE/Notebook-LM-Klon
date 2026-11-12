@@ -131,7 +131,7 @@ export function QuizViewer({
           style={{
             background: "var(--rn-color-surface-variant)",
             padding: "24px",
-            borderRadius: "12px",
+            borderRadius: "var(--rn-radius-md)",
             border: "1px solid var(--rn-color-border)",
             textAlign: "center"
           }}
@@ -160,7 +160,7 @@ export function QuizViewer({
                 background: "var(--rn-color-accent)",
                 color: "var(--rn-color-accent-text)",
                 border: "none",
-                borderRadius: "6px",
+                borderRadius: "var(--rn-radius-sm)",
                 fontWeight: "bold",
                 cursor: "pointer"
               }}
@@ -176,7 +176,7 @@ export function QuizViewer({
                 background: "var(--rn-color-surface-variant)",
                 color: "var(--rn-color-text-primary)",
                 border: "none",
-                borderRadius: "6px",
+                borderRadius: "var(--rn-radius-sm)",
                 cursor: "pointer"
               }}
             >
@@ -191,7 +191,7 @@ export function QuizViewer({
             style={{
               background: "var(--rn-color-panel)",
               border: "1px solid var(--rn-color-panel-border)",
-              borderRadius: "12px",
+              borderRadius: "var(--rn-radius-md)",
               padding: "20px"
             }}
           >
@@ -245,7 +245,7 @@ export function QuizViewer({
                         alignItems: "center",
                         padding: "12px 16px",
                         minHeight: "44px",
-                        borderRadius: "8px",
+                        borderRadius: "var(--rn-radius-sm)",
                         border: `2px solid ${optionBorder}`,
                         background: optionBg,
                         color: textColor,
@@ -277,7 +277,7 @@ export function QuizViewer({
                   marginTop: "16px",
                   padding: "14px",
                   background: "var(--rn-color-surface-variant)",
-                  borderRadius: "8px",
+                  borderRadius: "var(--rn-radius-sm)",
                   borderLeft: "4px solid var(--rn-color-brand)"
                 }}
               >
@@ -372,7 +372,7 @@ export function QuizViewer({
                     background: "var(--rn-color-success)",
                     color: "var(--rn-color-panel)",
                     border: "none",
-                    borderRadius: "6px",
+                    borderRadius: "var(--rn-radius-sm)",
                     fontWeight: "bold",
                     cursor: "pointer"
                   }}
