@@ -169,6 +169,31 @@ test.describe("Panelwechsel", () => {
   });
 });
 
+test.describe("Studio-Kopf", () => {
+  for (const width of [390, 1440]) {
+    test(`${width} px: Notebook-Titel steht in jeder Werkzeugansicht genau einmal`, async ({
+      page
+    }) => {
+      await page.setViewportSize({ width, height: 860 });
+      await page.goto("/");
+      for (const open of [
+        "btn-open-mindmap-tool",
+        "btn-open-quiz-tool",
+        "btn-open-flashcards-tool",
+        "btn-open-audio-tool"
+      ]) {
+        await openPanel(page, "studio");
+        await page.getByTestId(open).click();
+        const titles = page
+          .getByTestId("studio-panel")
+          .getByText("Cloudflare Edge Stack Architecture", { exact: true });
+        await expect(titles, open).toHaveCount(1);
+        await page.getByTestId("btn-back-to-studio-overview").click();
+      }
+    });
+  }
+});
+
 test.describe("Mindmap einpassen", () => {
   for (const width of [360, 390, 1440]) {
     test(`${width} px: Wurzel beim Öffnen und nach Reset vollständig sichtbar`, async ({
