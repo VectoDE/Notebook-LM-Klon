@@ -171,7 +171,9 @@ test.describe("Panelwechsel", () => {
 
 test.describe("Mindmap einpassen", () => {
   for (const width of [360, 390, 1440]) {
-    test(`${width} px: Wurzel beim Öffnen und nach Reset vollständig sichtbar`, async ({ page }) => {
+    test(`${width} px: Wurzel beim Öffnen und nach Reset vollständig sichtbar`, async ({
+      page
+    }) => {
       await page.setViewportSize({ width, height: 860 });
       await page.goto("/");
       await openPanel(page, "studio");
