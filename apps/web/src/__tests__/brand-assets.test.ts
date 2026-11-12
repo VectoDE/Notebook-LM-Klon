@@ -34,10 +34,7 @@ describe("Logo und Favicon", () => {
     "icon-512.png",
     "icon-maskable-512.png",
     "og-image.png"
-  ])(
-    "liefert public/%s",
-    (file) => {
-      expect(existsSync(resolve(webRoot, "public", file))).toBe(true);
-    }
-  );
+  ])("liefert public/%s", (file) => {
+    expect(existsSync(resolve(webRoot, "public", file))).toBe(true);
+  });
 });
