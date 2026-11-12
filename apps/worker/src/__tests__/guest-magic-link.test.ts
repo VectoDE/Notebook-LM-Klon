@@ -48,6 +48,38 @@ function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } 
   return { adapter, close: () => db.close() };
 }
 
+interface SiteverifyCall {
+  url: string;
+  secret: string | null;
+  response: string | null;
+}
+
+/** Siteverify mock that records the submitted form fields. */
+function createSiteverifyMock(success: boolean): { fetch: typeof fetch; calls: SiteverifyCall[] } {
+  const calls: SiteverifyCall[] = [];
+  const mock = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const form = init?.body as FormData;
+    calls.push({
+      url: String(input),
+      secret: form.get("secret") as string | null,
+      response: form.get("response") as string | null
+    });
+    const payload = success
+      ? { success: true }
+      : { success: false, "error-codes": ["invalid-input-response"] };
+    return new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { "content-type": "application/json" }
+    });
+  };
+  return { fetch: mock as unknown as typeof fetch, calls };
+}
+
+const passingTurnstile = (): { turnstileSecretKey: string; customFetch: typeof fetch } => ({
+  turnstileSecretKey: TURNSTILE_TEST_SECRET_ALWAYS_PASSES,
+  customFetch: createSiteverifyMock(true).fetch
+});
+
 describe("Turnstile Bot Verification Client (Sub-Issue #71)", () => {
   it("verifies tokens successfully with test secret key and handles all response metadata", async () => {
     const mockFetch = async () =>
@@ -288,6 +320,7 @@ describe("1-Click Guest Login & Magic-Link Endpoints (Sub-Issues #72 & #73)", ()
         mailAdapter: consoleMail,
         appBaseUrl: "https://relationnotes.example.com",
         isProduction: true,
+        turnstileSecretKey: TURNSTILE_TEST_SECRET_ALWAYS_PASSES,
         customFetch: mockTurnstileFetch as unknown as typeof fetch
       })
     );
@@ -326,7 +359,9 @@ describe("1-Click Guest Login & Magic-Link Endpoints (Sub-Issues #72 & #73)", ()
 
     // 2. Second guest login re-uses existing demo workspace
     const guest2Res = await app.request("https://api.example.com/api/v1/auth/guest", {
-      method: "POST"
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ turnstileToken: "token_def" })
     });
     expect(guest2Res.status).toBe(201);
     const guest2Data = (await guest2Res.json()) as {
@@ -353,6 +388,7 @@ describe("1-Click Guest Login & Magic-Link Endpoints (Sub-Issues #72 & #73)", ()
         mailAdapter: consoleMail,
         appBaseUrl: "https://relationnotes.example.com",
         isProduction: false,
+        turnstileSecretKey: TURNSTILE_TEST_SECRET_ALWAYS_FAILS,
         customFetch: mockTurnstileFail as unknown as typeof fetch
       })
     );
@@ -363,6 +399,7 @@ describe("1-Click Guest Login & Magic-Link Endpoints (Sub-Issues #72 & #73)", ()
       body: JSON.stringify({ turnstileToken: "failing_token" })
     });
     expect(failGuestRes.status).toBe(403);
+    expect(((await failGuestRes.json()) as { code: string }).code).toBe("BOT_VERIFICATION_FAILED");
 
     close();
   });
@@ -381,7 +418,8 @@ describe("1-Click Guest Login & Magic-Link Endpoints (Sub-Issues #72 & #73)", ()
         sessionManager,
         mailAdapter: consoleMail,
         appBaseUrl: "https://relationnotes.example.com",
-        isProduction: false
+        isProduction: false,
+        ...passingTurnstile()
       })
     );
 
@@ -416,6 +454,7 @@ describe("1-Click Guest Login & Magic-Link Endpoints (Sub-Issues #72 & #73)", ()
         mailAdapter: consoleMail,
         appBaseUrl: "https://relationnotes.example.com",
         isProduction: false,
+        turnstileSecretKey: TURNSTILE_TEST_SECRET_ALWAYS_FAILS,
         customFetch: mockTurnstileFail as unknown as typeof fetch
       })
     );
@@ -440,13 +479,14 @@ describe("1-Click Guest Login & Magic-Link Endpoints (Sub-Issues #72 & #73)", ()
         sessionManager,
         mailAdapter: failMailAdapter,
         appBaseUrl: "https://relationnotes.example.com",
-        isProduction: false
+        isProduction: false,
+        ...passingTurnstile()
       })
     );
     const mailErrRes = await failMailApp.request("https://api.example.com/api/v1/auth/magic-link", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email: "user@example.com" })
+      body: JSON.stringify({ email: "user@example.com", turnstileToken: "tok" })
     });
     expect(mailErrRes.status).toBe(500);
 
@@ -464,6 +504,7 @@ describe("1-Click Guest Login & Magic-Link Endpoints (Sub-Issues #72 & #73)", ()
         sessionManager,
         mailAdapter: consoleMail,
         appBaseUrl: "https://relationnotes.example.com",
+        turnstileSecretKey: TURNSTILE_TEST_SECRET_ALWAYS_PASSES,
         customFetch: passTurnstileFetch as unknown as typeof fetch
       })
     );
@@ -520,7 +561,7 @@ describe("1-Click Guest Login & Magic-Link Endpoints (Sub-Issues #72 & #73)", ()
     const secondSendRes = await app.request("https://api.example.com/api/v1/auth/magic-link", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email: "bernd@example.com" })
+      body: JSON.stringify({ email: "bernd@example.com", turnstileToken: "tok" })
     });
     expect(secondSendRes.status).toBe(200);
     const secondSentText = consoleMail.lastSentEmail?.text ?? "";
@@ -552,18 +593,181 @@ describe("1-Click Guest Login & Magic-Link Endpoints (Sub-Issues #72 & #73)", ()
         sessionManager,
         mailAdapter: capturingMail as unknown as ConsoleMailAdapter,
         appBaseUrl: "https://relationnotes.example.com//",
-        isProduction: false
+        isProduction: false,
+        ...passingTurnstile()
       })
     );
     const res = await app.request("https://api.example.com/api/v1/auth/magic-link", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email: "slash@example.com" })
+      body: JSON.stringify({ email: "slash@example.com", turnstileToken: "tok" })
     });
     expect(res.status).toBe(200);
     expect(sent[0]).toContain(
       "https://relationnotes.example.com/api/v1/auth/magic-link/callback?token="
     );
+    close();
+  });
+});
+
+describe("Turnstile fail-closed on guest login and magic-link (Issue #233)", () => {
+  type Opts = Parameters<typeof createGuestAndMagicLinkRoutes>[0];
+  const PROD_LIKE_SECRET = "0x4AAAAAAA-production-like-secret";
+
+  function buildApp(extra: Partial<Opts>): {
+    app: Hono<{ Bindings: Env }>;
+    repo: CoreRepository;
+    mail: ConsoleMailAdapter;
+    close: () => void;
+  } {
+    const { adapter, close } = createSqliteAdapter();
+    const repo = new CoreRepository(adapter);
+    const mail = new ConsoleMailAdapter();
+    const app = new Hono<{ Bindings: Env }>();
+    app.route(
+      "/api/v1/auth",
+      createGuestAndMagicLinkRoutes({
+        repo,
+        sessionManager: new SessionManager({ repo, saltSecret: "fail-closed-salt" }),
+        mailAdapter: mail,
+        appBaseUrl: "https://relationnotes.example.com",
+        isProduction: false,
+        ...extra
+      })
+    );
+    return { app, repo, mail, close };
+  }
+
+  const post = (app: Hono<{ Bindings: Env }>, path: string, body: unknown) =>
+    app.request(`https://api.example.com/api/v1/auth/${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "198.51.100.4" },
+      body: JSON.stringify(body)
+    });
+
+  async function codeOf(res: Response): Promise<string> {
+    return ((await res.json()) as { code: string }).code;
+  }
+
+  async function countUsers(repo: CoreRepository): Promise<number> {
+    const row = await repo.db.queryOne<{ n: number }>("SELECT COUNT(*) AS n FROM users");
+    return Number(row?.n ?? 0);
+  }
+
+  it.each([
+    ["undefined", undefined],
+    ["empty", ""],
+    ["whitespace", "   "]
+  ])(
+    "returns 503 on both routes when the secret is %s and never calls Siteverify",
+    async (_label, secret) => {
+      const siteverify = createSiteverifyMock(true);
+      const { app, repo, mail, close } = buildApp({
+        turnstileSecretKey: secret,
+        customFetch: siteverify.fetch
+      });
+
+      const guest = await post(app, "guest", { turnstileToken: "valid_token" });
+      expect(guest.status).toBe(503);
+      expect(guest.headers.get("content-type")).toContain("application/problem+json");
+      expect(await codeOf(guest)).toBe("TURNSTILE_NOT_CONFIGURED");
+
+      const magic = await post(app, "magic-link", {
+        email: "nosecret@example.com",
+        turnstileToken: "valid_token"
+      });
+      expect(magic.status).toBe(503);
+      expect(await codeOf(magic)).toBe("TURNSTILE_NOT_CONFIGURED");
+
+      expect(siteverify.calls).toHaveLength(0);
+      expect(await countUsers(repo)).toBe(0);
+      expect(mail.lastSentEmail).toBeUndefined();
+      close();
+    }
+  );
+
+  it.each([
+    ["missing", {}],
+    ["empty", { turnstileToken: "" }],
+    ["whitespace", { turnstileToken: "  " }],
+    ["non-string", { turnstileToken: 42 }]
+  ])("returns 403 on both routes when the token is %s", async (_label, tokenPart) => {
+    const siteverify = createSiteverifyMock(true);
+    const { app, repo, mail, close } = buildApp({
+      turnstileSecretKey: TURNSTILE_TEST_SECRET_ALWAYS_PASSES,
+      customFetch: siteverify.fetch
+    });
+
+    const guest = await post(app, "guest", { ...tokenPart });
+    expect(guest.status).toBe(403);
+    expect(await codeOf(guest)).toBe("BOT_VERIFICATION_REQUIRED");
+
+    const magic = await post(app, "magic-link", { email: "notoken@example.com", ...tokenPart });
+    expect(magic.status).toBe(403);
+    expect(await codeOf(magic)).toBe("BOT_VERIFICATION_REQUIRED");
+
+    expect(siteverify.calls).toHaveLength(0);
+    expect(await countUsers(repo)).toBe(0);
+    expect(mail.lastSentEmail).toBeUndefined();
+    close();
+  });
+
+  it("returns 403 for a guest request without any JSON body", async () => {
+    const { app, close } = buildApp(passingTurnstile());
+    const res = await app.request("https://api.example.com/api/v1/auth/guest", { method: "POST" });
+    expect(res.status).toBe(403);
+    expect(await codeOf(res)).toBe("BOT_VERIFICATION_REQUIRED");
+    close();
+  });
+
+  it("returns 403 when Siteverify rejects the token", async () => {
+    const siteverify = createSiteverifyMock(false);
+    const { app, repo, mail, close } = buildApp({
+      turnstileSecretKey: PROD_LIKE_SECRET,
+      customFetch: siteverify.fetch
+    });
+
+    const guest = await post(app, "guest", { turnstileToken: "forged" });
+    expect(guest.status).toBe(403);
+    expect(await codeOf(guest)).toBe("BOT_VERIFICATION_FAILED");
+
+    const magic = await post(app, "magic-link", {
+      email: "forged@example.com",
+      turnstileToken: "forged"
+    });
+    expect(magic.status).toBe(403);
+    expect(await codeOf(magic)).toBe("BOT_VERIFICATION_FAILED");
+
+    expect(siteverify.calls).toEqual([
+      { url: DEFAULT_TURNSTILE_SITEVERIFY_URL, secret: PROD_LIKE_SECRET, response: "forged" },
+      { url: DEFAULT_TURNSTILE_SITEVERIFY_URL, secret: PROD_LIKE_SECRET, response: "forged" }
+    ]);
+    expect(await countUsers(repo)).toBe(0);
+    expect(mail.lastSentEmail).toBeUndefined();
+    close();
+  });
+
+  it("accepts a valid token and sends the configured secret to Siteverify", async () => {
+    const siteverify = createSiteverifyMock(true);
+    const { app, mail, close } = buildApp({
+      turnstileSecretKey: PROD_LIKE_SECRET,
+      customFetch: siteverify.fetch
+    });
+
+    const guest = await post(app, "guest", { turnstileToken: "good_guest" });
+    expect(guest.status).toBe(201);
+
+    const magic = await post(app, "magic-link", {
+      email: "good@example.com",
+      turnstileToken: "good_magic"
+    });
+    expect(magic.status).toBe(200);
+    expect(mail.lastSentEmail?.to).toBe("good@example.com");
+
+    expect(siteverify.calls.map((call) => [call.secret, call.response])).toEqual([
+      [PROD_LIKE_SECRET, "good_guest"],
+      [PROD_LIKE_SECRET, "good_magic"]
+    ]);
     close();
   });
 });
