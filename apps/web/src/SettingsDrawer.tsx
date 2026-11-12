@@ -44,7 +44,17 @@ export function SettingsDrawer({
   onModelChange,
   returnFocusFallback
 }: SettingsDrawerProps) {
-  const { theme, colorMode, language, setTheme, setColorMode, setLanguage, t } = useTheme();
+  const {
+    theme,
+    colorMode,
+    language,
+    reduceMotion,
+    setTheme,
+    setColorMode,
+    setLanguage,
+    setReduceMotion,
+    t
+  } = useTheme();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   // Vor showModal(): Auslöser merken, nach dem Schließen dorthin zurück
@@ -105,6 +115,24 @@ export function SettingsDrawer({
               colorMode={colorMode}
               onColorModeChange={setColorMode}
             />
+            <fieldset className="rn-appearance-group rn-motion-setting">
+              <legend className="rn-appearance-label">{t("motionLabel")}</legend>
+              <label className="rn-check-row" htmlFor="settings-reduce-motion">
+                <input
+                  id="settings-reduce-motion"
+                  type="checkbox"
+                  checked={reduceMotion}
+                  onChange={(e) => setReduceMotion(e.target.checked)}
+                  aria-describedby="settings-reduce-motion-hint"
+                  data-testid="reduce-motion-toggle"
+                  className="rn-checkbox"
+                />
+                <span>{t("motionToggle")}</span>
+              </label>
+              <p id="settings-reduce-motion-hint" className="rn-setting-hint">
+                {t("motionHint")}
+              </p>
+            </fieldset>
           </section>
 
           <section className="rn-drawer-section" aria-labelledby="lang-section-title">

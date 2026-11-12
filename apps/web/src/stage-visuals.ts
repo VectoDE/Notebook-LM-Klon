@@ -49,6 +49,53 @@ export function rgba({ r, g, b }: Rgb, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+/** Höchste Helligkeit (HSL) des Orbs: blasse Akzente (z. B. Pure #c7d2fe) wirken sonst grau. */
+export const ORB_MAX_LIGHTNESS = 0.7;
+
+/**
+ * Hält Farbton und Sättigung, senkt aber die Helligkeit auf höchstens ORB_MAX_LIGHTNESS,
+ * damit der Orb auf der dunklen Bühne farbig statt grau erscheint (Issue #315).
+ */
+export function vividOrbColor(color: Rgb, maxLightness = ORB_MAX_LIGHTNESS): Rgb {
+  const r = color.r / 255;
+  const g = color.g / 255;
+  const b = color.b / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (l <= maxLightness) return color;
+  const d = max - min;
+  // Helle Farben (l > 0,5): Sättigung nach HSL
+  const sat = d === 0 ? 0 : d / (2 - max - min);
+  let hue = 0;
+  if (d !== 0) {
+    if (max === r) hue = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+    else if (max === g) hue = ((b - r) / d + 2) / 6;
+    else hue = ((r - g) / d + 4) / 6;
+  }
+  const q = maxLightness < 0.5 ? maxLightness * (1 + sat) : maxLightness + sat - maxLightness * sat;
+  const p = 2 * maxLightness - q;
+  const channel = (t0: number): number => {
+    const t = t0 < 0 ? t0 + 1 : t0 > 1 ? t0 - 1 : t0;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+  return {
+    r: Math.round(channel(hue + 1 / 3) * 255),
+    g: Math.round(channel(hue) * 255),
+    b: Math.round(channel(hue - 1 / 3) * 255)
+  };
+}
+
+/** Darstellung des Orbs: im Hochkontrast flach mit Rand, sonst als leuchtender Verlauf. */
+export type OrbStyle = "flat" | "glow";
+
+export function orbStyleFor(colorMode: string | null | undefined): OrbStyle {
+  return colorMode === "aaa-contrast" ? "flat" : "glow";
+}
+
 export interface OrbPalette {
   /** Kern, Mitte und auslaufender Rand des Hauptverlaufs. */
   readonly core: string;
@@ -58,6 +105,9 @@ export interface OrbPalette {
   readonly glow: string;
   readonly glowMid: string;
   readonly glowEdge: string;
+  /** Flache Darstellung (AAA): volle Füllung und 2-px-Rand in Bühnentextfarbe. */
+  readonly fill: string;
+  readonly outline: string;
 }
 
 /**
@@ -69,10 +119,13 @@ export function orbPalette(
   textToken: string,
   activeSpeaker: "hostA" | "hostB" | null
 ): OrbPalette {
-  const accent = parseHexColor(accentToken) ?? ORB_FALLBACK;
+  const raw = parseHexColor(accentToken) ?? ORB_FALLBACK;
+  const accent = vividOrbColor(raw);
   const text = parseHexColor(textToken) ?? { r: 255, g: 255, b: 255 };
   const strength = activeSpeaker === "hostB" ? 0.75 : 0.9;
   return {
+    fill: rgba(raw, activeSpeaker === "hostB" ? 0.8 : 1),
+    outline: rgba(text, 1),
     core: rgba(accent, strength),
     mid: rgba(accent, strength * 0.55),
     edge: rgba(accent, 0),

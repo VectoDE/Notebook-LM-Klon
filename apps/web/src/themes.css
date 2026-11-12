@@ -34,6 +34,10 @@
 
   --rn-font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
   --rn-transition-base: var(--rn-transition-speed) var(--rn-transition-ease);
+  /* Dauern für UI-Übergänge (Issue #315): höchstens 300 ms */
+  --rn-motion-fast: 160ms;
+  --rn-motion-medium: 220ms;
+  --rn-motion-slow: 300ms;
 
   --rn-focus-outline-width: 3px;
   --rn-focus-outline-offset: 2px;
@@ -119,6 +123,9 @@ html[data-color-mode="aaa-contrast"] {
   html[data-design] {
     --rn-transition-speed: 0ms;
     --rn-transition-base: 0ms linear;
+    --rn-motion-fast: 0ms;
+    --rn-motion-medium: 0ms;
+    --rn-motion-slow: 0ms;
   }
   *,
   *::before,
@@ -128,6 +135,25 @@ html[data-color-mode="aaa-contrast"] {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Schalter „Bewegung reduzieren“ (Issue #315): dieselben Regeln */
+html[data-reduce-motion="true"],
+html[data-reduce-motion="true"][data-design] {
+  --rn-transition-speed: 0ms;
+  --rn-transition-base: 0ms linear;
+  --rn-motion-fast: 0ms;
+  --rn-motion-medium: 0ms;
+  --rn-motion-slow: 0ms;
+}
+
+html[data-reduce-motion="true"] *,
+html[data-reduce-motion="true"] *::before,
+html[data-reduce-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
 }
 
 /* ==========================================================================
@@ -143,6 +169,7 @@ html[data-design="fusion"] {
   --rn-text-small: 0.875rem;
   --rn-text-h2: 1.5rem;
   --rn-text-h3: 1.125rem;
+  --rn-text-lead: 1.3125rem;
   --rn-line-body: 1.6;
   --rn-line-heading: 1.1;
   --rn-tracking-heading: -0.03em;
@@ -154,7 +181,7 @@ html[data-design="fusion"] {
   --rn-radius-md: 12px;
   --rn-radius-lg: 16px;
   --rn-radius-panel: 18px;
-  --rn-enter-duration: 420ms;
+  --rn-enter-duration: 260ms;
   --rn-enter-distance: 10px;
   --rn-transition-speed: 200ms;
   --rn-transition-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -259,6 +286,7 @@ html[data-design="pure"] {
   --rn-text-small: 0.875rem;
   --rn-text-h2: 1.25rem;
   --rn-text-h3: 1.0625rem;
+  --rn-text-lead: 1.125rem;
   --rn-line-body: 1.6;
   --rn-line-heading: 1.25;
   --rn-tracking-heading: -0.012em;
@@ -270,7 +298,7 @@ html[data-design="pure"] {
   --rn-radius-md: 16px;
   --rn-radius-lg: 24px;
   --rn-radius-panel: 28px;
-  --rn-enter-duration: 360ms;
+  --rn-enter-duration: 240ms;
   --rn-enter-distance: 6px;
   --rn-transition-speed: 180ms;
   --rn-transition-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -374,6 +402,7 @@ html[data-design="immersive-cinema"] {
   --rn-text-small: 0.875rem;
   --rn-text-h2: 1.375rem;
   --rn-text-h3: 1.125rem;
+  --rn-text-lead: 1.25rem;
   --rn-line-body: 1.55;
   --rn-line-heading: 1.15;
   --rn-tracking-heading: -0.025em;
@@ -385,7 +414,7 @@ html[data-design="immersive-cinema"] {
   --rn-radius-md: 14px;
   --rn-radius-lg: 20px;
   --rn-radius-panel: 20px;
-  --rn-enter-duration: 640ms;
+  --rn-enter-duration: 300ms;
   --rn-enter-distance: 18px;
   --rn-transition-speed: 280ms;
   --rn-transition-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -486,6 +515,7 @@ html[data-design="editorial-calm"] {
   --rn-text-small: 0.875rem;
   --rn-text-h2: 1.5rem;
   --rn-text-h3: 1.1875rem;
+  --rn-text-lead: 1.3125rem;
   --rn-line-body: 1.7;
   --rn-line-heading: 1.2;
   --rn-tracking-heading: -0.005em;
@@ -497,7 +527,7 @@ html[data-design="editorial-calm"] {
   --rn-radius-md: 6px;
   --rn-radius-lg: 8px;
   --rn-radius-panel: 0px;
-  --rn-enter-duration: 480ms;
+  --rn-enter-duration: 280ms;
   --rn-enter-distance: 0px;
   --rn-transition-speed: 240ms;
   --rn-transition-ease: cubic-bezier(0.4, 0, 0.2, 1);
@@ -934,17 +964,19 @@ summary:focus-visible,
   animation-delay: 120ms;
 }
 
-.workspace-panel h2 {
+/* Grundstufen für Überschriften im Panel; Klassen (z. B. .rn-summary-title) dürfen sie
+   ohne !important überschreiben (Issue #315). */
+:where(.workspace-panel) h2 {
   font-family: var(--rn-font-family-headings);
-  font-size: var(--rn-text-h2) !important;
+  font-size: var(--rn-text-h2);
   font-weight: var(--rn-weight-heading);
   letter-spacing: var(--rn-tracking-heading);
   line-height: var(--rn-line-heading);
 }
 
-.workspace-panel h3 {
+:where(.workspace-panel) h3 {
   font-family: var(--rn-font-family-headings);
-  font-size: var(--rn-text-h3) !important;
+  font-size: var(--rn-text-h3);
   font-weight: var(--rn-weight-heading);
   letter-spacing: var(--rn-tracking-heading);
   line-height: var(--rn-line-heading);
@@ -1053,7 +1085,7 @@ html[data-design="immersive-cinema"] .workspace-shell::before {
 }
 
 html[data-design="immersive-cinema"] .workspace-header {
-  animation: rn-cinema-focus-in 700ms var(--rn-transition-ease) both;
+  animation: rn-cinema-focus-in var(--rn-motion-slow) var(--rn-transition-ease) both;
 }
 
 html[data-design="immersive-cinema"] .workspace-header::after {
@@ -1172,4 +1204,17 @@ html[data-color-mode="aaa-contrast"] .workspace-panel {
   :where(button, .rn-control):hover {
     transform: none !important;
   }
+}
+
+/* Schalter „Bewegung reduzieren“ (Issue #315): dieselben Regeln */
+html[data-reduce-motion="true"] .workspace-shell::before,
+html[data-reduce-motion="true"] .workspace-header,
+html[data-reduce-motion="true"] .workspace-header::after,
+html[data-reduce-motion="true"] .workspace-panel,
+html[data-reduce-motion="true"] .rn-cinema-enter {
+  animation: none !important;
+}
+
+html[data-reduce-motion="true"] :where(button, .rn-control):hover {
+  transform: none !important;
 }
