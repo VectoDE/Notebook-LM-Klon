@@ -38,6 +38,9 @@ export interface ColorTokens {
   readonly panel: string;
   /** Abgesetzte Flächen in Panels (Chips, Eingaben, Kartenrückseiten) */
   readonly surfaceVariant: string;
+  /** Grund von Eingabefeldern: Weiß im Hellen, im Dunkeln eine eigene, tiefer liegende
+   * Feldfläche (Issue #328). Text darauf 7:1, Rahmen und Fokusring 3:1. */
+  readonly field: string;
   /** Rahmen von Bedienelementen (mindestens 3:1) */
   readonly border: string;
   /** Trennlinien ohne Funktion (dekorativ) */
@@ -88,14 +91,15 @@ export const FONT_MONO = '"JetBrains Mono Variable", "JetBrains Mono", ui-monosp
  * Eine eigene Schrift je Design (alle SIL OFL 1.1, selbst gehostet, Lizenzen unter
  * public/fonts/LICENSES):
  * - Pure: Inter, neutrale Klarheit für die Arbeitsfläche.
- * - Editorial Calm: Source Serif 4 für Lesen und Überschriften, Inter nur für Bedienelemente.
+ * - Editorial Calm: Source Serif 4 nur für Überschriften, Fließtext und Bedienelemente in Inter
+ *   (Issue #328: Serif nur für Überschriften, Fließtext Sans).
  * - Immersive Cinema: Space Grotesk, technisch-filmischer Charakter.
  * - Fusion: Geist, präzise und energisch.
  */
 export const TYPOGRAPHY: Record<DesignTheme, TypographyTokens> = {
   pure: { body: INTER, headings: INTER, ui: INTER },
   "immersive-cinema": { body: GROTESK, headings: GROTESK, ui: GROTESK },
-  "editorial-calm": { body: SERIF, headings: SERIF, ui: INTER },
+  "editorial-calm": { body: INTER, headings: SERIF, ui: INTER },
   fusion: { body: GEIST, headings: GEIST, ui: GEIST }
 };
 
@@ -104,7 +108,7 @@ export const TYPOGRAPHY: Record<DesignTheme, TypographyTokens> = {
  * Werte in px bzw. ms; Schriftgrößen in rem (1 rem = 16 px).
  */
 export interface ScaleTokens {
-  /** Fließtext (mindestens 1 rem) */
+  /** Fließtext: 1 rem = 16 px in allen Designs (Issue #328) */
   readonly textBase: number;
   /** Kleinste Schrift (mindestens 0,875 rem) */
   readonly textSmall: number;
@@ -126,9 +130,12 @@ export interface ScaleTokens {
   /** Innenabstand der Kopfzeile, vertikal / horizontal (px, Vielfaches von 4) */
   readonly padHeaderY: number;
   readonly padHeaderX: number;
+  /** Kleine Flächen (Abzeichen, Kontrollkästchen) */
   readonly radiusSm: number;
+  /** Karten, Eingabefelder, Menüs: 12 px in allen Designs (Issue #328) */
   readonly radiusMd: number;
   readonly radiusLg: number;
+  /** Spalten: 12 px als Karte, 0 bei Editorial (bündige Spalten mit Trennlinien) */
   readonly radiusPanel: number;
   /** Dauer der Einblendung in ms und Weg in px */
   readonly enterMs: number;
@@ -153,13 +160,13 @@ export const SCALE: Record<DesignTheme, ScaleTokens> = {
     padPanel: 20,
     padHeaderY: 12,
     padHeaderX: 20,
-    radiusSm: 10,
-    radiusMd: 16,
-    radiusLg: 24,
-    radiusPanel: 28,
-    enterMs: 240,
-    enterDistance: 6,
-    transitionMs: 180,
+    radiusSm: 8,
+    radiusMd: 12,
+    radiusLg: 12,
+    radiusPanel: 12,
+    enterMs: 280,
+    enterDistance: 12,
+    transitionMs: 200,
     ease: "cubic-bezier(0.25, 0.1, 0.25, 1)"
   },
   "immersive-cinema": {
@@ -177,16 +184,16 @@ export const SCALE: Record<DesignTheme, ScaleTokens> = {
     padHeaderY: 12,
     padHeaderX: 20,
     radiusSm: 8,
-    radiusMd: 14,
-    radiusLg: 20,
-    radiusPanel: 20,
+    radiusMd: 12,
+    radiusLg: 12,
+    radiusPanel: 12,
     enterMs: 300,
-    enterDistance: 18,
+    enterDistance: 24,
     transitionMs: 280,
     ease: "cubic-bezier(0.16, 1, 0.3, 1)"
   },
   "editorial-calm": {
-    textBase: 1.0625,
+    textBase: 1,
     textSmall: 0.875,
     textH2: 1.5,
     textH3: 1.1875,
@@ -199,12 +206,12 @@ export const SCALE: Record<DesignTheme, ScaleTokens> = {
     padPanel: 28,
     padHeaderY: 16,
     padHeaderX: 28,
-    radiusSm: 4,
-    radiusMd: 6,
-    radiusLg: 8,
+    radiusSm: 6,
+    radiusMd: 12,
+    radiusLg: 12,
     radiusPanel: 0,
     enterMs: 280,
-    enterDistance: 0,
+    enterDistance: 10,
     transitionMs: 240,
     ease: "cubic-bezier(0.4, 0, 0.2, 1)"
   },
@@ -224,11 +231,11 @@ export const SCALE: Record<DesignTheme, ScaleTokens> = {
     padHeaderX: 20,
     radiusSm: 8,
     radiusMd: 12,
-    radiusLg: 16,
-    radiusPanel: 18,
-    enterMs: 260,
-    enterDistance: 10,
-    transitionMs: 200,
+    radiusLg: 12,
+    radiusPanel: 12,
+    enterMs: 280,
+    enterDistance: 16,
+    transitionMs: 220,
     ease: "cubic-bezier(0.2, 0.8, 0.2, 1)"
   }
 };
@@ -239,6 +246,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       canvas: "#F7F7FC",
       panel: "#FFFFFF",
       surfaceVariant: "#EEEEF9",
+      field: "#FFFFFF",
       border: "#5F5F7A",
       divider: "#E3E3F0",
       textPrimary: "#16162A",
@@ -266,6 +274,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       canvas: "#121220",
       panel: "#1B1B2C",
       surfaceVariant: "#26263A",
+      field: "#0E0E1A",
       border: "#9A9AB8",
       divider: "#303046",
       textPrimary: "#F1F1FA",
@@ -293,6 +302,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       canvas: "#FFFFFF",
       panel: "#FFFFFF",
       surfaceVariant: "#F1F1FA",
+      field: "#FFFFFF",
       border: "#16162A",
       divider: "#3A3A55",
       textPrimary: "#000000",
@@ -303,7 +313,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       accentHover: "#000000",
       accentText: "#FFFFFF",
       brand: "#3730A3",
-      focusRing: "#000000",
+      focusRing: "#312E81",
       highlight: "#FEF08A",
       error: "#7F1D1D",
       errorSurface: "#FFFFFF",
@@ -322,6 +332,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       canvas: "#EEEAF6",
       panel: "#FFFFFF",
       surfaceVariant: "#F5F2FA",
+      field: "#FFFFFF",
       border: "#5E5670",
       divider: "#DCD5E8",
       textPrimary: "#140F24",
@@ -349,6 +360,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       canvas: "#0A0814",
       panel: "#151126",
       surfaceVariant: "#1F1934",
+      field: "#07051A",
       border: "#A49CB8",
       divider: "#2B2442",
       textPrimary: "#F5F3FF",
@@ -359,7 +371,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       accentHover: "#FAE8FF",
       accentText: "#0A0814",
       brand: "#D946EF",
-      focusRing: "#67E8F9",
+      focusRing: "#F0ABFC",
       highlight: "#4A1D5C",
       error: "#FCA5A5",
       errorSurface: "#2A1020",
@@ -376,6 +388,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       canvas: "#05040B",
       panel: "#0A0814",
       surfaceVariant: "#151126",
+      field: "#000000",
       border: "#E9E5F5",
       divider: "#A49CB8",
       textPrimary: "#FFFFFF",
@@ -405,6 +418,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       canvas: "#F8FAFC",
       panel: "#FFFFFF",
       surfaceVariant: "#F1F5F9",
+      field: "#FFFFFF",
       border: "#64748B",
       divider: "#E2E8F0",
       textPrimary: "#0F172A",
@@ -432,6 +446,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       canvas: "#0B1220",
       panel: "#131C2E",
       surfaceVariant: "#1C2840",
+      field: "#08101D",
       border: "#94A3B8",
       divider: "#273449",
       textPrimary: "#F8FAFC",
@@ -459,6 +474,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       canvas: "#FFFFFF",
       panel: "#FFFFFF",
       surfaceVariant: "#F1F5F9",
+      field: "#FFFFFF",
       border: "#0F172A",
       divider: "#334155",
       textPrimary: "#000000",
@@ -469,7 +485,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       accentHover: "#0F172A",
       accentText: "#FFFFFF",
       brand: "#1E40AF",
-      focusRing: "#000000",
+      focusRing: "#1E3A8A",
       highlight: "#FEF08A",
       error: "#7F1D1D",
       errorSurface: "#FFFFFF",
@@ -488,6 +504,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       canvas: "#F4F6F2",
       panel: "#FFFFFF",
       surfaceVariant: "#EAEFE8",
+      field: "#FFFFFF",
       border: "#59665F",
       divider: "#D7DED6",
       textPrimary: "#10201B",
@@ -515,6 +532,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       canvas: "#0C1513",
       panel: "#14201D",
       surfaceVariant: "#1C2B27",
+      field: "#081210",
       border: "#93A8A0",
       divider: "#26362F",
       textPrimary: "#F1F5F2",
@@ -525,7 +543,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       accentHover: "#99F6E4",
       accentText: "#0C1513",
       brand: "#14B8A6",
-      focusRing: "#FCD34D",
+      focusRing: "#5EEAD4",
       highlight: "#713F12",
       error: "#FECACA",
       errorSurface: "#3B1A24",
@@ -542,6 +560,7 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       canvas: "#000000",
       panel: "#0A0A0A",
       surfaceVariant: "#171717",
+      field: "#000000",
       border: "#FFFFFF",
       divider: "#A3A3A3",
       textPrimary: "#FFFFFF",
@@ -573,6 +592,7 @@ export const TOKEN_CSS_NAMES: Record<keyof ColorTokens, string> = {
   canvas: "--rn-color-canvas",
   panel: "--rn-color-panel",
   surfaceVariant: "--rn-color-surface-variant",
+  field: "--rn-color-field",
   border: "--rn-color-border",
   divider: "--rn-color-panel-border",
   textPrimary: "--rn-color-text-primary",
@@ -634,7 +654,12 @@ export interface ContrastRule {
   readonly kind: ContrastKind;
 }
 
-const TEXT_SURFACES: readonly (keyof ColorTokens)[] = ["canvas", "panel", "surfaceVariant"];
+const TEXT_SURFACES: readonly (keyof ColorTokens)[] = [
+  "canvas",
+  "panel",
+  "surfaceVariant",
+  "field"
+];
 
 /**
  * Welche Vordergrund-Tokens auf welchen Flächen stehen dürfen.
@@ -690,6 +715,35 @@ export function auditContrast(theme: DesignTheme, mode: ColorMode): ContrastResu
   );
 }
 
+export interface ContrastSummary {
+  readonly theme: DesignTheme;
+  readonly mode: ColorMode;
+  /** Kleinstes Verhältnis aller Textpaare (Ziel 7:1, AAA) */
+  readonly text: number;
+  /** Kleinstes Verhältnis aller Rahmen-, Grafik- und Fokuspaare (Ziel 3:1) */
+  readonly ui: number;
+  /** Kleinstes Verhältnis des Fokusrings zu den Flächen (Ziel 3:1) */
+  readonly focus: number;
+}
+
+/** Kontrastmatrix: je Design und Modus die kleinsten Werte für Text, UI und Fokus. */
+export function contrastMatrix(): ContrastSummary[] {
+  return THEMES.flatMap((theme) =>
+    COLOR_MODES.map((mode) => {
+      const results = auditContrast(theme, mode);
+      const min = (filter: (r: ContrastResult) => boolean) =>
+        Math.min(...results.filter(filter).map((r) => r.ratio));
+      return {
+        theme,
+        mode,
+        text: min((r) => r.kind === "text"),
+        ui: min((r) => r.kind === "ui"),
+        focus: min((r) => r.foreground === "focusRing")
+      };
+    })
+  );
+}
+
 /**
  * Mischt zwei Farben wie CSS `color-mix(in srgb, a share%, b)`: lineare Mischung der
  * sRGB-Kanäle, gerundet auf ganze Werte.
@@ -702,7 +756,7 @@ export function mixSrgb(a: string, b: string, shareOfA: number): string {
 }
 
 /**
- * Getönte Flächen aus workspace.css (Kacheln, Kartenverläufe, Reitermarke). Jede Fläche
+ * Getönte Flächen aus workspace.css (Kacheln, Karten, Reitermarke). Jede Fläche
  * ist eine Mischung aus zwei Tokens; darauf stehende Texte brauchen 7:1, Symbole 3:1.
  * Gilt für Hell und Dunkel; im AAA-Modus sind diese Flächen abgeschaltet.
  */
@@ -724,29 +778,22 @@ export const MIXED_SURFACES: readonly MixedSurface[] = [
   },
   {
     theme: "pure",
-    name: "Zusammenfassung, Verlaufsanfang",
+    name: "Zusammenfassung",
     mix: ["brand", "panel", 0.09],
     text: ["textPrimary", "textSecondary", "primary"],
     graphics: []
   },
   {
     theme: "immersive-cinema",
-    name: "Karte und Zusammenfassung, Verlaufsanfang",
+    name: "Karte und Zusammenfassung",
     mix: ["brand", "panel", 0.07],
     text: ["textPrimary", "textSecondary", "primary"],
     graphics: ["accent"]
   },
   {
     theme: "immersive-cinema",
-    name: "Kachel, Markenende",
+    name: "Kachel",
     mix: ["brand", "panel", 0.32],
-    text: ["textPrimary"],
-    graphics: ["textPrimary"]
-  },
-  {
-    theme: "immersive-cinema",
-    name: "Kachel, Akzentende",
-    mix: ["stageAccent", "panel", 0.22],
     text: ["textPrimary"],
     graphics: ["textPrimary"]
   },
@@ -891,27 +938,33 @@ function typographyDeclarations(theme: DesignTheme): string[] {
   ];
 }
 
+/** Standard beim Erstbesuch (Issue #328): Pure, Farbmodus folgt dem System, sonst Hell. */
+export const DEFAULT_THEME: DesignTheme = "pure";
+
 /**
  * Erzeugt alle Farb- und Schriftblöcke für themes.css.
- * Ohne gesetzte Attribute (vor dem ersten Rendern) gilt Fusion, Farbmodus nach System.
+ * Ohne gesetzte Attribute (vor dem ersten Rendern) gilt Pure, Farbmodus nach System.
  */
 export function buildThemeCss(): string {
   const blocks: string[] = [
-    cssBlock([":root", 'html[data-design="fusion"]'], typographyDeclarations("fusion")),
-    cssBlock([":root"], modeDeclarations("fusion", "light")),
-    `@media (prefers-color-scheme: dark) {\n${cssBlock(
-      [":root:not([data-color-mode])"],
-      modeDeclarations("fusion", "dark"),
-      "  "
-    )}}\n`,
-    `@media (prefers-contrast: more) {\n${cssBlock(
-      [":root:not([data-color-mode])"],
-      modeDeclarations("fusion", "aaa-contrast"),
-      "  "
-    )}}\n`
+    cssBlock(
+      [":root", `html[data-design="${DEFAULT_THEME}"]`],
+      typographyDeclarations(DEFAULT_THEME)
+    ),
+    cssBlock([":root"], modeDeclarations(DEFAULT_THEME, "light")),
+    `@media (prefers-color-scheme: dark) {
+${cssBlock([":root:not([data-color-mode])"], modeDeclarations(DEFAULT_THEME, "dark"), "  ")}}
+`,
+    `@media (prefers-contrast: more) {
+${cssBlock(
+  [":root:not([data-color-mode])"],
+  modeDeclarations(DEFAULT_THEME, "aaa-contrast"),
+  "  "
+)}}
+`
   ];
   for (const theme of THEMES) {
-    if (theme !== "fusion") {
+    if (theme !== DEFAULT_THEME) {
       blocks.push(cssBlock([`html[data-design="${theme}"]`], typographyDeclarations(theme)));
     }
     for (const mode of COLOR_MODES) {

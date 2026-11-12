@@ -37,11 +37,15 @@ describe("SettingsDrawer Component (Sub-Issue #129)", () => {
     expect(html).toContain('data-testid="close-settings-btn"');
     expect(html).toContain('aria-label="Einstellungen schließen"');
     expect(html).toMatch(/class="rn-icon-btn rn-dialog-close"/);
-    // Darstellung steht nur noch im Kopfmenü bzw. Menü-Sheet (Issue #319)
+    // Design und Farbschema stehen im Kopfmenü bzw. Menü-Sheet (Issue #319)
     expect(html).not.toContain("theme-option-");
     expect(html).not.toContain("mode-option-");
-    expect(html).not.toContain("reduce-motion-toggle");
-    expect(html).toContain("Design, Farbschema und Bewegung stellen Sie unter „Darstellung“ ein.");
+    expect(html).not.toContain('data-testid="reduce-motion-toggle"');
+    // „Bewegung reduzieren“ zusätzlich in den Einstellungen (Issue #328)
+    expect(html).toContain('data-testid="settings-reduce-motion-toggle"');
+    expect(html).toContain('<legend class="rn-drawer-section-title">Bewegung</legend>');
+    expect(html).toContain('aria-describedby="settings-reduce-motion-hint"');
+    expect(html).toContain("Design und Farbschema stellen Sie unter „Darstellung“ ein.");
     expect(html).toContain('data-testid="lang-option-de"');
     expect(html).toContain('data-testid="lang-option-en"');
     expect(html).toContain('data-testid="model-router-select"');

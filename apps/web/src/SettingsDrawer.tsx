@@ -8,14 +8,16 @@
  *   - EU GDPR data processing guarantees (zero model training)
  *   - Language
  *
- * Reihenfolge (Issue #319): Sprache, KI-Modell, eigene Schlüssel, Rechtliches. Die Darstellung
- * (Design, Farbschema, Bewegung, Rolle) steht nur noch an einem Ort: Kopfmenü bzw. Menü-Sheet.
+ * Reihenfolge (Issue #319, #328): Sprache, KI-Modell, Bewegung, eigene Schlüssel, Rechtliches.
+ * Design, Farbschema und Rolle stehen im Kopfmenü bzw. Menü-Sheet; der Schalter „Bewegung
+ * reduzieren“ steht in beiden (Entscheidung des Inhabers, Issue #328), mit gleichem Zustand.
  *
  * Modaler <dialog>: Desktop als Seitenblatt rechts, Telefon als Blatt von unten.
  * Fokusfalle, Escape schließt, Klick auf den Hintergrund schließt.
  */
 
 import { useEffect, useRef } from "react";
+import { MotionSetting } from "./AppearanceControls.js";
 import { Icon } from "./Icon.js";
 import { trapTabKey } from "./focus-trap.js";
 import { DEFAULT_MODEL, MODEL_IDS, type ModelId } from "./theme-preferences.js";
@@ -144,6 +146,15 @@ export function SettingsDrawer({
               <Icon name="chevron" size={16} className="rn-control-chevron" />
             </div>
             <p className="rn-setting-hint">{t("modelHint")}</p>
+          </section>
+
+          {/* Bewegung auch hier (Issue #328), gleicher Zustand wie in der Darstellung */}
+          <section className="rn-drawer-section">
+            <MotionSetting
+              idPrefix="settings"
+              testId="settings-reduce-motion-toggle"
+              legendClassName="rn-drawer-section-title"
+            />
           </section>
 
           <section className="rn-drawer-section" aria-labelledby="byok-section-title">

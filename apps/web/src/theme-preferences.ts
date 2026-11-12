@@ -6,7 +6,13 @@
  * Das frühere Attribut data-theme wird entfernt (Issue #252).
  */
 
-import { COLOR_MODES, type ColorMode, type DesignTheme, THEMES } from "./design-tokens.js";
+import {
+  COLOR_MODES,
+  type ColorMode,
+  DEFAULT_THEME,
+  type DesignTheme,
+  THEMES
+} from "./design-tokens.js";
 
 export type Language = "de" | "en";
 
@@ -98,7 +104,7 @@ export function resolveColorMode(preference: ColorModePreference, system: ColorM
 
 /**
  * Startwerte: gespeicherte Wahl, sonst übergebener Standard, sonst "system" (Farbmodus
- * folgt dem Gerät) bzw. Fusion und Deutsch.
+ * folgt dem Gerät, ohne Vorgabe des Geräts Hell) bzw. Pure und Deutsch (Issue #328).
  */
 export function resolveInitialPreferences(
   env: PreferenceEnvironment,
@@ -110,7 +116,7 @@ export function resolveInitialPreferences(
   const storedMode = pick(safeRead(env.storage, STORAGE_KEYS.colorMode), COLOR_MODE_PREFERENCES);
   const storedLanguage = pick(safeRead(env.storage, STORAGE_KEYS.language), LANGUAGES);
   return {
-    theme: storedTheme ?? defaults.theme ?? "fusion",
+    theme: storedTheme ?? defaults.theme ?? DEFAULT_THEME,
     colorMode: storedMode ?? defaults.colorMode ?? "system",
     language: storedLanguage ?? defaults.language ?? "de"
   };
@@ -145,6 +151,13 @@ export function applyThemeToDocument(
  */
 export const REDUCE_MOTION_ATTRIBUTE = "data-reduce-motion";
 export const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+/** Systemwert (Issue #328): wünscht das Gerät weniger Bewegung? Ohne matchMedia: nein. */
+export function systemPrefersReducedMotion(
+  matchMedia?: ((query: string) => { readonly matches: boolean }) | undefined
+): boolean {
+  return Boolean(matchMedia?.(REDUCED_MOTION_QUERY).matches);
+}
 
 /** Gespeicherte Wahl lesen: nur "true" schaltet ein, alles andere (auch Fehler) aus. */
 export function readReduceMotion(storage: Pick<Storage, "getItem"> | undefined): boolean {
