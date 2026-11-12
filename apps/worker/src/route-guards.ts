@@ -223,6 +223,35 @@ export function requireConfiguredKek(): MiddlewareHandler {
 }
 
 /**
+ * Returns the configured SESSION_SALT_SECRET, or undefined when it is missing or blank.
+ * There is deliberately no fallback: a salt derived from public values (like the origin)
+ * is predictable and would make the IP/User-Agent hashes reversible by enumeration.
+ */
+export function getConfiguredSessionSalt(env: Env): string | undefined {
+  const value = (env as unknown as Record<string, unknown>).SESSION_SALT_SECRET;
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+}
+
+/**
+ * Blocks every route that creates a session or writes a salted audit hash when
+ * SESSION_SALT_SECRET is missing (503 instead of hashing with a predictable salt).
+ */
+export function requireConfiguredSessionSalt(): MiddlewareHandler {
+  return async (c, next) => {
+    if (getConfiguredSessionSalt(c.env as Env) === undefined) {
+      return problemResponse(
+        c,
+        503,
+        "Service Unavailable",
+        "Anmeldung ist nicht konfiguriert (SESSION_SALT_SECRET fehlt).",
+        "SESSION_SALT_NOT_CONFIGURED"
+      );
+    }
+    await next();
+  };
+}
+
+/**
  * Placeholder for endpoints that exist as modules but are not exposed yet because
  * an access check is missing. Answers 501 instead of serving them unprotected.
  */

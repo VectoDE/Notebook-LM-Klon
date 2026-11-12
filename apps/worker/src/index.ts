@@ -34,10 +34,12 @@ import { type QuotaAction, quotaGuardMiddleware } from "./quota-guard.js";
 import { RagRepository } from "./rag-repository.js";
 import { rateLimiterMiddleware } from "./rate-limiter.js";
 import {
+  getConfiguredSessionSalt,
   hasConfiguredKek,
   notExposed,
   recordQuotaUsage,
   requireConfiguredKek,
+  requireConfiguredSessionSalt,
   requireNotebookRoleFromQuery,
   requireSourceRole,
   resolveAddSourceAction
@@ -157,10 +159,9 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   const dbAdapter = createD1DatabaseAdapter(env.DB);
   const coreRepo = new CoreRepository(dbAdapter);
   const ragRepo = new RagRepository(dbAdapter);
-  const sessionManager = new SessionManager({
-    repo: coreRepo,
-    saltSecret: secrets.SESSION_SALT_SECRET ?? `relationnotes-session:${config.origin}`
-  });
+  // No fallback salt: without SESSION_SALT_SECRET every session-creating route answers 503.
+  const saltSecret = getConfiguredSessionSalt(env);
+  const sessionManager = new SessionManager({ repo: coreRepo, saltSecret });
   const keyVault = hasConfiguredKek(env) ? createKeyVaultFromEnv(env) : undefined;
 
   const app = new Hono<ApiEnv>();
@@ -182,6 +183,12 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
 
   // 3. Auth (public, rate-limit category "auth")
   // Guest login and magic-link fail closed (503) when TURNSTILE_SECRET_KEY is missing.
+  // Every route that creates a session fails closed (503) when SESSION_SALT_SECRET is missing.
+  const requireSalt = requireConfiguredSessionSalt();
+  app.use("/api/v1/auth/guest", requireSalt);
+  app.use("/api/v1/auth/magic-link", requireSalt);
+  app.use("/api/v1/auth/magic-link/*", requireSalt);
+  app.use("/api/v1/auth/passkey/login/*", requireSalt);
   app.route(
     "/api/v1/auth",
     createGuestAndMagicLinkRoutes({
@@ -271,14 +278,9 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   registerJobRoutes(app, { coreRepo });
 
   // 8. BYOK key management (last: its router adds its own same-origin CSRF check)
-  app.use("/api/v1/keys", requireAuth(), requireConfiguredKek());
-  app.use("/api/v1/keys/*", requireAuth(), requireConfiguredKek());
-  registerBYOKRoutes(app, {
-    ragRepo,
-    coreRepo,
-    keyVault,
-    saltSecret: secrets.SESSION_SALT_SECRET
-  });
+  app.use("/api/v1/keys", requireAuth(), requireConfiguredKek(), requireSalt);
+  app.use("/api/v1/keys/*", requireAuth(), requireConfiguredKek(), requireSalt);
+  registerBYOKRoutes(app, { ragRepo, coreRepo, keyVault, saltSecret });
 
   app.notFound((c) => c.json(notFoundProblem(c.req.path), 404, PROBLEM_HEADERS));
 

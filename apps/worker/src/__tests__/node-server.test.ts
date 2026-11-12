@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   MAX_OBJECT_BYTES,
   ObjectTooLargeError,
@@ -391,6 +391,23 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       const { env } = createNodeEnv({ db: customDb });
       expect(env.APP_PROFILE).toBe("demo");
       customDb.close();
+    });
+
+    it("takes SESSION_SALT_SECRET from options or process.env and never invents one", () => {
+      const customDb = new DatabaseSync(":memory:");
+      const read = (e: Env) => (e as unknown as Record<string, unknown>).SESSION_SALT_SECRET;
+      vi.stubEnv("SESSION_SALT_SECRET", "from-process-env");
+      try {
+        expect(read(createNodeEnv({ db: customDb }).env)).toBe("from-process-env");
+        expect(read(createNodeEnv({ db: customDb, sessionSaltSecret: "explicit" }).env)).toBe(
+          "explicit"
+        );
+        vi.stubEnv("SESSION_SALT_SECRET", undefined);
+        expect(read(createNodeEnv({ db: customDb }).env)).toBeUndefined();
+      } finally {
+        vi.unstubAllEnvs();
+        customDb.close();
+      }
     });
   });
 

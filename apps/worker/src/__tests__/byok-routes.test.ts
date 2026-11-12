@@ -506,7 +506,7 @@ describe("BYOK Key Management API & Rotation (Sub-Issues #93, #94)", () => {
       closeDb();
     });
 
-    it("uses default audit salt when saltSecret is not provided in deps", async () => {
+    it("stores no IP hash (no default salt) when saltSecret is not provided in deps", async () => {
       const customApp = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
       customApp.use("*", async (c, next) => {
         c.set("sessionUser", { id: "usr_alice" });
@@ -524,6 +524,10 @@ describe("BYOK Key Management API & Rotation (Sub-Issues #93, #94)", () => {
         body: JSON.stringify({ apiKey: "sk-ant-api03-abcdef1234567890-defaultSalt" })
       });
       expect(res.status).toBe(200);
+      const audits = await adapter.query<{ ip_hash: string }>(
+        "SELECT ip_hash FROM audit_log WHERE action = 'byok_key_saved'"
+      );
+      expect(audits.map((a) => a.ip_hash)).toEqual(["unknown-ip"]);
       closeDb();
     });
 

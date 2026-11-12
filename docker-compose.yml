@@ -10,6 +10,8 @@ services:
       - PORT=8787
       - APP_PROFILE=full
       - APP_ORIGIN=http://localhost:8787
+      # Secret, from the host environment (e.g. `openssl rand -hex 32`). Without it login is blocked (503).
+      - SESSION_SALT_SECRET
     volumes:
       - app-data:/app/.data
     restart: unless-stopped
