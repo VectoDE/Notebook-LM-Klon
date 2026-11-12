@@ -179,6 +179,8 @@ for (const width of [390, 1440]) {
       await page.goto("/");
       await openPanel(page, "studio");
       await page.getByTestId("btn-open-mindmap-tool").click();
+      // Auf dem Telefon startet die Mindmap seit #315 mit der Baumliste
+      await page.getByRole("tab", { name: "Grafik" }).click();
       const panel = page.getByTestId("mindmap-visual-panel");
       await expect(panel).toBeVisible();
       await expect(panel).toHaveAccessibleName("Grafik");
