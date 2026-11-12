@@ -4,15 +4,16 @@ import { type Page, expect, test } from "@playwright/test";
 
 /**
  * Diagramme und Hero-Banner in Deutsch und Englisch (Issue #354): jeder Text passt mit der
- * echten Schrift (Inter, selbst gehostet) und mit Arial (unter Linux metrisch gleich: Liberation Sans)
+ * echten Schrift (Inter und für Code JetBrains Mono, selbst gehostet) und mit Arial (unter Linux metrisch gleich: Liberation Sans)
  * als Rückfall ohne Inter, etwa in der GitHub-Ansicht, in seine Fläche, und
  * jeder Text erreicht AAA-Kontrast (mindestens 7:1) zu seinem Untergrund.
  */
 
 const assets = resolve(import.meta.dirname, "../../../docs/assets");
-const inter = readFileSync(
-  resolve(import.meta.dirname, "../src/fonts/inter-latin-wght-normal.woff2")
-).toString("base64");
+const fontData = (file: string): string =>
+  readFileSync(resolve(import.meta.dirname, "../src/fonts", file)).toString("base64");
+const inter = fontData("inter-latin-wght-normal.woff2");
+const mono = fontData("jetbrains-mono-latin-wght-normal.woff2");
 /**
  * Alle Fassungen. Die automatischen (systemLanguage) zeigen in Chromium den Zweig der
  * Oberflächensprache; ihre beiden Zweige sind Text für Text identisch mit den -de- und
@@ -28,7 +29,9 @@ interface Finding {
 
 /** Misst alle sichtbaren Texte der eingebetteten Grafik. */
 async function measure(page: Page, svg: string, font: string): Promise<Finding[]> {
-  const fontFace = `@font-face{font-family:"Inter";src:url(data:font/woff2;base64,${inter}) format("woff2");font-weight:100 900}`;
+  const fontFace =
+    `@font-face{font-family:"Inter";src:url(data:font/woff2;base64,${inter}) format("woff2");font-weight:100 900}` +
+    `@font-face{font-family:"JetBrains Mono";src:url(data:font/woff2;base64,${mono}) format("woff2");font-weight:100 800}`;
   const override = font === "Inter" ? "" : `text{font-family:${font} !important}`;
   await page.setContent(
     `<!doctype html><html><head><style>${fontFace}${override}body{margin:0}</style></head><body>${svg}</body></html>`

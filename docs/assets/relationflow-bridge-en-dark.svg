@@ -46,7 +46,7 @@
   <rect x="72" y="276" width="332" height="150" rx="12" fill="#1E293B" stroke="#4F46E5" stroke-width="1.5" />
   <text x="90" y="304" fill="#F8FAFC" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Typical agent call from RelationFlow:</text>
   <text x="90" y="330" fill="#7DD3FC" font-family="'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace" font-size="12">POST /api/v1/notebooks/:id/search</text>
-  <text x="90" y="352" fill="#CBD5E1" font-family="'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace" font-size="11.5">{ "query": "notice period framework contract",</text>
+  <text x="90" y="352" fill="#CBD5E1" font-family="'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace" font-size="11.5">{ "query": "notice period master contract",</text>
   <text x="90" y="370" fill="#CBD5E1" font-family="'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace" font-size="11.5">  "topK": 8, "mode": "hybrid_rrf" }</text>
   <text x="90" y="398" fill="#6EE7B7" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">→ Returns precisely cited chunks + page/offset</text>
 

@@ -78,8 +78,8 @@
   <text x="768" y="242" fill="#E2E8F0" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• Path B (lexical):</text>
   <text x="768" y="262" fill="#CBD5E1" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  D1 FTS5 MATCH + bm25()</text>
   <text x="768" y="290" fill="#E2E8F0" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• Fusion via RRF (k=60):</text>
-  <rect x="762" y="304" width="184" height="36" rx="6" fill="#0F172A" stroke="#334155" />
-  <text x="770" y="326" fill="#FDE68A" font-family="'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace" font-size="11">1/(60+r_vec) + 1/(60+r_fts)</text>
+  <rect x="760" y="304" width="188" height="36" rx="6" fill="#0F172A" stroke="#334155" />
+  <text x="768" y="326" fill="#FDE68A" font-family="'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace" font-size="10.5">1/(60+r_vec) + 1/(60+r_fts)</text>
 
   <!-- Step 5 -->
   <rect x="980" y="115" width="180" height="370" rx="14" fill="#1E293B" stroke="#F472B6" stroke-width="1.5" />

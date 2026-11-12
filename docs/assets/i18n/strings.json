@@ -490,7 +490,7 @@
       },
       "t10": {
         "de": "{ \"query\": \"Kündigungsfrist Rahmenvertrag\",",
-        "en": "{ \"query\": \"notice period framework contract\","
+        "en": "{ \"query\": \"notice period master contract\","
       },
       "t11": {
         "de": "  \"topK\": 8, \"mode\": \"hybrid_rrf\" }",
