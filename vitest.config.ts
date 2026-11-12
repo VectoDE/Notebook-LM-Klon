@@ -19,7 +19,10 @@ export default defineConfig({
         "apps/web/src/focus-return.ts",
         "apps/web/src/stage-visuals.ts",
         "apps/web/src/url-validation.ts",
-        "apps/web/src/layout-preferences.ts"
+        "apps/web/src/layout-preferences.ts",
+        "apps/web/src/view-preferences.ts",
+        "apps/web/src/toast-timer.ts",
+        "apps/web/src/EmptyState.tsx"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {

@@ -11,7 +11,7 @@
  * Reihenfolge (Issue #319): Sprache, KI-Modell, eigene Schlüssel, Rechtliches. Die Darstellung
  * (Design, Farbschema, Bewegung, Rolle) steht nur noch an einem Ort: Kopfmenü bzw. Menü-Sheet.
  *
- * Modaler <dialog>: Desktop als Seitenblatt rechts, Telefon als Blatt von unten.
+ * Modaler <dialog>: ab 600 px zentriertes Fenster, darunter Vollbild (Issue #329).
  * Fokusfalle, Escape schließt, Klick auf den Hintergrund schließt.
  */
 

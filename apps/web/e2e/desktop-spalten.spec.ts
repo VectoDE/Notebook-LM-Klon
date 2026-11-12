@@ -272,7 +272,8 @@ test.describe("Notebook-Titel bearbeiten", () => {
     await expect(input).toHaveCount(0);
     await expect(button).toHaveText("Mein Projekt");
     await expect(button).toBeFocused();
-    await expect(page.getByTestId("layout-status")).toHaveText("Titel gespeichert: Mein Projekt");
+    // Rückmeldung in der Hinweis-Leiste (role="status", Issue #329)
+    await expect(page.getByTestId("toast-text")).toHaveText("Titel gespeichert: Mein Projekt");
     // Zusammenfassung im Chat folgt dem Titel
     await expect(page.locator(".rn-summary-title")).toHaveText("Mein Projekt");
     await page.reload();

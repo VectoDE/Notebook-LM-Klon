@@ -1,0 +1,780 @@
+/* ==========================================================================
+   Komponenten und Muster (Issue #329)
+   Chat-Blasen, Studio gemischt, Ansichten-Umschalter, Quellen als Karten,
+   Ergebnistabelle, Leerzustände, Hinweis-Leiste, Dialoge Vollbild/zentriert.
+   Nur vorhandene Tokens; keine globalen Token- oder Grundknopf-Regeln.
+   Lädt nach workspace.css: gleiche Spezifität gewinnt hier.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Chat: Frage und Antwort als Blasen, Zitate als Pillen mit Nummer
+   -------------------------------------------------------------------------- */
+.rn-msg--assistant {
+  align-self: flex-start;
+  max-width: min(94%, 68ch);
+  padding: var(--rn-space-2) var(--rn-space-4) var(--rn-space-3);
+  border-radius: var(--rn-radius-sm) var(--rn-radius-lg) var(--rn-radius-lg) var(--rn-radius-lg);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-primary);
+}
+
+/* Die Pille hebt sich von der Blase ab: helle Fläche, Rand in Primärfarbe */
+.rn-msg--assistant .rn-cite {
+  background: var(--rn-color-panel);
+}
+
+.rn-msg--assistant .rn-cite:hover {
+  background: var(--rn-color-accent);
+  border-color: var(--rn-color-accent);
+  color: var(--rn-color-accent-text);
+}
+
+html[data-color-mode="aaa-contrast"] .rn-msg--assistant {
+  box-shadow: inset 0 0 0 1px var(--rn-color-border);
+}
+
+/* Editorial Calm behält die Blase, nur mit ruhigeren Ecken */
+html[data-design="editorial-calm"] .rn-msg--assistant,
+html[data-design="editorial-calm"] .rn-msg--user {
+  border-radius: var(--rn-radius-md);
+}
+
+/* --------------------------------------------------------------------------
+   Studio: Audio als Karte, übrige Werkzeuge als Liste mit gefülltem Symbol
+   -------------------------------------------------------------------------- */
+.rn-studio-overview {
+  display: grid;
+  align-content: start;
+  gap: var(--rn-space-4);
+}
+
+.rn-tool-list {
+  container-type: inline-size;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--rn-color-panel-border);
+  border-radius: var(--rn-radius-lg);
+  background: var(--rn-color-panel);
+  /* Rundung ohne Scroll-Container: clip schneidet nur, die Liste behält ihre Höhe */
+  overflow: clip;
+  overflow-clip-margin: 4px;
+}
+
+html[data-color-mode="aaa-contrast"] .rn-tool-list {
+  border-color: var(--rn-color-border);
+}
+
+.rn-tool-list > li + li .rn-tool-row {
+  border-top: 1px solid var(--rn-color-panel-border);
+}
+
+.rn-tool-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon text"
+    ". actions";
+  column-gap: var(--rn-space-3);
+  row-gap: var(--rn-space-3);
+  padding: var(--rn-space-4);
+  transition: background-color var(--rn-transition-base);
+}
+
+.rn-tool-row:hover,
+.rn-tool-row:focus-within {
+  background: var(--rn-color-surface-variant);
+}
+
+/* Gefülltes Symbol: volle Akzentfläche, Symbol in Akzent-Textfarbe (wie Primärknöpfe) */
+.rn-tool-row-icon {
+  grid-area: icon;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-accent);
+  color: var(--rn-color-accent-text);
+}
+
+.rn-tool-row .rn-tool-text {
+  grid-area: text;
+}
+
+.rn-tool-row .rn-tool-actions {
+  grid-area: actions;
+}
+
+.rn-tool-row .rn-tool-primary {
+  flex: 0 1 auto;
+}
+
+/* Breite Spalte: Aktionen rechts in derselben Zeile */
+@container (min-width: 560px) {
+  .rn-tool-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "icon text actions";
+    align-items: center;
+  }
+  .rn-tool-row .rn-tool-actions {
+    flex-wrap: nowrap;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Ansichten-Umschalter (Liste/Karten, Tabelle/Karten)
+   -------------------------------------------------------------------------- */
+.rn-view-toggle {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+  margin: 0;
+  padding: 2px;
+  min-width: 0;
+  border: 1px solid var(--rn-color-panel-border);
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-surface-variant);
+}
+
+html[data-color-mode="aaa-contrast"] .rn-view-toggle {
+  border-color: var(--rn-color-border);
+}
+
+.rn-view-option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--rn-space-1);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--rn-space-3);
+  border-radius: var(--rn-radius-pill);
+  color: var(--rn-color-text-secondary);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--rn-transition-base), color var(--rn-transition-base);
+}
+
+.rn-view-option:hover {
+  color: var(--rn-color-text-primary);
+}
+
+.rn-view-option:has(:checked) {
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-primary);
+  box-shadow: inset 0 0 0 1px var(--rn-color-border);
+}
+
+/* Das native Optionsfeld liegt über der ganzen Option: Klick, Pfeiltasten, Screenreader */
+.rn-view-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.rn-view-option:has(:focus-visible) {
+  outline: 2px solid var(--rn-color-focus-ring, var(--rn-color-primary));
+  outline-offset: 2px;
+}
+
+/* Zeile über der Quellenliste: alle auswählen links, Ansicht rechts */
+.rn-sources-toolbar {
+  container-type: inline-size;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rn-space-2);
+}
+
+.rn-sources-toolbar .rn-select-all {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Schmale Spalte: nur Symbole sichtbar, der Text bleibt für Screenreader */
+@container (max-width: 359.98px) {
+  .rn-sources-toolbar .rn-view-option {
+    padding: 0;
+  }
+  .rn-sources-toolbar .rn-view-option > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Quellen als Karten
+   -------------------------------------------------------------------------- */
+.rn-sources[data-view="cards"] {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 148px), 1fr));
+  gap: var(--rn-space-2);
+}
+
+.rn-sources[data-view="cards"] .rn-source {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto 1fr;
+  align-items: start;
+  row-gap: var(--rn-space-2);
+  padding: var(--rn-space-2) var(--rn-space-2) var(--rn-space-3) var(--rn-space-3);
+  border: 1px solid var(--rn-color-panel-border);
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-panel);
+}
+
+html[data-color-mode="aaa-contrast"] .rn-sources[data-view="cards"] .rn-source {
+  border-color: var(--rn-color-border);
+}
+
+.rn-sources[data-view="cards"] .rn-source[data-inspected="true"] {
+  border-color: var(--rn-color-primary);
+  background: var(--rn-color-surface-variant);
+}
+
+.rn-sources[data-view="cards"] .rn-source-main .rn-check-hit {
+  grid-column: 1;
+  grid-row: 1;
+  margin: -4px -12px -4px -12px;
+}
+
+.rn-sources[data-view="cards"] .rn-source-inspect {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.rn-sources[data-view="cards"] .rn-source-title {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-self: start;
+}
+
+.rn-sources[data-view="cards"] .rn-source-meta {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  align-self: end;
+}
+
+.rn-sources[data-view="cards"] .rn-source-type {
+  display: table;
+  margin-bottom: var(--rn-space-1);
+}
+
+/* --------------------------------------------------------------------------
+   Quiz: Antworten als Tabelle oder Karten
+   -------------------------------------------------------------------------- */
+.rn-quiz-results {
+  container-type: inline-size;
+  display: grid;
+  gap: var(--rn-space-3);
+  margin-top: var(--rn-space-4);
+}
+
+.rn-results-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rn-space-2);
+}
+
+.rn-results-title {
+  margin: 0;
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-subtitle);
+  font-weight: var(--rn-weight-heading);
+  line-height: 1.3;
+}
+
+.rn-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--rn-color-panel-border);
+  border-radius: var(--rn-radius-lg);
+  background: var(--rn-color-panel);
+  overflow: clip;
+  font-size: var(--rn-text-small);
+  line-height: 1.45;
+}
+
+html[data-color-mode="aaa-contrast"] .rn-table {
+  border-color: var(--rn-color-border);
+}
+
+.rn-table th,
+.rn-table td {
+  padding: var(--rn-space-3);
+  border-top: 1px solid var(--rn-color-panel-border);
+  text-align: start;
+  vertical-align: top;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.rn-table thead th {
+  border-top: 0;
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+  font-weight: 600;
+}
+
+.rn-table tbody th {
+  font-weight: 600;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-table td {
+  color: var(--rn-color-text-primary);
+}
+
+/* Erste Spalte (Frage) bekommt mehr Platz */
+.rn-table thead th:first-child {
+  width: 42%;
+}
+
+.rn-table td > span:not(.rn-result) {
+  display: block;
+}
+
+.rn-table td > .rn-result {
+  margin-top: var(--rn-space-1);
+}
+
+/* Ergebnis als Marke: Text und Symbol, Farbe nur zusätzlich (WCAG 1.4.1) */
+.rn-result {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rn-space-1);
+  padding: 2px var(--rn-space-2);
+  border-radius: var(--rn-radius-pill);
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  hyphens: none;
+}
+
+.rn-result[data-state="correct"] {
+  background: var(--rn-color-success-surface);
+  color: var(--rn-color-success);
+}
+
+.rn-result[data-state="wrong"] {
+  background: var(--rn-color-error-surface);
+  color: var(--rn-color-error);
+}
+
+.rn-result[data-state="open"] {
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-result .rn-quiz-flag-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.rn-result-cards {
+  display: grid;
+  gap: var(--rn-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-result-card {
+  display: grid;
+  gap: var(--rn-space-2);
+  padding: var(--rn-space-3) var(--rn-space-4);
+  border: 1px solid var(--rn-color-panel-border);
+  border-radius: var(--rn-radius-lg);
+  background: var(--rn-color-panel);
+}
+
+html[data-color-mode="aaa-contrast"] .rn-result-card {
+  border-color: var(--rn-color-border);
+}
+
+.rn-result-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rn-space-2);
+  font-size: var(--rn-text-small);
+}
+
+.rn-result-number {
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-result-question {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.rn-result-answers {
+  display: grid;
+  gap: var(--rn-space-2);
+  margin: 0;
+  font-size: var(--rn-text-small);
+}
+
+.rn-result-answers dt {
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-result-answers dd {
+  margin: 0;
+  color: var(--rn-color-text-primary);
+}
+
+@container (min-width: 420px) {
+  .rn-result-answers {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Leerzustände: Zeichnung, Überschrift, ein Satz, optional eine Aktion
+   -------------------------------------------------------------------------- */
+.rn-empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--rn-space-2);
+  padding: var(--rn-space-6) var(--rn-space-4);
+  text-align: center;
+}
+
+.rn-empty--compact {
+  padding: var(--rn-space-4) var(--rn-space-3);
+}
+
+.rn-empty-art {
+  width: 120px;
+  height: auto;
+  margin-bottom: var(--rn-space-1);
+  overflow: visible;
+}
+
+.rn-empty--compact .rn-empty-art {
+  width: 96px;
+}
+
+.rn-empty-title {
+  margin: 0;
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-body);
+  font-weight: var(--rn-weight-heading);
+  line-height: 1.3;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-empty-text {
+  max-width: 38ch;
+  margin: 0;
+  font-size: var(--rn-text-small);
+  line-height: 1.55;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--rn-space-2);
+  margin-top: var(--rn-space-2);
+}
+
+.rn-art-ground,
+.rn-art-fill {
+  fill: var(--rn-color-surface-variant);
+}
+
+.rn-art-paper,
+.rn-art-accent-soft {
+  fill: var(--rn-color-panel);
+}
+
+.rn-art-line {
+  fill: none;
+  stroke: var(--rn-color-primary);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rn-art-strong {
+  stroke-width: 2.5;
+}
+
+.rn-art-dashed {
+  stroke-dasharray: 2 5;
+}
+
+.rn-art-accent {
+  fill: var(--rn-color-accent);
+}
+
+.rn-art-on-accent {
+  fill: none;
+  stroke: var(--rn-color-accent-text);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.rn-art-accent-line {
+  fill: none;
+  stroke: var(--rn-color-accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+/* Quellenliste: der Leerzustand braucht keinen eigenen Innenabstand */
+.rn-sources-empty:has(.rn-empty) {
+  padding: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Hinweis-Leiste unten
+   -------------------------------------------------------------------------- */
+.rn-toast-region {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--rn-space-4) + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.rn-toast {
+  display: flex;
+  align-items: center;
+  gap: var(--rn-space-2);
+  min-height: 48px;
+  padding: 2px 2px 2px var(--rn-space-4);
+  box-sizing: border-box;
+  border-radius: var(--rn-radius-md);
+  /* Umgekehrte Flächen: dieselbe Paarung wie Fließtext, also 7:1 */
+  background: var(--rn-color-text-primary);
+  color: var(--rn-color-panel);
+  box-shadow: var(--rn-shadow-dialog);
+  pointer-events: auto;
+}
+
+.rn-toast-text {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.rn-toast-close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--rn-radius-pill);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.rn-toast-close:hover {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.rn-toast-close:focus-visible {
+  outline: 2px solid var(--rn-color-panel);
+  outline-offset: -4px;
+}
+
+html[data-color-mode="aaa-contrast"] .rn-toast {
+  box-shadow: 0 0 0 2px var(--rn-color-panel), 0 0 0 4px var(--rn-color-text-primary);
+}
+
+/* Ab 900 px unten links: der Chat-Eingabe in der Mitte bleibt frei */
+@media (min-width: 900px) {
+  .rn-toast-region {
+    left: var(--rn-space-6);
+    transform: none;
+  }
+}
+
+/* Telefon: über der unteren Reiterleiste */
+@media (max-width: 599.98px) {
+  .rn-toast-region {
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-reduce-motion="true"]) .rn-toast {
+    animation: rn-toast-in var(--rn-motion-medium) var(--rn-transition-ease) both;
+  }
+}
+
+@keyframes rn-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Dialoge: unter 600 px Vollbild, ab 600 px zentriert
+   (Link-Import, Teilen, Einstellungen, Zwischenfrage, Bühne; Menü-Sheet ist
+   ohnehin nur unter 600 px und Vollbild)
+   -------------------------------------------------------------------------- */
+
+/* Link-Import und Teilen */
+@media (max-width: 599.98px) {
+  .rn-dialog {
+    align-items: stretch;
+    padding: 0;
+  }
+  .rn-dialog-card {
+    align-content: start;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    overflow-y: auto;
+    border: 0;
+    border-radius: 0;
+    padding: calc(var(--rn-space-5) + env(safe-area-inset-top, 0px)) 16px
+      calc(var(--rn-space-6) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Einstellungen: zentriertes Fenster statt Seitenblatt */
+.rn-drawer {
+  width: min(560px, calc(100% - 48px));
+  height: fit-content;
+  max-height: min(800px, calc(100dvh - 48px));
+  margin: auto;
+  border: 1px solid var(--rn-color-panel-border);
+  border-radius: var(--rn-radius-lg);
+  box-shadow: var(--rn-shadow-dialog);
+  overflow: hidden;
+}
+
+.rn-drawer-panel {
+  max-height: min(800px, calc(100dvh - 48px));
+}
+
+@media (max-width: 599.98px) {
+  .rn-drawer {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+  .rn-drawer-panel {
+    height: 100%;
+    max-height: none;
+  }
+  .rn-drawer-head {
+    padding-top: calc(var(--rn-space-5) + env(safe-area-inset-top, 0px));
+  }
+}
+
+/* Deep-Dive-Bühne: ab 600 px als großes zentriertes Fenster über dem Arbeitsbereich */
+@media (min-width: 600px) {
+  .rn-stage {
+    width: min(1200px, calc(100% - 48px));
+    height: min(900px, calc(100dvh - 48px));
+    margin: auto;
+    border-radius: var(--rn-radius-lg);
+    box-shadow: var(--rn-shadow-dialog);
+  }
+  .rn-stage::backdrop {
+    background: var(--rn-color-scrim);
+  }
+}
+
+/* Zwischenfrage im Audio-Player: modaler Dialog in Bühnenfarben */
+.interject-dialog {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: min(520px, calc(100% - 48px));
+  height: fit-content;
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: var(--rn-space-5);
+  overflow-y: auto;
+  border: 1px solid var(--rn-stage-line);
+  border-radius: var(--rn-radius-lg);
+  background: var(--rn-color-stage-bg);
+  color: var(--rn-color-stage-text);
+  box-shadow: var(--rn-shadow-dialog);
+}
+
+/* Bis showModal() läuft, bleibt der Dialog unsichtbar (die Grid-Regel überschreibt sonst
+   das Ausblenden des Browsers) */
+.interject-dialog:not([open]) {
+  display: none;
+}
+
+.interject-dialog::backdrop {
+  background: var(--rn-color-scrim);
+}
+
+@media (max-width: 599.98px) {
+  .interject-dialog {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    align-content: start;
+    border: 0;
+    border-radius: 0;
+    padding: calc(var(--rn-space-5) + env(safe-area-inset-top, 0px)) 16px
+      calc(var(--rn-space-5) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Öffnen zeigt, was passiert: kurzes Einblenden, ohne Bewegung bei reduzierter Bewegung */
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-reduce-motion="true"]) .rn-drawer[open],
+  html:not([data-reduce-motion="true"]) .interject-dialog[open] {
+    animation: rn-dialog-pop var(--rn-enter-duration) var(--rn-transition-ease) both;
+  }
+}
+
+@keyframes rn-dialog-pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
