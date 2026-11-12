@@ -32,50 +32,50 @@
 
   <rect width="1200" height="500" rx="20" fill="url(#rfBg)" />
 
-  <text x="48" y="52" fill="#141413" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700">Andocken an RelationFlow (Everlast Consulting) – Modulare Bridge-Architektur</text>
-  <text x="48" y="78" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="14">Gemeinsames Rollenmodell (Owner/Editor/Viewer) · Intelligenter Auto-Modell-Router · Eigenständige Hybrid-RAG-API für KI-Assistenten</text>
+  <text x="48" y="52" fill="#141413" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="24" font-weight="700">Andocken an RelationFlow (Everlast Consulting) – Modulare Bridge-Architektur</text>
+  <text x="48" y="78" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14">Gemeinsames Rollenmodell (Owner/Editor/Viewer) · Intelligenter Auto-Modell-Router · Eigenständige Hybrid-RAG-API für KI-Assistenten</text>
 
   <!-- Left: RelationFlow Core -->
   <rect x="48" y="110" width="380" height="345" rx="16" fill="#FFFFFF" stroke="#6366F1" stroke-width="2" />
-  <text x="72" y="148" fill="#4338CA" font-family="system-ui, -apple-system, sans-serif" font-size="17" font-weight="700">RelationFlow KI-Workspace (Bestandssystem)</text>
-  <text x="72" y="176" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="13">• Team-Spaces mit mandantenfähiger Rollensteuerung</text>
-  <text x="72" y="200" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="13">• Spezialisierte KI-Assistenten &amp; Agentic Workflows</text>
-  <text x="72" y="224" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="13">• Multi-Modell-Orchestrierung (Auto-Select)</text>
-  <text x="72" y="248" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="13">• DSGVO-konformes EU-Hosting für den Mittelstand</text>
+  <text x="72" y="148" fill="#3730A3" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="17" font-weight="700">RelationFlow KI-Workspace (Bestandssystem)</text>
+  <text x="72" y="176" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="13">• Team-Spaces mit mandantenfähiger Rollensteuerung</text>
+  <text x="72" y="200" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="13">• Spezialisierte KI-Assistenten &amp; Agentic Workflows</text>
+  <text x="72" y="224" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="13">• Multi-Modell-Orchestrierung (Auto-Select)</text>
+  <text x="72" y="248" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="13">• DSGVO-konformes EU-Hosting für den Mittelstand</text>
 
   <rect x="72" y="276" width="332" height="150" rx="12" fill="#F8FAFC" stroke="#4F46E5" stroke-width="1.5" />
-  <text x="90" y="304" fill="#141413" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600">Typischer Agenten-Aufruf aus RelationFlow:</text>
-  <text x="90" y="330" fill="#0284C7" font-family="monospace" font-size="12">POST /api/v1/notebooks/:id/search</text>
-  <text x="90" y="352" fill="#475569" font-family="monospace" font-size="11.5">{ "query": "Kündigungsfrist Rahmenvertrag",</text>
-  <text x="90" y="370" fill="#475569" font-family="monospace" font-size="11.5">  "topK": 8, "mode": "hybrid_rrf" }</text>
-  <text x="90" y="398" fill="#047857" font-family="system-ui, -apple-system, sans-serif" font-size="12">→ Liefert exakt belegte Chunks + Seite/Offset</text>
+  <text x="90" y="304" fill="#141413" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Typischer Agenten-Aufruf aus RelationFlow:</text>
+  <text x="90" y="330" fill="#075985" font-family="'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace" font-size="12">POST /api/v1/notebooks/:id/search</text>
+  <text x="90" y="352" fill="#334155" font-family="'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace" font-size="11.5">{ "query": "Kündigungsfrist Rahmenvertrag",</text>
+  <text x="90" y="370" fill="#334155" font-family="'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace" font-size="11.5">  "topK": 8, "mode": "hybrid_rrf" }</text>
+  <text x="90" y="398" fill="#065F46" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">→ Liefert exakt belegte Chunks + Seite/Offset</text>
 
   <!-- Center: Integration Bridge -->
   <rect x="468" y="155" width="264" height="255" rx="16" fill="#F8FAFC" stroke="#047857" stroke-width="2" />
-  <text x="492" y="190" fill="#047857" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700">RelationFlow Bridge</text>
-  <text x="492" y="218" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12.5">1. Workspace- &amp; RBAC-Sync</text>
-  <text x="492" y="238" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">   owner | editor | viewer</text>
-  <text x="492" y="266" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12.5">2. Auto-LLM-Router</text>
-  <text x="492" y="286" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">   Datenschutz → EU-Ollama</text>
-  <text x="492" y="304" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">   Audio/TTS → Gemini Native</text>
-  <text x="492" y="332" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="12.5">3. OpenAPI 3.1 RAG-Vertrag</text>
-  <text x="492" y="352" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">   RFC 9457 Problem Details</text>
-  <text x="492" y="372" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="11.5">   AI Act Art. 50 Telemetrie</text>
+  <text x="492" y="190" fill="#065F46" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="700">RelationFlow Bridge</text>
+  <text x="492" y="218" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">1. Workspace- &amp; RBAC-Sync</text>
+  <text x="492" y="238" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">   owner | editor | viewer</text>
+  <text x="492" y="266" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">2. Auto-LLM-Router</text>
+  <text x="492" y="286" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">   Datenschutz → EU-Ollama</text>
+  <text x="492" y="304" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">   Audio/TTS → Gemini Native</text>
+  <text x="492" y="332" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">3. OpenAPI 3.1 RAG-Vertrag</text>
+  <text x="492" y="352" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">   RFC 9457 Problem Details</text>
+  <text x="492" y="372" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">   AI Act Art. 50 Telemetrie</text>
 
   <!-- Right: NotebookLM Klon Capabilities -->
   <rect x="772" y="110" width="380" height="345" rx="16" fill="#FFFFFF" stroke="#0284C7" stroke-width="2" />
-  <text x="796" y="148" fill="#0284C7" font-family="system-ui, -apple-system, sans-serif" font-size="17" font-weight="700">NotebookLM Klon (Deep-Knowledge &amp; Studio)</text>
-  <text x="796" y="176" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="13">• Quellengestützter Chat mit klickbaren [n]-Zitaten</text>
-  <text x="796" y="200" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="13">• Zwei-Sprecher Audio-Overview + Live-Fragen-Modus</text>
-  <text x="796" y="224" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="13">• Interaktiver 60-fps Video-Overview (WebM/MP4 Export)</text>
-  <text x="796" y="248" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="13">• SVG-Mindmap (+ ARIA-Tree), Lernkarten (SM-2) &amp; Quiz</text>
-  <text x="796" y="272" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="13">• Hybrid-Vektorsuche (NotebookDO int8 + D1 FTS5)</text>
-  <text x="796" y="296" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-size="13">• Barrierefreiheit nach WCAG 2.2 AAA / EN 301 549</text>
+  <text x="796" y="148" fill="#075985" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="17" font-weight="700">NotebookLM Klon (Deep-Knowledge &amp; Studio)</text>
+  <text x="796" y="176" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="13">• Quellengestützter Chat mit klickbaren [n]-Zitaten</text>
+  <text x="796" y="200" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="13">• Zwei-Sprecher Audio-Overview + Live-Fragen-Modus</text>
+  <text x="796" y="224" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="13">• Interaktiver 60-fps Video-Overview (WebM/MP4 Export)</text>
+  <text x="796" y="248" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="13">• SVG-Mindmap (+ ARIA-Tree), Lernkarten (SM-2) &amp; Quiz</text>
+  <text x="796" y="272" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="13">• Hybrid-Vektorsuche (NotebookDO int8 + D1 FTS5)</text>
+  <text x="796" y="296" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="13">• Barrierefreiheit nach WCAG 2.2 AAA / EN 301 549</text>
 
   <rect x="796" y="322" width="332" height="104" rx="12" fill="#F8FAFC" stroke="#0284C7" stroke-width="1.5" />
-  <text x="814" y="350" fill="#141413" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" font-weight="600">Mehrwert für RelationFlow-Kunden:</text>
-  <text x="814" y="374" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="12">Sofort nutzbares Forschungs- &amp; Lernstudio auf</text>
-  <text x="814" y="394" fill="#475569" font-family="system-ui, -apple-system, sans-serif" font-size="12">bestehenden Unternehmensdokumenten ohne Vendor-Lock-in.</text>
+  <text x="814" y="350" fill="#141413" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600">Mehrwert für RelationFlow-Kunden:</text>
+  <text x="814" y="374" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">Sofort nutzbares Forschungs- &amp; Lernstudio auf</text>
+  <text x="814" y="394" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">bestehenden Unternehmensdokumenten ohne Vendor-Lock-in.</text>
 
   <!-- Bidirectional Arrows -->
   <line x1="428" y1="282" x2="464" y2="282" stroke="#047857" stroke-width="2.5" marker-start="url(#rfArrow)" marker-end="url(#rfArrow)" />

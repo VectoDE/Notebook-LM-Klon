@@ -12,7 +12,29 @@ describe("Logo und Favicon", () => {
     expect(html).toContain('<meta name="theme-color" content="#2563EB"');
   });
 
-  it.each(["favicon.svg", "icon.svg", "apple-touch-icon.png", "icon-192.png", "icon-512.png"])(
+  it("verlinkt Manifest und ICO-Fallback", () => {
+    expect(html).toContain('<link rel="manifest" href="/manifest.webmanifest"');
+    expect(html).toContain('<link rel="icon" href="/favicon.ico"');
+  });
+
+  it("Manifest verweist nur auf vorhandene Icons, inklusive maskierbarem Icon", () => {
+    const manifest = JSON.parse(readFileSync(resolve(webRoot, "public/manifest.webmanifest"), "utf8"));
+    expect(manifest.icons.some((i: { purpose: string }) => i.purpose === "maskable")).toBe(true);
+    for (const icon of manifest.icons as { src: string }[]) {
+      expect(existsSync(resolve(webRoot, "public", icon.src.slice(1)))).toBe(true);
+    }
+  });
+
+  it.each([
+    "favicon.svg",
+    "favicon.ico",
+    "icon.svg",
+    "apple-touch-icon.png",
+    "icon-192.png",
+    "icon-512.png",
+    "icon-maskable-512.png",
+    "og-image.png"
+  ])(
     "liefert public/%s",
     (file) => {
       expect(existsSync(resolve(webRoot, "public", file))).toBe(true);
