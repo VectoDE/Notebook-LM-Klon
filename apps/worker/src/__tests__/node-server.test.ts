@@ -497,6 +497,8 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
 
     it("reaches every API router over HTTP on the Node path (wiring, not 404)", async () => {
       clearRateLimitMemory();
+      // Explicit test salt: without SESSION_SALT_SECRET the login routes answer 503.
+      vi.stubEnv("SESSION_SALT_SECRET", "test-only-session-salt-node-wiring");
       const serverInstance = await startNodeServer({
         port: 0,
         dataDir: join(TEST_DATA_DIR, "srv-data-routers"),
@@ -539,7 +541,10 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
         expect((await probe("GET", "/api/v1/providers")).status).toBe(200);
         expect((await probe("POST", "/api/v1/auth/passkey/login/options", {})).status).toBe(200);
         // Guest login fails closed without TURNSTILE_SECRET_KEY (route reached, not 404).
-        expect((await probe("POST", "/api/v1/auth/guest", {})).status).toBe(503);
+        expect(await probe("POST", "/api/v1/auth/guest", {})).toEqual({
+          status: 503,
+          code: "TURNSTILE_NOT_CONFIGURED"
+        });
         expect((await probe("GET", "/api/v1/demo/info")).status).toBe(200);
 
         // Unknown API paths stay 404, so the 401s above are real routes.
@@ -549,6 +554,7 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
         });
       } finally {
         await serverInstance.close();
+        vi.unstubAllEnvs();
       }
     }, 15000);
   });
