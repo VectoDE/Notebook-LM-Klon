@@ -122,10 +122,14 @@ describe("Design-Tokens: Vollständigkeit", () => {
   });
 
   it("setzt Serif nur für Überschriften, Fließtext und Bedienung ohne Serifen (Issue #328)", () => {
+    // Serifenschrift: Source Serif 4, Georgia oder die generische Familie "serif" am Ende
+    const hasSerif = (stack: string) =>
+      stack.includes("Serif 4") || stack.includes("Georgia") || stack.endsWith(", serif");
     for (const theme of THEMES) {
-      expect(TYPOGRAPHY[theme].body, theme).not.toMatch(/Serif 4|Georgia|, serif$/);
-      expect(TYPOGRAPHY[theme].ui, theme).not.toMatch(/Serif 4|Georgia|, serif$/);
+      expect(hasSerif(TYPOGRAPHY[theme].body), theme).toBe(false);
+      expect(hasSerif(TYPOGRAPHY[theme].ui), theme).toBe(false);
     }
+    expect(hasSerif(TYPOGRAPHY["editorial-calm"].headings)).toBe(true);
     expect(TYPOGRAPHY["editorial-calm"].body).toMatch(/^"Inter Variable"/);
   });
 
