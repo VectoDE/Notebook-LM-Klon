@@ -6,6 +6,7 @@ import type {
 } from "@notebook-lm/shared";
 import { type KeyboardEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { Icon } from "./Icon.js";
+import { useTheme } from "./useTheme.js";
 
 export interface VideoOverviewPlayerProps {
   readonly storyboard: VideoStoryboard;
@@ -246,6 +247,7 @@ function drawChart(
 
 /** Folientext als HTML: Kicker, Titel, Punkte, Diagramm als Balkenliste, Quelle. */
 function SlideText({ slide, bodyId }: { readonly slide: VideoSlide; readonly bodyId: string }) {
+  const { tf } = useTheme();
   const chart = slide.chart;
   const maxValue = chart ? Math.max(...chart.data.map((d) => d.value), 1) : 1;
   const citation = slide.citations?.[0];
@@ -293,7 +295,7 @@ function SlideText({ slide, bodyId }: { readonly slide: VideoSlide; readonly bod
         )}
         {citation && (
           <p className="rn-video-source">
-            Quelle: „{citation.sourceTitle}“ – „{citation.quote}“
+            {tf("videoSource", { title: citation.sourceTitle, quote: citation.quote })}
           </p>
         )}
       </div>
@@ -303,6 +305,7 @@ function SlideText({ slide, bodyId }: { readonly slide: VideoSlide; readonly bod
 
 export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
   const { storyboard, onTimeUpdate, onEnded, autoplay = false } = props;
+  const { t, tf } = useTheme();
 
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
   const [isPlaying, setIsPlaying] = useState(autoplay);
@@ -339,7 +342,7 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
       setActiveSlideIndex(foundSlideIndex);
       const activeSlide = storyboard.slides[foundSlideIndex];
       if (activeSlide && audioDescriptionEnabled) {
-        setLiveAnnouncement(`Audiodeskription: ${activeSlide.audioDescription}`);
+        setLiveAnnouncement(tf("videoLiveAd", { text: activeSlide.audioDescription }));
       }
     }
 
@@ -361,7 +364,8 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
     activeSlideIndex,
     audioDescriptionEnabled,
     showSubtitles,
-    onTimeUpdate
+    onTimeUpdate,
+    tf
   ]);
 
   // Hintergrund der aktiven Folie zeichnen; der Text steht als HTML darüber
@@ -451,13 +455,13 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
 
   const jumpToChapter = (chapter: VideoChapter) => {
     handleSeek(chapter.startTimeMs);
-    setLiveAnnouncement(`Sprung zu Kapitel: ${chapter.title}`);
+    setLiveAnnouncement(tf("videoLiveJump", { title: chapter.title }));
   };
 
   const toggleSubtitles = () => {
     const next = !showSubtitles;
     setShowSubtitles(next);
-    setLiveAnnouncement(next ? "Untertitel an." : "Untertitel aus.");
+    setLiveAnnouncement(t(next ? "videoSubsOn" : "videoSubsOff"));
   };
 
   const toggleAudioDescription = () => {
@@ -465,8 +469,8 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
     setAudioDescriptionEnabled(next);
     setLiveAnnouncement(
       next
-        ? `Audiodeskription an: ${currentSlide?.audioDescription ?? ""}`.trim()
-        : "Audiodeskription aus."
+        ? tf("videoAdOn", { text: currentSlide?.audioDescription ?? "" }).trim()
+        : t("videoAdOff")
     );
   };
 
@@ -503,12 +507,15 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
   );
   const durationSec = Math.max(1, Math.ceil(storyboard.durationMs / 1000));
   const currentSec = Math.min(durationSec, Math.floor(currentTimeMs / 1000));
-  const timeText = `${formatTime(currentTimeMs)} von ${formatTime(storyboard.durationMs)}`;
+  const timeText = tf("videoTime", {
+    current: formatTime(currentTimeMs),
+    total: formatTime(storyboard.durationMs)
+  });
 
   return (
     <section
       className="rn-video"
-      aria-label={`Video-Übersicht: ${storyboard.title}`}
+      aria-label={tf("videoAria", { title: storyboard.title })}
       aria-describedby={hintId}
       aria-keyshortcuts="Space K ArrowLeft ArrowRight C D"
       // biome-ignore lint/a11y/noNoninteractiveTabindex: Der Player ist das Ziel seiner Tastenkürzel (aria-keyshortcuts).
@@ -517,8 +524,7 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
       data-testid="video-overview-player"
     >
       <p id={hintId} className="sr-only">
-        Tasten im Player: Leertaste oder K spielt und pausiert, Pfeil links und rechts springen 5
-        Sekunden, C schaltet Untertitel, D die Audiodeskription.
+        {t("videoHint")}
       </p>
 
       <div className="rn-video-screen">
@@ -530,8 +536,12 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
           role="img"
           aria-label={
             currentSlide
-              ? `Folie ${activeSlideIndex + 1} von ${storyboard.slides.length}: ${currentSlide.title}`
-              : "Folie"
+              ? tf("videoSlideAria", {
+                  n: activeSlideIndex + 1,
+                  total: storyboard.slides.length,
+                  title: currentSlide.title
+                })
+              : t("videoSlide")
           }
           aria-describedby={currentSlide ? slideBodyId : undefined}
           data-testid="slide-canvas"
@@ -563,7 +573,7 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
           <span data-testid="video-time">
             {formatTime(currentTimeMs)} / {formatTime(storyboard.durationMs)}
           </span>
-          {activeChapter && <span>Kapitel: {activeChapter.title}</span>}
+          {activeChapter && <span>{tf("videoChapter", { title: activeChapter.title })}</span>}
         </div>
         <input
           type="range"
@@ -573,7 +583,7 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
           value={currentSec}
           onChange={(e) => handleSeek(Number(e.target.value) * 1000)}
           className="rn-range"
-          aria-label="Wiedergabeposition"
+          aria-label={t("videoScrub")}
           aria-valuetext={timeText}
           data-testid="timeline-scrubber"
         />
@@ -588,7 +598,7 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
             data-testid="play-pause-button"
             aria-keyshortcuts="K"
           >
-            {isPlaying ? "Pausieren" : "Abspielen"}
+            {t(isPlaying ? "mediaPause" : "mediaPlay")}
           </button>
 
           <button
@@ -602,7 +612,7 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
             <span className="rn-video-toggle-box" aria-hidden="true">
               <Icon name="check" size={16} className="rn-icon rn-video-toggle-check" />
             </span>
-            Untertitel
+            {t("videoSubtitles")}
           </button>
 
           <button
@@ -616,12 +626,12 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
             <span className="rn-video-toggle-box" aria-hidden="true">
               <Icon name="check" size={16} className="rn-icon rn-video-toggle-check" />
             </span>
-            Audiodeskription
+            {t("videoAudioDesc")}
           </button>
         </div>
 
-        <nav className="rn-video-chapters" aria-label="Kapitelauswahl">
-          <span className="rn-video-chapters-label">Kapitel:</span>
+        <nav className="rn-video-chapters" aria-label={t("videoChaptersNav")}>
+          <span className="rn-video-chapters-label">{t("videoChaptersLabel")}</span>
           {storyboard.chapters.map((ch) => {
             const isCurrent = activeChapter?.id === ch.id;
             return (
@@ -635,7 +645,7 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
               >
                 {ch.title}
                 <span className="sr-only">
-                  , Kapitel {ch.index + 1} von {storyboard.chapters.length}
+                  {tf("videoChapterSr", { n: ch.index + 1, total: storyboard.chapters.length })}
                 </span>
               </button>
             );

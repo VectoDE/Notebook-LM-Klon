@@ -14,7 +14,7 @@ import {
 import { ChatApiError, errorKeyForStatus, technicalErrorDetail } from "./chat-client.js";
 import { focusFirstAvailable } from "./focus-return.js";
 import { trapTabKey } from "./focus-trap.js";
-import { podcastStateLabel } from "./stage-visuals.js";
+import { podcastStateKey } from "./stage-visuals.js";
 import { useTheme } from "./useTheme.js";
 
 export interface SpeechRecognitionResultLike {
@@ -53,17 +53,12 @@ export interface InteractiveAudioHostPlayerProps {
   readonly currentTrackTitle?: string;
 }
 
-const INTERJECT_TEXT_STATUS =
-  "Zwischenfrage-Modus aktiv. Tippen Sie Ihre Rückfrage ein oder drücken Sie Escape zum Abbrechen.";
-
 export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProps) {
-  const {
-    notebookId,
-    stateMachine,
-    onInterjectSubmit,
-    currentTrackTitle = "Audio Overview: Deep Dive Podcast"
-  } = props;
-  const { t } = useTheme();
+  const { notebookId, stateMachine, onInterjectSubmit, currentTrackTitle: trackTitleProp } = props;
+  const { t, tf, language } = useTheme();
+  const currentTrackTitle = trackTitleProp ?? t("audioDefaultTitle");
+  const speechLang = language === "en" ? "en-US" : "de-DE";
+  const interjectTextStatus = t("audioInterjectStatus");
 
   const [machineCtx, setMachineCtx] = useState<PodcastStateMachineContext>(() =>
     stateMachine.getContext()
@@ -74,9 +69,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
   const [micSupported, setMicSupported] = useState(true);
   const [statusMessage, setStatusMessage] = useState<string>(() =>
     // Von der Bühne aus öffnet die Zwischenfrage direkt (#314)
-    stateMachine.getState() === "interjecting"
-      ? INTERJECT_TEXT_STATUS
-      : "Audio bereit. Drücken Sie auf 'Beitreten / Frage stellen', um eine Zwischenfrage zu stellen."
+    stateMachine.getState() === "interjecting" ? interjectTextStatus : t("audioReady")
   );
   const [hostAnswer, setHostAnswer] = useState<AudioInterjectResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -137,10 +130,10 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
   const handleTogglePlay = () => {
     if (machineCtx.state === "playing") {
       stateMachine.dispatch({ type: "PAUSE" });
-      setStatusMessage("Wiedergabe pausiert.");
+      setStatusMessage(t("audioPausedMsg"));
     } else if (machineCtx.state === "paused" || machineCtx.state === "idle") {
       stateMachine.dispatch({ type: "PLAY" });
-      setStatusMessage("Wiedergabe läuft.");
+      setStatusMessage(t("audioPlayingMsg"));
     }
   };
 
@@ -155,21 +148,19 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
 
     if (!SpeechRecognition) {
       setMicSupported(false);
-      setStatusMessage(
-        "Spracherkennung wird von Ihrem Browser nicht unterstützt. Bitte Textfeld nutzen."
-      );
+      setStatusMessage(t("audioNoSpeech"));
       return;
     }
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.lang = "de-DE";
+      recognition.lang = speechLang;
       recognition.continuous = true;
       recognition.interimResults = true;
 
       recognition.onstart = () => {
         setIsMicListening(true);
-        setStatusMessage("Mikrofon lauscht... Sprechen Sie jetzt.");
+        setStatusMessage(t("audioMicListening"));
       };
 
       recognition.onresult = (event: SpeechRecognitionEventLike) => {
@@ -186,9 +177,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
 
       recognition.onerror = (event: { readonly error?: string }) => {
         setIsMicListening(false);
-        setStatusMessage(
-          `Mikrofon-Fehler: ${event.error || "Unbekannter Fehler"}. Nutzen Sie das Textfeld.`
-        );
+        setStatusMessage(tf("audioMicError", { error: event.error || t("audioMicUnknown") }));
       };
 
       recognition.onend = () => {
@@ -200,7 +189,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
     } catch {
       setIsMicListening(false);
       setMicSupported(false);
-      setStatusMessage("Mikrofon konnte nicht initialisiert werden. Bitte Textfeld verwenden.");
+      setStatusMessage(t("audioMicInitFailed"));
     }
   };
 
@@ -220,11 +209,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
   // Handle 'Beitreten / Frage stellen'
   const handleOpenInterject = (mode: "mic" | "text" = "text") => {
     stateMachine.dispatch({ type: "JOIN_INTERJECT", inputMode: mode });
-    setStatusMessage(
-      mode === "mic"
-        ? "Mikrofon aktiv. Sprechen Sie Ihre Frage oder tippen Sie in das Textfeld."
-        : INTERJECT_TEXT_STATUS
-    );
+    setStatusMessage(mode === "mic" ? t("audioMicActive") : interjectTextStatus);
 
     if (mode === "mic") {
       startListening();
@@ -235,7 +220,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
   const handleCancelInterject = () => {
     stopListening();
     stateMachine.dispatch({ type: "CANCEL_INTERJECT" });
-    setStatusMessage("Zwischenfrage abgebrochen. Wiedergabe fortgesetzt.");
+    setStatusMessage(t("audioCancelled"));
   };
 
   // Handle Question Submission
@@ -251,7 +236,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
     stopListening();
     setIsSubmitting(true);
     stateMachine.dispatch({ type: "SUBMIT_QUESTION", question: cleanQuestion });
-    setStatusMessage("Hosts bereiten quellengestützte Antwort vor...");
+    setStatusMessage(t("audioPreparing"));
 
     try {
       let response: AudioInterjectResponse;
@@ -284,7 +269,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
         answerText: response.fullAnswer,
         durationMs: response.speechSynthesis.estimatedDurationMs
       });
-      setStatusMessage("Hosts antworten auf Ihre Zwischenfrage...");
+      setStatusMessage(t("audioAnswering"));
       setQuestionText("");
       setLiveTranscript("");
     } catch (err) {
@@ -311,7 +296,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
     stateMachine.dispatch({ type: "HOST_ANSWER_COMPLETE" });
     stateMachine.dispatch({ type: "RESUME_CONFIRMED" });
     setHostAnswer(null);
-    setStatusMessage("Host-Antwort abgeschlossen. Haupt-Podcast läuft weiter.");
+    setStatusMessage(t("audioAnswerDone"));
   };
 
   // Keyboard accessibility: Escape to cancel interject
@@ -331,7 +316,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
 
   return (
     <section
-      aria-label="Interaktiver Audio-Player & Host-Studio"
+      aria-label={t("audioAria")}
       className="audio-player-container"
       onKeyDown={handleKeyDown}
       tabIndex={-1}
@@ -350,10 +335,10 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
         <h2 id="audio-track-title">{currentTrackTitle}</h2>
         <div className="player-meta">
           <span className="state-badge" data-testid="audio-state-badge">
-            Status: {podcastStateLabel(machineCtx.state)}
+            {tf("audioStatus", { state: t(podcastStateKey(machineCtx.state)) })}
           </span>
           <span className="time-display">
-            <span className="sr-only">Zeit: </span>
+            <span className="sr-only">{t("audioTimeSr")}</span>
             {formattedTime(machineCtx.currentTimeMs)} / {formattedTime(machineCtx.durationMs)}
           </span>
         </div>
@@ -361,7 +346,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
 
       {/* Main Playback Controls */}
       <fieldset className="player-controls">
-        <legend className="sr-only">Audio-Steuerung</legend>
+        <legend className="sr-only">{t("audioControls")}</legend>
         <button
           ref={playButtonRef}
           type="button"
@@ -369,7 +354,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
           className="btn-play-pause"
           disabled={machineCtx.state === "interjecting" || machineCtx.state === "answering"}
         >
-          {machineCtx.state === "playing" ? "Pausieren" : "Abspielen"}
+          {t(machineCtx.state === "playing" ? "mediaPause" : "mediaPlay")}
         </button>
 
         {machineCtx.state !== "interjecting" && machineCtx.state !== "answering" && (
@@ -380,7 +365,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
             className="btn-interject"
             data-testid="btn-audio-interject"
           >
-            Beitreten / Frage stellen
+            {t("audioJoin")}
           </button>
         )}
       </fieldset>
@@ -400,22 +385,21 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
             }
           }}
         >
-          <h3 id="interject-dialog-title">Frage an die Podcast-Hosts stellen</h3>
+          <h3 id="interject-dialog-title">{t("audioDialogTitle")}</h3>
           <p className="interject-hint">
-            Das Haupt-Audio wurde an Minute {formattedTime(machineCtx.pausedAtMs)} pausiert. Die
-            Hosts antworten anhand Ihrer Notebook-Quellen.
+            {tf("audioPausedAt", { time: formattedTime(machineCtx.pausedAtMs) })}
           </p>
 
           <form onSubmit={handleSubmitQuestion} className="interject-form">
             <div className="input-group">
-              <label htmlFor="interject-question-input">Ihre Zwischenfrage:</label>
+              <label htmlFor="interject-question-input">{t("audioQuestionLabel")}</label>
               <input
                 id="interject-question-input"
                 ref={inputRef}
                 type="text"
                 value={questionText}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setQuestionText(e.target.value)}
-                placeholder="z.B. Wie wird hier die DSGVO-Löschung genau garantiert?"
+                placeholder={t("audioQuestionPlaceholder")}
                 disabled={isSubmitting}
                 aria-required="true"
                 autoComplete="off"
@@ -431,19 +415,19 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
                 aria-pressed={isMicListening}
                 className={`btn-mic ${isMicListening ? "recording" : ""}`}
               >
-                {isMicListening ? "Mikrofon stoppen" : "Sprechen (Mikrofon)"}
+                {t(isMicListening ? "audioMicStop" : "audioMicStart")}
               </button>
 
               {!micSupported && (
                 <span className="mic-unsupported-note" role="note">
-                  (Mikrofon nicht verfügbar - Tastatureingabe aktiv)
+                  {t("audioMicUnsupported")}
                 </span>
               )}
             </div>
 
             {liveTranscript && (
               <div aria-live="polite" className="live-transcript" data-testid="live-transcript">
-                <small>Erkannter Text: </small>
+                <small>{t("audioRecognized")}</small>
                 <em>{liveTranscript}</em>
               </div>
             )}
@@ -454,7 +438,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
                 disabled={!questionText.trim() || isSubmitting}
                 className="btn-submit-question"
               >
-                {isSubmitting ? "Wird analysiert..." : "Frage stellen"}
+                {t(isSubmitting ? "audioAnalyzing" : "audioAsk")}
               </button>
               <button
                 type="button"
@@ -463,7 +447,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
                 className="btn-cancel"
                 aria-keyshortcuts="Escape"
               >
-                Abbrechen (Esc)
+                {t("audioCancel")}
               </button>
             </div>
           </form>
@@ -477,13 +461,13 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
           className="host-answer-stage"
           data-testid="host-answer-stage"
         >
-          <h3 id="host-answer-title">Antwort der Hosts</h3>
+          <h3 id="host-answer-title">{t("audioAnswerTitle")}</h3>
           <div className="dialogue-turns">
             {hostAnswer.turns.map((turn, idx) => (
               <article
                 key={`${turn.speaker}-${idx}`}
                 className={`host-bubble ${turn.speaker}`}
-                aria-label={`Sprecher: ${turn.speakerName}`}
+                aria-label={tf("audioSpeaker", { name: turn.speakerName })}
               >
                 <strong>{turn.speakerName}: </strong>
                 <span>{turn.text}</span>
@@ -493,15 +477,15 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
 
           {/* Citations list */}
           {hostAnswer.citations.length > 0 && (
-            <aside aria-label="Belegte Quellen" className="citations-list">
-              <h4>Quellenbelege:</h4>
+            <aside aria-label={t("audioCitations")} className="citations-list">
+              <h4>{t("audioCitationsHead")}</h4>
               <ol>
                 {hostAnswer.citations.map((cite) => (
                   <li key={`cite-${cite.index}`}>
                     <span className="cite-badge">[{cite.index}]</span>{" "}
                     <strong>{cite.sourceTitle}</strong>
-                    {cite.page ? ` (S. ${cite.page})` : ""}
-                    {cite.quote ? ` – „${cite.quote}“` : ""}
+                    {cite.page ? tf("audioCitePage", { page: cite.page }) : ""}
+                    {cite.quote ? tf("audioCiteQuote", { quote: cite.quote }) : ""}
                   </li>
                 ))}
               </ol>
@@ -514,9 +498,9 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
               type="button"
               onClick={handleHostAnswerComplete}
               className="btn-resume-podcast"
-              aria-label="Host-Antwort beenden und Podcast fortsetzen"
+              aria-label={tf("audioResumeAria", { time: formattedTime(machineCtx.pausedAtMs) })}
             >
-              Podcast fortsetzen ({formattedTime(machineCtx.pausedAtMs)})
+              {tf("audioResume", { time: formattedTime(machineCtx.pausedAtMs) })}
             </button>
           </div>
         </section>

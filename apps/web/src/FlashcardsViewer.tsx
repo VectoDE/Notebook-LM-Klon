@@ -16,6 +16,7 @@ import {
   createInitialSM2State
 } from "@notebook-lm/shared";
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useId, useState } from "react";
+import { type Language, fill, translate, useTheme } from "./useTheme.js";
 
 export interface FlashcardsViewerProps {
   readonly cards: readonly FlashcardItem[];
@@ -34,23 +35,34 @@ export interface FlashcardsViewerProps {
 }
 
 /** Klartext für das Wiederholungsdatum: "heute", "morgen", "in 6 Tagen". */
-export function describeNextReview(intervalDays: number): string {
-  if (intervalDays <= 0) return "heute";
-  if (intervalDays === 1) return "morgen";
-  return `in ${intervalDays} Tagen`;
+export function describeNextReview(intervalDays: number, language: Language = "de"): string {
+  if (intervalDays <= 0) return translate(language, "cardsToday");
+  if (intervalDays === 1) return translate(language, "cardsTomorrow");
+  return fill(translate(language, "cardsInDays"), { n: intervalDays });
 }
 
-export function describeRepetitions(repetitions: number): string {
-  return repetitions === 1 ? "1 Wiederholung" : `${repetitions} Wiederholungen`;
+export function describeRepetitions(repetitions: number, language: Language = "de"): string {
+  return repetitions === 1
+    ? translate(language, "cardsRepOne")
+    : fill(translate(language, "cardsRepMany"), { n: repetitions });
 }
+
+const RATING_LABEL_KEYS: Readonly<Record<FlashcardRating, string>> = {
+  again: "cardsRatingAgain",
+  hard: "cardsRatingHard",
+  good: "cardsRatingGood",
+  easy: "cardsRatingEasy"
+};
 
 export function FlashcardsViewer({
   cards,
-  title = "Lernkartei",
+  title: titleProp,
   onSourceJump,
   onCardReviewed,
   initialStates = {}
 }: FlashcardsViewerProps) {
+  const { t, tf, language } = useTheme();
+  const title = titleProp ?? t("cardsDefaultTitle");
   const ratingDescId = useId();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -66,10 +78,10 @@ export function FlashcardsViewer({
   const handleFlip = useCallback(() => {
     setIsFlipped((prev) => {
       const next = !prev;
-      setLastAnnouncement(next ? "Rückseite angezeigt" : "Vorderseite angezeigt");
+      setLastAnnouncement(t(next ? "cardsBackShown" : "cardsFrontShown"));
       return next;
     });
-  }, []);
+  }, [t]);
 
   const handleRating = useCallback(
     (rating: FlashcardRating) => {
@@ -81,16 +93,12 @@ export function FlashcardsViewer({
 
       onCardReviewed?.(currentIndex, rating, updated);
 
-      const ratingLabel =
-        rating === "again"
-          ? "Nochmal"
-          : rating === "hard"
-            ? "Schwer"
-            : rating === "good"
-              ? "Gut"
-              : "Einfach";
+      const ratingLabel = t(RATING_LABEL_KEYS[rating]);
       setLastAnnouncement(
-        `Karte bewertet als ${ratingLabel}. Nächste Wiederholung: ${describeNextReview(updated.intervalDays)}.`
+        tf("cardsRated", {
+          rating: ratingLabel,
+          when: describeNextReview(updated.intervalDays, language)
+        })
       );
 
       // Advance to next card if available, reset flip
@@ -99,7 +107,7 @@ export function FlashcardsViewer({
         setIsFlipped(false);
       }
     },
-    [currentState, currentIndex, onCardReviewed, totalCards]
+    [currentState, currentIndex, onCardReviewed, totalCards, t, tf, language]
   );
 
   const handleKeyDown = useCallback(
@@ -141,34 +149,29 @@ export function FlashcardsViewer({
   if (totalCards === 0) {
     return (
       <section aria-label={title} className="rn-tool-view rn-tool-view--empty">
-        <p className="rn-tool-empty">Keine Lernkarten vorhanden.</p>
+        <p className="rn-tool-empty">{t("cardsEmpty")}</p>
       </section>
     );
   }
 
   const ratings = [
-    { id: "again", label: "Nochmal", key: "1", hint: "Falsch erinnert" },
-    { id: "hard", label: "Schwer", key: "2", hint: "Mit Mühe erinnert" },
-    { id: "good", label: "Gut", key: "3", hint: "Nach kurzem Zögern erinnert" },
-    {
-      id: "easy",
-      label: "Einfach",
-      key: "4",
-      hint: "Sofort fehlerfrei gewusst"
-    }
+    { id: "again", label: t("cardsRatingAgain"), key: "1", hint: t("cardsHintAgain") },
+    { id: "hard", label: t("cardsRatingHard"), key: "2", hint: t("cardsHintHard") },
+    { id: "good", label: t("cardsRatingGood"), key: "3", hint: t("cardsHintGood") },
+    { id: "easy", label: t("cardsRatingEasy"), key: "4", hint: t("cardsHintEasy") }
   ] as const;
 
   return (
-    <section aria-label={`Lernkarten: ${title}`} className="rn-tool-view rn-cards">
+    <section aria-label={tf("cardsAria", { title })} className="rn-tool-view rn-cards">
       <header className="rn-tool-view-head">
         <h2 className="rn-tool-view-title">{title}</h2>
         <span aria-live="polite" data-testid="flashcard-counter" className="rn-tool-view-meta">
-          Karte {currentIndex + 1} von {totalCards}
+          {tf("cardsCounter", { n: currentIndex + 1, total: totalCards })}
         </span>
       </header>
       <progress
         className="rn-progress"
-        aria-label="Fortschritt im Stapel"
+        aria-label={t("cardsProgress")}
         max={totalCards}
         value={currentIndex + 1}
       />
@@ -185,17 +188,22 @@ export function FlashcardsViewer({
       {/* Flashcard container with flip action and keyboard events */}
       <section
         data-testid="flashcard-card"
-        aria-label={`Lernkarte ${currentIndex + 1}: ${isFlipped ? "Rückseite" : "Vorderseite"}`}
+        aria-label={tf("cardsCardAria", {
+          n: currentIndex + 1,
+          side: t(isFlipped ? "cardsSideBack" : "cardsSideFront")
+        })}
         className="rn-flashcard"
         data-side={isFlipped ? "back" : "front"}
       >
         <div className="rn-flashcard-meta">
           <span className="rn-eyebrow">
-            {isFlipped ? "Antwort (Rückseite)" : "Frage (Vorderseite)"}
+            {t(isFlipped ? "cardsEyebrowBack" : "cardsEyebrowFront")}
           </span>
           <span className="rn-flashcard-stats">
-            Nächste Wiederholung: {describeNextReview(currentState.intervalDays)} ·{" "}
-            {describeRepetitions(currentState.repetitions)}
+            {tf("cardsNextReview", {
+              when: describeNextReview(currentState.intervalDays, language),
+              reps: describeRepetitions(currentState.repetitions, language)
+            })}
           </span>
         </div>
 
@@ -209,7 +217,7 @@ export function FlashcardsViewer({
             onKeyDown={handleKeyDown}
             className="rn-btn rn-btn--secondary"
           >
-            {isFlipped ? "Vorderseite zeigen" : "Antwort aufdecken"}
+            {t(isFlipped ? "cardsShowFront" : "cardsReveal")}
           </button>
 
           {currentCard?.sourceHint && (
@@ -224,7 +232,7 @@ export function FlashcardsViewer({
               }}
               className="rn-link-btn"
             >
-              Quelle: {currentCard.sourceHint}
+              {tf("cardsSource", { hint: currentCard.sourceHint })}
             </button>
           )}
         </div>
@@ -251,36 +259,39 @@ export function FlashcardsViewer({
       </div>
       {ratings.map((r) => (
         <span key={r.id} id={`${ratingDescId}-${r.id}`} hidden>
-          {`Taste ${r.key}: ${r.hint}`}
+          {tf("cardsKeyHint", { key: r.key, hint: r.hint })}
         </span>
       ))}
 
       {/* Navigation pagination buttons */}
-      <nav aria-label="Kartenauswahl" className="rn-tool-actions-row rn-tool-actions-row--split">
+      <nav
+        aria-label={t("cardsNavLabel")}
+        className="rn-tool-actions-row rn-tool-actions-row--split"
+      >
         <button
           type="button"
           disabled={currentIndex === 0}
-          aria-label="Vorherige Karte (Pfeil links)"
+          aria-label={t("cardsPrevAria")}
           onClick={() => {
             setCurrentIndex((i) => i - 1);
             setIsFlipped(false);
           }}
           className="rn-btn rn-btn--ghost"
         >
-          Vorherige
+          {t("cardsPrev")}
         </button>
 
         <button
           type="button"
           disabled={currentIndex === totalCards - 1}
-          aria-label="Nächste Karte (Pfeil rechts)"
+          aria-label={t("cardsNextAria")}
           onClick={() => {
             setCurrentIndex((i) => i + 1);
             setIsFlipped(false);
           }}
           className="rn-btn rn-btn--ghost"
         >
-          Nächste
+          {t("cardsNext")}
         </button>
       </nav>
     </section>

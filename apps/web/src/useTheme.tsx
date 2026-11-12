@@ -32,6 +32,7 @@ import {
   resolveInitialPreferences,
   systemColorMode
 } from "./theme-preferences.js";
+import { AREA_DE, AREA_EN } from "./translations-areas.js";
 
 export { COLOR_MODES, COLOR_MODE_PREFERENCES, LANGUAGES, THEMES };
 export type { ColorMode, ColorModePreference, DesignTheme, Language };
@@ -42,6 +43,7 @@ export interface TranslationDictionary {
 
 export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   de: {
+    ...AREA_DE,
     appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
     appSubtitle:
       "Bereit für Forschung, Quellenanalyse, Wissengraphen und barrierefreie Studio-Synthese.",
@@ -142,6 +144,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
       "Wiederholung in wachsenden Abständen nach dem SM-2-Verfahren, Export als CSV für die Lernkarten-App Anki."
   },
   en: {
+    ...AREA_EN,
     appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
     appSubtitle:
       "Ready for research, source grounding, knowledge graphs, and accessible synthesis.",
@@ -243,6 +246,13 @@ export function translate(language: Language, key: string): string {
   return TRANSLATIONS[language][key] ?? TRANSLATIONS.de[key] ?? key;
 }
 
+/** Setzt Werte für Platzhalter wie {n} ein; unbekannte Platzhalter bleiben stehen. */
+export function fill(text: string, vars: Readonly<Record<string, string | number>>): string {
+  return text.replace(/\{(\w+)\}/g, (whole, name: string) =>
+    name in vars ? String(vars[name]) : whole
+  );
+}
+
 export interface ThemeContextValue {
   readonly theme: DesignTheme;
   /** Gewählter Farbmodus, ggf. "system". */
@@ -257,6 +267,8 @@ export interface ThemeContextValue {
   readonly setColorMode: (mode: ColorModePreference) => void;
   readonly setLanguage: (lang: Language) => void;
   readonly t: (key: string) => string;
+  /** Wie t, mit Werten für Platzhalter wie {n}. */
+  readonly tf: (key: string, vars: Readonly<Record<string, string | number>>) => string;
 }
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -349,6 +361,12 @@ export function ThemeProvider({
 
   const t = useCallback((key: string): string => translate(language, key), [language]);
 
+  const tf = useCallback(
+    (key: string, vars: Readonly<Record<string, string | number>>): string =>
+      fill(translate(language, key), vars),
+    [language]
+  );
+
   const value = useMemo<ThemeContextValue>(
     () => ({
       theme,
@@ -360,7 +378,8 @@ export function ThemeProvider({
       setTheme,
       setColorMode,
       setLanguage,
-      t
+      t,
+      tf
     }),
     [
       theme,
@@ -371,7 +390,8 @@ export function ThemeProvider({
       setTheme,
       setColorMode,
       setLanguage,
-      t
+      t,
+      tf
     ]
   );
 
@@ -391,7 +411,9 @@ export function useTheme(): ThemeContextValue {
       setTheme: () => {},
       setColorMode: () => {},
       setLanguage: () => {},
-      t: (key: string) => translate("de", key)
+      t: (key: string) => translate("de", key),
+      tf: (key: string, vars: Readonly<Record<string, string | number>>) =>
+        fill(translate("de", key), vars)
     };
   }
   return context;

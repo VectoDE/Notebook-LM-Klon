@@ -21,6 +21,7 @@ import {
   useRef,
   useState
 } from "react";
+import { useTheme } from "./useTheme.js";
 
 export interface MindmapViewerProps {
   readonly rootNode: MindmapNode;
@@ -388,10 +389,12 @@ export function panDeltaForKey(
 
 export function MindmapViewer({
   rootNode,
-  title = "Wissens-Mindmap",
+  title: titleProp,
   onSourceJump,
   initialZoom = 1.0
 }: MindmapViewerProps) {
+  const { t, tf } = useTheme();
+  const title = titleProp ?? t("mmDefaultTitle");
   const [zoom, setZoom] = useState(initialZoom);
   const [pan, setPan] = useState({ x: 20, y: 20 });
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(() => new Set());
@@ -511,7 +514,7 @@ export function MindmapViewer({
   }, [activeTab, fitToView]);
 
   return (
-    <section aria-label={`Mindmap: ${title}`} className="rn-tool-view rn-mindmap">
+    <section aria-label={tf("mmAria", { title })} className="rn-tool-view rn-mindmap">
       <header className="rn-mindmap-head">
         {/* Ohne Eyebrow, wie Quiz und Lernkarten: der Zurück-Knopf nennt bereits das Werkzeug */}
         <div className="rn-tool-view-head">
@@ -519,7 +522,7 @@ export function MindmapViewer({
         </div>
 
         <div data-testid="mindmap-toolbar" className="rn-mindmap-toolbar">
-          <div role="tablist" aria-label="Ansicht" className="rn-seg-tabs">
+          <div role="tablist" aria-label={t("mmViewLabel")} className="rn-seg-tabs">
             {TAB_ORDER.map((tab) => (
               <button
                 key={tab}
@@ -536,18 +539,18 @@ export function MindmapViewer({
                 onClick={() => setActiveTab(tab)}
                 onKeyDown={handleTabKeyDown}
               >
-                {tab === "visual" ? "Grafik" : "Baumliste"}
+                {t(tab === "visual" ? "mmTabVisual" : "mmTabTree")}
               </button>
             ))}
           </div>
 
           {/* Zoom wirkt nur auf die Grafik; in der Baumliste wären es tote Tab-Stopps. */}
           {activeTab === "visual" && (
-            <fieldset className="rn-zoom" aria-label="Zoom">
+            <fieldset className="rn-zoom" aria-label={t("mmZoom")}>
               <button
                 type="button"
                 className="rn-icon-btn"
-                aria-label="Verkleinern"
+                aria-label={t("mmZoomOut")}
                 onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.2).toFixed(1))))}
               >
                 <span aria-hidden="true">−</span>
@@ -558,7 +561,7 @@ export function MindmapViewer({
               <button
                 type="button"
                 className="rn-icon-btn"
-                aria-label="Vergrößern"
+                aria-label={t("mmZoomIn")}
                 onClick={() => setZoom((z) => Math.min(3.0, Number((z + 0.2).toFixed(1))))}
               >
                 <span aria-hidden="true">+</span>
@@ -568,7 +571,7 @@ export function MindmapViewer({
                 className="rn-btn rn-btn--ghost rn-btn--compact"
                 onClick={fitToView}
               >
-                Einpassen
+                {t("mmFit")}
               </button>
             </fieldset>
           )}
@@ -594,8 +597,7 @@ export function MindmapViewer({
         }}
       >
         <p id={`${containerId}-visual-hint`} className="rn-visually-hidden">
-          Die Grafik ist nur zum Ansehen; Pfeiltasten verschieben die Ansicht. Alle Punkte der
-          Mindmap stehen im Reiter Baumliste, dort per Tastatur und Screenreader bedienbar.
+          {t("mmVisualHint")}
         </p>
         <svg
           data-testid="mindmap-svg"
@@ -605,7 +607,7 @@ export function MindmapViewer({
           height="100%"
           className="rn-mindmap-svg"
         >
-          <title>{`Mindmap: ${title}`}</title>
+          <title>{tf("mmAria", { title })}</title>
           <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
             {layout.connections.map((conn, idx) => {
               const dx = (conn.toX - conn.fromX) / 2;
@@ -700,14 +702,12 @@ export function MindmapViewer({
         className="rn-mindmap-tree"
       >
         <p className="rn-mindmap-hint" id={`${containerId}-tree-hint`}>
-          Pfeil hoch und runter wechseln den Eintrag. Pfeil rechts öffnet einen Zweig, Pfeil links
-          schließt ihn oder springt zum übergeordneten Eintrag. Pos1 und Ende springen an den Anfang
-          und das Ende. Eingabe oder Leertaste öffnet die Quelle.
+          {t("mmTreeHint")}
         </p>
 
         <ul
           role="tree"
-          aria-label={`Baumliste der Mindmap ${title}`}
+          aria-label={tf("mmTreeAria", { title })}
           aria-describedby={`${containerId}-tree-hint`}
           className="rn-tree"
         >
