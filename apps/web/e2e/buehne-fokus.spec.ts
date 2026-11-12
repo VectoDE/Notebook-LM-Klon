@@ -149,13 +149,16 @@ test.describe("Fokus-Rückgabe nach dem Schließen", () => {
     });
   }
 
-  test("Bühne: „Frage an die Hosts“ führt den Fokus in den Audio-Player", async ({ page }) => {
+  test("Bühne: „Frage an die Hosts“ führt den Fokus in die Zwischenfrage des Players", async ({
+    page
+  }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
     await openPanel(page, "studio");
     await page.getByTestId("btn-open-deep-dive-stage").click();
     await page.getByTestId("btn-deep-dive-interject").click();
-    await expect(page.getByTestId("btn-audio-interject")).toBeFocused();
+    // Seit #314 öffnet die Frage direkt
+    await expect(page.locator("#interject-question-input")).toBeFocused();
   });
 
   test("Audio: Zwischenfrage abbrechen (Escape und Knopf) gibt den Fokus an „Beitreten“ zurück", async ({

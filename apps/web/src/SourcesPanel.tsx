@@ -1,13 +1,7 @@
-import {
-  type ChangeEvent,
-  type DragEvent,
-  type KeyboardEvent,
-  useEffect,
-  useId,
-  useRef,
-  useState
-} from "react";
+import { type ChangeEvent, type DragEvent, useEffect, useId, useRef, useState } from "react";
 import { Icon } from "./Icon.js";
+import { trapTabKey } from "./focus-trap.js";
+import { useReturnFocus } from "./useReturnFocus.js";
 import type { CitationLocation, WorkspaceSource } from "./workspace-types.js";
 
 export interface SourcesPanelProps {
@@ -42,8 +36,23 @@ export function SourcesPanel({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const highlightRef = useRef<HTMLElement>(null);
+  const urlDialogRef = useRef<HTMLDialogElement>(null);
+  const urlButtonRef = useRef<HTMLButtonElement>(null);
+  const urlAddressRef = useRef<HTMLInputElement>(null);
   const searchInputId = useId();
   const urlDialogTitleId = useId();
+
+  // Vor showModal(): Auslöser merken, nach dem Schließen dorthin zurück (#314)
+  useReturnFocus(isUrlModalOpen, () => urlButtonRef.current);
+
+  // Modal öffnen: Hintergrund wird inert, Escape löst "cancel" aus, Fokus ins URL-Feld.
+  useEffect(() => {
+    const dialog = urlDialogRef.current;
+    if (isUrlModalOpen && dialog && !dialog.open && typeof dialog.showModal === "function") {
+      dialog.showModal();
+      urlAddressRef.current?.focus();
+    }
+  }, [isUrlModalOpen]);
 
   // If activeCitation arrives or changes, open inspector for that source
   useEffect(() => {
@@ -137,6 +146,7 @@ export function SourcesPanel({
           Datei hochladen
         </button>
         <button
+          ref={urlButtonRef}
           type="button"
           onClick={() => setIsUrlModalOpen(true)}
           className="btn-import-url rn-btn rn-btn--secondary"
@@ -326,14 +336,17 @@ export function SourcesPanel({
       {/* Link-Import */}
       {isUrlModalOpen && (
         <dialog
-          open
+          ref={urlDialogRef}
           aria-labelledby={urlDialogTitleId}
           data-testid="url-import-dialog"
           className="rn-dialog"
-          onKeyDown={(e: KeyboardEvent<HTMLDialogElement>) => {
-            if (e.key === "Escape") {
-              setIsUrlModalOpen(false);
-            }
+          onCancel={(e) => {
+            e.preventDefault();
+            setIsUrlModalOpen(false);
+          }}
+          // Tab läuft im Dialog um, statt in die Browserleiste zu springen
+          onKeyDown={(e) => {
+            if (urlDialogRef.current) trapTabKey(e, urlDialogRef.current, document.activeElement);
           }}
         >
           <div className="rn-dialog-card">
@@ -361,6 +374,7 @@ export function SourcesPanel({
                 <label htmlFor="url-address-input">URL</label>
                 <input
                   id="url-address-input"
+                  ref={urlAddressRef}
                   type="url"
                   required
                   value={urlInput}

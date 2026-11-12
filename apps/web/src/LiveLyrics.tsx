@@ -86,7 +86,6 @@ export function LiveLyrics({
             key={line.id}
             ref={isActive ? activeLineRef : null}
             aria-current={isActive ? "location" : undefined}
-            aria-label={`${line.speakerName}: ${line.text}`}
             onClick={() => onSeek?.(line.startMs)}
             data-testid={`lyrics-line-${line.id}`}
             className="rn-lyrics-line"
@@ -94,6 +93,7 @@ export function LiveLyrics({
             data-speaker={line.speaker}
           >
             <span className="rn-lyrics-speaker">{line.speakerName}</span>
+            {/* Kein aria-label: der Name ist der sichtbare Text (WCAG 2.5.3, #314) */}
             <span className="rn-lyrics-text">{line.text}</span>
           </button>
         );
