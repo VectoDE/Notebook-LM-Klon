@@ -17,7 +17,8 @@ import {
   resolveInitialPreferences,
   shouldReduceMotion,
   storeModel,
-  systemColorMode
+  systemColorMode,
+  systemPrefersReducedMotion
 } from "../theme-preferences.js";
 
 function storage(values: Record<string, string>) {
@@ -61,9 +62,9 @@ describe("resolveColorMode", () => {
 });
 
 describe("resolveInitialPreferences", () => {
-  it("nutzt ohne Speicher Fusion, Automatisch (wie Gerät) und Deutsch", () => {
+  it("nutzt ohne Speicher Pure, Automatisch (wie Gerät) und Deutsch (Issue #328)", () => {
     expect(resolveInitialPreferences({})).toEqual({
-      theme: "fusion",
+      theme: "pure",
       colorMode: "system",
       language: "de"
     });
@@ -116,7 +117,7 @@ describe("resolveInitialPreferences", () => {
       }
     };
     expect(resolveInitialPreferences({ storage: throwing })).toEqual({
-      theme: "fusion",
+      theme: "pure",
       colorMode: "system",
       language: "de"
     });
@@ -213,6 +214,12 @@ describe("Bewegung reduzieren (Issue #315)", () => {
     expect(shouldReduceMotion(undefined)).toBe(false);
     expect(shouldReduceMotion(off, media({ [REDUCED_MOTION_QUERY]: true }))).toBe(true);
     expect(shouldReduceMotion(off, media({}))).toBe(false);
+  });
+
+  it("liest den Systemwert für den Hinweis am Schalter (Issue #328)", () => {
+    expect(systemPrefersReducedMotion(media({ [REDUCED_MOTION_QUERY]: true }))).toBe(true);
+    expect(systemPrefersReducedMotion(media({}))).toBe(false);
+    expect(systemPrefersReducedMotion(undefined)).toBe(false);
   });
 });
 

@@ -10,6 +10,7 @@ import { App } from "./App.js";
 import { ThemeProvider } from "./useTheme.js";
 import "./themes.css";
 import "./workspace.css";
+import "./components.css";
 
 const rootElement = document.getElementById("root");
 if (rootElement) {

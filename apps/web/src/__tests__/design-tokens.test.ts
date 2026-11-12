@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   COLOR_MODES,
   CONTRAST_RULES,
+  DEFAULT_THEME,
   DESIGN_TOKENS,
   MIN_RATIO,
   MIXED_SURFACES,
@@ -15,6 +16,7 @@ import {
   auditMixedSurfaces,
   buildThemeCss,
   colorSchemeFor,
+  contrastMatrix,
   contrastRatio,
   mixSrgb,
   parseHex,
@@ -112,12 +114,73 @@ describe("Design-Tokens: Vollständigkeit", () => {
 
   it("gibt jedem Design eine eigene Schrift (Zuordnung Design-Umbau)", () => {
     expect(TYPOGRAPHY.pure.body).toMatch(/^"Inter Variable"/);
-    expect(TYPOGRAPHY["editorial-calm"].body).toMatch(/^"Source Serif 4 Variable"/);
     expect(TYPOGRAPHY["editorial-calm"].headings).toMatch(/^"Source Serif 4 Variable"/);
     expect(TYPOGRAPHY["immersive-cinema"].body).toMatch(/^"Space Grotesk Variable"/);
     expect(TYPOGRAPHY.fusion.body).toMatch(/^"Geist Variable"/);
     const primaries = THEMES.map((t) => TYPOGRAPHY[t].headings.split(",")[0]);
     expect(new Set(primaries).size).toBe(THEMES.length);
+  });
+
+  it("setzt Serif nur für Überschriften, Fließtext und Bedienung ohne Serifen (Issue #328)", () => {
+    // Serifenschrift: Source Serif 4, Georgia oder die generische Familie "serif" am Ende
+    const hasSerif = (stack: string) =>
+      stack.includes("Serif 4") || stack.includes("Georgia") || stack.endsWith(", serif");
+    for (const theme of THEMES) {
+      expect(hasSerif(TYPOGRAPHY[theme].body), theme).toBe(false);
+      expect(hasSerif(TYPOGRAPHY[theme].ui), theme).toBe(false);
+    }
+    expect(hasSerif(TYPOGRAPHY["editorial-calm"].headings)).toBe(true);
+    expect(TYPOGRAPHY["editorial-calm"].body).toMatch(/^"Inter Variable"/);
+  });
+
+  it("Fließtext 16 px, Karten 12 px in allen Designs (Issue #328)", () => {
+    for (const theme of THEMES) {
+      expect(SCALE[theme].textBase, theme).toBe(1);
+      expect(SCALE[theme].radiusMd, theme).toBe(12);
+      expect(SCALE[theme].radiusLg, theme).toBe(12);
+      // Spalten sind Karten (12 px); Editorial setzt bündige Spalten mit Trennlinien (0)
+      expect([0, 12], theme).toContain(SCALE[theme].radiusPanel);
+    }
+    expect(SCALE["editorial-calm"].radiusPanel).toBe(0);
+    const css = buildThemeCss();
+    expect(css).not.toContain("--rn-text-base: 1.0625rem;");
+    expect(css).toContain("--rn-radius-md: 12px;");
+  });
+
+  it("startet mit Pure, ohne Attribute gilt Pure mit Farbmodus nach System (Issue #328)", () => {
+    expect(DEFAULT_THEME).toBe("pure");
+    const generated = buildThemeCss();
+    expect(generated.startsWith(':root,\nhtml[data-design="pure"]')).toBe(true);
+    // Ohne Attribut: Pure Hell, bei dunklem System Pure Dunkel
+    const rootBlock = generated.slice(generated.indexOf(":root {"));
+    expect(rootBlock).toContain(tokensToCssDeclarations("pure", "light")[0]);
+    const darkBlock = generated.slice(generated.indexOf("@media (prefers-color-scheme: dark)"));
+    expect(darkBlock).toContain(tokensToCssDeclarations("pure", "dark")[0]);
+  });
+
+  it("hat eine eigene Feldfläche: Weiß im Hellen, tiefer als das Panel im Dunkeln", () => {
+    for (const theme of THEMES) {
+      expect(DESIGN_TOKENS[theme].light.field, theme).toBe("#FFFFFF");
+      const dark = DESIGN_TOKENS[theme].dark;
+      expect(relativeLuminance(dark.field), theme).toBeLessThan(relativeLuminance(dark.panel));
+      for (const mode of COLOR_MODES) {
+        const t = DESIGN_TOKENS[theme][mode];
+        expect(contrastRatio(t.border, t.field), `${theme}/${mode}`).toBeGreaterThanOrEqual(3);
+        expect(contrastRatio(t.focusRing, t.field), `${theme}/${mode}`).toBeGreaterThanOrEqual(3);
+        expect(contrastRatio(t.textPrimary, t.field), `${theme}/${mode}`).toBeGreaterThanOrEqual(7);
+      }
+    }
+  });
+
+  it("Fokusring in der Markenfarbe des Designs (Issue #328)", () => {
+    for (const theme of THEMES) {
+      for (const mode of COLOR_MODES) {
+        const t = DESIGN_TOKENS[theme][mode];
+        // Ring ist die Akzent- bzw. Textakzentfarbe des Designs, nie neutrales Schwarz/Weiß
+        expect([t.primary, t.accent], `${theme}/${mode}`).toContain(t.focusRing);
+        expect(["#000000", "#FFFFFF"], `${theme}/${mode}`).not.toContain(t.focusRing);
+      }
+    }
   });
 
   it("legt Skala, Abstände (4-px-Raster), Radien und Bewegung je Design fest", () => {
@@ -146,7 +209,7 @@ describe("Design-Tokens: Vollständigkeit", () => {
     expect(new Set(fingerprints).size).toBe(THEMES.length);
     const css = buildThemeCss();
     expect(css).toContain("--rn-radius-panel: 0px;");
-    expect(css).toContain("--rn-text-base: 1.0625rem;");
+    expect(css).toContain("--rn-text-base: 1rem;");
   });
 });
 
@@ -163,6 +226,25 @@ describe.each(combos)("Kontrast %s / %s (WCAG 2.2 AAA)", (theme, mode) => {
     (_fg, _bg, kind, result) => {
       expect(result.ratio).toBeGreaterThanOrEqual(MIN_RATIO[kind]);
       expect(result.passes).toBe(true);
+    }
+  );
+});
+
+describe("Kontrastmatrix 4 Designs x 3 Modi (Issue #328)", () => {
+  const matrix = contrastMatrix();
+
+  it("deckt alle 12 Kombinationen ab", () => {
+    expect(matrix).toHaveLength(12);
+    expect(new Set(matrix.map((m) => `${m.theme}/${m.mode}`)).size).toBe(12);
+  });
+
+  it.each(matrix.map((m) => [m.theme, m.mode, m] as const))(
+    "%s / %s: Text AAA (7:1), UI und Fokus mindestens 3:1",
+    (_theme, _mode, m) => {
+      expect(m.text).toBeGreaterThanOrEqual(7);
+      expect(m.ui).toBeGreaterThanOrEqual(3);
+      expect(m.focus).toBeGreaterThanOrEqual(3);
+      expect(m.focus).toBeGreaterThanOrEqual(m.ui);
     }
   );
 });

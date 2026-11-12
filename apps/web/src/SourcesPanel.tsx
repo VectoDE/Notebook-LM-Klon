@@ -7,12 +7,20 @@ import {
   useRef,
   useState
 } from "react";
+import { EmptyState } from "./EmptyState.js";
 import { Icon } from "./Icon.js";
+import { ViewToggle } from "./ViewToggle.js";
 import { trapTabKey } from "./focus-trap.js";
-import { shouldReduceMotion } from "./theme-preferences.js";
+import { browserStorage, shouldReduceMotion } from "./theme-preferences.js";
 import { type SourceUrlError, validateSourceUrl } from "./url-validation.js";
 import { useReturnFocus } from "./useReturnFocus.js";
 import { useTheme } from "./useTheme.js";
+import {
+  type SourcesView,
+  VIEW_STORAGE_KEYS,
+  readSourcesView,
+  storeView
+} from "./view-preferences.js";
 import type { CitationLocation, PanelFocusAttributes, WorkspaceSource } from "./workspace-types.js";
 
 export interface SourcesPanelProps {
@@ -52,11 +60,14 @@ export function SourcesPanel({
   const [urlTitleInput, setUrlTitleInput] = useState("");
   const [urlError, setUrlError] = useState<SourceUrlError | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  // Liste mit Haken oder Karten; die Wahl bleibt auf dem Gerät (Issue #329)
+  const [view, setView] = useState<SourcesView>(() => readSourcesView(browserStorage()));
   const [inspectedSourceId, setInspectedSourceId] = useState<string | null>(
     () => activeCitation?.sourceId ?? null
   );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const highlightRef = useRef<HTMLElement>(null);
   const urlDialogRef = useRef<HTMLDialogElement>(null);
   const urlButtonRef = useRef<HTMLButtonElement>(null);
@@ -158,6 +169,11 @@ export function SourcesPanel({
 
   const inspectedSource = sources.find((s) => s.id === inspectedSourceId);
 
+  const changeView = (next: SourcesView) => {
+    setView(next);
+    storeView(browserStorage(), VIEW_STORAGE_KEYS.sources, next);
+  };
+
   return (
     <section
       aria-label={t("srcPanelLabel")}
@@ -238,6 +254,7 @@ export function SourcesPanel({
         <Icon name="search" size={18} className="rn-search-icon" />
         <input
           id={searchInputId}
+          ref={searchInputRef}
           type="search"
           placeholder={t("srcSearchPlaceholder")}
           value={filterText}
@@ -248,25 +265,68 @@ export function SourcesPanel({
       </div>
 
       {sources.length > 0 && (
-        // Ganze Zeile ist das Label: Trefferfläche 44 px hoch (WCAG 2.5.5, Issue #315)
-        <label className="rn-select-all" htmlFor="select-all-sources-checkbox">
-          <input
-            id="select-all-sources-checkbox"
-            type="checkbox"
-            checked={allSelected}
-            onChange={(e) => onToggleSelectAll?.(e.target.checked)}
-            data-testid="select-all-sources-checkbox"
-            className="rn-checkbox"
+        <div className="rn-sources-toolbar">
+          {/* Ganze Zeile ist das Label: Trefferfläche 44 px hoch (WCAG 2.5.5, Issue #315) */}
+          <label className="rn-select-all" htmlFor="select-all-sources-checkbox">
+            <input
+              id="select-all-sources-checkbox"
+              type="checkbox"
+              checked={allSelected}
+              onChange={(e) => onToggleSelectAll?.(e.target.checked)}
+              data-testid="select-all-sources-checkbox"
+              className="rn-checkbox"
+            />
+            <span>{t("srcSelectAll")}</span>
+          </label>
+          <ViewToggle
+            label={t("viewToggleSources")}
+            value={view}
+            onChange={changeView}
+            testId="sources-view-toggle"
+            options={[
+              { value: "list", label: t("viewList"), icon: "list" },
+              { value: "cards", label: t("viewCards"), icon: "grid" }
+            ]}
           />
-          <span>{t("srcSelectAll")}</span>
-        </label>
+        </div>
       )}
 
       {/* Liste */}
-      <ul aria-label={t("srcListLabel")} data-testid="sources-list" className="rn-sources">
+      <ul
+        aria-label={t("srcListLabel")}
+        data-testid="sources-list"
+        data-view={filteredSources.length > 0 ? view : undefined}
+        className="rn-sources"
+      >
         {filteredSources.length === 0 ? (
           <li data-testid="no-sources-message" className="rn-sources-empty">
-            {sources.length === 0 ? t("srcEmptyNone") : t("srcEmptyFilter")}
+            {sources.length === 0 ? (
+              <EmptyState
+                art="sources"
+                title={t("srcEmptyNoneTitle")}
+                text={t("srcEmptyNoneText")}
+              />
+            ) : (
+              <EmptyState
+                art="filter"
+                title={t("srcEmptyFilterTitle")}
+                text={tf("srcEmptyFilterText", { query: filterText.trim() })}
+                compact
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Der Knopf verschwindet mit dem Leerzustand: Fokus zurück ins Suchfeld
+                    setFilterText("");
+                    searchInputRef.current?.focus();
+                  }}
+                  data-testid="btn-clear-sources-filter"
+                  className="rn-btn rn-btn--secondary"
+                >
+                  {t("srcClearFilter")}
+                </button>
+              </EmptyState>
+            )}
           </li>
         ) : (
           filteredSources.map((source) => {

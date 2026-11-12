@@ -270,7 +270,7 @@ describe("Englische Oberfläche der Bereiche und Werkzeuge", () => {
     expect(quiz).toContain("Finish quiz");
     expectNoGerman(quiz);
     expect(renderEn(createElement(QuizViewer, { questions: [] }))).toContain(
-      "No quiz questions available."
+      "Once sources are selected, questions with explanations and citations appear here."
     );
 
     const cards = renderEn(
@@ -283,7 +283,7 @@ describe("Englische Oberfläche der Bereiche und Werkzeuge", () => {
     expect(cards).toContain("Next review: today · 0 repetitions");
     expectNoGerman(cards);
     expect(renderEn(createElement(FlashcardsViewer, { cards: [] }))).toContain(
-      "No flashcards available."
+      "Once sources are selected, cards for review appear here."
     );
   });
 

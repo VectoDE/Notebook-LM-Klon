@@ -10,7 +10,11 @@
 
 import { type QuizEvaluationResult, type QuizQuestion, evaluateQuiz } from "@notebook-lm/shared";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { EmptyState } from "./EmptyState.js";
+import { ViewToggle } from "./ViewToggle.js";
+import { browserStorage } from "./theme-preferences.js";
 import { useTheme } from "./useTheme.js";
+import { type TableView, VIEW_STORAGE_KEYS, readTableView, storeView } from "./view-preferences.js";
 
 export interface QuizViewerProps {
   readonly questions: readonly QuizQuestion[];
@@ -122,7 +126,12 @@ export function QuizViewer({
   if (totalQuestions === 0) {
     return (
       <section aria-label={title} className="rn-tool-view rn-tool-view--empty">
-        <p className="rn-tool-empty">{t("quizEmpty")}</p>
+        <EmptyState
+          art="studio"
+          title={t("quizEmptyTitle")}
+          text={t("quizEmpty")}
+          testId="quiz-empty-state"
+        />
       </section>
     );
   }
@@ -154,31 +163,34 @@ export function QuizViewer({
       </output>
 
       {showSummary ? (
-        <div data-testid="quiz-summary-card" className="rn-quiz-summary">
-          <p className="rn-eyebrow">{t("quizSummaryEyebrow")}</p>
-          <p className="rn-quiz-score">
-            <span className="rn-quiz-score-value">{evaluation.scorePercentage}%</span>
-            <span className="rn-quiz-score-text">
-              {tf("quizScore", {
-                correct: evaluation.correctCount,
-                total: evaluation.totalQuestions,
-                pct: evaluation.scorePercentage
-              })}
-            </span>
-          </p>
-          <div className="rn-tool-actions-row rn-tool-actions-row--center">
-            <button type="button" onClick={handleReset} className="rn-btn rn-btn--primary">
-              {t("quizRepeat")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowSummary(false)}
-              className="rn-btn rn-btn--secondary"
-            >
-              {t("quizViewAnswers")}
-            </button>
+        <>
+          <div data-testid="quiz-summary-card" className="rn-quiz-summary">
+            <p className="rn-eyebrow">{t("quizSummaryEyebrow")}</p>
+            <p className="rn-quiz-score">
+              <span className="rn-quiz-score-value">{evaluation.scorePercentage}%</span>
+              <span className="rn-quiz-score-text">
+                {tf("quizScore", {
+                  correct: evaluation.correctCount,
+                  total: evaluation.totalQuestions,
+                  pct: evaluation.scorePercentage
+                })}
+              </span>
+            </p>
+            <div className="rn-tool-actions-row rn-tool-actions-row--center">
+              <button type="button" onClick={handleReset} className="rn-btn rn-btn--primary">
+                {t("quizRepeat")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSummary(false)}
+                className="rn-btn rn-btn--secondary"
+              >
+                {t("quizViewAnswers")}
+              </button>
+            </div>
           </div>
-        </div>
+          <QuizResults questions={questions} evaluation={evaluation} contentLang={contentLang} />
+        </>
       ) : (
         currentQuestion && (
           <div data-testid={`quiz-question-${currentQuestion.id}`} className="rn-quiz-card">
@@ -300,6 +312,145 @@ export function QuizViewer({
             </div>
           </div>
         )
+      )}
+    </section>
+  );
+}
+
+/** Ohne gespeicherte Wahl: auf schmalen Bildschirmen Karten, sonst Tabelle. */
+function defaultTableView(): TableView {
+  if (typeof window === "undefined") return "table";
+  return window.matchMedia?.("(max-width: 599.98px)").matches ? "cards" : "table";
+}
+
+type ResultState = "correct" | "wrong" | "open";
+
+interface QuizResultsProps {
+  readonly questions: readonly QuizQuestion[];
+  readonly evaluation: QuizEvaluationResult;
+  readonly contentLang?: string | undefined;
+}
+
+/**
+ * Antworten im Überblick (Issue #329): als Tabelle oder als Karten umschaltbar, die Wahl
+ * bleibt gespeichert. Das Ergebnis steht als Text neben dem Symbol, nicht nur als Farbe.
+ */
+export function QuizResults({ questions, evaluation, contentLang }: QuizResultsProps) {
+  const { t, tf } = useTheme();
+  const headingId = useId();
+  const [view, setView] = useState<TableView>(() =>
+    readTableView(browserStorage(), VIEW_STORAGE_KEYS.quizResults, defaultTableView())
+  );
+
+  const changeView = (next: TableView) => {
+    setView(next);
+    storeView(browserStorage(), VIEW_STORAGE_KEYS.quizResults, next);
+  };
+
+  const rows = questions.map((question, index) => {
+    const detail = evaluation.details[index];
+    const selected = detail?.selectedIndex ?? null;
+    let state: ResultState = "open";
+    if (selected !== null) state = detail?.isCorrect ? "correct" : "wrong";
+    return {
+      id: question.id,
+      number: index + 1,
+      question: question.question,
+      yours: selected === null ? null : (question.options[selected] ?? null),
+      correct: question.options[question.correctAnswerIndex] ?? "",
+      state
+    };
+  });
+
+  const labels: Readonly<Record<ResultState, string>> = {
+    correct: t("quizRight"),
+    wrong: t("quizWrong"),
+    open: t("quizNoAnswer")
+  };
+
+  const result = (state: ResultState) => (
+    <span className="rn-result" data-state={state}>
+      {state !== "open" && <FlagIcon correct={state === "correct"} />}
+      {labels[state]}
+    </span>
+  );
+
+  return (
+    <section
+      aria-labelledby={headingId}
+      className="rn-quiz-results"
+      data-testid="quiz-results"
+      data-view={view}
+    >
+      <div className="rn-results-head">
+        <h3 id={headingId} className="rn-results-title">
+          {t("quizResultsTitle")}
+        </h3>
+        <ViewToggle
+          label={t("quizResultsView")}
+          value={view}
+          onChange={changeView}
+          testId="quiz-results-view-toggle"
+          options={[
+            { value: "table", label: t("viewTable"), icon: "table" },
+            { value: "cards", label: t("viewCards"), icon: "grid" }
+          ]}
+        />
+      </div>
+
+      {view === "table" ? (
+        <table className="rn-table" aria-labelledby={headingId} data-testid="quiz-results-table">
+          <thead>
+            <tr>
+              <th scope="col">{t("quizColQuestion")}</th>
+              <th scope="col">{t("quizColYours")}</th>
+              <th scope="col">{t("quizColCorrect")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id} data-state={row.state}>
+                <th scope="row" lang={contentLang}>
+                  {row.question}
+                </th>
+                <td>
+                  {/* Ergebnis als Marke unter der eigenen Antwort: drei Spalten passen auch schmal */}
+                  {row.yours !== null && <span lang={contentLang}>{row.yours}</span>}
+                  {result(row.state)}
+                </td>
+                <td lang={contentLang}>{row.correct}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <ol className="rn-result-cards" data-testid="quiz-results-cards">
+          {rows.map((row) => (
+            <li key={row.id} className="rn-result-card" data-state={row.state}>
+              <div className="rn-result-card-head">
+                <span className="rn-result-number">
+                  {tf("quizProgress", { n: row.number, total: rows.length })}
+                </span>
+                {result(row.state)}
+              </div>
+              <p className="rn-result-question" lang={contentLang}>
+                {row.question}
+              </p>
+              <dl className="rn-result-answers">
+                <div>
+                  <dt>{t("quizColYours")}</dt>
+                  <dd lang={row.yours === null ? undefined : contentLang}>
+                    {row.yours ?? labels.open}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t("quizColCorrect")}</dt>
+                  <dd lang={contentLang}>{row.correct}</dd>
+                </div>
+              </dl>
+            </li>
+          ))}
+        </ol>
       )}
     </section>
   );

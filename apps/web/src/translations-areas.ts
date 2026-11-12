@@ -30,16 +30,6 @@ const ENTRIES: readonly Entry[] = [
   ["srcSearchPlaceholder", "Quellen filtern …", "Filter sources …"],
   ["srcSelectAll", "Alle Quellen auswählen", "Select all sources"],
   ["srcListLabel", "Hochgeladene Quellen", "Uploaded sources"],
-  [
-    "srcEmptyNone",
-    "Noch keine Quellen vorhanden. Laden Sie Dokumente hoch.",
-    "No sources yet. Upload documents."
-  ],
-  [
-    "srcEmptyFilter",
-    "Keine Quellen gefunden, die dem Filter entsprechen.",
-    "No sources match the filter."
-  ],
   ["srcSelectAria", "Quelle {title} für Chat auswählen", "Select source {title} for chat"],
   ["srcViewAria", "Quelle {title} ansehen", "View source {title}"],
   ["srcCloseAria", "Quelle {title} schließen", "Close source {title}"],
@@ -150,7 +140,11 @@ const ENTRIES: readonly Entry[] = [
 
   // Quiz
   ["quizDefaultTitle", "Wissens-Quiz", "Knowledge quiz"],
-  ["quizEmpty", "Keine Quizfragen vorhanden.", "No quiz questions available."],
+  [
+    "quizEmpty",
+    "Sobald Quellen ausgewählt sind, entstehen hier Fragen mit Erklärung und Quellenangabe.",
+    "Once sources are selected, questions with explanations and citations appear here."
+  ],
   ["quizAria", "Quiz: {title}", "Quiz: {title}"],
   ["quizProgress", "Frage {n} von {total}", "Question {n} of {total}"],
   ["quizAnswered", "Beantwortete Fragen", "Answered questions"],
@@ -191,7 +185,11 @@ const ENTRIES: readonly Entry[] = [
   ["cardsInDays", "in {n} Tagen", "in {n} days"],
   ["cardsRepOne", "1 Wiederholung", "1 repetition"],
   ["cardsRepMany", "{n} Wiederholungen", "{n} repetitions"],
-  ["cardsEmpty", "Keine Lernkarten vorhanden.", "No flashcards available."],
+  [
+    "cardsEmpty",
+    "Sobald Quellen ausgewählt sind, entstehen hier Karten zum Wiederholen.",
+    "Once sources are selected, cards for review appear here."
+  ],
   ["cardsRatingAgain", "Nochmal", "Again"],
   ["cardsRatingHard", "Schwer", "Hard"],
   ["cardsRatingGood", "Gut", "Good"],
@@ -503,7 +501,56 @@ const ENTRIES: readonly Entry[] = [
     "graphEmpty",
     "Noch keine Begriffe oder Quellen. Fügen Sie Quellen hinzu.",
     "No concepts or sources yet. Add sources."
-  ]
+  ],
+  // Komponenten (Issue #329): Ansichten, Leerzustände, Hinweis-Leiste
+  ["viewToggleSources", "Ansicht der Quellen", "Source view"],
+  ["viewList", "Liste", "List"],
+  ["viewCards", "Karten", "Cards"],
+  ["viewTable", "Tabelle", "Table"],
+  ["srcEmptyNoneTitle", "Noch keine Quellen", "No sources yet"],
+  [
+    "srcEmptyNoneText",
+    "Laden Sie PDF-, Text- oder Markdown-Dateien hoch oder fügen Sie einen Link hinzu. Antworten stützen sich nur auf diese Quellen.",
+    "Upload PDF, text or Markdown files, or add a link. Answers rely on these sources only."
+  ],
+  ["srcEmptyFilterTitle", "Kein Treffer", "No match"],
+  [
+    "srcEmptyFilterText",
+    "Keine Quelle passt zu „{query}“. Prüfen Sie die Schreibweise oder leeren Sie den Filter.",
+    "No source matches “{query}”. Check the spelling or clear the filter."
+  ],
+  ["srcClearFilter", "Filter leeren", "Clear filter"],
+  ["chatEmptyTitle", "Noch keine Fragen", "No questions yet"],
+  [
+    "chatEmptyText",
+    "Fragen Sie etwas zu Ihren Quellen oder wählen Sie einen Vorschlag. Jede Antwort zeigt mit Nummern, woher sie stammt.",
+    "Ask something about your sources or pick a suggestion. Each answer shows its sources as numbers."
+  ],
+  ["studioNoSourcesTitle", "Keine Quelle ausgewählt", "No source selected"],
+  [
+    "studioNoSourcesText",
+    "Wählen Sie im Bereich Quellen mindestens eine Quelle aus. Daraus entstehen Überblicke, Karten und Quiz.",
+    "Select at least one source in the Sources area. Overviews, cards and quizzes are built from it."
+  ],
+  ["studioMoreTools", "Weitere Werkzeuge", "More tools"],
+  ["notesEmptyTitle", "Noch keine Notizen", "No notes yet"],
+  [
+    "notesEmptyText",
+    "Gespeicherte Antworten und eigene Notizen erscheinen hier.",
+    "Saved answers and your own notes appear here."
+  ],
+  ["quizEmptyTitle", "Noch kein Quiz", "No quiz yet"],
+  ["cardsEmptyTitle", "Noch keine Lernkarten", "No flashcards yet"],
+  ["quizResultsTitle", "Antworten im Überblick", "Answers at a glance"],
+  ["quizResultsView", "Ansicht der Antworten", "Answer view"],
+  ["quizColQuestion", "Frage", "Question"],
+  ["quizColYours", "Ihre Antwort", "Your answer"],
+  ["quizColCorrect", "Richtige Antwort", "Correct answer"],
+  ["quizNoAnswer", "Nicht beantwortet", "Not answered"],
+  ["toastClose", "Hinweis schließen", "Dismiss notice"],
+  ["toastSourceAdded", "Quelle hinzugefügt: {title}", "Source added: {title}"],
+  ["toastSourcesAdded", "{n} Quellen hinzugefügt", "{n} sources added"],
+  ["toastDownload", "Download gestartet: {file}", "Download started: {file}"]
 
   // Rollen
 ];

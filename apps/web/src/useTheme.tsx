@@ -18,19 +18,27 @@ import {
   useState
 } from "react";
 
-import { COLOR_MODES, type ColorMode, type DesignTheme, THEMES } from "./design-tokens.js";
+import {
+  COLOR_MODES,
+  type ColorMode,
+  DEFAULT_THEME,
+  type DesignTheme,
+  THEMES
+} from "./design-tokens.js";
 import {
   COLOR_MODE_PREFERENCES,
   type ColorModePreference,
   LANGUAGES,
   type Language,
+  REDUCED_MOTION_QUERY,
   SYSTEM_COLOR_QUERIES,
   applyReduceMotion,
   applyThemeToDocument,
   readReduceMotion,
   resolveColorMode,
   resolveInitialPreferences,
-  systemColorMode
+  systemColorMode,
+  systemPrefersReducedMotion
 } from "./theme-preferences.js";
 import { AREA_DE, AREA_EN } from "./translations-areas.js";
 
@@ -98,6 +106,8 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     motionToggle: "Bewegung reduzieren",
     motionHint:
       "Hält Hintergrund- und Übergangsanimationen an. Gilt zusätzlich zur Einstellung des Geräts.",
+    motionSystemActive:
+      "Ihr Gerät ist auf weniger Bewegung eingestellt. Animationen sind deshalb bereits aus.",
     chatWelcome:
       "Willkommen in Ihrem RelationNotes Arbeitsbereich. Ihre Quellen sind geladen. Sie können Fragen stellen oder im Bereich Studio Lernmaterial erzeugen [1].",
     errorTechnical: "Technische Angabe",
@@ -131,7 +141,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     menuOpen: "Menü öffnen",
     menuTitle: "Menü",
     menuClose: "Menü schließen",
-    settingsAppearanceHint: "Design, Farbschema und Bewegung stellen Sie unter „Darstellung“ ein.",
+    settingsAppearanceHint: "Design und Farbschema stellen Sie unter „Darstellung“ ein.",
     roleLabel: "Rolle",
     roleOwner: "Inhaber",
     roleEditor: "Bearbeiter",
@@ -198,6 +208,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     motionToggle: "Reduce motion",
     motionHint:
       "Stops background and transition animations. Applies in addition to your device setting.",
+    motionSystemActive: "Your device is set to reduce motion, so animations are already off.",
     chatWelcome:
       "Welcome to your RelationNotes workspace. Your sources are loaded. Ask questions or create learning material in the Studio area [1].",
     errorTechnical: "Technical detail",
@@ -227,7 +238,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     menuOpen: "Open menu",
     menuTitle: "Menu",
     menuClose: "Close menu",
-    settingsAppearanceHint: "Design, color scheme and motion are set under “Appearance”.",
+    settingsAppearanceHint: "Design and color scheme are set under “Appearance”.",
     roleLabel: "Role",
     roleOwner: "Owner",
     roleEditor: "Editor",
@@ -263,6 +274,8 @@ export interface ThemeContextValue {
   /** Schalter „Bewegung reduzieren“ der App (zusätzlich zu prefers-reduced-motion). */
   readonly reduceMotion: boolean;
   readonly setReduceMotion: (enabled: boolean) => void;
+  /** Systemwert: Gerät wünscht weniger Bewegung (prefers-reduced-motion: reduce), live. */
+  readonly systemReducedMotion: boolean;
   readonly setTheme: (theme: DesignTheme) => void;
   readonly setColorMode: (mode: ColorModePreference) => void;
   readonly setLanguage: (lang: Language) => void;
@@ -316,6 +329,19 @@ export function ThemeProvider({
   const [systemMode, setSystemMode] = useState<ColorMode>(() =>
     systemColorMode(browserEnvironment())
   );
+  const [systemReducedMotion, setSystemReducedMotion] = useState<boolean>(() =>
+    systemPrefersReducedMotion(browserEnvironment().matchMedia)
+  );
+
+  // Systemwert „weniger Bewegung“ live verfolgen (Hinweis beim Schalter, Issue #328)
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const list = window.matchMedia(REDUCED_MOTION_QUERY);
+    const update = () => setSystemReducedMotion(list.matches);
+    update();
+    list.addEventListener("change", update);
+    return () => list.removeEventListener("change", update);
+  }, []);
 
   // Modus "system": live auf Änderungen von Farbschema und Kontrast des Geräts reagieren
   useEffect(() => {
@@ -375,6 +401,7 @@ export function ThemeProvider({
       language,
       reduceMotion,
       setReduceMotion,
+      systemReducedMotion,
       setTheme,
       setColorMode,
       setLanguage,
@@ -387,6 +414,7 @@ export function ThemeProvider({
       resolvedColorMode,
       language,
       reduceMotion,
+      systemReducedMotion,
       setTheme,
       setColorMode,
       setLanguage,
@@ -402,12 +430,13 @@ export function useTheme(): ThemeContextValue {
   const context = useContext(ThemeContext);
   if (!context) {
     return {
-      theme: "fusion",
+      theme: DEFAULT_THEME,
       colorMode: "system",
       resolvedColorMode: "light",
       language: "de",
       reduceMotion: false,
       setReduceMotion: () => {},
+      systemReducedMotion: false,
       setTheme: () => {},
       setColorMode: () => {},
       setLanguage: () => {},

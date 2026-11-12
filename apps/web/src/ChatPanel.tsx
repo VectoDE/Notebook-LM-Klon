@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { EmptyState } from "./EmptyState.js";
 import { Icon } from "./Icon.js";
 import { shouldReduceMotion } from "./theme-preferences.js";
 import { useTheme } from "./useTheme.js";
@@ -190,6 +191,8 @@ export function ChatPanel({
   };
 
   const canSend = inputText.trim().length > 0 && !isGenerating;
+  // Leerzustand bis zur ersten eigenen Frage (Issue #329)
+  const hasQuestions = messages.some((m) => m.role === "user");
 
   return (
     <section
@@ -314,6 +317,16 @@ export function ChatPanel({
               </article>
             );
           })}
+
+          {!hasQuestions && !isGenerating && (
+            <EmptyState
+              art="chat"
+              title={t("chatEmptyTitle")}
+              text={t("chatEmptyText")}
+              compact
+              testId="chat-empty-state"
+            />
+          )}
 
           {/* Vorschlagsfragen unter dem Verlauf, direkt über der Eingabe: so steht die erste
               Antwort auf dem Telefon sichtbar unter der Zusammenfassung (Issue #315) */}

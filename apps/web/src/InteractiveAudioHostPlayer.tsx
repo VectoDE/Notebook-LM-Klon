@@ -104,6 +104,9 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
     const current = machineCtx.state;
     previousStateRef.current = current;
     if (current === "interjecting") {
+      // Modal (Issue #329): Hintergrund inert, Telefon Vollbild, Desktop zentriert
+      const dialog = interjectDialogRef.current;
+      if (dialog && !dialog.open && typeof dialog.showModal === "function") dialog.showModal();
       inputRef.current?.focus();
       return;
     }
@@ -429,10 +432,15 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
       {machineCtx.state === "interjecting" && (
         <dialog
           ref={interjectDialogRef}
-          open
           aria-labelledby="interject-dialog-title"
           className="interject-dialog"
           data-testid="interject-dialog"
+          // Escape bearbeitet der Player (Abbrechen); der Dialog schließt sich nicht selbst
+          onCancel={(e) => e.preventDefault()}
+          // Schließt der Browser den Dialog doch (zweites Escape), gilt das als Abbrechen
+          onClose={() => {
+            if (stateMachine.getState() === "interjecting") handleCancelInterject();
+          }}
           // Tab bleibt in der Schublade, damit Escape (am Player) jederzeit greift (#314)
           onKeyDown={(e) => {
             if (interjectDialogRef.current) {

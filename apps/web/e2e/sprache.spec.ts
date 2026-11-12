@@ -42,7 +42,7 @@ for (const width of [390, 1440]) {
       "Your own API keys (BYOK)",
       "Coming soon",
       "BYOK stands for “bring your own key”",
-      "Design, color scheme and motion are set under “Appearance”."
+      "Design and color scheme are set under “Appearance”."
     ]) {
       await expect(drawer, text).toContainText(text);
     }

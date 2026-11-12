@@ -1,55 +1,129 @@
 /**
- * Eine Symbolfamilie für die ganze Oberfläche: 24er-Raster, Strich 1,75, runde Enden,
- * Farbe über currentColor. Symbole sind Schmuck (aria-hidden); die Bedeutung trägt
- * immer der sichtbare Text oder ein aria-label am Bedienelement.
+ * Eine Symbolfamilie für die ganze Oberfläche (Issue #328: gefüllte Symbole).
+ *
+ * 24er-Raster, Farbe über currentColor. Jedes Symbol mit Fläche ist gefüllt (`fill`,
+ * Füllregel evenodd; Aussparungen zeichnen Details wie Zeilen oder das Abspielzeichen).
+ * Reine Linienzeichen ohne Fläche (Kreuz, Haken, Menü, Winkel, Kette, Pegel, Wellen)
+ * stehen als kräftige Linie mit runden Enden (`line`, Strich 2).
+ * Symbole sind Schmuck (aria-hidden); die Bedeutung trägt immer der sichtbare Text oder
+ * ein aria-label am Bedienelement.
  */
-const PATHS = {
-  upload: "M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3",
-  link: "M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1",
-  search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Zm9 2-4.2-4.2",
-  send: "M12 19V5m0 0-6 6m6-6 6 6",
-  stop: "M8 7h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z",
-  settings: "M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4",
-  sources: "M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm7 0v5h5M9 13h6M9 17h4",
-  chat: "M20 12a8 8 0 0 1-11.6 7.1L4 20l.9-4.4A8 8 0 1 1 20 12ZM9 11h6M9 14.5h4",
-  studio:
-    "M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Zm6 12 .8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8L18 15Z",
-  audio: "M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2",
-  video: "M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Zm6.5 3v6l5-3-5-3Z",
-  mindmap:
-    "M12 9.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm-6 10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm12 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM10.6 9.2 7.4 14.8m6-5.6 3.2 5.6",
-  cards:
-    "M8 4h10a2 2 0 0 1 2 2v10M4 9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9Z",
-  quiz: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm-3.5-9 2.5 2.5 5-5",
-  briefing:
-    "M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm3 5h6M9 12h6M9 16h3",
-  back: "M19 12H5m0 0 6-6m-6 6 6 6",
-  close: "M6 6l12 12M18 6 6 18",
-  eye: "M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Zm9.5 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
-  download: "M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 20h14",
-  chevron: "m6 9 6 6 6-6",
-  speaker: "M4 9v6h4l5 4V5L8 9H4Zm12.5-.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12",
-  stage: "M3 5h18v11H3V5Zm5 15h8M12 16v4",
-  file: "M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm7 0v5h5",
-  palette:
-    "M12 21a9 9 0 1 1 9-9c0 2.2-1.8 3.5-3.6 3.5H15a2 2 0 0 0-1.4 3.4A1.3 1.3 0 0 1 12 21ZM7.5 11.5h.01M10 7.5h.01M14.5 7.5h.01",
-  contrast: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-18v18",
-  menu: "M4 7h16M4 12h16M4 17h16",
-  check: "m5 12.5 4.5 4.5L19 7.5",
-  panelLeft: "M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm4 0v16",
-  panelRight: "M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm10 0v16",
-  share: "M15 19a6 6 0 0 0-12 0M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm10-3v6m3-3h-6",
-  account:
-    "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5.6 6.5a6 6 0 0 1 11.2 0",
-  edit: "M4 20h4L19 9l-4-4L4 16v4Zm9-13 4 4",
-  plus: "M12 5v14M5 12h14",
-  graph:
-    "M6 8.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm12 2a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM9 20.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM8.5 6.4l7 1.2M6.4 8.5l2.2 7m2.2.2 5.5-5.5"
-} as const;
+export interface IconShape {
+  /** Gefüllte Fläche (evenodd) */
+  readonly fill?: string;
+  /** Linie ohne Fläche (Strich 2, runde Enden) */
+  readonly line?: string;
+}
 
-export type IconName = keyof typeof PATHS;
+const PAGE =
+  "M7 3h6.5v4.5A1.5 1.5 0 0 0 15 9h4v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM15 3.4 18.6 7H15V3.4Z";
 
-export const ICON_NAMES = Object.keys(PATHS) as IconName[];
+const SHAPES = {
+  upload: {
+    fill: "M12 3 17.5 8.5h-4.25V15h-2.5V8.5H6.5L12 3ZM4 14h2.25v3.75h11.5V14H20v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4Z"
+  },
+  link: {
+    line: "M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"
+  },
+  search: {
+    fill: "M10.5 3a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15Zm0 2.75a4.75 4.75 0 1 1 0 9.5 4.75 4.75 0 0 1 0-9.5Z",
+    line: "m16.25 16.25 4.25 4.25"
+  },
+  send: { fill: "M12 3.5 19 10.5h-5.5V20h-3v-9.5H5L12 3.5Z" },
+  stop: { fill: "M7 6h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z" },
+  settings: {
+    fill: "M15 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Zm-6 6a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Zm8 6a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z",
+    line: "M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10"
+  },
+  sources: { fill: `${PAGE}M8.5 12.25h7v1.5h-7v-1.5Zm0 3.5h4.5v1.5H8.5v-1.5Z` },
+  chat: {
+    fill: "M20 12a8 8 0 0 1-11.6 7.1L4 20l.9-4.4A8 8 0 1 1 20 12ZM8.5 10.25h7v1.5h-7v-1.5Zm0 3.5h4.5v1.5H8.5v-1.5Z"
+  },
+  studio: {
+    fill: "M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Zm6 12 .8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8L18 15Z"
+  },
+  audio: { line: "M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2" },
+  video: {
+    fill: "M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm4.5 5v6l5-3-5-3Z"
+  },
+  mindmap: {
+    fill: "M12 3.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm-6 11a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm12 0a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z",
+    line: "M10.6 9.2 7.4 14.8m6-5.6 3.2 5.6"
+  },
+  cards: {
+    fill: "M6 7h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z",
+    line: "M8 4h10a2 2 0 0 1 2 2v10"
+  },
+  quiz: {
+    fill: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-4.6 9.1 1.4-1.4 2.2 2.2 4.2-4.2 1.4 1.4-5.6 5.6-3.6-3.6Z"
+  },
+  briefing: {
+    fill: "M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm3 4.25h6v1.5H9v-1.5Zm0 4h6v1.5H9v-1.5Zm0 4h3v1.5H9v-1.5Z"
+  },
+  back: { fill: "M3.5 12 10.5 5v5.5H20v3h-9.5V19L3.5 12Z" },
+  close: { line: "M6 6l12 12M18 6 6 18" },
+  eye: {
+    fill: "M12 5c6 0 9.5 7 9.5 7s-3.5 7-9.5 7-9.5-7-9.5-7S6 5 12 5Zm0 3.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm0 2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"
+  },
+  download: { fill: "M10.5 3h3v8.5H18L12 17.5 6 11.5h4.5V3ZM5 19h14v2H5v-2Z" },
+  chevron: { line: "m6 9 6 6 6-6" },
+  speaker: {
+    fill: "M3 9h4l5.5-4.5v15L7 15H3V9Z",
+    line: "M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"
+  },
+  stage: {
+    fill: "M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z",
+    line: "M8 20h8M12 16v4"
+  },
+  file: { fill: PAGE },
+  palette: {
+    fill: "M12 21a9 9 0 1 1 9-9c0 2.2-1.8 3.5-3.6 3.5H15a2 2 0 0 0-1.4 3.4A1.3 1.3 0 0 1 12 21ZM7.5 10.25a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5ZM10 6.25a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Zm4.5 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Z"
+  },
+  contrast: { fill: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 0 1 0 14V5Z" },
+  menu: { line: "M4 7h16M4 12h16M4 17h16" },
+  check: { line: "m5 12.5 4.5 4.5L19 7.5" },
+  panelLeft: {
+    fill: "M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm5 2v12h8.5a.5.5 0 0 0 .5-.5v-11a.5.5 0 0 0-.5-.5H10Z"
+  },
+  panelRight: {
+    fill: "M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm.5 2a.5.5 0 0 0-.5.5v11a.5.5 0 0 0 .5.5H14V6H5.5Z"
+  },
+  share: {
+    fill: "M9 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8ZM3 19a6 6 0 0 1 12 0v1H3v-1Z",
+    line: "M19 8v6m3-3h-6"
+  },
+  account: {
+    fill: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm-5.4 11.8a6.5 6.5 0 0 1 10.8 0 7.5 7.5 0 0 1-10.8 0Z"
+  },
+  edit: {
+    fill: "M4 16 14.5 5.5l4 4L8 20H4v-4ZM16 4l1-1a1.4 1.4 0 0 1 2 0l2 2a1.4 1.4 0 0 1 0 2l-1 1-4-4Z"
+  },
+  plus: { line: "M12 5v14M5 12h14" },
+  list: {
+    fill: "M4.5 4.75a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Zm0 6a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Zm0 6a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Z",
+    line: "M9 6h11M9 12h11M9 18h11"
+  },
+  grid: {
+    fill: "M4 5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5Zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1V5ZM4 14a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-5Zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-5Z"
+  },
+  graph: {
+    fill: "M6 3.25a2.75 2.75 0 1 1 0 5.5 2.75 2.75 0 0 1 0-5.5Zm12 2a2.75 2.75 0 1 1 0 5.5 2.75 2.75 0 0 1 0-5.5ZM9 15.25a2.75 2.75 0 1 1 0 5.5 2.75 2.75 0 0 1 0-5.5Z",
+    line: "M8.7 6.45 15.3 7.55M6.6 8.7l1.8 6.6M11 16.1l5.1-5.4"
+  },
+  table: {
+    fill: "M5 4h14a1 1 0 0 1 1 1v4H4V5a1 1 0 0 1 1-1Z",
+    line: "M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm-1 11h16M10 9v11"
+  }
+} as const satisfies Record<string, IconShape>;
+
+export type IconName = keyof typeof SHAPES;
+
+export const ICON_NAMES = Object.keys(SHAPES) as IconName[];
+
+/** Form eines Symbols (Fläche und/oder Linie), z. B. für Tests. */
+export function iconShape(name: IconName): IconShape {
+  return SHAPES[name];
+}
 
 export interface IconProps {
   readonly name: IconName;
@@ -58,6 +132,7 @@ export interface IconProps {
 }
 
 export function Icon({ name, size = 20, className = "rn-icon" }: IconProps) {
+  const shape: IconShape = SHAPES[name];
   return (
     <svg
       aria-hidden="true"
@@ -67,12 +142,17 @@ export function Icon({ name, size = 20, className = "rn-icon" }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
     >
-      <path d={PATHS[name]} />
+      {shape.fill && <path d={shape.fill} fill="currentColor" fillRule="evenodd" />}
+      {shape.line && (
+        <path
+          d={shape.line}
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
     </svg>
   );
 }

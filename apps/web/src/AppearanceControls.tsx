@@ -52,6 +52,54 @@ export const MODE_OPTIONS: readonly {
   { id: "aaa-contrast", labelKey: "modeAAA" }
 ];
 
+export interface MotionSettingProps {
+  /** Eindeutiger Präfix für ids. */
+  readonly idPrefix: string;
+  readonly testId: string;
+  /** Klasse der Überschrift (Darstellung bzw. Abschnitt in den Einstellungen). */
+  readonly legendClassName?: string | undefined;
+}
+
+/**
+ * Schalter „Bewegung reduzieren“ (Issue #328): in der Darstellung und in den Einstellungen,
+ * beide teilen denselben Zustand. Wünscht das Gerät weniger Bewegung (Systemwert), steht
+ * das als Hinweis darunter; die Animationen sind dann unabhängig vom Schalter aus.
+ */
+export function MotionSetting({
+  idPrefix,
+  testId,
+  legendClassName = "rn-appearance-label"
+}: MotionSettingProps) {
+  const { t, reduceMotion, setReduceMotion, systemReducedMotion } = useTheme();
+  const hintId = `${idPrefix}-reduce-motion-hint`;
+  const systemId = `${idPrefix}-reduce-motion-system`;
+  return (
+    <fieldset className="rn-appearance-group rn-motion-setting">
+      <legend className={legendClassName}>{t("motionLabel")}</legend>
+      <label className="rn-check-row" htmlFor={`${idPrefix}-reduce-motion`}>
+        <input
+          id={`${idPrefix}-reduce-motion`}
+          type="checkbox"
+          checked={reduceMotion}
+          onChange={(e) => setReduceMotion(e.target.checked)}
+          aria-describedby={systemReducedMotion ? `${hintId} ${systemId}` : hintId}
+          data-testid={testId}
+          className="rn-checkbox"
+        />
+        <span>{t("motionToggle")}</span>
+      </label>
+      <p id={hintId} className="rn-setting-hint">
+        {t("motionHint")}
+      </p>
+      {systemReducedMotion && (
+        <p id={systemId} className="rn-setting-hint" data-testid={`${testId}-system`}>
+          {t("motionSystemActive")}
+        </p>
+      )}
+    </fieldset>
+  );
+}
+
 export function AppearanceControls({
   role,
   onRoleChange,
@@ -61,7 +109,7 @@ export function AppearanceControls({
   onColorModeChange,
   idPrefix
 }: AppearanceControlsProps) {
-  const { t, reduceMotion, setReduceMotion } = useTheme();
+  const { t } = useTheme();
   return (
     <div className="rn-appearance">
       <fieldset className="rn-appearance-group">
@@ -110,24 +158,7 @@ export function AppearanceControls({
         </div>
       </fieldset>
 
-      <fieldset className="rn-appearance-group rn-motion-setting">
-        <legend className="rn-appearance-label">{t("motionLabel")}</legend>
-        <label className="rn-check-row" htmlFor={`${idPrefix}-reduce-motion`}>
-          <input
-            id={`${idPrefix}-reduce-motion`}
-            type="checkbox"
-            checked={reduceMotion}
-            onChange={(e) => setReduceMotion(e.target.checked)}
-            aria-describedby={`${idPrefix}-reduce-motion-hint`}
-            data-testid="reduce-motion-toggle"
-            className="rn-checkbox"
-          />
-          <span>{t("motionToggle")}</span>
-        </label>
-        <p id={`${idPrefix}-reduce-motion-hint`} className="rn-setting-hint">
-          {t("motionHint")}
-        </p>
-      </fieldset>
+      <MotionSetting idPrefix={idPrefix} testId="reduce-motion-toggle" />
 
       {/* Rolle am Ende: beim Öffnen landet der Fokus auf „Design“ (Issue #319, Entscheidung #302) */}
       {role !== undefined && (

@@ -26,6 +26,7 @@ import { SettingsDrawer } from "./SettingsDrawer.js";
 import { ShareDialog } from "./ShareDialog.js";
 import { SOURCE_FILE_ACCEPT, SourcesPanel } from "./SourcesPanel.js";
 import { StudioPanel, type StudioTool } from "./StudioPanel.js";
+import { Toast, type ToastMessage } from "./Toast.js";
 import {
   ChatApiError,
   errorKeyForStatus,
@@ -353,6 +354,13 @@ export function WorkspaceLayout({
   const [studioToolRequest, setStudioToolRequest] = useState<{ readonly tool: StudioTool }>();
   // Kurze Meldung für Screenreader (Spalte ein- oder ausgeklappt, Titel gespeichert)
   const [announcement, setAnnouncement] = useState("");
+  // Hinweis-Leiste unten (Issue #329): Rückmeldung nach Export, neuer Quelle, Titel
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const toastCounter = useRef(0);
+  const notify = useCallback((message: string) => {
+    toastCounter.current += 1;
+    setToast({ id: toastCounter.current, message });
+  }, []);
   // Kurzinfos der Symbolknöpfe: Escape blendet sie aus, bis Zeiger oder Fokus den Knopf verlassen
   const [tipsHidden, setTipsHidden] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>("owner");
@@ -466,7 +474,7 @@ export function WorkspaceLayout({
   const renameNotebook = (title: string) => {
     setNotebookTitle(title);
     storeNotebookTitle(browserStorage(), notebookId, title);
-    setAnnouncement(tf("titleSaved", { title }));
+    notify(tf("titleSaved", { title }));
   };
 
   // WCAG 1.4.13: Kurzinfo per Escape schließen, ohne Zeiger oder Fokus zu bewegen
@@ -584,6 +592,9 @@ export function WorkspaceLayout({
       rawText: `Inhalt von ${file.name}`
     }));
     setSources((prev) => [...prev, ...newSources]);
+    const [first] = newSources;
+    if (newSources.length === 1 && first) notify(tf("toastSourceAdded", { title: first.title }));
+    else if (newSources.length > 1) notify(tf("toastSourcesAdded", { n: newSources.length }));
   };
 
   const handleImportUrl = (url: string, title?: string) => {
@@ -598,6 +609,7 @@ export function WorkspaceLayout({
       rawText: `Importierter Inhalt von ${url}`
     };
     setSources((prev) => [...prev, newSource]);
+    notify(tf("toastSourceAdded", { title: newSource.title }));
   };
 
   // Citation Click -> Jump to Left Sources Panel
@@ -1043,6 +1055,8 @@ export function WorkspaceLayout({
               audioStateMachine={audioStateMachine}
               onSourceJump={handleCitationClick}
               contentLangs={DEFAULT_CONTENT_LANGS}
+              selectedSourceCount={sources.filter((s) => s.isSelected !== false).length}
+              onNotify={notify}
               panelAttributes={panelAttributes("studio")}
               headerAction={
                 <PanelToggle
@@ -1083,10 +1097,12 @@ export function WorkspaceLayout({
         })}
       </nav>
 
-      {/* Meldungen für Screenreader: Spalte ein- oder ausgeklappt, Titel gespeichert */}
+      {/* Meldungen für Screenreader: Spalte ein- oder ausgeklappt */}
       <output aria-live="polite" className="rn-visually-hidden" data-testid="layout-status">
         {announcement}
       </output>
+
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
 
       {/* Mobiles Menü (unter 600 px): Vollbild-Sheet mit Teilen, Einstellungen, Konto, Darstellung */}
       {isNarrowHeader && (

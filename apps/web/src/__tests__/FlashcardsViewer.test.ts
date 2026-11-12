@@ -22,7 +22,9 @@ const sampleCards: FlashcardItem[] = [
 describe("FlashcardsViewer Component (Sub-Issue #123)", () => {
   it("renders empty state when cards array is empty", () => {
     const html = renderToStaticMarkup(createElement(FlashcardsViewer, { cards: [] }));
-    expect(html).toContain("Keine Lernkarten vorhanden.");
+    expect(html).toContain("Noch keine Lernkarten");
+    expect(html).toContain('data-testid="cards-empty-state"');
+    expect(html).toContain('aria-hidden="true"');
   });
 
   it("renders first card in front/question mode with accessible controls", () => {

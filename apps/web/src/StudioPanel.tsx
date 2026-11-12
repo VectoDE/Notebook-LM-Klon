@@ -7,6 +7,7 @@ import type {
 } from "@notebook-lm/shared";
 import { type ReactNode, useEffect, useState } from "react";
 import { DeepDiveStage } from "./DeepDiveStage.js";
+import { EmptyState } from "./EmptyState.js";
 import { FlashcardsViewer } from "./FlashcardsViewer.js";
 import { Icon, type IconName } from "./Icon.js";
 import { InteractiveAudioHostPlayer } from "./InteractiveAudioHostPlayer.js";
@@ -87,6 +88,10 @@ export interface StudioPanelProps {
    * Spalte bzw. im Reiter „Graph“; ohne diese Funktion fehlt der Eintrag.
    */
   readonly onOpenGraph?: (() => void) | undefined;
+  /** Anzahl ausgewählter Quellen; bei 0 erklärt ein Leerzustand, was fehlt (Issue #329). */
+  readonly selectedSourceCount?: number | undefined;
+  /** Kurze Rückmeldung in der Hinweis-Leiste, z. B. nach einem Export. */
+  readonly onNotify?: ((message: string) => void) | undefined;
 }
 
 export function StudioPanel({
@@ -103,7 +108,9 @@ export function StudioPanel({
   panelAttributes,
   headerAction,
   toolRequest,
-  onOpenGraph
+  onOpenGraph,
+  selectedSourceCount,
+  onNotify
 }: StudioPanelProps) {
   const { t, tf } = useTheme();
   const [currentTool, setCurrentTool] = useState<StudioTool>(activeTool);
@@ -118,16 +125,21 @@ export function StudioPanel({
     onSelectTool?.(tool);
   };
 
+  const download = (filename: string, content: string | Blob, mimeType: string) => {
+    triggerBrowserDownload(filename, content, mimeType);
+    onNotify?.(tf("toastDownload", { file: filename }));
+  };
+
   const handleExport = (type: "anki" | "mindmap" | "quiz" | "briefing") => {
     if (type === "anki" && flashcardsData) {
       const result = exportFlashcardsToAnkiCsv(flashcardsData);
-      triggerBrowserDownload(result.filename, result.content, result.mimeType);
+      download(result.filename, result.content, result.mimeType);
     } else if (type === "mindmap" && mindmapData) {
       const svg = exportMindmapToSvgString(`<svg><text>${mindmapData.label}</text></svg>`);
-      triggerBrowserDownload(`${notebookTitle}_mindmap.svg`, svg, "image/svg+xml");
+      download(`${notebookTitle}_mindmap.svg`, svg, "image/svg+xml");
     } else if (type === "quiz" && quizData) {
       const json = exportQuizToJson(quizData);
-      triggerBrowserDownload(`${notebookTitle}_quiz.json`, json, "application/json");
+      download(`${notebookTitle}_quiz.json`, json, "application/json");
     } else if (type === "briefing") {
       const result = exportBriefingToMarkdown(
         {
@@ -138,7 +150,7 @@ export function StudioPanel({
         // Der Titel ist frei bearbeitbar: als reiner Text in die Markdown-Datei
         escapeHtmlText(notebookTitle)
       );
-      triggerBrowserDownload(result.filename, result.content, result.mimeType);
+      download(result.filename, result.content, result.mimeType);
     }
   };
 
@@ -255,6 +267,8 @@ export function StudioPanel({
     }
   ];
 
+  const [featureTool, ...listTools] = tools;
+
   return (
     <section
       aria-label={t("studioPanelLabel")}
@@ -291,47 +305,61 @@ export function StudioPanel({
         className="rn-cinema-enter rn-tool-view"
       >
         {currentTool === "overview" && (
-          <ul
-            data-testid="studio-tools-grid"
-            className="rn-tools"
-            aria-label={t("studioToolsLabel")}
-          >
-            {tools.map((tool) => (
-              <li key={tool.id}>
-                <article data-testid={`tool-card-${tool.id}`} className="rn-tool">
-                  <span className="rn-tool-tile">
-                    <Icon name={tool.icon} size={22} />
-                  </span>
-                  <div className="rn-tool-text">
-                    <h3 className="rn-tool-title">{tool.title}</h3>
-                    <p className="rn-tool-desc">{tool.description}</p>
-                  </div>
-                  <div className="rn-tool-actions">
-                    <button
-                      type="button"
-                      onClick={tool.primary.run}
-                      data-testid={tool.primary.testId}
-                      className="rn-btn rn-btn--primary rn-tool-primary"
-                    >
-                      {tool.primary.label}
-                    </button>
-                    {tool.secondary && (
-                      <button
-                        type="button"
-                        onClick={tool.secondary.run}
-                        data-testid={tool.secondary.testId}
-                        aria-label={tool.secondary.ariaLabel}
-                        className="rn-btn rn-btn--secondary"
-                      >
-                        <Icon name={tool.secondary.icon} size={18} />
-                        {tool.secondary.label}
-                      </button>
-                    )}
-                  </div>
-                </article>
-              </li>
-            ))}
-          </ul>
+          <div className="rn-studio-overview" data-testid="studio-overview">
+            {selectedSourceCount === 0 && (
+              <EmptyState
+                art="studio"
+                title={t("studioNoSourcesTitle")}
+                text={t("studioNoSourcesText")}
+                compact
+                testId="studio-empty-state"
+              />
+            )}
+            {/* Gemischt (Issue #329): Audio als Karte, die übrigen Werkzeuge als Liste */}
+            {featureTool && (
+              <article
+                data-testid={`tool-card-${featureTool.id}`}
+                className="rn-tool rn-tool--feature"
+              >
+                <span className="rn-tool-tile">
+                  <Icon name={featureTool.icon} size={22} />
+                </span>
+                <div className="rn-tool-text">
+                  <h3 className="rn-tool-title">{featureTool.title}</h3>
+                  <p className="rn-tool-desc">{featureTool.description}</p>
+                </div>
+                <ToolActions
+                  tool={featureTool}
+                  primaryClass="rn-btn--primary"
+                  secondaryClass="rn-btn--secondary"
+                />
+              </article>
+            )}
+            <ul
+              data-testid="studio-tools-grid"
+              className="rn-tool-list"
+              aria-label={t("studioMoreTools")}
+            >
+              {listTools.map((tool) => (
+                <li key={tool.id}>
+                  <article data-testid={`tool-card-${tool.id}`} className="rn-tool-row">
+                    <span className="rn-tool-row-icon">
+                      <Icon name={tool.icon} size={20} />
+                    </span>
+                    <div className="rn-tool-text">
+                      <h3 className="rn-tool-title">{tool.title}</h3>
+                      <p className="rn-tool-desc">{tool.description}</p>
+                    </div>
+                    <ToolActions
+                      tool={tool}
+                      primaryClass="rn-btn--secondary"
+                      secondaryClass="rn-btn--ghost"
+                    />
+                  </article>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         {/* Tool Viewer: Audio */}
@@ -400,5 +428,41 @@ export function StudioPanel({
         }
       />
     </section>
+  );
+}
+
+/** Haupt- und Nebenaktion eines Werkzeugs, gleich in Karte und Listenzeile. */
+function ToolActions({
+  tool,
+  primaryClass,
+  secondaryClass
+}: {
+  readonly tool: StudioToolEntry;
+  readonly primaryClass: string;
+  readonly secondaryClass: string;
+}) {
+  return (
+    <div className="rn-tool-actions">
+      <button
+        type="button"
+        onClick={tool.primary.run}
+        data-testid={tool.primary.testId}
+        className={`rn-btn ${primaryClass} rn-tool-primary`}
+      >
+        {tool.primary.label}
+      </button>
+      {tool.secondary && (
+        <button
+          type="button"
+          onClick={tool.secondary.run}
+          data-testid={tool.secondary.testId}
+          aria-label={tool.secondary.ariaLabel}
+          className={`rn-btn ${secondaryClass}`}
+        >
+          <Icon name={tool.secondary.icon} size={18} />
+          {tool.secondary.label}
+        </button>
+      )}
+    </div>
   );
 }
