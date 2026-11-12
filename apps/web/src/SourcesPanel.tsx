@@ -2,6 +2,7 @@ import { type ChangeEvent, type DragEvent, useEffect, useId, useRef, useState } 
 import { Icon } from "./Icon.js";
 import { trapTabKey } from "./focus-trap.js";
 import { useReturnFocus } from "./useReturnFocus.js";
+import { useTheme } from "./useTheme.js";
 import type { CitationLocation, WorkspaceSource } from "./workspace-types.js";
 
 export interface SourcesPanelProps {
@@ -25,6 +26,7 @@ export function SourcesPanel({
   onImportUrl,
   onClearActiveCitation
 }: SourcesPanelProps) {
+  const { t, tf } = useTheme();
   const [filterText, setFilterText] = useState("");
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
   const [urlInput, setUrlInput] = useState("");
@@ -120,17 +122,17 @@ export function SourcesPanel({
 
   return (
     <section
-      aria-label="Quellen-Panel"
+      aria-label={t("srcPanelLabel")}
       className="sources-panel rn-panel-body"
       data-testid="sources-panel"
     >
       <header className="rn-panel-head">
         <div className="rn-panel-heading">
-          <h2>Quellen</h2>
-          <p className="rn-panel-sub">Ausgewählte Quellen fließen in jede Antwort ein.</p>
+          <h2>{t("sourcesTitle")}</h2>
+          <p className="rn-panel-sub">{t("srcSub")}</p>
         </div>
         <span data-testid="sources-count-badge" className="rn-count">
-          {sources.length} {sources.length === 1 ? "Quelle" : "Quellen"}
+          {tf(sources.length === 1 ? "srcCountOne" : "srcCountMany", { n: sources.length })}
         </span>
       </header>
 
@@ -143,7 +145,7 @@ export function SourcesPanel({
           data-testid="btn-upload-file"
         >
           <Icon name="upload" size={18} />
-          Datei hochladen
+          {t("srcUpload")}
         </button>
         <button
           ref={urlButtonRef}
@@ -151,10 +153,10 @@ export function SourcesPanel({
           onClick={() => setIsUrlModalOpen(true)}
           className="btn-import-url rn-btn rn-btn--secondary"
           data-testid="btn-open-url-dialog"
-          aria-label="Link oder Google Docs importieren"
+          aria-label={t("srcLinkAria")}
         >
           <Icon name="link" size={18} />
-          Link
+          {t("srcLink")}
         </button>
         <input
           ref={fileInputRef}
@@ -164,7 +166,7 @@ export function SourcesPanel({
           hidden
           data-testid="file-upload-input"
           onChange={handleFileInputChange}
-          aria-label="Dateien hochladen"
+          aria-label={t("srcFileInputAria")}
         />
       </div>
 
@@ -173,28 +175,28 @@ export function SourcesPanel({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        aria-label="Datei-Dropzone"
+        aria-label={t("srcDropzoneLabel")}
         data-testid="dropzone-area"
         data-dragging={isDragging ? "true" : undefined}
         className="rn-dropzone"
       >
         <Icon name="file" size={22} />
         <div>
-          <p className="rn-dropzone-title">Dateien hier ablegen</p>
-          <small className="rn-dropzone-hint">PDF, TXT oder Markdown</small>
+          <p className="rn-dropzone-title">{t("srcDropTitle")}</p>
+          <small className="rn-dropzone-hint">{t("srcDropHint")}</small>
         </div>
       </section>
 
       {/* Filter */}
       <div className="rn-search">
         <label htmlFor={searchInputId} className="rn-visually-hidden">
-          Quellen durchsuchen
+          {t("srcSearchLabel")}
         </label>
         <Icon name="search" size={18} className="rn-search-icon" />
         <input
           id={searchInputId}
           type="search"
-          placeholder="Quellen filtern …"
+          placeholder={t("srcSearchPlaceholder")}
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
           data-testid="sources-filter-input"
@@ -213,17 +215,15 @@ export function SourcesPanel({
             data-testid="select-all-sources-checkbox"
             className="rn-checkbox"
           />
-          <span>Alle Quellen auswählen</span>
+          <span>{t("srcSelectAll")}</span>
         </label>
       )}
 
       {/* Liste */}
-      <ul aria-label="Hochgeladene Quellen" data-testid="sources-list" className="rn-sources">
+      <ul aria-label={t("srcListLabel")} data-testid="sources-list" className="rn-sources">
         {filteredSources.length === 0 ? (
           <li data-testid="no-sources-message" className="rn-sources-empty">
-            {sources.length === 0
-              ? "Noch keine Quellen vorhanden. Laden Sie Dokumente hoch."
-              : "Keine Quellen gefunden, die dem Filter entsprechen."}
+            {sources.length === 0 ? t("srcEmptyNone") : t("srcEmptyFilter")}
           </li>
         ) : (
           filteredSources.map((source) => {
@@ -249,7 +249,7 @@ export function SourcesPanel({
                       id={`source-checkbox-${source.id}`}
                       checked={isSelected}
                       onChange={() => onToggleSelect?.(source.id)}
-                      aria-label={`Quelle ${source.title} für Chat auswählen`}
+                      aria-label={tf("srcSelectAria", { title: source.title })}
                       data-testid={`source-checkbox-${source.id}`}
                       className="rn-checkbox"
                     />
@@ -268,9 +268,11 @@ export function SourcesPanel({
                 <button
                   type="button"
                   onClick={() => setInspectedSourceId(isInspected ? null : source.id)}
-                  aria-label={`Quelle ${source.title} ${isInspected ? "schließen" : "ansehen"}`}
+                  aria-label={tf(isInspected ? "srcCloseAria" : "srcViewAria", {
+                    title: source.title
+                  })}
                   data-testid={`btn-inspect-source-${source.id}`}
-                  title={isInspected ? "Schließen" : "Ansehen"}
+                  title={t(isInspected ? "srcClose" : "srcView")}
                   className="rn-icon-btn rn-source-inspect"
                 >
                   <Icon name={isInspected ? "close" : "eye"} />
@@ -284,7 +286,7 @@ export function SourcesPanel({
       {/* Quell-Inspektor */}
       {inspectedSource && (
         <aside
-          aria-label={`Quell-Inspektor: ${inspectedSource.title}`}
+          aria-label={tf("srcInspectorLabel", { title: inspectedSource.title })}
           data-testid="source-inspector-drawer"
           className="rn-inspector"
         >
@@ -297,7 +299,7 @@ export function SourcesPanel({
                 onClearActiveCitation?.();
               }}
               data-testid="btn-close-inspector"
-              aria-label="Inspektor schließen"
+              aria-label={t("srcInspectorClose")}
               className="rn-icon-btn"
             >
               <Icon name="close" />
@@ -306,7 +308,8 @@ export function SourcesPanel({
 
           {activeCitation && activeCitation.sourceId === inspectedSource.id && (
             <div className="rn-inspector-badge" data-testid="citation-active-badge">
-              Fokussiertes Zitat {activeCitation.page ? `(Seite ${activeCitation.page})` : ""}
+              {t("srcCitationFocus")}{" "}
+              {activeCitation.page ? tf("srcCitationPage", { page: activeCitation.page }) : ""}
             </div>
           )}
 
@@ -332,10 +335,7 @@ export function SourcesPanel({
                 );
               })()
             ) : (
-              <span>
-                {inspectedSource.rawText ??
-                  "Kein Volltext hinterlegt. Dokumentinhalt wird im Viewer angezeigt."}
-              </span>
+              <span>{inspectedSource.rawText ?? t("srcNoFulltext")}</span>
             )}
           </div>
         </aside>
@@ -358,28 +358,25 @@ export function SourcesPanel({
           }}
         >
           <div className="rn-dialog-card">
-            <h3 id={urlDialogTitleId}>Web-Link oder Google Docs importieren</h3>
-            <p className="rn-dialog-text">
-              Geben Sie eine öffentlich zugängliche URL oder einen freigegebenen Google-Docs-Link
-              ein.
-            </p>
+            <h3 id={urlDialogTitleId}>{t("srcDialogTitle")}</h3>
+            <p className="rn-dialog-text">{t("srcDialogText")}</p>
 
             <form onSubmit={handleUrlSubmit} className="rn-form">
               <div className="rn-field">
-                <label htmlFor="url-title-input">Titel (optional)</label>
+                <label htmlFor="url-title-input">{t("srcTitleLabel")}</label>
                 <input
                   id="url-title-input"
                   type="text"
                   value={urlTitleInput}
                   onChange={(e) => setUrlTitleInput(e.target.value)}
-                  placeholder="z. B. API-Dokumentation"
+                  placeholder={t("srcTitlePlaceholder")}
                   data-testid="url-title-input"
                   className="rn-input"
                 />
               </div>
 
               <div className="rn-field">
-                <label htmlFor="url-address-input">URL</label>
+                <label htmlFor="url-address-input">{t("srcUrlLabel")}</label>
                 <input
                   id="url-address-input"
                   ref={urlAddressRef}
@@ -400,14 +397,14 @@ export function SourcesPanel({
                   data-testid="btn-cancel-url-dialog"
                   className="rn-btn rn-btn--secondary"
                 >
-                  Abbrechen
+                  {t("srcCancel")}
                 </button>
                 <button
                   type="submit"
                   data-testid="btn-submit-url-dialog"
                   className="rn-btn rn-btn--primary"
                 >
-                  Importieren
+                  {t("srcImport")}
                 </button>
               </div>
             </form>

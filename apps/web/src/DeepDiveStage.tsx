@@ -4,6 +4,7 @@ import { AuroraOrb } from "./AuroraOrb.js";
 import { Icon } from "./Icon.js";
 import { LiveLyrics, type TranscriptLine } from "./LiveLyrics.js";
 import { useReturnFocus } from "./useReturnFocus.js";
+import { useTheme } from "./useTheme.js";
 
 export interface DeepDiveStageProps {
   readonly isOpen: boolean;
@@ -62,6 +63,7 @@ export function DeepDiveStage({
   onAskQuestion,
   returnFocusFallback
 }: DeepDiveStageProps) {
+  const { t } = useTheme();
   const [internalTimeMs, setInternalTimeMs] = useState(currentTimeMs);
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
@@ -102,7 +104,7 @@ export function DeepDiveStage({
         <div className="rn-stage-heading">
           <p className="rn-stage-eyebrow">
             <span className="rn-stage-live" aria-hidden="true" />
-            Deep Dive
+            {t("stageEyebrow")}
           </p>
           <h2 id="deep-dive-stage-title" className="rn-stage-title">
             {notebookTitle}
@@ -113,7 +115,7 @@ export function DeepDiveStage({
           type="button"
           onClick={onClose}
           data-testid="btn-close-deep-dive-stage"
-          aria-label="Bühne schließen"
+          aria-label={t("cinemaStageClose")}
           className="rn-stage-close"
         >
           <Icon name="close" size={22} />
@@ -149,10 +151,10 @@ export function DeepDiveStage({
           data-testid="btn-deep-dive-interject"
           className="rn-stage-btn rn-stage-btn--primary rn-stage-btn--large"
         >
-          Beitreten / Frage an die Hosts stellen
+          {t("stageJoin")}
         </button>
 
-        <p className="rn-stage-note">Live-Audio-Synthese · Antworten mit Quellenangabe</p>
+        <p className="rn-stage-note">{t("stageNote")}</p>
       </footer>
     </dialog>
   );

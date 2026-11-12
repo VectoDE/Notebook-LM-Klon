@@ -9,6 +9,7 @@
 
 import { useEffect, useRef } from "react";
 import { shouldReduceMotion } from "./theme-preferences.js";
+import { useTheme } from "./useTheme.js";
 
 export interface TranscriptLine {
   readonly id: string;
@@ -42,6 +43,7 @@ export function LiveLyrics({
   isPlaying: _isPlaying = false,
   reducedMotion = false
 }: LiveLyricsProps) {
+  const { t } = useTheme();
   const containerRef = useRef<HTMLElement | null>(null);
   const activeLineRef = useRef<HTMLButtonElement | null>(null);
 
@@ -71,7 +73,7 @@ export function LiveLyrics({
   return (
     <section
       ref={containerRef}
-      aria-label="Live Transkript und Songtexte"
+      aria-label={t("lyricsLabel")}
       className="rn-lyrics"
       data-testid="live-lyrics-container"
       data-reduced-motion={reducedMotion ? "true" : undefined}

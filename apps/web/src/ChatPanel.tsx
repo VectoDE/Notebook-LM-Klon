@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon.js";
 import { shouldReduceMotion } from "./theme-preferences.js";
+import { useTheme } from "./useTheme.js";
 import type { CitationLocation } from "./workspace-types.js";
 
 export interface ChatMessage {
@@ -36,11 +37,7 @@ export interface ChatPanelProps {
 export function ChatPanel({
   notebookTitle = "RelationNotes Studio",
   notebookSummary,
-  promptChips = [
-    "Fasse die wichtigsten Erkenntnisse zusammen",
-    "Welche Kernarchitektur wird verwendet?",
-    "Welche Sicherheitsgarantien bestehen?"
-  ],
+  promptChips: promptChipsProp,
   messages,
   activeModel = "gemini-2.5-flash",
   onSendMessage,
@@ -50,6 +47,9 @@ export function ChatPanel({
   onRetry,
   isGenerating = false
 }: ChatPanelProps) {
+  const { t, tf, language } = useTheme();
+  // Vorschlagsfragen sind Bedientext und folgen der Sprache; eigene Fragen bleiben unverändert
+  const promptChips = promptChipsProp ?? [t("chatChip1"), t("chatChip2"), t("chatChip3")];
   const [inputText, setInputText] = useState("");
   const [isReadingAloud, setIsReadingAloud] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -80,11 +80,11 @@ export function ChatPanel({
 
   const lastMessage = messages[messages.length - 1];
   let statusText = "";
-  if (isGenerating) statusText = "Antwort wird generiert.";
-  else if (lastMessage?.error) statusText = `Fehler: ${lastMessage.error}`;
-  else if (lastMessage?.aborted) statusText = "Generierung abgebrochen.";
+  if (isGenerating) statusText = t("chatStatusGenerating");
+  else if (lastMessage?.error) statusText = tf("chatStatusError", { error: lastMessage.error });
+  else if (lastMessage?.aborted) statusText = t("chatStatusAborted");
   else if (lastMessage?.role === "assistant" && messages.length > 1)
-    statusText = "Antwort vollständig.";
+    statusText = t("chatStatusDone");
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -115,7 +115,7 @@ export function ChatPanel({
       window.speechSynthesis.cancel();
       const cleanText = text.replace(/\[\d+\]/g, "");
       const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = "de-DE";
+      utterance.lang = language === "en" ? "en-US" : "de-DE";
       utterance.onend = () => setIsReadingAloud(false);
       utterance.onerror = () => setIsReadingAloud(false);
       setIsReadingAloud(true);
@@ -163,7 +163,7 @@ export function ChatPanel({
           // Find citation metadata
           const citation = citations?.[part.num - 1] ?? {
             sourceId: `src_${part.num}`,
-            quote: `Zitat [${part.num}]`
+            quote: tf("chatCitationQuote", { n: part.num })
           };
 
           return (
@@ -172,7 +172,7 @@ export function ChatPanel({
               type="button"
               className="citation-pill rn-cite"
               data-testid={`citation-pill-${part.num}`}
-              aria-label={`Zitat ${part.num} in Quelle anzeigen`}
+              aria-label={tf("chatCitationAria", { n: part.num })}
               onClick={() => onCitationClick?.(citation)}
             >
               {part.num}
@@ -186,7 +186,7 @@ export function ChatPanel({
   const canSend = inputText.trim().length > 0 && !isGenerating;
 
   return (
-    <section aria-label="Wissens- und Chat-Panel" className="chat-panel" data-testid="chat-panel">
+    <section aria-label={t("chatPanelLabel")} className="chat-panel" data-testid="chat-panel">
       {/* Statusmeldungen fuer Screenreader (nicht pro Token, sondern pro Zustand) */}
       <output
         aria-live="polite"
@@ -198,16 +198,16 @@ export function ChatPanel({
       </output>
 
       {/* Verlauf */}
-      <div role="log" aria-label="Chat-Verlauf" aria-busy={isGenerating} className="chat-log">
+      <div role="log" aria-label={t("chatLogLabel")} aria-busy={isGenerating} className="chat-log">
         <div className="chat-column">
           {/* Zusammenfassung des Notebooks */}
           {notebookSummary && (
             <article
-              aria-label="Executive Notebook Summary"
+              aria-label={t("chatSummaryLabel")}
               data-testid="executive-summary-card"
               className="rn-summary"
             >
-              <p className="rn-eyebrow">Executive Summary</p>
+              <p className="rn-eyebrow">{t("chatSummaryEyebrow")}</p>
               <h2 className="rn-summary-title">{notebookTitle}</h2>
               <p className="rn-summary-text">{notebookSummary}</p>
             </article>
@@ -225,22 +225,22 @@ export function ChatPanel({
               >
                 <div className="rn-msg-meta">
                   {isUser ? (
-                    <span className="rn-msg-author">Sie</span>
+                    <span className="rn-msg-author">{t("chatUser")}</span>
                   ) : (
                     <>
                       <span className="rn-msg-author">
                         <span className="rn-avatar" aria-hidden="true" />
-                        RelationNotes Assistent
+                        {t("chatAssistant")}
                       </span>
                       <button
                         type="button"
                         onClick={() => handleReadAloud(msg.content)}
                         data-testid={`btn-read-aloud-${msg.id}`}
-                        aria-label="Antwort vorlesen"
+                        aria-label={t("chatReadAloudAria")}
                         className="rn-btn rn-btn--ghost rn-btn--compact"
                       >
                         <Icon name="speaker" size={18} />
-                        Vorlesen
+                        {t("chatReadAloud")}
                       </button>
                     </>
                   )}
@@ -248,7 +248,7 @@ export function ChatPanel({
 
                 <div data-testid={`message-content-${msg.id}`} className="rn-msg-body">
                   {msg.isStreaming && msg.content.length === 0
-                    ? "Antwort wird erstellt …"
+                    ? t("chatCreating")
                     : renderMessageContent(msg.id, msg.content, msg.citations)}
                   {msg.isStreaming && (
                     <span
@@ -281,7 +281,7 @@ export function ChatPanel({
                         data-testid="btn-retry-chat"
                         className="rn-btn rn-btn--danger rn-btn--compact"
                       >
-                        Erneut versuchen
+                        {t("chatRetry")}
                       </button>
                     )}
                   </div>
@@ -289,13 +289,13 @@ export function ChatPanel({
 
                 {msg.aborted && (
                   <p data-testid={`chat-aborted-${msg.id}`} className="rn-msg-note">
-                    Generierung abgebrochen.
+                    {t("chatStatusAborted")}
                   </p>
                 )}
 
                 {!isUser && msg.modelUsed && !msg.isStreaming && (
                   <p data-testid={`ai-label-${msg.id}`} className="rn-msg-note">
-                    KI-generiert · {msg.modelUsed}
+                    {tf("chatAiLabel", { model: msg.modelUsed })}
                   </p>
                 )}
               </article>
@@ -306,7 +306,7 @@ export function ChatPanel({
               Antwort auf dem Telefon sichtbar unter der Zusammenfassung (Issue #315) */}
           {promptChips.length > 0 && (
             <div
-              aria-label="Vorschlags-Fragen"
+              aria-label={t("chatChipsLabel")}
               data-testid="prompt-chips-container"
               className="rn-chips"
             >
@@ -344,8 +344,8 @@ export function ChatPanel({
             onKeyDown={(e) => {
               if (e.key === "Escape" && isGenerating) onStop?.();
             }}
-            placeholder="Frage zu den Quellen stellen …"
-            aria-label="Frage zu den Quellen eingeben"
+            placeholder={t("chatInputPlaceholder")}
+            aria-label={t("chatInputAria")}
             readOnly={isGenerating}
             aria-busy={isGenerating}
             data-testid="chat-input-field"
@@ -357,7 +357,7 @@ export function ChatPanel({
               type="button"
               onClick={onStop}
               data-testid="btn-stop-chat"
-              aria-label="Generierung stoppen"
+              aria-label={t("chatStopAria")}
               className="rn-send rn-send--stop"
             >
               <Icon name="stop" />
@@ -367,7 +367,7 @@ export function ChatPanel({
               type="submit"
               disabled={!canSend}
               data-testid="btn-send-chat"
-              aria-label="Frage absenden"
+              aria-label={t("chatSendAria")}
               className="rn-send"
             >
               <Icon name="send" />

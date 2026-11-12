@@ -10,6 +10,7 @@
 
 import { type QuizEvaluationResult, type QuizQuestion, evaluateQuiz } from "@notebook-lm/shared";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useTheme } from "./useTheme.js";
 
 export interface QuizViewerProps {
   readonly questions: readonly QuizQuestion[];
@@ -44,10 +45,12 @@ function FlagIcon({ correct }: { readonly correct: boolean }) {
 
 export function QuizViewer({
   questions,
-  title = "Wissens-Quiz",
+  title: titleProp,
   onSourceJump,
   onComplete
 }: QuizViewerProps) {
+  const { t, tf } = useTheme();
+  const title = titleProp ?? t("quizDefaultTitle");
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
@@ -72,23 +75,23 @@ export function QuizViewer({
           const isCorrect = optionIndex === q.correctAnswerIndex;
           setLiveMessage(
             isCorrect
-              ? "Richtige Antwort ausgewählt."
-              : `Falsche Antwort ausgewählt. Richtig wäre gewesen: ${q.options[q.correctAnswerIndex]}`
+              ? t("quizLiveRight")
+              : tf("quizLiveWrong", { answer: q.options[q.correctAnswerIndex] ?? "" })
           );
         }
         return next;
       });
     },
-    [questions]
+    [questions, t, tf]
   );
 
   const goToQuestion = useCallback(
     (index: number) => {
       setActiveQuestionIndex(index);
-      setLiveMessage(`Frage ${index + 1} von ${questions.length}`);
+      setLiveMessage(tf("quizProgress", { n: index + 1, total: questions.length }));
       setFocusRequest((n) => n + 1);
     },
-    [questions.length]
+    [questions.length, tf]
   );
 
   useEffect(() => {
@@ -97,23 +100,23 @@ export function QuizViewer({
 
   const handleFinishQuiz = useCallback(() => {
     setShowSummary(true);
-    setLiveMessage(`Quiz beendet. Ergebnis: ${evaluation.scorePercentage}% richtig.`);
+    setLiveMessage(tf("quizLiveDone", { pct: evaluation.scorePercentage }));
     onComplete?.(evaluation);
-  }, [evaluation, onComplete]);
+  }, [evaluation, onComplete, tf]);
 
   const handleReset = useCallback(() => {
     setSelectedAnswers({});
     setActiveQuestionIndex(0);
     setShowSummary(false);
-    setLiveMessage("Quiz zurückgesetzt.");
-  }, []);
+    setLiveMessage(t("quizLiveReset"));
+  }, [t]);
 
   const containerId = useId();
 
   if (totalQuestions === 0) {
     return (
       <section aria-label={title} className="rn-tool-view rn-tool-view--empty">
-        <p className="rn-tool-empty">Keine Quizfragen vorhanden.</p>
+        <p className="rn-tool-empty">{t("quizEmpty")}</p>
       </section>
     );
   }
@@ -121,16 +124,16 @@ export function QuizViewer({
   const answeredCount = Object.keys(selectedAnswers).length;
 
   return (
-    <section aria-label={`Quiz: ${title}`} className="rn-tool-view rn-quiz">
+    <section aria-label={tf("quizAria", { title })} className="rn-tool-view rn-quiz">
       <header className="rn-tool-view-head">
         <h2 className="rn-tool-view-title">{title}</h2>
         <span data-testid="quiz-progress-indicator" className="rn-tool-view-meta">
-          Frage {activeQuestionIndex + 1} von {totalQuestions}
+          {tf("quizProgress", { n: activeQuestionIndex + 1, total: totalQuestions })}
         </span>
       </header>
       <progress
         className="rn-progress"
-        aria-label="Beantwortete Fragen"
+        aria-label={t("quizAnswered")}
         max={totalQuestions}
         value={answeredCount}
       />
@@ -146,24 +149,27 @@ export function QuizViewer({
 
       {showSummary ? (
         <div data-testid="quiz-summary-card" className="rn-quiz-summary">
-          <p className="rn-eyebrow">Quiz-Auswertung</p>
+          <p className="rn-eyebrow">{t("quizSummaryEyebrow")}</p>
           <p className="rn-quiz-score">
             <span className="rn-quiz-score-value">{evaluation.scorePercentage}%</span>
             <span className="rn-quiz-score-text">
-              Ergebnis: {evaluation.correctCount} von {evaluation.totalQuestions} richtig (
-              {evaluation.scorePercentage}%)
+              {tf("quizScore", {
+                correct: evaluation.correctCount,
+                total: evaluation.totalQuestions,
+                pct: evaluation.scorePercentage
+              })}
             </span>
           </p>
           <div className="rn-tool-actions-row rn-tool-actions-row--center">
             <button type="button" onClick={handleReset} className="rn-btn rn-btn--primary">
-              Quiz wiederholen
+              {t("quizRepeat")}
             </button>
             <button
               type="button"
               onClick={() => setShowSummary(false)}
               className="rn-btn rn-btn--secondary"
             >
-              Antworten ansehen
+              {t("quizViewAnswers")}
             </button>
           </div>
         </div>
@@ -175,7 +181,7 @@ export function QuizViewer({
 
               <div
                 role="radiogroup"
-                aria-label={`Antwortoptionen für Frage ${activeQuestionIndex + 1}`}
+                aria-label={tf("quizOptionsAria", { n: activeQuestionIndex + 1 })}
                 className="rn-quiz-options"
               >
                 {currentQuestion.options.map((optionText, optIdx) => {
@@ -214,13 +220,13 @@ export function QuizViewer({
                       {state === "correct" && (
                         <span className="rn-quiz-flag">
                           <FlagIcon correct />
-                          Richtig
+                          {t("quizRight")}
                         </span>
                       )}
                       {state === "wrong" && (
                         <span className="rn-quiz-flag">
                           <FlagIcon correct={false} />
-                          Falsch
+                          {t("quizWrong")}
                         </span>
                       )}
                     </label>
@@ -232,7 +238,7 @@ export function QuizViewer({
             {/* Explanation with Grounded Source Citation & Jump */}
             {selectedAnswers[currentQuestion.id] !== undefined && (
               <div data-testid="quiz-explanation-box" className="rn-quiz-explanation">
-                <p className="rn-quiz-explanation-title">Erklärung:</p>
+                <p className="rn-quiz-explanation-title">{t("quizExplanation")}</p>
                 <p className="rn-quiz-explanation-text">{currentQuestion.explanation}</p>
 
                 {(currentQuestion.sourceCitation || currentQuestion.sourceId) && (
@@ -247,7 +253,9 @@ export function QuizViewer({
                     }}
                     className="rn-link-btn"
                   >
-                    Quelle belegen: {currentQuestion.sourceCitation ?? "Originalzitat ansehen"}
+                    {tf("quizVerify", {
+                      citation: currentQuestion.sourceCitation ?? t("quizOriginalQuote")
+                    })}
                   </button>
                 )}
               </div>
@@ -261,7 +269,7 @@ export function QuizViewer({
                 onClick={() => goToQuestion(activeQuestionIndex - 1)}
                 className="rn-btn rn-btn--ghost"
               >
-                Zurück
+                {t("quizBack")}
               </button>
 
               {activeQuestionIndex < totalQuestions - 1 ? (
@@ -270,11 +278,11 @@ export function QuizViewer({
                   onClick={() => goToQuestion(activeQuestionIndex + 1)}
                   className="rn-btn rn-btn--secondary"
                 >
-                  Weiter
+                  {t("quizNext")}
                 </button>
               ) : (
                 <button type="button" onClick={handleFinishQuiz} className="rn-btn rn-btn--primary">
-                  Quiz abschließen
+                  {t("quizFinish")}
                 </button>
               )}
             </div>

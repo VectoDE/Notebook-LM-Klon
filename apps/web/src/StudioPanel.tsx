@@ -20,6 +20,7 @@ import {
   exportQuizToJson,
   triggerBrowserDownload
 } from "./artifact-exporters.js";
+import { useTheme } from "./useTheme.js";
 import type { CitationLocation } from "./workspace-types.js";
 
 export type StudioTool =
@@ -71,6 +72,7 @@ export function StudioPanel({
   videoStoryboard,
   audioStateMachine
 }: StudioPanelProps) {
+  const { t, tf } = useTheme();
   const [currentTool, setCurrentTool] = useState<StudioTool>(activeTool);
   const [isDeepDiveOpen, setIsDeepDiveOpen] = useState(false);
 
@@ -107,16 +109,16 @@ export function StudioPanel({
     {
       id: "audio",
       icon: "audio",
-      title: "Audio-Overview",
-      description: "Zwei-Sprecher-Podcast mit interaktiver Host-Zwischenfrage.",
+      title: t("toolAudioTitle"),
+      description: t("toolAudioDesc"),
       primary: {
-        label: "Player öffnen",
+        label: t("toolAudioOpen"),
         testId: "btn-open-audio-tool",
         run: () => selectTool("audio")
       },
       secondary: {
-        label: "Bühne",
-        ariaLabel: "Bühne im Vollbild öffnen (Deep Dive)",
+        label: t("toolStage"),
+        ariaLabel: t("toolStageAria"),
         icon: "stage",
         testId: "btn-open-deep-dive-stage",
         run: () => setIsDeepDiveOpen(true)
@@ -125,10 +127,10 @@ export function StudioPanel({
     {
       id: "video",
       icon: "video",
-      title: "Video-Overview",
-      description: "Animierte Folien, Diagramme und WebM-Videoexport.",
+      title: t("toolVideoTitle"),
+      description: t("toolVideoDesc"),
       primary: {
-        label: "Video ansehen",
+        label: t("toolVideoOpen"),
         testId: "btn-open-video-tool",
         run: () => selectTool("video")
       }
@@ -136,16 +138,16 @@ export function StudioPanel({
     {
       id: "mindmap",
       icon: "mindmap",
-      title: "Wissens-Mindmap",
-      description: "Interaktiver hierarchischer Wissensbaum mit SVG-Export.",
+      title: t("toolMindmapTitle"),
+      description: t("toolMindmapDesc"),
       primary: {
-        label: "Erkunden",
+        label: t("toolMindmapOpen"),
         testId: "btn-open-mindmap-tool",
         run: () => selectTool("mindmap")
       },
       secondary: {
-        label: "SVG",
-        ariaLabel: "SVG exportieren (Mindmap)",
+        label: t("toolMindmapExport"),
+        ariaLabel: t("toolMindmapExportAria"),
         icon: "download",
         testId: "btn-export-mindmap-svg",
         run: () => handleExport("mindmap")
@@ -154,16 +156,16 @@ export function StudioPanel({
     {
       id: "flashcards",
       icon: "cards",
-      title: "Lernkarten",
-      description: "Spaced-Repetition-Karten (SM-2) mit Anki-CSV-Export.",
+      title: t("toolCardsTitle"),
+      description: t("toolCardsDesc"),
       primary: {
-        label: "Lernen",
+        label: t("toolCardsOpen"),
         testId: "btn-open-flashcards-tool",
         run: () => selectTool("flashcards")
       },
       secondary: {
-        label: "Anki",
-        ariaLabel: "Anki-CSV exportieren (Lernkarten)",
+        label: t("toolCardsExport"),
+        ariaLabel: t("toolCardsExportAria"),
         icon: "download",
         testId: "btn-export-anki-csv",
         run: () => handleExport("anki")
@@ -172,12 +174,16 @@ export function StudioPanel({
     {
       id: "quiz",
       icon: "quiz",
-      title: "Interaktives Quiz",
-      description: "Multiple-Choice-Test mit quellenbelegten Erklärungen.",
-      primary: { label: "Starten", testId: "btn-open-quiz-tool", run: () => selectTool("quiz") },
+      title: t("toolQuizTitle"),
+      description: t("toolQuizDesc"),
+      primary: {
+        label: t("toolQuizOpen"),
+        testId: "btn-open-quiz-tool",
+        run: () => selectTool("quiz")
+      },
       secondary: {
-        label: "JSON",
-        ariaLabel: "JSON exportieren (Quiz)",
+        label: t("toolQuizExport"),
+        ariaLabel: t("toolQuizExportAria"),
         icon: "download",
         testId: "btn-export-quiz-md",
         run: () => handleExport("quiz")
@@ -186,10 +192,10 @@ export function StudioPanel({
     {
       id: "briefing",
       icon: "briefing",
-      title: "Briefing & Timeline",
-      description: "Management-Zusammenfassung, FAQ und Meilensteine.",
+      title: t("toolBriefingTitle"),
+      description: t("toolBriefingDesc"),
       primary: {
-        label: "Als Markdown exportieren",
+        label: t("toolBriefingExport"),
         testId: "btn-export-briefing-md",
         run: () => handleExport("briefing")
       }
@@ -198,16 +204,16 @@ export function StudioPanel({
 
   return (
     <section
-      aria-label="Studio-Panel"
+      aria-label={t("studioPanelLabel")}
       className="studio-panel rn-panel-body"
       data-testid="studio-panel"
     >
       <header className="rn-panel-head">
         <div className="rn-panel-heading">
-          <h2>Studio</h2>
+          <h2>{t("studioTitle")}</h2>
           {/* In einer Werkzeugansicht trägt deren eigener Kopf den Notebook-Titel */}
           {currentTool === "overview" && (
-            <p className="rn-panel-sub">{`${tools.length} Werkzeuge aus Ihren Quellen`}</p>
+            <p className="rn-panel-sub">{tf("studioSub", { n: tools.length })}</p>
           )}
         </div>
         {currentTool !== "overview" && (
@@ -218,7 +224,7 @@ export function StudioPanel({
             className="rn-btn rn-btn--ghost rn-btn--compact"
           >
             <Icon name="back" size={18} />
-            Alle Werkzeuge
+            {t("studioBack")}
           </button>
         )}
       </header>
@@ -230,7 +236,11 @@ export function StudioPanel({
         className="rn-cinema-enter rn-tool-view"
       >
         {currentTool === "overview" && (
-          <ul data-testid="studio-tools-grid" className="rn-tools" aria-label="Studio-Werkzeuge">
+          <ul
+            data-testid="studio-tools-grid"
+            className="rn-tools"
+            aria-label={t("studioToolsLabel")}
+          >
             {tools.map((tool) => (
               <li key={tool.id}>
                 <article data-testid={`tool-card-${tool.id}`} className="rn-tool">

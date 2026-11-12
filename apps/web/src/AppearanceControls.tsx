@@ -18,10 +18,10 @@ export interface AppearanceControlsProps {
   readonly idPrefix: string;
 }
 
-export const ROLE_OPTIONS: readonly { readonly id: UserRole; readonly label: string }[] = [
-  { id: "owner", label: "Inhaber" },
-  { id: "editor", label: "Bearbeiter" },
-  { id: "viewer", label: "Betrachter" }
+export const ROLE_OPTIONS: readonly { readonly id: UserRole; readonly labelKey: string }[] = [
+  { id: "owner", labelKey: "roleOwner" },
+  { id: "editor", labelKey: "roleEditor" },
+  { id: "viewer", labelKey: "roleViewer" }
 ];
 
 /**
@@ -64,7 +64,7 @@ export function AppearanceControls({
       {role !== undefined && (
         <div className="rn-appearance-group">
           <label htmlFor={`${idPrefix}-role`} className="rn-appearance-label">
-            Rolle
+            {t("roleLabel")}
           </label>
           <div className="rn-control rn-control--block">
             <select
@@ -76,7 +76,7 @@ export function AppearanceControls({
             >
               {ROLE_OPTIONS.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.label}
+                  {t(o.labelKey)}
                 </option>
               ))}
             </select>

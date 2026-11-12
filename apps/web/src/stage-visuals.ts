@@ -18,6 +18,12 @@ export function podcastStateLabel(state: string): string {
   return PODCAST_STATE_LABELS[state as PodcastState] ?? "Bereit";
 }
 
+/** Schlüssel im Sprachkatalog für den Namen eines Player-Zustands; unbekannt: "Bereit". */
+export function podcastStateKey(state: string): string {
+  const known = state in PODCAST_STATE_LABELS ? state : "idle";
+  return `podState${known.charAt(0).toUpperCase()}${known.slice(1)}`;
+}
+
 export interface Rgb {
   readonly r: number;
   readonly g: number;
