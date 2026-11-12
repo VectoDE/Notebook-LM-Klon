@@ -2434,17 +2434,30 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
 }
 
 .rn-tree-label {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-start;
   gap: var(--rn-space-2);
   min-width: 0;
+  padding-block: var(--rn-space-2);
+}
+
+/* Hängender Einzug: Umbrüche laufen bündig zum Textanfang, nicht unter den Punkt. */
+.rn-tree-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--rn-space-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .rn-tree-marker {
   flex: none;
   width: 8px;
   height: 8px;
+  margin-block-start: calc((1lh - 8px) / 2);
   border-radius: 50%;
   background: var(--rn-color-border);
 }
