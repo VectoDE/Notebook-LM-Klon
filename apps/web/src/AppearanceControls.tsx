@@ -1,17 +1,19 @@
 import { Icon } from "./Icon.js";
-import type { ColorMode, DesignTheme } from "./design-tokens.js";
+import type { DesignTheme } from "./design-tokens.js";
+import type { ColorModePreference } from "./theme-preferences.js";
+import { useTheme } from "./useTheme.js";
 
 export type UserRole = "owner" | "editor" | "viewer";
 
-/** Darstellung: Rolle, Design und Farbschema. Wird im Desktop-Menü und im mobilen Sheet genutzt. */
+/** Darstellung: Rolle, Design und Farbschema. Genutzt im Kopfmenü, im mobilen Sheet und in den Einstellungen. */
 export interface AppearanceControlsProps {
   /** Ohne Rolle (z. B. in den Einstellungen) entfällt das Auswahlfeld. */
   readonly role?: UserRole | undefined;
   readonly onRoleChange?: ((role: UserRole) => void) | undefined;
   readonly theme: DesignTheme;
   readonly onThemeChange: (theme: DesignTheme) => void;
-  readonly colorMode: ColorMode;
-  readonly onColorModeChange: (mode: ColorMode) => void;
+  readonly colorMode: ColorModePreference;
+  readonly onColorModeChange: (mode: ColorModePreference) => void;
   /** Eindeutiger Präfix für ids und name-Attribute. */
   readonly idPrefix: string;
 }
@@ -22,21 +24,29 @@ export const ROLE_OPTIONS: readonly { readonly id: UserRole; readonly label: str
   { id: "viewer", label: "Betrachter" }
 ];
 
+/**
+ * Designs und Farbmodi mit Schlüsseln im Sprachkatalog (TRANSLATIONS in useTheme):
+ * eine Quelle für die Namen in Kopfmenü, Menü-Sheet und Einstellungen.
+ */
 export const THEME_OPTIONS: readonly {
   readonly id: DesignTheme;
-  readonly label: string;
-  readonly hint: string;
+  readonly labelKey: string;
+  readonly hintKey: string;
 }[] = [
-  { id: "pure", label: "Pure", hint: "Ruhige Klarheit" },
-  { id: "editorial-calm", label: "Editorial", hint: "Lesen mit Serife" },
-  { id: "immersive-cinema", label: "Cinema", hint: "Tiefe und Licht" },
-  { id: "fusion", label: "Fusion", hint: "Energie und Farbe" }
+  { id: "pure", labelKey: "themePure", hintKey: "themePureHint" },
+  { id: "editorial-calm", labelKey: "themeEditorial", hintKey: "themeEditorialHint" },
+  { id: "immersive-cinema", labelKey: "themeCinema", hintKey: "themeCinemaHint" },
+  { id: "fusion", labelKey: "themeFusion", hintKey: "themeFusionHint" }
 ];
 
-export const MODE_OPTIONS: readonly { readonly id: ColorMode; readonly label: string }[] = [
-  { id: "light", label: "Hell" },
-  { id: "dark", label: "Dunkel" },
-  { id: "aaa-contrast", label: "AAA" }
+export const MODE_OPTIONS: readonly {
+  readonly id: ColorModePreference;
+  readonly labelKey: string;
+}[] = [
+  { id: "system", labelKey: "modeSystem" },
+  { id: "light", labelKey: "modeLight" },
+  { id: "dark", labelKey: "modeDark" },
+  { id: "aaa-contrast", labelKey: "modeAAA" }
 ];
 
 export function AppearanceControls({
@@ -48,6 +58,7 @@ export function AppearanceControls({
   onColorModeChange,
   idPrefix
 }: AppearanceControlsProps) {
+  const { t } = useTheme();
   return (
     <div className="rn-appearance">
       {role !== undefined && (
@@ -75,7 +86,7 @@ export function AppearanceControls({
       )}
 
       <fieldset className="rn-appearance-group">
-        <legend className="rn-appearance-label">Design</legend>
+        <legend className="rn-appearance-label">{t("themeLabel")}</legend>
         <div className="rn-choices">
           {THEME_OPTIONS.map((o) => (
             <label key={o.id} className="rn-choice" data-option={o.id}>
@@ -90,8 +101,8 @@ export function AppearanceControls({
               />
               <span className="rn-choice-swatch" aria-hidden="true" />
               <span className="rn-choice-text">
-                <span className="rn-choice-title">{o.label}</span>
-                <span className="rn-choice-hint">{o.hint}</span>
+                <span className="rn-choice-title">{t(o.labelKey)}</span>
+                <span className="rn-choice-hint">{t(o.hintKey)}</span>
               </span>
             </label>
           ))}
@@ -99,8 +110,8 @@ export function AppearanceControls({
       </fieldset>
 
       <fieldset className="rn-appearance-group">
-        <legend className="rn-appearance-label">Farbschema</legend>
-        <div className="rn-segmented">
+        <legend className="rn-appearance-label">{t("colorModeLabel")}</legend>
+        <div className="rn-segmented rn-segmented--grid">
           {MODE_OPTIONS.map((o) => (
             <label key={o.id} className="rn-segment">
               <input
@@ -112,11 +123,13 @@ export function AppearanceControls({
                 data-testid={`mode-option-${o.id}`}
                 className="rn-segment-input"
               />
-              <span>{o.label}</span>
+              <span>{t(o.labelKey)}</span>
             </label>
           ))}
         </div>
       </fieldset>
+
+      <p className="rn-setting-hint">{t("appearanceStored")}</p>
     </div>
   );
 }

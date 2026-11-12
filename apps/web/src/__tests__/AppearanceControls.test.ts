@@ -31,7 +31,19 @@ describe("AppearanceControls", () => {
       "immersive-cinema",
       "fusion"
     ]);
-    expect(MODE_OPTIONS.map((o) => o.id)).toEqual(["light", "dark", "aaa-contrast"]);
+    expect(MODE_OPTIONS.map((o) => o.id)).toEqual(["system", "light", "dark", "aaa-contrast"]);
+  });
+
+  it("nimmt Namen aus dem Sprachkatalog (eine Quelle für alle Stellen)", () => {
+    const html = render();
+    for (const name of ["Pure", "Editorial", "Cinema", "Fusion", "Ruhige Klarheit"]) {
+      expect(html).toContain(name);
+    }
+    for (const name of ["Automatisch (wie Gerät)", "Hell", "Dunkel", "Hoher Kontrast (AAA)"]) {
+      expect(html).toContain(`<span>${name}</span>`);
+    }
+    expect(html).not.toContain("Hochkontrast");
+    expect(html).toContain("Design und Farbschema werden auf diesem Gerät gespeichert.");
   });
 
   it("nutzt beschriftete Felder und echte Radiogruppen", () => {
@@ -40,8 +52,8 @@ describe("AppearanceControls", () => {
     expect(html).toContain('<legend class="rn-appearance-label">Design</legend>');
     expect(html).toContain('<legend class="rn-appearance-label">Farbschema</legend>');
     expect(html.match(/name="t-theme"/g)?.length).toBe(4);
-    expect(html.match(/name="t-mode"/g)?.length).toBe(3);
-    expect(html.match(/type="radio"/g)?.length).toBe(7);
+    expect(html.match(/name="t-mode"/g)?.length).toBe(4);
+    expect(html.match(/type="radio"/g)?.length).toBe(8);
   });
 
   it("lässt die Rolle weg, wenn keine übergeben wird", () => {
@@ -56,7 +68,7 @@ describe("AppearanceControls", () => {
     );
     expect(html).not.toContain("role-switcher-select");
     expect(html).not.toContain("Rolle");
-    expect(html.match(/type="radio"/g)?.length).toBe(7);
+    expect(html.match(/type="radio"/g)?.length).toBe(8);
   });
 
   it("markiert die aktuelle Wahl", () => {
@@ -65,5 +77,18 @@ describe("AppearanceControls", () => {
     expect(html).toMatch(/data-testid="mode-option-dark"[^>]*checked=""/);
     expect(html).toMatch(/<option value="editor" selected="">Bearbeiter<\/option>/);
     expect(html.match(/checked=""/g)?.length).toBe(2);
+  });
+
+  it("markiert Automatisch, wenn der Farbmodus dem Gerät folgt", () => {
+    const html = renderToStaticMarkup(
+      createElement(AppearanceControls, {
+        theme: "pure",
+        onThemeChange: noop,
+        colorMode: "system",
+        onColorModeChange: noop,
+        idPrefix: "a"
+      })
+    );
+    expect(html).toMatch(/data-testid="mode-option-system"[^>]*checked=""/);
   });
 });
