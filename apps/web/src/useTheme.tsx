@@ -96,7 +96,19 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navFlashcards: "Lernkarten",
     navQuiz: "Quiz",
     navVideo: "Video",
-    navAudio: "Audio"
+    navAudio: "Audio",
+    navAreas: "Bereiche",
+    skipToContent: "Zum Inhalt springen",
+    navSources: "Quellen",
+    navChat: "Chat",
+    navChatAria: "Chat & Zitate",
+    navStudio: "Studio",
+    navStudioAria: "Studio (6 Werkzeuge)",
+    navSettings: "Einstellungen",
+    navSettingsHint: "Modell, Datenschutz, Sprache",
+    menuOpen: "Menü öffnen",
+    menuTitle: "Menü",
+    menuClose: "Menü schließen"
   },
   en: {
     appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
@@ -154,9 +166,26 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navFlashcards: "Flashcards",
     navQuiz: "Quiz",
     navVideo: "Video",
-    navAudio: "Audio"
+    navAudio: "Audio",
+    navAreas: "Sections",
+    skipToContent: "Skip to content",
+    navSources: "Sources",
+    navChat: "Chat",
+    navChatAria: "Chat & citations",
+    navStudio: "Studio",
+    navStudioAria: "Studio (6 tools)",
+    navSettings: "Settings",
+    navSettingsHint: "Model, privacy, language",
+    menuOpen: "Open menu",
+    menuTitle: "Menu",
+    menuClose: "Close menu"
   }
 };
+
+/** Text zum Schlüssel in der Sprache; fehlt er, Deutsch, sonst der Schlüssel selbst. */
+export function translate(language: Language, key: string): string {
+  return TRANSLATIONS[language][key] ?? TRANSLATIONS.de[key] ?? key;
+}
 
 export interface ThemeContextValue {
   readonly theme: DesignTheme;
@@ -251,13 +280,7 @@ export function ThemeProvider({
     setLanguageState(newLang);
   }, []);
 
-  const t = useCallback(
-    (key: string): string => {
-      const dict = TRANSLATIONS[language];
-      return dict[key] ?? TRANSLATIONS.de[key] ?? key;
-    },
-    [language]
-  );
+  const t = useCallback((key: string): string => translate(language, key), [language]);
 
   const value = useMemo<ThemeContextValue>(
     () => ({
@@ -287,7 +310,7 @@ export function useTheme(): ThemeContextValue {
       setTheme: () => {},
       setColorMode: () => {},
       setLanguage: () => {},
-      t: (key: string) => TRANSLATIONS.de[key] ?? key
+      t: (key: string) => translate("de", key)
     };
   }
   return context;
