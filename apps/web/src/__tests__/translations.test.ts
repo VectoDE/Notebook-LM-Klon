@@ -1,7 +1,7 @@
 import { type ReactNode, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { MODE_OPTIONS, THEME_OPTIONS } from "../AppearanceControls.js";
+import { AppearanceControls, MODE_OPTIONS, THEME_OPTIONS } from "../AppearanceControls.js";
 import { SettingsDrawer } from "../SettingsDrawer.js";
 import { WorkspaceLayout } from "../WorkspaceLayout.js";
 import { TRANSLATIONS, ThemeProvider, type ThemeProviderProps, translate } from "../useTheme.js";
@@ -44,7 +44,7 @@ describe("Oberfläche auf Englisch", () => {
     const html = renderEn(createElement(WorkspaceLayout));
     expect(html).toContain('<nav aria-label="Sections" class="rn-topnav" data-testid="top-nav">');
     expect(html).toContain('<span class="rn-topnav-label">Sources</span>');
-    expect(html).toContain('<span class="rn-topnav-label">Settings</span>');
+    expect(html).toContain('<span class="rn-settings-button-label">Settings</span>');
     expect(html).toContain('<span class="rn-appearance-button-label">Appearance</span>');
     expect(html).toContain('aria-label="Open menu"');
     expect(html).toContain("Skip to content");
@@ -55,23 +55,71 @@ describe("Oberfläche auf Englisch", () => {
     expect(html).not.toContain("Menü öffnen");
   });
 
-  it("übersetzt die Einstellungen samt Darstellung", () => {
+  it("übersetzt die Einstellungen", () => {
     const html = renderEn(createElement(SettingsDrawer, { isOpen: true, onClose: () => {} }));
     expect(html).toContain(">Settings</h2>");
     expect(html).toContain('aria-label="Close settings"');
     for (const text of [
-      "Appearance",
-      "Color scheme",
-      "Automatic (match device)",
-      "High contrast (AAA)",
-      "Calm clarity",
+      "Language",
+      "AI model",
       "Applies to new answers.",
       "Coming soon",
-      "Design and color scheme are saved on this device."
+      "BYOK stands for",
+      "Design, color scheme and motion are set under “Appearance”."
     ]) {
       expect(html, text).toContain(text);
     }
     expect(html).not.toContain("Darstellung");
-    expect(html).not.toContain("Farbschema");
+    expect(html).not.toContain("Sprache");
+  });
+
+  it("übersetzt die Darstellung samt Bewegung und Rolle", () => {
+    const html = renderEn(
+      createElement(AppearanceControls, {
+        idPrefix: "x",
+        role: "viewer",
+        onRoleChange: () => {},
+        theme: "pure",
+        onThemeChange: () => {},
+        colorMode: "system",
+        onColorModeChange: () => {}
+      })
+    );
+    for (const text of [
+      "Color scheme",
+      "Automatic (match device)",
+      "High contrast (AAA)",
+      "Calm clarity",
+      "Reduce motion",
+      ">Role</label>",
+      ">Viewer</option>",
+      "Design and color scheme are saved on this device."
+    ]) {
+      expect(html, text).toContain(text);
+    }
+    expect(html).not.toContain("Rolle");
+    expect(html).not.toContain("Betrachter");
+  });
+
+  it("übersetzt die Glossarbegriffe in Chat und Studio", () => {
+    expect(translate("de", "chatSummaryLabel")).toBe("Zusammenfassung");
+    expect(translate("de", "studioAudioCard")).toBe("Audio-Überblick");
+    expect(translate("de", "studioVideoCard")).toBe("Video-Überblick");
+    expect(translate("de", "studioAudioOpen")).toBe("Anhören");
+    expect(translate("en", "studioAudioCard")).toBe("Audio overview");
+    // Kürzel werden erklärt (de und en)
+    for (const lang of ["de", "en"] as const) {
+      expect(translate(lang, "byokText").toLowerCase()).toContain("bring your own key");
+      expect(translate(lang, "studioFlashcardsDesc")).toMatch(/SM-2.*Anki/);
+      expect(translate(lang, "studioVideoDesc")).toContain("WebM");
+    }
+    for (const key of [
+      "studioAudioCard",
+      "studioVideoCard",
+      "studioAudioOpen",
+      "chatSummaryLabel"
+    ]) {
+      expect(translate("de", key)).not.toMatch(/Overview|Player|Executive/);
+    }
   });
 });

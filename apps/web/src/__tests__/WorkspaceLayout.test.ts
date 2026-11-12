@@ -40,11 +40,18 @@ describe("WorkspaceLayout Component (Issue #31)", () => {
     expect(html).toContain('aria-label="Studio (6 Werkzeuge)"');
     expect(html).toContain('<span class="rn-tab-count">2</span>');
     expect(html).toContain('<span class="rn-tab-label">Studio</span>');
-    // Kopf: Bereiche als Reiter mit aria-current, Darstellung und Menü als Auslöser
-    expect(html).toContain('data-testid="top-tab-chat" class="rn-topnav-item"');
-    expect(html).toMatch(/aria-current="true" data-testid="top-tab-chat"/);
-    expect(html).not.toMatch(/aria-current="true" data-testid="top-tab-studio"/);
+    // Kopf: Bereiche als Sprungziele; ohne Fenster (alle Bereiche sichtbar) kein aria-current
+    expect(html).toContain('data-testid="top-tab-chat" class="rn-topnav-item rn-tip-host"');
+    expect(html).not.toMatch(/aria-current="true" data-testid="top-tab-/);
+    // Untere Leiste bleibt Reiterleiste mit aria-current
+    expect(html).toMatch(
+      /aria-current="true" aria-label="Chat &amp; Zitate" data-testid="tab-btn-chat"/
+    );
     expect(html).not.toContain('aria-current="page"');
+    // Einstellungen öffnen einen Dialog: nicht in der Navigation „Bereiche“ (Issue #319)
+    const nav = html.slice(html.indexOf('data-testid="top-nav"'), html.indexOf("</nav>"));
+    expect(nav).not.toContain("btn-open-settings");
+    expect(html).toContain('<span class="rn-settings-button-label">Einstellungen</span>');
     // Sprunglink als erstes Element, Kopfzeile (banner) vor und außerhalb von main
     expect(html).toMatch(/^<div[^>]*><a href="#workspace-main" class="rn-skip-link"/);
     expect(html).toContain("Zum Inhalt springen");

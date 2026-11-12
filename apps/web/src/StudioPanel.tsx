@@ -109,10 +109,10 @@ export function StudioPanel({
     {
       id: "audio",
       icon: "audio",
-      title: t("toolAudioTitle"),
+      title: t("studioAudioCard"),
       description: t("toolAudioDesc"),
       primary: {
-        label: t("toolAudioOpen"),
+        label: t("studioAudioOpen"),
         testId: "btn-open-audio-tool",
         run: () => selectTool("audio")
       },
@@ -127,8 +127,8 @@ export function StudioPanel({
     {
       id: "video",
       icon: "video",
-      title: t("toolVideoTitle"),
-      description: t("toolVideoDesc"),
+      title: t("studioVideoCard"),
+      description: t("studioVideoDesc"),
       primary: {
         label: t("toolVideoOpen"),
         testId: "btn-open-video-tool",
@@ -157,7 +157,7 @@ export function StudioPanel({
       id: "flashcards",
       icon: "cards",
       title: t("toolCardsTitle"),
-      description: t("toolCardsDesc"),
+      description: t("studioFlashcardsDesc"),
       primary: {
         label: t("toolCardsOpen"),
         testId: "btn-open-flashcards-tool",

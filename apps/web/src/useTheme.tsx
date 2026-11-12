@@ -57,8 +57,8 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     chatDisclaimer:
       "Antworten sind KI-generiert und können Fehler enthalten. Bitte Quellen prüfen.",
     studioTitle: "Studio",
-    studioAudioCard: "Audio-Overview (Deep Dive)",
-    studioVideoCard: "Video-Overview",
+    studioAudioCard: "Audio-Überblick",
+    studioVideoCard: "Video-Überblick",
     studioMindmapCard: "Wissens-Mindmap",
     studioFlashcardsCard: "Lernkarten (SM-2)",
     studioQuizCard: "Interaktives Quiz",
@@ -76,7 +76,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     byokTitle: "Eigene API-Schlüssel (BYOK)",
     byokStatus: "In Vorbereitung",
     byokText:
-      "Bald können Sie hier eigene Schlüssel für Modellanbieter hinterlegen. Sie werden verschlüsselt gespeichert.",
+      "Bald können Sie hier eigene Schlüssel für Modellanbieter hinterlegen (BYOK steht für „Bring Your Own Key“). Sie werden verschlüsselt gespeichert.",
     gdprTitle: "DSGVO & Datenschutz",
     gdprText: "Alle Verarbeitungen erfolgen datensparsam und EU-DSGVO-konform ohne Training.",
     aiActTitle: "EU AI Act",
@@ -127,10 +127,21 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navStudio: "Studio",
     navStudioAria: "Studio (6 Werkzeuge)",
     navSettings: "Einstellungen",
-    navSettingsHint: "Modell, Datenschutz, Sprache",
+    navSettingsHint: "Sprache, KI-Modell, Datenschutz",
     menuOpen: "Menü öffnen",
     menuTitle: "Menü",
-    menuClose: "Menü schließen"
+    menuClose: "Menü schließen",
+    settingsAppearanceHint: "Design, Farbschema und Bewegung stellen Sie unter „Darstellung“ ein.",
+    roleLabel: "Rolle",
+    roleOwner: "Inhaber",
+    roleEditor: "Bearbeiter",
+    roleViewer: "Betrachter",
+    chatSummaryLabel: "Zusammenfassung",
+    chatSummaryAria: "Zusammenfassung des Notebooks",
+    studioAudioOpen: "Anhören",
+    studioVideoDesc: "Animierte Folien und Diagramme, Export als Videodatei im WebM-Format.",
+    studioFlashcardsDesc:
+      "Wiederholung in wachsenden Abständen nach dem SM-2-Verfahren, Export als CSV für die Lernkarten-App Anki."
   },
   en: {
     ...AREA_EN,
@@ -146,8 +157,8 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     chatSend: "Send question",
     chatDisclaimer: "Responses are AI-generated and may contain errors. Please verify sources.",
     studioTitle: "Studio",
-    studioAudioCard: "Audio Overview (Deep Dive)",
-    studioVideoCard: "Video Overview",
+    studioAudioCard: "Audio overview",
+    studioVideoCard: "Video overview",
     studioMindmapCard: "Knowledge Mindmap",
     studioFlashcardsCard: "Flashcards (SM-2)",
     studioQuizCard: "Interactive Quiz",
@@ -165,7 +176,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     byokTitle: "Your own API keys (BYOK)",
     byokStatus: "Coming soon",
     byokText:
-      "Soon you can add your own keys for model providers here. They will be stored encrypted.",
+      "Soon you can add your own keys for model providers here (BYOK stands for “bring your own key”). They will be stored encrypted.",
     gdprTitle: "GDPR & Privacy",
     gdprText: "All processing complies strictly with EU GDPR standards with zero model training.",
     aiActTitle: "EU AI Act",
@@ -212,10 +223,21 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navStudio: "Studio",
     navStudioAria: "Studio (6 tools)",
     navSettings: "Settings",
-    navSettingsHint: "Model, privacy, language",
+    navSettingsHint: "Language, AI model, privacy",
     menuOpen: "Open menu",
     menuTitle: "Menu",
-    menuClose: "Close menu"
+    menuClose: "Close menu",
+    settingsAppearanceHint: "Design, color scheme and motion are set under “Appearance”.",
+    roleLabel: "Role",
+    roleOwner: "Owner",
+    roleEditor: "Editor",
+    roleViewer: "Viewer",
+    chatSummaryLabel: "Summary",
+    chatSummaryAria: "Notebook summary",
+    studioAudioOpen: "Listen",
+    studioVideoDesc: "Animated slides and diagrams, export as a WebM video file.",
+    studioFlashcardsDesc:
+      "Review at growing intervals using the SM-2 method, export as CSV for the flashcard app Anki."
   }
 };
 

@@ -242,7 +242,7 @@ describe("Englische Oberfläche der Bereiche und Werkzeuge", () => {
     const html = renderEn(createElement(StudioPanel, {}));
     for (const text of [
       "6 tools from your sources",
-      "Open player",
+      "Listen",
       "Watch video",
       "Flashcards",
       "Export as Markdown"

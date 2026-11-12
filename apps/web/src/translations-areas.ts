@@ -73,8 +73,6 @@ const ENTRIES: readonly Entry[] = [
   ["chatStatusAborted", "Generierung abgebrochen.", "Generation stopped."],
   ["chatStatusDone", "Antwort vollständig.", "Answer complete."],
   ["chatLogLabel", "Chat-Verlauf", "Chat history"],
-  ["chatSummaryLabel", "Executive Notebook Summary", "Executive notebook summary"],
-  ["chatSummaryEyebrow", "Executive Summary", "Executive summary"],
   ["chatUser", "Sie", "You"],
   ["chatAssistant", "RelationNotes Assistent", "RelationNotes Assistant"],
   ["chatReadAloud", "Vorlesen", "Read aloud"],
@@ -102,24 +100,16 @@ const ENTRIES: readonly Entry[] = [
   ["studioSub", "{n} Werkzeuge aus Ihren Quellen", "{n} tools from your sources"],
   ["studioBack", "Alle Werkzeuge", "All tools"],
   ["studioToolsLabel", "Studio-Werkzeuge", "Studio tools"],
-  ["toolAudioTitle", "Audio-Overview", "Audio Overview"],
   [
     "toolAudioDesc",
     "Zwei-Sprecher-Podcast mit interaktiver Host-Zwischenfrage.",
     "Two-host podcast with an interactive host interjection."
   ],
-  ["toolAudioOpen", "Player öffnen", "Open player"],
   ["toolStage", "Bühne", "Stage"],
   [
     "toolStageAria",
     "Bühne im Vollbild öffnen (Deep Dive)",
     "Stage: open in full screen (Deep Dive)"
-  ],
-  ["toolVideoTitle", "Video-Overview", "Video Overview"],
-  [
-    "toolVideoDesc",
-    "Animierte Folien, Diagramme und WebM-Videoexport.",
-    "Animated slides, charts and WebM video export."
   ],
   ["toolVideoOpen", "Video ansehen", "Watch video"],
   ["toolMindmapTitle", "Wissens-Mindmap", "Knowledge Mindmap"],
@@ -132,11 +122,6 @@ const ENTRIES: readonly Entry[] = [
   ["toolMindmapExport", "SVG", "SVG"],
   ["toolMindmapExportAria", "SVG exportieren (Mindmap)", "SVG: export (mindmap)"],
   ["toolCardsTitle", "Lernkarten", "Flashcards"],
-  [
-    "toolCardsDesc",
-    "Spaced-Repetition-Karten (SM-2) mit Anki-CSV-Export.",
-    "Spaced-repetition cards (SM-2) with Anki CSV export."
-  ],
   ["toolCardsOpen", "Lernen", "Study"],
   ["toolCardsExport", "Anki", "Anki"],
   ["toolCardsExportAria", "Anki-CSV exportieren (Lernkarten)", "Anki: export CSV (flashcards)"],
@@ -403,13 +388,9 @@ const ENTRIES: readonly Entry[] = [
     "Live-Audio-Synthese · Antworten mit Quellenangabe",
     "Live audio synthesis · answers with source references"
   ],
-  ["lyricsLabel", "Live Transkript und Songtexte", "Live transcript and lyrics"],
+  ["lyricsLabel", "Live Transkript und Songtexte", "Live transcript and lyrics"]
 
   // Rollen
-  ["roleLabel", "Rolle", "Role"],
-  ["roleOwner", "Inhaber", "Owner"],
-  ["roleEditor", "Bearbeiter", "Editor"],
-  ["roleViewer", "Betrachter", "Viewer"]
 ];
 
 function pick(index: 1 | 2): Record<string, string> {

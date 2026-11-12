@@ -203,11 +203,11 @@ export function ChatPanel({
           {/* Zusammenfassung des Notebooks */}
           {notebookSummary && (
             <article
-              aria-label={t("chatSummaryLabel")}
+              aria-label={t("chatSummaryAria")}
               data-testid="executive-summary-card"
               className="rn-summary"
             >
-              <p className="rn-eyebrow">{t("chatSummaryEyebrow")}</p>
+              <p className="rn-eyebrow">{t("chatSummaryLabel")}</p>
               <h2 className="rn-summary-title">{notebookTitle}</h2>
               <p className="rn-summary-text">{notebookSummary}</p>
             </article>

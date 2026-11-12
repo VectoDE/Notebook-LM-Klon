@@ -1,17 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   COLOR_MODE_PREFERENCES,
+  DEFAULT_MODEL,
   LANGUAGES,
+  MODEL_IDS,
   REDUCED_MOTION_QUERY,
   REDUCE_MOTION_ATTRIBUTE,
   STORAGE_KEYS,
   SYSTEM_COLOR_QUERIES,
   applyReduceMotion,
   applyThemeToDocument,
+  browserStorage,
   readReduceMotion,
+  readStoredModel,
   resolveColorMode,
   resolveInitialPreferences,
   shouldReduceMotion,
+  storeModel,
   systemColorMode
 } from "../theme-preferences.js";
 
@@ -208,5 +213,52 @@ describe("Bewegung reduzieren (Issue #315)", () => {
     expect(shouldReduceMotion(undefined)).toBe(false);
     expect(shouldReduceMotion(off, media({ [REDUCED_MOTION_QUERY]: true }))).toBe(true);
     expect(shouldReduceMotion(off, media({}))).toBe(false);
+  });
+});
+
+describe("Modellwahl (Issue #319)", () => {
+  it("liest nur bekannte Modelle, sonst den Standard", () => {
+    expect(STORAGE_KEYS.model).toBe("rn_model");
+    expect(DEFAULT_MODEL).toBe("gemini-2.5-flash");
+    expect(MODEL_IDS).toContain("gpt-4o");
+    expect(readStoredModel(storage({ rn_model: "gpt-4o" }))).toBe("gpt-4o");
+    expect(readStoredModel(storage({ rn_model: "gpt-9-evil" }))).toBe(DEFAULT_MODEL);
+    expect(readStoredModel(storage({}))).toBe(DEFAULT_MODEL);
+    expect(readStoredModel(undefined)).toBe(DEFAULT_MODEL);
+    const failing = {
+      getItem: () => {
+        throw new Error("SecurityError");
+      }
+    };
+    expect(readStoredModel(failing)).toBe(DEFAULT_MODEL);
+  });
+
+  it("speichert nur bekannte Modelle und übersteht Speicherfehler", () => {
+    const store = { setItem: vi.fn() };
+    storeModel(store, "deepseek-r1");
+    expect(store.setItem).toHaveBeenCalledWith("rn_model", "deepseek-r1");
+    storeModel(store, "unbekannt");
+    expect(store.setItem).toHaveBeenCalledTimes(1);
+    expect(() => storeModel(undefined, "gpt-4o")).not.toThrow();
+    const failing = {
+      setItem: () => {
+        throw new Error("QuotaExceededError");
+      }
+    };
+    expect(() => storeModel(failing, "gpt-4o")).not.toThrow();
+  });
+
+  it("findet den Browserspeicher, wenn es ihn gibt", () => {
+    expect(browserStorage()).toBeUndefined();
+    const fake = { getItem: () => null } as unknown as Storage;
+    vi.stubGlobal("window", { localStorage: fake });
+    expect(browserStorage()).toBe(fake);
+    vi.stubGlobal("window", {
+      get localStorage(): Storage {
+        throw new Error("SecurityError");
+      }
+    });
+    expect(browserStorage()).toBeUndefined();
+    vi.unstubAllGlobals();
   });
 });

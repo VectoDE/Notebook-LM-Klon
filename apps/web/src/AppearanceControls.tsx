@@ -5,9 +5,12 @@ import { useTheme } from "./useTheme.js";
 
 export type UserRole = "owner" | "editor" | "viewer";
 
-/** Darstellung: Rolle, Design und Farbschema. Genutzt im Kopfmenü, im mobilen Sheet und in den Einstellungen. */
+/**
+ * Darstellung: Design, Farbschema, Bewegung und (am Ende) Rolle. Eine Komponente mit gleichem
+ * Inhalt im Kopfmenü (Desktop) und im Menü-Sheet (Telefon), Issue #319.
+ */
 export interface AppearanceControlsProps {
-  /** Ohne Rolle (z. B. in den Einstellungen) entfällt das Auswahlfeld. */
+  /** Ohne Rolle entfällt das Auswahlfeld. */
   readonly role?: UserRole | undefined;
   readonly onRoleChange?: ((role: UserRole) => void) | undefined;
   readonly theme: DesignTheme;
@@ -58,33 +61,9 @@ export function AppearanceControls({
   onColorModeChange,
   idPrefix
 }: AppearanceControlsProps) {
-  const { t } = useTheme();
+  const { t, reduceMotion, setReduceMotion } = useTheme();
   return (
     <div className="rn-appearance">
-      {role !== undefined && (
-        <div className="rn-appearance-group">
-          <label htmlFor={`${idPrefix}-role`} className="rn-appearance-label">
-            {t("roleLabel")}
-          </label>
-          <div className="rn-control rn-control--block">
-            <select
-              id={`${idPrefix}-role`}
-              value={role}
-              onChange={(e) => onRoleChange?.(e.target.value as UserRole)}
-              data-testid="role-switcher-select"
-              className="rn-control-input"
-            >
-              {ROLE_OPTIONS.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {t(o.labelKey)}
-                </option>
-              ))}
-            </select>
-            <Icon name="chevron" size={16} className="rn-control-chevron" />
-          </div>
-        </div>
-      )}
-
       <fieldset className="rn-appearance-group">
         <legend className="rn-appearance-label">{t("themeLabel")}</legend>
         <div className="rn-choices">
@@ -130,6 +109,50 @@ export function AppearanceControls({
           ))}
         </div>
       </fieldset>
+
+      <fieldset className="rn-appearance-group rn-motion-setting">
+        <legend className="rn-appearance-label">{t("motionLabel")}</legend>
+        <label className="rn-check-row" htmlFor={`${idPrefix}-reduce-motion`}>
+          <input
+            id={`${idPrefix}-reduce-motion`}
+            type="checkbox"
+            checked={reduceMotion}
+            onChange={(e) => setReduceMotion(e.target.checked)}
+            aria-describedby={`${idPrefix}-reduce-motion-hint`}
+            data-testid="reduce-motion-toggle"
+            className="rn-checkbox"
+          />
+          <span>{t("motionToggle")}</span>
+        </label>
+        <p id={`${idPrefix}-reduce-motion-hint`} className="rn-setting-hint">
+          {t("motionHint")}
+        </p>
+      </fieldset>
+
+      {/* Rolle am Ende: beim Öffnen landet der Fokus auf „Design“ (Issue #319, Entscheidung #302) */}
+      {role !== undefined && (
+        <div className="rn-appearance-group">
+          <label htmlFor={`${idPrefix}-role`} className="rn-appearance-label">
+            {t("roleLabel")}
+          </label>
+          <div className="rn-control rn-control--block">
+            <select
+              id={`${idPrefix}-role`}
+              value={role}
+              onChange={(e) => onRoleChange?.(e.target.value as UserRole)}
+              data-testid="role-switcher-select"
+              className="rn-control-input"
+            >
+              {ROLE_OPTIONS.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {t(o.labelKey)}
+                </option>
+              ))}
+            </select>
+            <Icon name="chevron" size={16} className="rn-control-chevron" />
+          </div>
+        </div>
+      )}
 
       <p className="rn-setting-hint">{t("appearanceStored")}</p>
     </div>
