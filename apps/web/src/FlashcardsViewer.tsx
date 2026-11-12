@@ -33,6 +33,17 @@ export interface FlashcardsViewerProps {
   readonly initialStates?: Readonly<Record<number, SM2State>> | undefined;
 }
 
+/** Klartext für das Wiederholungsdatum: "heute", "morgen", "in 6 Tagen". */
+export function describeNextReview(intervalDays: number): string {
+  if (intervalDays <= 0) return "heute";
+  if (intervalDays === 1) return "morgen";
+  return `in ${intervalDays} Tagen`;
+}
+
+export function describeRepetitions(repetitions: number): string {
+  return repetitions === 1 ? "1 Wiederholung" : `${repetitions} Wiederholungen`;
+}
+
 export function FlashcardsViewer({
   cards,
   title = "Lernkartei",
@@ -78,7 +89,7 @@ export function FlashcardsViewer({
               ? "Gut"
               : "Einfach";
       setLastAnnouncement(
-        `Karte bewertet als ${ratingLabel}. Nächstes Intervall: ${updated.intervalDays} Tag(e).`
+        `Karte bewertet als ${ratingLabel}. Nächste Wiederholung: ${describeNextReview(updated.intervalDays)}.`
       );
 
       // Advance to next card if available, reset flip
@@ -182,7 +193,8 @@ export function FlashcardsViewer({
             {isFlipped ? "Antwort (Rückseite)" : "Frage (Vorderseite)"}
           </span>
           <span className="rn-flashcard-stats">
-            Intervall: {currentState.intervalDays}d | Reps: {currentState.repetitions}
+            Nächste Wiederholung: {describeNextReview(currentState.intervalDays)} ·{" "}
+            {describeRepetitions(currentState.repetitions)}
           </span>
         </div>
 
@@ -191,7 +203,7 @@ export function FlashcardsViewer({
         <div className="rn-flashcard-foot">
           <button
             type="button"
-            aria-label="Karte umdrehen (Leertaste oder Enter)"
+            aria-keyshortcuts="Space Enter"
             onClick={handleFlip}
             onKeyDown={handleKeyDown}
             className="rn-btn rn-btn--secondary"
@@ -202,7 +214,6 @@ export function FlashcardsViewer({
           {currentCard?.sourceHint && (
             <button
               type="button"
-              aria-label={`Quelle öffnen: ${currentCard.sourceHint}`}
               onClick={() => {
                 onSourceJump?.({
                   sourceId: currentCard.sourceId,

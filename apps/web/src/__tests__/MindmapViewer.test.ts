@@ -5,10 +5,12 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import {
+  FIT_PADDING,
   MindmapViewer,
   NODE_FONT_SIZE,
   TOGGLE_RADIUS,
   computeMindmapLayout,
+  fitMindmap,
   flattenLayoutNodes,
   nodeWidthFor
 } from "../MindmapViewer.js";
@@ -139,5 +141,37 @@ describe("MindmapViewer Layout Engine & Component (Sub-Issue #122)", () => {
       expect(minHeight(selector), b).toBeGreaterThanOrEqual(44);
     }
     expect(html).toContain(`r="${TOGGLE_RADIUS}"`);
+  });
+
+  describe("fitMindmap", () => {
+    const nodes = [
+      { x: 0, y: 0, width: 200, height: 44 },
+      { x: 290, y: -60, width: 180, height: 44 },
+      { x: 290, y: 60, width: 180, height: 44 }
+    ];
+    it("zentriert kleine Karten bei 100 %", () => {
+      const fit = fitMindmap(nodes, { width: 1000, height: 600 });
+      expect(fit.zoom).toBe(1);
+      expect(fit.pan.x).toBe(Math.round((1000 - 470) / 2));
+      expect(fit.pan.y).toBe(Math.round((600 - 164) / 2 + 60));
+    });
+    it("verkleinert bis höchstens 80 %, bis die Karte passt", () => {
+      const fit = fitMindmap(nodes, { width: 440, height: 360 });
+      expect(fit.zoom).toBeCloseTo((440 - 2 * FIT_PADDING) / 470, 2);
+      expect(fit.pan.x).toBeGreaterThanOrEqual(FIT_PADDING - 1);
+    });
+    it("hält bei sehr breiten Karten die Wurzel links sichtbar", () => {
+      const wide = [...nodes, { x: 2000, y: 0, width: 180, height: 44 }];
+      const fit = fitMindmap(wide, { width: 340, height: 360 });
+      expect(fit.zoom).toBe(0.8);
+      expect(fit.pan.x).toBe(FIT_PADDING);
+    });
+    it("fällt ohne Knoten oder Fläche auf Standardwerte zurück", () => {
+      expect(fitMindmap([], { width: 300, height: 300 })).toEqual({
+        zoom: 1,
+        pan: { x: FIT_PADDING, y: FIT_PADDING }
+      });
+      expect(fitMindmap(nodes, { width: 0, height: 0 }).zoom).toBe(1);
+    });
   });
 });

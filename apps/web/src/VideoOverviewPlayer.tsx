@@ -4,7 +4,8 @@ import type {
   VideoSlide,
   VideoStoryboard
 } from "@notebook-lm/shared";
-import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useId, useRef, useState } from "react";
+import { Icon } from "./Icon.js";
 
 export interface VideoOverviewPlayerProps {
   readonly storyboard: VideoStoryboard;
@@ -13,13 +14,80 @@ export interface VideoOverviewPlayerProps {
   readonly autoplay?: boolean;
 }
 
+/**
+ * "full" zeichnet die komplette Folie samt Text (WebM-Export).
+ * "backdrop" zeichnet nur den Hintergrund; der Folientext steht im Player als HTML darüber,
+ * damit er auf jeder Breite lesbar groß ist und Screenreader ihn erreichen.
+ */
+export type SlideCanvasLayer = "full" | "backdrop";
+
+/** Elemente, deren Tasten (Leertaste, Pfeile) nicht als Player-Kürzel gelten. */
+const SHORTCUT_EXEMPT_SELECTOR =
+  "button, input, select, textarea, a[href], [contenteditable='true'], [role='slider']";
+
+/** Ziel-Luminanz des Hintergrunds, damit heller Bühnentext mindestens 7:1 erreicht. */
+const MAX_BACKDROP_LUMINANCE = 0.08;
+
+/** Zeit als m:ss bzw. h:mm:ss, z. B. 65 000 ms → "1:05". */
+export function formatTime(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = String(total % 60).padStart(2, "0");
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${seconds}`
+    : `${minutes}:${seconds}`;
+}
+
+/** true, wenn ein Tastendruck von einem eigenen Bedienelement kommt und dort bleiben soll. */
+export function isShortcutExemptTarget(target: EventTarget | null): boolean {
+  const closest = (target as { closest?: unknown } | null)?.closest;
+  if (typeof closest !== "function") return false;
+  return Boolean((target as Element).closest(SHORTCUT_EXEMPT_SELECTOR));
+}
+
+function relativeLuminance(hex: string): number | null {
+  const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim());
+  if (!match?.[1]) return null;
+  const digits =
+    match[1].length === 3
+      ? match[1]
+          .split("")
+          .map((d) => d + d)
+          .join("")
+      : match[1];
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const c = Number.parseInt(digits.slice(i, i + 2), 16) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  }) as [number, number, number];
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/**
+ * Deckkraft der dunklen Abdeckung über dem Folienverlauf. Dunkle Verläufe bleiben unverändert,
+ * helle werden so weit abgedunkelt, dass heller Text 7:1 hält. Unbekannte Farbformate: 0,6.
+ */
+export function backdropScrimAlpha(colors: readonly string[]): number {
+  let alpha = 0;
+  for (const color of colors) {
+    const lum = relativeLuminance(color);
+    if (lum === null) return 0.6;
+    // Abdunkeln mit Schwarz skaliert die lineare Luminanz etwa mit (1 - a)^2.2
+    let a = 0;
+    while (a < 0.9 && lum * (1 - a) ** 2.2 > MAX_BACKDROP_LUMINANCE) a += 0.05;
+    alpha = Math.max(alpha, Math.round(a * 100) / 100);
+  }
+  return alpha;
+}
+
 export function drawSlideToCanvas(
   ctx: CanvasRenderingContext2D,
   slide: VideoSlide,
   width: number,
   height: number,
   transitionProgress = 1.0, // 0 = start of transition, 1 = fully settled
-  reducedMotion = false
+  reducedMotion = false,
+  layer: SlideCanvasLayer = "full"
 ): void {
   // Clear canvas
   ctx.save();
@@ -32,6 +100,16 @@ export function drawSlideToCanvas(
   grad.addColorStop(1, color2);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, width, height);
+
+  if (layer === "backdrop") {
+    const scrim = backdropScrimAlpha(slide.visualTheme.backgroundGradient);
+    if (scrim > 0) {
+      ctx.fillStyle = `rgba(0, 0, 0, ${scrim})`;
+      ctx.fillRect(0, 0, width, height);
+    }
+    ctx.restore();
+    return;
+  }
 
   // Motion easing / offset calculation
   const motionOffset = reducedMotion ? 0 : Math.round((1.0 - transitionProgress) * 40);
@@ -166,6 +244,63 @@ function drawChart(
   ctx.restore();
 }
 
+/** Folientext als HTML: Kicker, Titel, Punkte, Diagramm als Balkenliste, Quelle. */
+function SlideText({ slide, bodyId }: { readonly slide: VideoSlide; readonly bodyId: string }) {
+  const chart = slide.chart;
+  const maxValue = chart ? Math.max(...chart.data.map((d) => d.value), 1) : 1;
+  const citation = slide.citations?.[0];
+  return (
+    <div className="rn-video-slide" data-testid="video-slide-text">
+      {slide.subtitle && <p className="rn-video-kicker">{slide.subtitle}</p>}
+      <h3 className="rn-video-title">{slide.title}</h3>
+      <div className="rn-video-body" id={bodyId}>
+        {slide.bulletPoints.length > 0 && (
+          <ul className="rn-video-points">
+            {slide.bulletPoints.map((point) => (
+              <li key={point}>{point}</li>
+            ))}
+          </ul>
+        )}
+        {chart && chart.data.length > 0 && (
+          <figure className="rn-video-chart">
+            <figcaption className="rn-video-chart-title">{chart.title}</figcaption>
+            <ul className="rn-video-bars">
+              {chart.data.map((d) => (
+                <li key={d.label} className="rn-video-bar">
+                  <span className="rn-video-bar-label">{d.label}</span>
+                  <svg
+                    className="rn-video-bar-track"
+                    viewBox="0 0 100 10"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <rect
+                      width={Math.max(2, Math.round((Math.max(0, d.value) / maxValue) * 100))}
+                      height="10"
+                      rx="2"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  <span className="rn-video-bar-value">
+                    {d.value}
+                    {chart.unit ?? ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </figure>
+        )}
+        {citation && (
+          <p className="rn-video-source">
+            Quelle: „{citation.sourceTitle}“ – „{citation.quote}“
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
   const { storyboard, onTimeUpdate, onEnded, autoplay = false } = props;
 
@@ -173,7 +308,6 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(autoplay);
   const [showSubtitles, setShowSubtitles] = useState(true);
   const [audioDescriptionEnabled, setAudioDescriptionEnabled] = useState(false);
-  const [isReducedMotion, setIsReducedMotion] = useState(false);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [currentSubtitle, setCurrentSubtitle] = useState<string>("");
   const [liveAnnouncement, setLiveAnnouncement] = useState<string>("");
@@ -183,16 +317,9 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
   const animFrameIdRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number | null>(null);
 
-  // Check prefers-reduced-motion media query
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.matchMedia) {
-      const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-      setIsReducedMotion(mediaQuery.matches);
-      const handler = (e: MediaQueryListEvent) => setIsReducedMotion(e.matches);
-      mediaQuery.addEventListener?.("change", handler);
-      return () => mediaQuery.removeEventListener?.("change", handler);
-    }
-  }, []);
+  const idBase = useId();
+  const slideBodyId = `${idBase}-slide`;
+  const hintId = `${idBase}-hint`;
 
   // Determine current slide and subtitle from currentTimeMs
   useEffect(() => {
@@ -237,25 +364,21 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
     onTimeUpdate
   ]);
 
-  // Canvas render loop
-  const renderCanvas = useCallback(
-    (progress = 1.0) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+  // Hintergrund der aktiven Folie zeichnen; der Text steht als HTML darüber
+  const renderCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-      const slide = storyboard.slides[activeSlideIndex];
-      if (slide) {
-        drawSlideToCanvas(ctx, slide, canvas.width, canvas.height, progress, isReducedMotion);
-      }
-    },
-    [storyboard.slides, activeSlideIndex, isReducedMotion]
-  );
+    const slide = storyboard.slides[activeSlideIndex];
+    if (slide) {
+      drawSlideToCanvas(ctx, slide, canvas.width, canvas.height, 1, true, "backdrop");
+    }
+  }, [storyboard.slides, activeSlideIndex]);
 
-  // Re-draw when active slide or motion preference changes
   useEffect(() => {
-    renderCanvas(1.0);
+    renderCanvas();
   }, [renderCanvas]);
 
   // Playback timer & requestAnimationFrame loop
@@ -295,14 +418,6 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
         return next;
       });
 
-      // Calculate transition progress for current slide (settles in first 400ms)
-      const currentSlide = storyboard.slides[activeSlideIndex];
-      if (currentSlide) {
-        const elapsedInSlide = currentTimeMs - currentSlide.startTimeMs;
-        const progress = Math.min(1.0, elapsedInSlide / 400);
-        renderCanvas(progress);
-      }
-
       if (typeof requestAnimationFrame !== "undefined") {
         animFrameIdRef.current = requestAnimationFrame(onFrame);
       }
@@ -317,16 +432,9 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
         cancelAnimationFrame(animFrameIdRef.current);
       }
     };
-  }, [
-    isPlaying,
-    activeSlideIndex,
-    currentTimeMs,
-    storyboard.durationMs,
-    storyboard.slides,
-    storyboard.audioUrl,
-    renderCanvas,
-    onEnded
-  ]);
+  }, [isPlaying, storyboard.durationMs, storyboard.audioUrl, onEnded]);
+
+  const currentSlide = storyboard.slides[activeSlideIndex];
 
   // Navigation handlers
   const handlePlayPause = () => {
@@ -346,64 +454,92 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
     setLiveAnnouncement(`Sprung zu Kapitel: ${chapter.title}`);
   };
 
-  // Accessible keyboard shortcuts
+  const toggleSubtitles = () => {
+    const next = !showSubtitles;
+    setShowSubtitles(next);
+    setLiveAnnouncement(next ? "Untertitel an." : "Untertitel aus.");
+  };
+
+  const toggleAudioDescription = () => {
+    const next = !audioDescriptionEnabled;
+    setAudioDescriptionEnabled(next);
+    setLiveAnnouncement(
+      next
+        ? `Audiodeskription an: ${currentSlide?.audioDescription ?? ""}`.trim()
+        : "Audiodeskription aus."
+    );
+  };
+
+  // Tastenkürzel am Player; Knöpfe, Regler und Eingaben behalten ihre eigenen Tasten
   const handleKeyDown = (e: KeyboardEvent<HTMLElement>) => {
-    switch (e.key) {
+    if (e.altKey || e.ctrlKey || e.metaKey || isShortcutExemptTarget(e.target)) return;
+    switch (e.key.toLowerCase()) {
       case " ":
       case "k":
         e.preventDefault();
         handlePlayPause();
         break;
-      case "ArrowLeft":
+      case "arrowleft":
         e.preventDefault();
         handleSeek(currentTimeMs - 5000);
         break;
-      case "ArrowRight":
+      case "arrowright":
         e.preventDefault();
         handleSeek(currentTimeMs + 5000);
         break;
       case "c":
         e.preventDefault();
-        setShowSubtitles((prev) => !prev);
+        toggleSubtitles();
         break;
       case "d":
         e.preventDefault();
-        setAudioDescriptionEnabled((prev) => {
-          const next = !prev;
-          if (next) {
-            const currentSlide = storyboard.slides[activeSlideIndex];
-            if (currentSlide) {
-              setLiveAnnouncement(`Audiodeskription aktiviert: ${currentSlide.audioDescription}`);
-            }
-          } else {
-            setLiveAnnouncement("Audiodeskription deaktiviert.");
-          }
-          return next;
-        });
+        toggleAudioDescription();
         break;
     }
   };
 
-  const currentSlide = storyboard.slides[activeSlideIndex];
   const activeChapter = storyboard.chapters.find(
     (ch) => currentTimeMs >= ch.startTimeMs && currentTimeMs <= ch.endTimeMs
   );
+  const durationSec = Math.max(1, Math.ceil(storyboard.durationMs / 1000));
+  const currentSec = Math.min(durationSec, Math.floor(currentTimeMs / 1000));
+  const timeText = `${formatTime(currentTimeMs)} von ${formatTime(storyboard.durationMs)}`;
 
   return (
     <section
       className="rn-video"
-      aria-label={`Video Overview Player: ${storyboard.title}`}
+      aria-label={`Video-Übersicht: ${storyboard.title}`}
+      aria-describedby={hintId}
+      aria-keyshortcuts="Space K ArrowLeft ArrowRight C D"
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: Der Player ist das Ziel seiner Tastenkürzel (aria-keyshortcuts).
+      tabIndex={0}
       onKeyDown={handleKeyDown}
       data-testid="video-overview-player"
     >
+      <p id={hintId} className="sr-only">
+        Tasten im Player: Leertaste oder K spielt und pausiert, Pfeil links und rechts springen 5
+        Sekunden, C schaltet Untertitel, D die Audiodeskription.
+      </p>
+
       <div className="rn-video-screen">
         <canvas
           ref={canvasRef}
           width={storyboard.resolution.width}
           height={storyboard.resolution.height}
           className="rn-video-canvas"
+          role="img"
+          aria-label={
+            currentSlide
+              ? `Folie ${activeSlideIndex + 1} von ${storyboard.slides.length}: ${currentSlide.title}`
+              : "Folie"
+          }
+          aria-describedby={currentSlide ? slideBodyId : undefined}
           data-testid="slide-canvas"
         />
+
+        {currentSlide && (
+          <SlideText key={currentSlide.id} slide={currentSlide} bodyId={slideBodyId} />
+        )}
 
         {showSubtitles && currentSubtitle && (
           <div className="rn-video-subtitle" data-testid="subtitles-overlay" aria-live="polite">
@@ -424,19 +560,21 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
 
       <div className="rn-video-timeline">
         <div className="rn-video-time">
-          <span>
-            {Math.floor(currentTimeMs / 1000)}s / {Math.floor(storyboard.durationMs / 1000)}s
+          <span data-testid="video-time">
+            {formatTime(currentTimeMs)} / {formatTime(storyboard.durationMs)}
           </span>
           {activeChapter && <span>Kapitel: {activeChapter.title}</span>}
         </div>
         <input
           type="range"
           min={0}
-          max={storyboard.durationMs}
-          value={currentTimeMs}
-          onChange={(e) => handleSeek(Number(e.target.value))}
+          max={durationSec}
+          step={1}
+          value={currentSec}
+          onChange={(e) => handleSeek(Number(e.target.value) * 1000)}
           className="rn-range"
-          aria-label="Video-Fortschrittsregler"
+          aria-label="Wiedergabeposition"
+          aria-valuetext={timeText}
           data-testid="timeline-scrubber"
         />
       </div>
@@ -448,41 +586,37 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
             onClick={handlePlayPause}
             className="rn-stage-btn rn-stage-btn--primary"
             data-testid="play-pause-button"
-            aria-label={isPlaying ? "Video pausieren" : "Video abspielen"}
+            aria-keyshortcuts="K"
           >
             {isPlaying ? "Pausieren" : "Abspielen"}
           </button>
 
           <button
             type="button"
-            onClick={() => setShowSubtitles((prev) => !prev)}
-            className="rn-stage-btn"
+            onClick={toggleSubtitles}
+            className="rn-stage-btn rn-video-toggle"
             data-testid="toggle-subtitles-button"
             aria-pressed={showSubtitles}
-            aria-label="Untertitel an/aus (C)"
+            aria-keyshortcuts="C"
           >
-            CC Untertitel
+            <span className="rn-video-toggle-box" aria-hidden="true">
+              <Icon name="check" size={16} className="rn-icon rn-video-toggle-check" />
+            </span>
+            Untertitel
           </button>
 
           <button
             type="button"
-            onClick={() =>
-              setAudioDescriptionEnabled((prev) => {
-                const next = !prev;
-                if (next && currentSlide) {
-                  setLiveAnnouncement(
-                    `Audiodeskription aktiviert: ${currentSlide.audioDescription}`
-                  );
-                }
-                return next;
-              })
-            }
-            className="rn-stage-btn"
+            onClick={toggleAudioDescription}
+            className="rn-stage-btn rn-video-toggle"
             data-testid="toggle-ad-button"
             aria-pressed={audioDescriptionEnabled}
-            aria-label="Audiodeskription fuer Sehbehinderte an/aus (D)"
+            aria-keyshortcuts="D"
           >
-            AD Audiodeskription
+            <span className="rn-video-toggle-box" aria-hidden="true">
+              <Icon name="check" size={16} className="rn-icon rn-video-toggle-check" />
+            </span>
+            Audiodeskription
           </button>
         </div>
 
@@ -498,9 +632,11 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
                 className="rn-stage-chip"
                 data-testid={`chapter-btn-${ch.id}`}
                 aria-current={isCurrent ? "true" : undefined}
-                aria-label={`Kapitel ${ch.index + 1}: ${ch.title}`}
               >
                 {ch.title}
+                <span className="sr-only">
+                  , Kapitel {ch.index + 1} von {storyboard.chapters.length}
+                </span>
               </button>
             );
           })}
