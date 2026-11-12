@@ -328,6 +328,19 @@ export function treeKeyAction(
 export type MindmapTab = "visual" | "tree";
 const TAB_ORDER: readonly MindmapTab[] = ["visual", "tree"];
 
+/** Telefonbreite: dort passt die erste Ebene der Grafik nicht lesbar in die Fläche. */
+export const PHONE_QUERY = "(max-width: 599.98px)";
+
+/**
+ * Startreiter: auf dem Telefon die Baumliste (erste Ebene vollständig und in voller
+ * Schriftgröße), sonst die Grafik (Issue #315). Ohne window (Server-Rendering) die Grafik.
+ */
+export function initialMindmapTab(
+  matchMedia?: ((query: string) => { readonly matches: boolean }) | undefined
+): MindmapTab {
+  return matchMedia?.(PHONE_QUERY).matches ? "tree" : "visual";
+}
+
 /** Reiter nach APG „Tabs“: Pfeil links/rechts mit Umlauf, Pos1/Ende. */
 export function tabKeyTarget(current: MindmapTab, key: string): MindmapTab | undefined {
   const index = TAB_ORDER.indexOf(current);
@@ -384,7 +397,9 @@ export function MindmapViewer({
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(() => new Set());
   const [focusedNodeId, setFocusedNodeId] = useState<string>(rootNode.id);
   const canvasRef = useRef<HTMLDivElement | null>(null);
-  const [activeTab, setActiveTab] = useState<MindmapTab>("visual");
+  const [activeTab, setActiveTab] = useState<MindmapTab>(() =>
+    initialMindmapTab(typeof window === "undefined" ? undefined : window.matchMedia?.bind(window))
+  );
   const tabRefs = useRef<Record<MindmapTab, HTMLButtonElement | null>>({
     visual: null,
     tree: null
@@ -498,8 +513,8 @@ export function MindmapViewer({
   return (
     <section aria-label={`Mindmap: ${title}`} className="rn-tool-view rn-mindmap">
       <header className="rn-mindmap-head">
+        {/* Ohne Eyebrow, wie Quiz und Lernkarten: der Zurück-Knopf nennt bereits das Werkzeug */}
         <div className="rn-tool-view-head">
-          <p className="rn-eyebrow">Mindmap</p>
           <h2 className="rn-tool-view-title">{title}</h2>
         </div>
 

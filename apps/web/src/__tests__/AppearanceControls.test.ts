@@ -40,9 +40,12 @@ describe("AppearanceControls", () => {
       expect(html).toContain(name);
     }
     for (const name of ["Automatisch (wie Gerät)", "Hell", "Dunkel", "Hoher Kontrast (AAA)"]) {
-      expect(html).toContain(`<span>${name}</span>`);
+      expect(html).toContain(`<span class="rn-choice-title">${name}</span>`);
     }
     expect(html).not.toContain("Hochkontrast");
+    // Farbschema als Liste wie „Design“: gleich hohe, einzeilige Optionen (Issue #315)
+    expect(html).toContain('class="rn-choices rn-choices--compact"');
+    expect(html).not.toContain("rn-segment");
     expect(html).toContain("Design und Farbschema werden auf diesem Gerät gespeichert.");
   });
 

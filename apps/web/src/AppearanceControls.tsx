@@ -111,9 +111,10 @@ export function AppearanceControls({
 
       <fieldset className="rn-appearance-group">
         <legend className="rn-appearance-label">{t("colorModeLabel")}</legend>
-        <div className="rn-segmented rn-segmented--grid">
+        {/* Liste wie bei „Design“: jede Option eine Zeile, alle gleich hoch (Issue #315) */}
+        <div className="rn-choices rn-choices--compact">
           {MODE_OPTIONS.map((o) => (
-            <label key={o.id} className="rn-segment">
+            <label key={o.id} className="rn-choice" data-option={o.id}>
               <input
                 type="radio"
                 name={`${idPrefix}-mode`}
@@ -121,9 +122,10 @@ export function AppearanceControls({
                 checked={colorMode === o.id}
                 onChange={() => onColorModeChange(o.id)}
                 data-testid={`mode-option-${o.id}`}
-                className="rn-segment-input"
+                className="rn-choice-input"
               />
-              <span>{t(o.labelKey)}</span>
+              <span className="rn-choice-swatch" aria-hidden="true" />
+              <span className="rn-choice-title">{t(o.labelKey)}</span>
             </label>
           ))}
         </div>

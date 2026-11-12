@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { shouldReduceMotion } from "./theme-preferences.js";
 
 export interface TranscriptLine {
   readonly id: string;
@@ -26,11 +27,11 @@ export interface LiveLyricsProps {
   readonly reducedMotion?: boolean | undefined;
 }
 
-/** Systemeinstellung „Bewegung reduzieren“; ohne window (Server-Rendering) false. */
+/** Gerät oder App-Schalter „Bewegung reduzieren“; ohne window (Server-Rendering) false. */
 function prefersReducedMotion(): boolean {
   return (
     typeof window !== "undefined" &&
-    Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)
+    shouldReduceMotion(document.documentElement, window.matchMedia?.bind(window))
   );
 }
 
