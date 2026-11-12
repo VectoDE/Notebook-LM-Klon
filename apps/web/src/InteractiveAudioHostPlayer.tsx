@@ -13,6 +13,7 @@ import {
 } from "react";
 import { ChatApiError, errorKeyForStatus, technicalErrorDetail } from "./chat-client.js";
 import { focusFirstAvailable } from "./focus-return.js";
+import { trapTabKey } from "./focus-trap.js";
 import { podcastStateLabel } from "./stage-visuals.js";
 import { useTheme } from "./useTheme.js";
 
@@ -52,6 +53,9 @@ export interface InteractiveAudioHostPlayerProps {
   readonly currentTrackTitle?: string;
 }
 
+const INTERJECT_TEXT_STATUS =
+  "Zwischenfrage-Modus aktiv. Tippen Sie Ihre Rückfrage ein oder drücken Sie Escape zum Abbrechen.";
+
 export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProps) {
   const {
     notebookId,
@@ -68,13 +72,17 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
   const [isMicListening, setIsMicListening] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState("");
   const [micSupported, setMicSupported] = useState(true);
-  const [statusMessage, setStatusMessage] = useState<string>(
-    "Audio bereit. Drücken Sie auf 'Beitreten / Frage stellen', um eine Zwischenfrage zu stellen."
+  const [statusMessage, setStatusMessage] = useState<string>(() =>
+    // Von der Bühne aus öffnet die Zwischenfrage direkt (#314)
+    stateMachine.getState() === "interjecting"
+      ? INTERJECT_TEXT_STATUS
+      : "Audio bereit. Drücken Sie auf 'Beitreten / Frage stellen', um eine Zwischenfrage zu stellen."
   );
   const [hostAnswer, setHostAnswer] = useState<AudioInterjectResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const interjectDialogRef = useRef<HTMLDialogElement>(null);
   const interjectButtonRef = useRef<HTMLButtonElement>(null);
   const playButtonRef = useRef<HTMLButtonElement>(null);
   const resumeButtonRef = useRef<HTMLButtonElement>(null);
@@ -215,7 +223,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
     setStatusMessage(
       mode === "mic"
         ? "Mikrofon aktiv. Sprechen Sie Ihre Frage oder tippen Sie in das Textfeld."
-        : "Zwischenfrage-Modus aktiv. Tippen Sie Ihre Rückfrage ein oder drücken Sie Escape zum Abbrechen."
+        : INTERJECT_TEXT_STATUS
     );
 
     if (mode === "mic") {
@@ -358,7 +366,6 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
           ref={playButtonRef}
           type="button"
           onClick={handleTogglePlay}
-          aria-label={machineCtx.state === "playing" ? "Podcast pausieren" : "Podcast abspielen"}
           className="btn-play-pause"
           disabled={machineCtx.state === "interjecting" || machineCtx.state === "answering"}
         >
@@ -370,7 +377,6 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
             ref={interjectButtonRef}
             type="button"
             onClick={() => handleOpenInterject("text")}
-            aria-label="Beitreten und Rückfrage an die Hosts stellen"
             className="btn-interject"
             data-testid="btn-audio-interject"
           >
@@ -382,10 +388,17 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
       {/* Interjection Modal / Input Drawer */}
       {machineCtx.state === "interjecting" && (
         <dialog
+          ref={interjectDialogRef}
           open
           aria-labelledby="interject-dialog-title"
           className="interject-dialog"
           data-testid="interject-dialog"
+          // Tab bleibt in der Schublade, damit Escape (am Player) jederzeit greift (#314)
+          onKeyDown={(e) => {
+            if (interjectDialogRef.current) {
+              trapTabKey(e, interjectDialogRef.current, document.activeElement);
+            }
+          }}
         >
           <h3 id="interject-dialog-title">Frage an die Podcast-Hosts stellen</h3>
           <p className="interject-hint">
@@ -416,9 +429,6 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
                 onClick={isMicListening ? stopListening : startListening}
                 disabled={!micSupported || isSubmitting}
                 aria-pressed={isMicListening}
-                aria-label={
-                  isMicListening ? "Spracheingabe beenden" : "Spracheingabe per Mikrofon starten"
-                }
                 className={`btn-mic ${isMicListening ? "recording" : ""}`}
               >
                 {isMicListening ? "Mikrofon stoppen" : "Sprechen (Mikrofon)"}
@@ -443,7 +453,6 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
                 type="submit"
                 disabled={!questionText.trim() || isSubmitting}
                 className="btn-submit-question"
-                aria-label="Frage absenden und Host-Antwort anfordern"
               >
                 {isSubmitting ? "Wird analysiert..." : "Frage stellen"}
               </button>
@@ -452,7 +461,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
                 onClick={handleCancelInterject}
                 disabled={isSubmitting}
                 className="btn-cancel"
-                aria-label="Abbrechen und zum Podcast zurückkehren"
+                aria-keyshortcuts="Escape"
               >
                 Abbrechen (Esc)
               </button>

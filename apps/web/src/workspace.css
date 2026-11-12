@@ -2739,11 +2739,18 @@ html[data-reduce-motion="true"] .rn-dialog-card {
 .rn-stage,
 .audio-player-container {
   --rn-stage-line: color-mix(in srgb, var(--rn-color-stage-muted) 28%, transparent);
-  /* Die globale Fokusregel (themes.css) liest diese Variable; auf der dunklen Bühne
-     trägt der Bühnenakzent den Ring (mind. 3:1 zu stage-bg in allen Designs). */
-  --rn-color-focus-ring: var(--rn-color-stage-accent);
   background: var(--rn-color-stage-bg);
   color: var(--rn-color-stage-text);
+}
+
+/* Die globale Fokusregel (themes.css) liest diese Variable; auf der dunklen Bühne
+   trägt der Bühnenakzent den Ring (mind. 3:1 zu stage-bg in allen Designs).
+   Beim Video-Player gilt das nur innen: sein eigener Ring liegt außen auf dem
+   Panelgrund und behält den Seitenring (#314). */
+.rn-video > *,
+.rn-stage,
+.audio-player-container {
+  --rn-color-focus-ring: var(--rn-color-stage-accent);
 }
 
 .rn-stage-btn {
@@ -2817,11 +2824,6 @@ html[data-reduce-motion="true"] .rn-dialog-card {
   padding: var(--rn-space-4);
   border-radius: var(--rn-radius-lg);
   box-shadow: var(--rn-color-panel-shadow);
-}
-
-.rn-video:focus-visible {
-  outline: 3px solid var(--rn-color-stage-accent);
-  outline-offset: 2px;
 }
 
 /* Die Leinwand malt nur den Folienverlauf; Text steht als HTML darüber und wächst mit.

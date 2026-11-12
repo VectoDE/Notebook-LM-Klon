@@ -319,12 +319,16 @@ export function StudioPanel({
         notebookTitle={notebookTitle}
         stateMachine={audioStateMachine}
         onAskQuestion={() => {
+          // Bühne zu, Audio-Player auf, Zwischenfrage sofort offen (#314)
           setIsDeepDiveOpen(false);
           selectTool("audio");
+          audioStateMachine?.dispatch({ type: "JOIN_INTERJECT", inputMode: "text" });
         }}
-        // Nach "Frage stellen" ist der Bühnen-Knopf weg; der Fokus geht an den Audio-Player
+        // Nach "Frage stellen" ist der Bühnen-Knopf weg; der Fokus geht ins Fragefeld
         returnFocusFallback={() =>
-          document.querySelector<HTMLElement>('[data-testid="btn-audio-interject"]')
+          document.querySelector<HTMLElement>(
+            '#interject-question-input, [data-testid="btn-audio-interject"]'
+          )
         }
       />
     </section>

@@ -104,3 +104,26 @@ describe("InteractiveAudioHostPlayer (Sub-Issue #117)", () => {
     expect(html).toContain('aria-label="Interaktiver Audio-Player &amp; Host-Studio"');
   });
 });
+
+describe("InteractiveAudioHostPlayer Label-in-Name (#314)", () => {
+  it("Knöpfe ohne abweichendes aria-label, Abbrechen nennt Escape als Kürzel", () => {
+    for (const state of ["paused", "playing", "interjecting"]) {
+      const html = renderToStaticMarkup(
+        createElement(InteractiveAudioHostPlayer, {
+          notebookId: "nb_123",
+          stateMachine: createMockStateMachine(state)
+        })
+      );
+      expect(html, state).not.toMatch(/<button[^>]*aria-label=/);
+    }
+    const html = renderToStaticMarkup(
+      createElement(InteractiveAudioHostPlayer, {
+        notebookId: "nb_123",
+        stateMachine: createMockStateMachine("interjecting")
+      })
+    );
+    expect(html).toContain('aria-keyshortcuts="Escape"');
+    // Von der Bühne aus geöffnet: der Status meldet gleich die Zwischenfrage
+    expect(html).toContain("Zwischenfrage-Modus aktiv");
+  });
+});
