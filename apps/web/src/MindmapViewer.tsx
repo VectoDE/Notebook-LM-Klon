@@ -697,10 +697,12 @@ export function MindmapViewer({
                     aria-hidden="true"
                     data-state={node.hasChildren ? (node.isCollapsed ? "closed" : "open") : "leaf"}
                   />
-                  <strong>{node.label}</strong>
-                  {node.sourceCitation && (
-                    <small className="rn-tree-cite">({node.sourceCitation})</small>
-                  )}
+                  <span className="rn-tree-text">
+                    <strong>{node.label}</strong>
+                    {node.sourceCitation && (
+                      <small className="rn-tree-cite">({node.sourceCitation})</small>
+                    )}
+                  </span>
                 </span>
 
                 {node.hasChildren && (
