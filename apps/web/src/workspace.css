@@ -3155,6 +3155,235 @@ html[data-color-mode="aaa-contrast"] .rn-share-notice {
 }
 
 /* ==========================================================================
+   Wissensgraph (Issue #327): eigenes SVG in der mittleren Spalte bzw. im Reiter „Graph“.
+   Unterscheidung ohne Farbe: Begriffe abgerundet, Quellen eckig; Gliederung durchgezogen,
+   Vorkommen gestrichelt. Text nur auf panel, canvas und surface-variant.
+   ========================================================================== */
+.rn-graph-view {
+  gap: var(--rn-space-3);
+}
+
+.rn-graph-visual {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rn-space-3);
+  min-width: 0;
+}
+
+.rn-graph-visual[hidden],
+.rn-graph-list[hidden] {
+  display: none;
+}
+
+.rn-graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rn-space-1) var(--rn-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-graph-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rn-space-2);
+}
+
+.rn-graph-canvas {
+  position: relative;
+  height: min(64vh, 640px);
+  min-height: 320px;
+  overflow: auto;
+  border-radius: var(--rn-radius-lg);
+  border: 1px solid var(--rn-color-panel-border);
+  background-color: var(--rn-color-canvas);
+  background-image: radial-gradient(var(--rn-color-panel-border) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.rn-graph-svg {
+  display: block;
+}
+
+.rn-graph-edge {
+  fill: none;
+  stroke: var(--rn-color-border);
+  stroke-width: 2;
+  transition: stroke var(--rn-transition-base);
+}
+
+.rn-graph-edge[data-kind="occursIn"] {
+  stroke-dasharray: 6 5;
+}
+
+.rn-graph-edge[data-active="true"] {
+  stroke: var(--rn-color-primary);
+  stroke-width: 3;
+}
+
+/* Fokus: der gemeinsame Fokusrahmen der Oberfläche (themes.css) */
+.rn-graph-node {
+  cursor: pointer;
+}
+
+.rn-graph-box {
+  fill: var(--rn-color-panel);
+  stroke: var(--rn-color-border);
+  stroke-width: 1.5;
+  transition: stroke var(--rn-transition-base);
+}
+
+.rn-graph-node[data-kind="source"] .rn-graph-box {
+  fill: var(--rn-color-surface-variant);
+  stroke-width: 2;
+}
+
+.rn-graph-node:hover .rn-graph-box {
+  stroke: var(--rn-color-primary);
+}
+
+.rn-graph-node[aria-pressed="true"] .rn-graph-box {
+  stroke: var(--rn-color-primary);
+  stroke-width: 3;
+}
+
+.rn-graph-label {
+  fill: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-ui);
+  font-weight: 500;
+  pointer-events: none;
+  user-select: none;
+}
+
+.rn-graph-node[data-kind="source"] .rn-graph-label {
+  font-weight: 600;
+}
+
+.rn-graph-swatch {
+  fill: var(--rn-color-panel);
+  stroke: var(--rn-color-border);
+  stroke-width: 1.5;
+}
+
+.rn-graph-swatch[data-kind="source"] {
+  fill: var(--rn-color-surface-variant);
+  stroke-width: 2;
+}
+
+.rn-graph-details,
+.rn-graph-item {
+  display: grid;
+  gap: var(--rn-space-2);
+  padding: var(--rn-space-4);
+  border-radius: var(--rn-radius-lg);
+  border: 1px solid var(--rn-color-panel-border);
+  background: var(--rn-color-panel);
+}
+
+.rn-graph-details-title,
+.rn-graph-list-title {
+  margin: 0;
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-h3);
+  font-weight: var(--rn-weight-heading);
+  color: var(--rn-color-text-primary);
+}
+
+.rn-graph-details-body {
+  display: grid;
+  gap: var(--rn-space-3);
+}
+
+.rn-graph-item-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--rn-space-2);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.rn-graph-kind {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 var(--rn-space-2);
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+}
+
+.rn-graph-relations {
+  display: grid;
+  gap: var(--rn-space-2);
+  margin: 0;
+}
+
+.rn-graph-relations dt {
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-graph-relations dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.rn-graph-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rn-space-2);
+}
+
+.rn-graph-actions:empty {
+  display: none;
+}
+
+.rn-graph-jump {
+  max-width: 100%;
+  white-space: normal;
+  text-align: start;
+  justify-self: start;
+}
+
+.rn-graph-list {
+  display: grid;
+  gap: var(--rn-space-4);
+}
+
+.rn-graph-list section {
+  display: grid;
+  gap: var(--rn-space-2);
+}
+
+.rn-graph-items {
+  display: grid;
+  gap: var(--rn-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-graph-hint,
+.rn-graph-empty {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+  color: var(--rn-color-text-secondary);
+}
+
+html[data-color-mode="aaa-contrast"] .rn-graph-edge {
+  stroke: var(--rn-color-text-primary);
+}
+
+/* ==========================================================================
    Bühne: Video-Player, Deep-Dive und Audio teilen das dunkle Bühnenmaterial.
    Nur geprüfte Paare: stage-text, stage-muted, stage-accent auf stage-bg.
    ========================================================================== */
@@ -4537,14 +4766,14 @@ html[data-reduce-motion="true"][data-design] .rn-tool:hover {
     padding-top: 3px;
     padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
   }
+  /* Vier Reiter (Issue #327): Symbol über der Beschriftung, damit sie auch bei 320 px passen */
   .rn-tab {
-    flex-direction: row;
-    gap: 4px;
+    gap: 0;
     min-height: 44px;
     padding: 0;
   }
   .rn-tab-indicator {
-    width: 36px;
-    height: 28px;
+    width: 48px;
+    height: 24px;
   }
 }

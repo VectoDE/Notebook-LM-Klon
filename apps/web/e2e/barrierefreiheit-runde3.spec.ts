@@ -229,6 +229,9 @@ test.describe("Zitat-Sprung bei reduzierter Bewegung (#323 A4)", () => {
       await page.goto("/");
       await page.getByTestId("chat-input-field").fill("Wie wird sortiert?");
       await page.getByTestId("chat-input-field").press("Enter");
+      // Erst klicken, wenn die Antwort mit ihrer Zitat-Pille da ist (sonst trifft last() die
+      // Pille der Begrüßung, die auf eine andere Quelle zeigt)
+      await expect(page.getByTestId("citation-pill-1")).toHaveCount(2);
       await page.getByTestId("citation-pill-1").last().click();
       await expect(page.getByTestId("highlighted-citation-passage")).toBeVisible();
       await expect

@@ -42,7 +42,9 @@ const PATHS = {
   account:
     "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5.6 6.5a6 6 0 0 1 11.2 0",
   edit: "M4 20h4L19 9l-4-4L4 16v4Zm9-13 4 4",
-  plus: "M12 5v14M5 12h14"
+  plus: "M12 5v14M5 12h14",
+  graph:
+    "M6 8.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm12 2a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM9 20.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM8.5 6.4l7 1.2M6.4 8.5l2.2 7m2.2.2 5.5-5.5"
 } as const;
 
 export type IconName = keyof typeof PATHS;
