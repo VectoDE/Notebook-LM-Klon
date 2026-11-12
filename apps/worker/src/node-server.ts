@@ -19,6 +19,7 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { createApp } from "./index.js";
+import { registerSocketAddress } from "./rate-limiter.js";
 import { MAX_SOURCE_BYTE_SIZE_LIMIT } from "./sources-upload.js";
 
 /**
@@ -41,6 +42,11 @@ export interface NodeServerOptions {
   staticDir?: string | undefined;
   appProfile?: "demo" | "full" | undefined;
   appOrigin?: string | undefined;
+  /**
+   * Header a reverse proxy in front of this server sets to the client IP (e.g. "x-forwarded-for").
+   * Defaults to env TRUSTED_PROXY_HEADER. Without it, rate limiting uses the socket address.
+   */
+  trustedProxyHeader?: string | undefined;
 }
 
 export interface NodeServerInstance {
@@ -378,6 +384,7 @@ export function createNodeEnv(options?: {
   appOrigin?: string | undefined;
   /** Defaults to process.env.SESSION_SALT_SECRET. No fallback: missing means login is blocked (503). */
   sessionSaltSecret?: string | undefined;
+  trustedProxyHeader?: string | undefined;
 }): { env: Env; db: DatabaseSync; dataDir: string } {
   const dataDir = options?.dataDir ?? resolve(".data");
   const mediaDir = join(dataDir, "media");
@@ -396,6 +403,7 @@ export function createNodeEnv(options?: {
     APP_PROFILE: options?.appProfile ?? "demo",
     APP_ORIGIN: options?.appOrigin ?? "http://localhost:8787",
     SESSION_SALT_SECRET: options?.sessionSaltSecret ?? process.env.SESSION_SALT_SECRET,
+    TRUSTED_PROXY_HEADER: options?.trustedProxyHeader,
     ASSETS: {
       fetch: async () => new Response("Not Found", { status: 404 })
     } as unknown as Fetcher,
@@ -415,7 +423,11 @@ export function startNodeServer(options?: NodeServerOptions): Promise<NodeServer
     dataDir: string;
     appProfile?: "demo" | "full";
     appOrigin?: string;
-  } = { dataDir };
+    trustedProxyHeader?: string | undefined;
+  } = {
+    dataDir,
+    trustedProxyHeader: options?.trustedProxyHeader ?? process.env.TRUSTED_PROXY_HEADER
+  };
   if (options?.appProfile !== undefined) {
     envOpts.appProfile = options.appProfile;
   }
@@ -454,7 +466,11 @@ export function startNodeServer(options?: NodeServerOptions): Promise<NodeServer
   return new Promise((resolvePromise) => {
     const server = serve(
       {
-        fetch: (request: Request) => rootApp.fetch(request, env),
+        fetch: (request, bindings) => {
+          // The socket address is the only client IP a plain Node server can trust.
+          registerSocketAddress(request, bindings.incoming.socket.remoteAddress);
+          return rootApp.fetch(request, env);
+        },
         port
       },
       (info) => {
