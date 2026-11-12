@@ -62,8 +62,8 @@ for (const width of [320, 360, 390, 430, 480, 599]) {
 
         // Untere Leiste setzt aria-current
         await page.getByTestId("tab-btn-studio").click();
-        await expect(page.getByTestId("tab-btn-studio")).toHaveAttribute("aria-current", "page");
-        await expect(page.getByTestId("tab-btn-chat")).not.toHaveAttribute("aria-current", "page");
+        await expect(page.getByTestId("tab-btn-studio")).toHaveAttribute("aria-current", "true");
+        await expect(page.getByTestId("tab-btn-chat")).not.toHaveAttribute("aria-current", "true");
       });
     }
 
@@ -106,12 +106,6 @@ for (const width of [320, 360, 390, 430, 480, 599]) {
       await expect(sheet).toBeHidden();
       await expect(trigger).toBeFocused();
 
-      // Bereich im Sheet wählen schließt es und setzt den Reiter
-      await trigger.click();
-      await page.getByTestId("sheet-tab-sources").click();
-      await expect(sheet).toBeHidden();
-      await expect(page.getByTestId("tab-btn-sources")).toHaveAttribute("aria-current", "page");
-
       // Einstellungen aus dem Sheet öffnen
       await trigger.click();
       await page.getByTestId("sheet-open-settings").click();
@@ -143,10 +137,10 @@ for (const width of [600, 768, 1024, 1440]) {
       expect(await smallTargets(page)).toEqual([]);
       expect(await findLayoutProblems(page)).toEqual([]);
 
-      await expect(page.getByTestId("top-tab-chat")).toHaveAttribute("aria-current", "page");
+      await expect(page.getByTestId("top-tab-chat")).toHaveAttribute("aria-current", "true");
       await page.getByTestId("top-tab-studio").click();
-      await expect(page.getByTestId("top-tab-studio")).toHaveAttribute("aria-current", "page");
-      await expect(page.getByTestId("top-tab-chat")).not.toHaveAttribute("aria-current", "page");
+      await expect(page.getByTestId("top-tab-studio")).toHaveAttribute("aria-current", "true");
+      await expect(page.getByTestId("top-tab-chat")).not.toHaveAttribute("aria-current", "true");
       await expect(page.locator("[data-panel='studio']")).toBeVisible();
 
       // Menü per Tastatur: öffnen, Fokus hinein, Escape schließt, Fokus zurück

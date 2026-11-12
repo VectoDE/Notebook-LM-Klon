@@ -205,11 +205,10 @@ export function StudioPanel({
       <header className="rn-panel-head">
         <div className="rn-panel-heading">
           <h2>Studio</h2>
-          <p className="rn-panel-sub">
-            {currentTool === "overview"
-              ? `${tools.length} Werkzeuge aus Ihren Quellen`
-              : notebookTitle}
-          </p>
+          {/* In einer Werkzeugansicht trägt deren eigener Kopf den Notebook-Titel */}
+          {currentTool === "overview" && (
+            <p className="rn-panel-sub">{`${tools.length} Werkzeuge aus Ihren Quellen`}</p>
+          )}
         </div>
         {currentTool !== "overview" && (
           <button
@@ -320,6 +319,10 @@ export function StudioPanel({
           setIsDeepDiveOpen(false);
           selectTool("audio");
         }}
+        // Nach "Frage stellen" ist der Bühnen-Knopf weg; der Fokus geht an den Audio-Player
+        returnFocusFallback={() =>
+          document.querySelector<HTMLElement>('[data-testid="btn-audio-interject"]')
+        }
       />
     </section>
   );

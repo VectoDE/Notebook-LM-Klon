@@ -15,7 +15,9 @@ export default defineConfig({
         "apps/web/src/theme-preferences.ts",
         "apps/web/src/BrandLogo.tsx",
         "apps/web/src/Icon.tsx",
-        "apps/web/src/focus-trap.ts"
+        "apps/web/src/focus-trap.ts",
+        "apps/web/src/focus-return.ts",
+        "apps/web/src/stage-visuals.ts"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {
