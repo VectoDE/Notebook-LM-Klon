@@ -14,6 +14,7 @@ import { MindmapViewer } from "./MindmapViewer.js";
 import { QuizViewer } from "./QuizViewer.js";
 import { VideoOverviewPlayer } from "./VideoOverviewPlayer.js";
 import {
+  escapeHtmlText,
   exportBriefingToMarkdown,
   exportFlashcardsToAnkiCsv,
   exportMindmapToSvgString,
@@ -127,7 +128,8 @@ export function StudioPanel({
           keyTakeaways: ["Durable Objects", "D1 SQLite"],
           actionItems: ["Architektur umsetzen"]
         },
-        notebookTitle
+        // Der Titel ist frei bearbeitbar: als reiner Text in die Markdown-Datei
+        escapeHtmlText(notebookTitle)
       );
       triggerBrowserDownload(result.filename, result.content, result.mimeType);
     }

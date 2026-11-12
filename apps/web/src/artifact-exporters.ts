@@ -27,6 +27,20 @@ export interface ExportDownloadResult {
   readonly content: string | Blob;
 }
 
+/**
+ * Maskiert HTML-Sonderzeichen für Text, der in Markdown-Exporte geht. Markdown-Leser stellen
+ * rohes HTML dar; ein Titel wie „<img onerror=…>“ (frei bearbeitbar, Issue #325) bleibt so
+ * reiner Text.
+ */
+export function escapeHtmlText(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /** Längster Dateiname für Downloads (Zeichen, ohne Pfad). */
 export const DOWNLOAD_FILENAME_MAX_LENGTH = 120;
 

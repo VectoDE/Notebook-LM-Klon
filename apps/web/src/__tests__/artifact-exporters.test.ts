@@ -9,6 +9,7 @@ import type {
 import { describe, expect, it, vi } from "vitest";
 import {
   DOWNLOAD_FILENAME_MAX_LENGTH,
+  escapeHtmlText,
   exportArtifactToPrintHtml,
   exportBriefingToMarkdown,
   exportFAQToMarkdown,
@@ -22,6 +23,15 @@ import {
   toSafeFilename,
   triggerBrowserDownload
 } from "../artifact-exporters.js";
+
+describe("Titel als reiner Text in Exporten (Issue #325)", () => {
+  it("maskiert HTML-Sonderzeichen und lässt normalen Text unverändert", () => {
+    expect(escapeHtmlText("Cloudflare Edge Stack")).toBe("Cloudflare Edge Stack");
+    expect(escapeHtmlText(`<img src="x" onerror='a()'> & Co`)).toBe(
+      "&lt;img src=&quot;x&quot; onerror=&#39;a()&#39;&gt; &amp; Co"
+    );
+  });
+});
 
 describe("Sichere Dateinamen (Issue #325)", () => {
   it("lässt übliche Namen stehen und ersetzt Pfad-, Markup- und Leerzeichen", () => {
