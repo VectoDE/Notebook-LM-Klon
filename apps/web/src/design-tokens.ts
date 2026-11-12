@@ -778,7 +778,17 @@ export const MIXED_SURFACES: readonly MixedSurface[] = [
     mix: ["stageAccent", "panel", 0.3],
     text: [],
     graphics: ["primary"]
-  }
+  },
+  // Gedrückter Umschalter im Video-Player (Untertitel, Audiodeskription), alle Designs
+  ...THEMES.map(
+    (theme): MixedSurface => ({
+      theme,
+      name: "Video-Umschalter, gedrückt",
+      mix: ["stageAccent", "stageBg", 0.18],
+      text: ["stageText"],
+      graphics: ["stageAccent"]
+    })
+  )
 ];
 
 export interface MixedSurfaceResult {

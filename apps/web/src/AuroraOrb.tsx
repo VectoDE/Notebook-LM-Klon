@@ -4,9 +4,27 @@
  * Implements Sub-Issue #130:
  * - 60fps Aurora Orb on Canvas with flowing gradients and interactive audio response.
  * - Accessibility: 'prefers-reduced-motion: reduce' switches to a calm, static gradient immediately.
+ * - Farben kommen aus dem aktiven Design (--rn-color-stage-accent, --rn-color-stage-text),
+ *   nicht fest aus Indigo; bei Design- oder Moduswechsel wird neu gezeichnet.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { orbPalette } from "./stage-visuals.js";
+
+/** Zeichnet neu, wenn Design oder Farbmodus am Wurzelelement wechseln. */
+function useDesignVersion(): number {
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    if (typeof MutationObserver === "undefined") return;
+    const observer = new MutationObserver(() => setVersion((v) => v + 1));
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-design", "data-color-mode"]
+    });
+    return () => observer.disconnect();
+  }, []);
+  return version;
+}
 
 export interface AuroraOrbProps {
   readonly isPlaying?: boolean | undefined;
@@ -26,12 +44,22 @@ export function AuroraOrb({
   reducedMotion = false
 }: AuroraOrbProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const designVersion = useDesignVersion();
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    // Bühnenfarben des aktiven Designs; der Effekt läuft bei jedem Designwechsel neu.
+    void designVersion;
+    const tokens = getComputedStyle(canvas);
+    const palette = orbPalette(
+      tokens.getPropertyValue("--rn-color-stage-accent"),
+      tokens.getPropertyValue("--rn-color-stage-text"),
+      activeSpeaker
+    );
 
     // Check system preference for reduced motion if not passed explicitly
     const systemReducedMotion =
@@ -60,19 +88,9 @@ export function AuroraOrb({
           baseRadius * 1.1
         );
 
-        if (activeSpeaker === "hostB") {
-          gradient.addColorStop(0, "rgba(59, 130, 246, 0.85)");
-          gradient.addColorStop(0.5, "rgba(96, 165, 250, 0.5)");
-          gradient.addColorStop(1, "rgba(30, 58, 138, 0)");
-        } else if (activeSpeaker === "hostA") {
-          gradient.addColorStop(0, "rgba(168, 85, 247, 0.85)");
-          gradient.addColorStop(0.5, "rgba(192, 132, 252, 0.5)");
-          gradient.addColorStop(1, "rgba(88, 28, 135, 0)");
-        } else {
-          gradient.addColorStop(0, "rgba(99, 102, 241, 0.8)");
-          gradient.addColorStop(0.6, "rgba(139, 92, 246, 0.4)");
-          gradient.addColorStop(1, "rgba(30, 27, 75, 0)");
-        }
+        gradient.addColorStop(0, palette.core);
+        gradient.addColorStop(0.55, palette.mid);
+        gradient.addColorStop(1, palette.edge);
 
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -103,19 +121,9 @@ export function AuroraOrb({
         currentRadius * 1.2
       );
 
-      if (activeSpeaker === "hostA") {
-        primaryGrad.addColorStop(0, "rgba(217, 70, 239, 0.9)");
-        primaryGrad.addColorStop(0.4, "rgba(168, 85, 247, 0.6)");
-        primaryGrad.addColorStop(1, "rgba(79, 70, 229, 0)");
-      } else if (activeSpeaker === "hostB") {
-        primaryGrad.addColorStop(0, "rgba(56, 189, 248, 0.9)");
-        primaryGrad.addColorStop(0.4, "rgba(59, 130, 246, 0.6)");
-        primaryGrad.addColorStop(1, "rgba(99, 102, 241, 0)");
-      } else {
-        primaryGrad.addColorStop(0, "rgba(129, 140, 248, 0.9)");
-        primaryGrad.addColorStop(0.5, "rgba(192, 132, 252, 0.55)");
-        primaryGrad.addColorStop(1, "rgba(67, 56, 202, 0)");
-      }
+      primaryGrad.addColorStop(0, palette.core);
+      primaryGrad.addColorStop(0.45, palette.mid);
+      primaryGrad.addColorStop(1, palette.edge);
 
       ctx.fillStyle = primaryGrad;
       ctx.beginPath();
@@ -131,9 +139,9 @@ export function AuroraOrb({
         orb2Y,
         currentRadius * 0.8
       );
-      secGrad.addColorStop(0, "rgba(255, 255, 255, 0.4)");
-      secGrad.addColorStop(0.5, "rgba(224, 231, 255, 0.2)");
-      secGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+      secGrad.addColorStop(0, palette.glow);
+      secGrad.addColorStop(0.5, palette.glowMid);
+      secGrad.addColorStop(1, palette.glowEdge);
 
       ctx.fillStyle = secGrad;
       ctx.beginPath();
@@ -150,7 +158,7 @@ export function AuroraOrb({
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [isPlaying, audioLevel, activeSpeaker, width, height, reducedMotion]);
+  }, [isPlaying, audioLevel, activeSpeaker, width, height, reducedMotion, designVersion]);
 
   return (
     <div

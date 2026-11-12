@@ -5,12 +5,16 @@
  * - Interactive SVG Mindmap with Zoom & Pan, Collapsible Branches, and Source Click Jump
  * - Accessible Screenreader Alternative with WAI-ARIA role="tree" / role="treeitem"
  * - Full Keyboard Navigation: ArrowRight, ArrowLeft, ArrowDown, ArrowUp, Home, End, Enter
+ *
+ * Issue #296: Roving Tabindex in der Baumliste (Fokus wandert mit), Pfeil links zum
+ * Elternknoten, SVG für Hilfstechnik ausgeblendet, Reiter „Grafik“/„Baumliste“ nach APG Tabs.
  */
 
 import type { MindmapNode } from "@notebook-lm/shared";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   useCallback,
+  useEffect,
   useId,
   useLayoutEffect,
   useMemo,
@@ -214,6 +218,134 @@ export function flattenLayoutNodes(root: RenderLayoutNode): RenderLayoutNode[] {
   return result;
 }
 
+/** Lage eines sichtbaren Eintrags im Baum (für aria-setsize, aria-posinset, Pfeil links). */
+export interface TreeItemMeta {
+  readonly parentId: string | undefined;
+  readonly setSize: number;
+  readonly posInSet: number;
+}
+
+/** Elternknoten, Geschwisterzahl und Position für jeden sichtbaren Knoten. */
+export function buildTreeMeta(root: RenderLayoutNode): Map<string, TreeItemMeta> {
+  const meta = new Map<string, TreeItemMeta>();
+  meta.set(root.id, { parentId: undefined, setSize: 1, posInSet: 1 });
+  function walk(node: RenderLayoutNode) {
+    node.children.forEach((child, index) => {
+      meta.set(child.id, {
+        parentId: node.id,
+        setSize: node.children.length,
+        posInSet: index + 1
+      });
+      walk(child);
+    });
+  }
+  walk(root);
+  return meta;
+}
+
+/** Elternknoten aller Knoten des vollständigen Baums (auch eingeklappter Zweige). */
+export function buildParentMap(root: MindmapNode): Map<string, string | undefined> {
+  const parents = new Map<string, string | undefined>([[root.id, undefined]]);
+  function walk(node: MindmapNode) {
+    for (const child of node.children ?? []) {
+      parents.set(child.id, node.id);
+      walk(child);
+    }
+  }
+  walk(root);
+  return parents;
+}
+
+/**
+ * Aktiver Knoten der Baumliste: der gewünschte, falls sichtbar, sonst der nächste
+ * sichtbare Vorfahr (z. B. nachdem ein Zweig in der Grafik eingeklappt wurde).
+ */
+export function resolveActiveId(
+  wantedId: string,
+  visibleIds: ReadonlySet<string>,
+  parents: ReadonlyMap<string, string | undefined>,
+  rootId: string
+): string {
+  let id: string | undefined = wantedId;
+  while (id !== undefined && !visibleIds.has(id)) {
+    id = parents.get(id);
+  }
+  return id ?? rootId;
+}
+
+/** Ergebnis einer Taste in der Baumliste: wohin der Fokus geht, was auf- oder zuklappt. */
+export interface TreeKeyResult {
+  readonly focus?: string;
+  readonly toggle?: string;
+  readonly activate?: true;
+}
+
+/**
+ * Tastatursteuerung der Baumliste nach WAI-ARIA APG „Tree View“.
+ * Gibt `undefined` zurück, wenn die Taste nicht zur Baumliste gehört.
+ */
+export function treeKeyAction(
+  flat: readonly RenderLayoutNode[],
+  meta: ReadonlyMap<string, TreeItemMeta>,
+  currentId: string,
+  key: string
+): TreeKeyResult | undefined {
+  const index = flat.findIndex((n) => n.id === currentId);
+  const node = flat[index];
+  if (!node) return undefined;
+  switch (key) {
+    case "ArrowDown": {
+      const next = flat[index + 1];
+      return next ? { focus: next.id } : {};
+    }
+    case "ArrowUp": {
+      const prev = flat[index - 1];
+      return prev ? { focus: prev.id } : {};
+    }
+    case "ArrowRight": {
+      if (!node.hasChildren) return {};
+      if (node.isCollapsed) return { toggle: node.id };
+      const first = node.children[0];
+      return first ? { focus: first.id } : {};
+    }
+    case "ArrowLeft": {
+      if (node.hasChildren && !node.isCollapsed) return { toggle: node.id };
+      const parentId = meta.get(node.id)?.parentId;
+      return parentId ? { focus: parentId } : {};
+    }
+    case "Home":
+      return { focus: flat[0]?.id ?? node.id };
+    case "End":
+      return { focus: flat[flat.length - 1]?.id ?? node.id };
+    case "Enter":
+    case " ":
+      return { activate: true };
+    default:
+      return undefined;
+  }
+}
+
+export type MindmapTab = "visual" | "tree";
+const TAB_ORDER: readonly MindmapTab[] = ["visual", "tree"];
+
+/** Reiter nach APG „Tabs“: Pfeil links/rechts mit Umlauf, Pos1/Ende. */
+export function tabKeyTarget(current: MindmapTab, key: string): MindmapTab | undefined {
+  const index = TAB_ORDER.indexOf(current);
+  const last = TAB_ORDER.length - 1;
+  switch (key) {
+    case "ArrowRight":
+      return TAB_ORDER[index === last ? 0 : index + 1];
+    case "ArrowLeft":
+      return TAB_ORDER[index === 0 ? last : index - 1];
+    case "Home":
+      return TAB_ORDER[0];
+    case "End":
+      return TAB_ORDER[last];
+    default:
+      return undefined;
+  }
+}
+
 export function MindmapViewer({
   rootNode,
   title = "Wissens-Mindmap",
@@ -225,7 +357,13 @@ export function MindmapViewer({
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(() => new Set());
   const [focusedNodeId, setFocusedNodeId] = useState<string>(rootNode.id);
   const canvasRef = useRef<HTMLDivElement | null>(null);
-  const [activeTab, setActiveTab] = useState<"visual" | "tree">("visual");
+  const [activeTab, setActiveTab] = useState<MindmapTab>("visual");
+  const tabRefs = useRef<Record<MindmapTab, HTMLButtonElement | null>>({
+    visual: null,
+    tree: null
+  });
+  /** Nur nach Tastatur- oder Klickbedienung den Fokus nachziehen, nicht beim ersten Rendern. */
+  const moveFocusRef = useRef(false);
 
   const toggleCollapse = useCallback((id: string) => {
     setCollapsedIds((prev) => {
@@ -247,92 +385,68 @@ export function MindmapViewer({
     return flattenLayoutNodes(layout.layoutNode);
   }, [layout.layoutNode]);
 
-  // Keyboard navigation for WAI-ARIA role="tree"
-  const handleTreeKeyDown = useCallback(
-    (event: ReactKeyboardEvent, currentId: string) => {
-      const currentIndex = flatVisibleNodes.findIndex((n) => n.id === currentId);
-      if (currentIndex === -1) return;
-
-      const currentNode = flatVisibleNodes[currentIndex];
-
-      switch (event.key) {
-        case "ArrowDown": {
-          event.preventDefault();
-          const nextIndex = Math.min(flatVisibleNodes.length - 1, currentIndex + 1);
-          const nextNode = flatVisibleNodes[nextIndex];
-          if (nextNode) {
-            setFocusedNodeId(nextNode.id);
-          }
-          break;
-        }
-        case "ArrowUp": {
-          event.preventDefault();
-          const prevIndex = Math.max(0, currentIndex - 1);
-          const prevNode = flatVisibleNodes[prevIndex];
-          if (prevNode) {
-            setFocusedNodeId(prevNode.id);
-          }
-          break;
-        }
-        case "ArrowRight": {
-          event.preventDefault();
-          if (currentNode?.hasChildren) {
-            if (currentNode.isCollapsed) {
-              toggleCollapse(currentNode.id);
-            } else if (currentNode.children.length > 0) {
-              const firstChild = currentNode.children[0];
-              if (firstChild) {
-                setFocusedNodeId(firstChild.id);
-              }
-            }
-          }
-          break;
-        }
-        case "ArrowLeft": {
-          event.preventDefault();
-          if (currentNode?.hasChildren && !currentNode.isCollapsed) {
-            toggleCollapse(currentNode.id);
-          }
-          break;
-        }
-        case "Home": {
-          event.preventDefault();
-          const first = flatVisibleNodes[0];
-          if (first) {
-            setFocusedNodeId(first.id);
-          }
-          break;
-        }
-        case "End": {
-          event.preventDefault();
-          const last = flatVisibleNodes[flatVisibleNodes.length - 1];
-          if (last) {
-            setFocusedNodeId(last.id);
-          }
-          break;
-        }
-        case "Enter":
-        case " ": {
-          event.preventDefault();
-          if (currentNode) {
-            if (currentNode.sourceId || currentNode.chunkId || currentNode.sourceCitation) {
-              onSourceJump?.({
-                sourceId: currentNode.sourceId,
-                chunkId: currentNode.chunkId,
-                sourceCitation: currentNode.sourceCitation
-              });
-            } else if (currentNode.hasChildren) {
-              toggleCollapse(currentNode.id);
-            }
-          }
-          break;
-        }
-      }
-    },
-    [flatVisibleNodes, onSourceJump, toggleCollapse]
+  const treeMeta = useMemo(() => buildTreeMeta(layout.layoutNode), [layout.layoutNode]);
+  const parents = useMemo(() => buildParentMap(rootNode), [rootNode]);
+  const activeId = useMemo(
+    () =>
+      resolveActiveId(
+        focusedNodeId,
+        new Set(flatVisibleNodes.map((n) => n.id)),
+        parents,
+        rootNode.id
+      ),
+    [focusedNodeId, flatVisibleNodes, parents, rootNode.id]
   );
 
   const containerId = useId();
+  const itemDomId = useCallback((id: string) => `${containerId}-item-${id}`, [containerId]);
+
+  // Roving Tabindex: nach einem Wechsel des aktiven Knotens den Fokus dorthin verschieben.
+  useEffect(() => {
+    if (!moveFocusRef.current) return;
+    moveFocusRef.current = false;
+    document.getElementById(itemDomId(activeId))?.focus();
+  }, [activeId, itemDomId]);
+
+  // Tastatursteuerung der Baumliste (WAI-ARIA APG Tree View)
+  const handleTreeKeyDown = useCallback(
+    (event: ReactKeyboardEvent, currentId: string) => {
+      const result = treeKeyAction(flatVisibleNodes, treeMeta, currentId, event.key);
+      if (!result) return;
+      event.preventDefault();
+      if (result.toggle) toggleCollapse(result.toggle);
+      if (result.focus) {
+        moveFocusRef.current = true;
+        setFocusedNodeId(result.focus);
+      }
+      if (result.activate) {
+        const node = flatVisibleNodes.find((n) => n.id === currentId);
+        if (!node) return;
+        if (node.sourceId || node.chunkId || node.sourceCitation) {
+          onSourceJump?.({
+            sourceId: node.sourceId,
+            chunkId: node.chunkId,
+            sourceCitation: node.sourceCitation
+          });
+        } else if (node.hasChildren) {
+          toggleCollapse(node.id);
+        }
+      }
+    },
+    [flatVisibleNodes, treeMeta, onSourceJump, toggleCollapse]
+  );
+
+  // Reiter: automatische Aktivierung, Fokus folgt der Auswahl
+  const handleTabKeyDown = useCallback(
+    (event: ReactKeyboardEvent) => {
+      const target = tabKeyTarget(activeTab, event.key);
+      if (!target) return;
+      event.preventDefault();
+      setActiveTab(target);
+      tabRefs.current[target]?.focus();
+    },
+    [activeTab]
+  );
 
   // Beim Öffnen und bei "Reset" einpassen: die Wurzel steht immer sichtbar in der Fläche.
   const fitToView = useCallback(() => {
@@ -363,60 +477,59 @@ export function MindmapViewer({
         </div>
 
         <div data-testid="mindmap-toolbar" className="rn-mindmap-toolbar">
-          <div role="tablist" aria-label="Ansichtsmodus" className="rn-seg-tabs">
-            <button
-              type="button"
-              role="tab"
-              className="rn-seg-tab"
-              aria-selected={activeTab === "visual"}
-              aria-controls={`${containerId}-visual-panel`}
-              id={`${containerId}-visual-tab`}
-              onClick={() => setActiveTab("visual")}
-            >
-              Grafik (SVG)
-            </button>
-            <button
-              type="button"
-              role="tab"
-              className="rn-seg-tab"
-              aria-selected={activeTab === "tree"}
-              aria-controls={`${containerId}-tree-panel`}
-              id={`${containerId}-tree-tab`}
-              onClick={() => setActiveTab("tree")}
-            >
-              Baumliste (WAI-ARIA)
-            </button>
+          <div role="tablist" aria-label="Ansicht" className="rn-seg-tabs">
+            {TAB_ORDER.map((tab) => (
+              <button
+                key={tab}
+                ref={(el) => {
+                  tabRefs.current[tab] = el;
+                }}
+                type="button"
+                role="tab"
+                className="rn-seg-tab"
+                aria-selected={activeTab === tab}
+                aria-controls={`${containerId}-${tab}-panel`}
+                id={`${containerId}-${tab}-tab`}
+                tabIndex={activeTab === tab ? 0 : -1}
+                onClick={() => setActiveTab(tab)}
+                onKeyDown={handleTabKeyDown}
+              >
+                {tab === "visual" ? "Grafik" : "Baumliste"}
+              </button>
+            ))}
           </div>
 
-          <fieldset className="rn-zoom" aria-label="Zoom">
-            <button
-              type="button"
-              className="rn-icon-btn"
-              aria-label="Verkleinern (Zoom Out)"
-              onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.2).toFixed(1))))}
-            >
-              <span aria-hidden="true">−</span>
-            </button>
-            <output className="rn-zoom-value" aria-live="polite">
-              {Math.round(zoom * 100)} %
-            </output>
-            <button
-              type="button"
-              className="rn-icon-btn"
-              aria-label="Vergrößern (Zoom In)"
-              onClick={() => setZoom((z) => Math.min(3.0, Number((z + 0.2).toFixed(1))))}
-            >
-              <span aria-hidden="true">+</span>
-            </button>
-            <button
-              type="button"
-              className="rn-btn rn-btn--ghost rn-btn--compact"
-              aria-label="Ansicht zurücksetzen"
-              onClick={fitToView}
-            >
-              Reset
-            </button>
-          </fieldset>
+          {/* Zoom wirkt nur auf die Grafik; in der Baumliste wären es tote Tab-Stopps. */}
+          {activeTab === "visual" && (
+            <fieldset className="rn-zoom" aria-label="Zoom">
+              <button
+                type="button"
+                className="rn-icon-btn"
+                aria-label="Verkleinern"
+                onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.2).toFixed(1))))}
+              >
+                <span aria-hidden="true">−</span>
+              </button>
+              <output className="rn-zoom-value" aria-live="polite">
+                {Math.round(zoom * 100)} %
+              </output>
+              <button
+                type="button"
+                className="rn-icon-btn"
+                aria-label="Vergrößern"
+                onClick={() => setZoom((z) => Math.min(3.0, Number((z + 0.2).toFixed(1))))}
+              >
+                <span aria-hidden="true">+</span>
+              </button>
+              <button
+                type="button"
+                className="rn-btn rn-btn--ghost rn-btn--compact"
+                onClick={fitToView}
+              >
+                Einpassen
+              </button>
+            </fieldset>
+          )}
         </div>
       </header>
 
@@ -424,14 +537,19 @@ export function MindmapViewer({
         id={`${containerId}-visual-panel`}
         role="tabpanel"
         aria-labelledby={`${containerId}-visual-tab`}
+        aria-describedby={`${containerId}-visual-hint`}
         hidden={activeTab !== "visual"}
         className="rn-mindmap-canvas"
         ref={canvasRef}
       >
+        <p id={`${containerId}-visual-hint`} className="rn-visually-hidden">
+          Die Grafik ist nur zum Ansehen. Alle Punkte der Mindmap stehen im Reiter Baumliste, dort
+          per Tastatur und Screenreader bedienbar.
+        </p>
         <svg
           data-testid="mindmap-svg"
-          aria-label={`Interaktive Mindmap-Grafik: ${title}`}
-          role="img"
+          aria-hidden="true"
+          focusable="false"
           width="100%"
           height="100%"
           className="rn-mindmap-svg"
@@ -468,19 +586,15 @@ export function MindmapViewer({
               };
 
               return (
+                // Die Grafik ist für Hilfstechnik ausgeblendet; Tastatur und Screenreader
+                // bedienen dieselben Aktionen in der Baumliste.
+                // biome-ignore lint/a11y/useKeyWithClickEvents: Mausweg, Tastaturweg ist die Baumliste
                 <g
                   key={node.id}
                   transform={`translate(${node.x}, ${node.y})`}
                   className="rn-mm-node"
                   data-kind={kind}
-                  aria-label={`${node.label}${node.hasChildren ? (node.isCollapsed ? " (eingeklappt)" : " (ausgeklappt)") : ""}`}
                   onClick={handleNodeAction}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleNodeAction();
-                    }
-                  }}
                 >
                   <rect
                     width={node.width}
@@ -500,19 +614,13 @@ export function MindmapViewer({
                   </text>
 
                   {node.hasChildren && (
+                    // biome-ignore lint/a11y/useKeyWithClickEvents: Mausweg, Tastaturweg ist die Baumliste
                     <g
                       transform={`translate(${node.width - TOGGLE_RADIUS - 8}, ${node.height / 2})`}
                       className="rn-mm-toggle"
-                      aria-label={`${node.isCollapsed ? "Erweitern" : "Einklappen"}: ${node.label}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleCollapse(node.id);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.stopPropagation();
-                          toggleCollapse(node.id);
-                        }
                       }}
                     >
                       <circle r={TOGGLE_RADIUS} className="rn-mm-toggle-dot" />
@@ -540,15 +648,22 @@ export function MindmapViewer({
         hidden={activeTab !== "tree"}
         className="rn-mindmap-tree"
       >
-        <p className="rn-mindmap-hint">
-          Tastaturnavigation: Pfeiltasten Hoch/Runter navigieren, Pfeil Rechts öffnet Zweig, Pfeil
-          Links schließt Zweig, Enter/Leertaste springt zur Quelle.
+        <p className="rn-mindmap-hint" id={`${containerId}-tree-hint`}>
+          Pfeil hoch und runter wechseln den Eintrag. Pfeil rechts öffnet einen Zweig, Pfeil links
+          schließt ihn oder springt zum übergeordneten Eintrag. Pos1 und Ende springen an den Anfang
+          und das Ende. Eingabe oder Leertaste öffnet die Quelle.
         </p>
 
-        <ul role="tree" aria-label={`Baumstruktur der Mindmap ${title}`} className="rn-tree">
+        <ul
+          role="tree"
+          aria-label={`Baumliste der Mindmap ${title}`}
+          aria-describedby={`${containerId}-tree-hint`}
+          className="rn-tree"
+        >
           {flatVisibleNodes.map((node) => {
-            const isFocused = node.id === focusedNodeId;
+            const isActive = node.id === activeId;
             const hasSource = Boolean(node.sourceId || node.chunkId || node.sourceCitation);
+            const meta = treeMeta.get(node.id);
 
             return (
               <li
@@ -556,12 +671,15 @@ export function MindmapViewer({
                 role="treeitem"
                 className="rn-tree-item"
                 aria-level={node.depth + 1}
+                aria-setsize={meta?.setSize}
+                aria-posinset={meta?.posInSet}
                 aria-expanded={node.hasChildren ? !node.isCollapsed : undefined}
-                aria-selected={isFocused}
-                tabIndex={isFocused ? 0 : -1}
-                id={`treeitem-${node.id}`}
+                data-active={isActive ? "true" : undefined}
+                tabIndex={isActive ? 0 : -1}
+                id={itemDomId(node.id)}
                 onKeyDown={(e) => handleTreeKeyDown(e, node.id)}
                 onClick={() => {
+                  moveFocusRef.current = true;
                   setFocusedNodeId(node.id);
                   if (hasSource) {
                     onSourceJump?.({
@@ -586,13 +704,17 @@ export function MindmapViewer({
                 </span>
 
                 {node.hasChildren && (
+                  // Mausziel; per Tastatur klappen Pfeil rechts/links. Nicht im Tab-Fluss,
+                  // damit der Baum nur einen Tab-Stopp hat (Roving Tabindex).
                   <button
                     type="button"
                     className="rn-icon-btn"
-                    aria-label={`${node.isCollapsed ? "Erweitern" : "Einklappen"}: ${node.label}`}
+                    tabIndex={-1}
+                    aria-hidden="true"
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleCollapse(node.id);
+                      moveFocusRef.current = true;
                       setFocusedNodeId(node.id);
                     }}
                   >

@@ -39,4 +39,13 @@ describe("RelationNotes Web Shell (App.tsx)", () => {
     expect(html).toContain('data-testid="workspace-shell"');
     expect(html).toContain('data-testid="workspace-3panel-container"');
   });
+
+  it("hält im Arbeitsbereich genau ein main, die Kopfzeile davor und den Sprunglink zuerst", () => {
+    const html = renderToStaticMarkup(createElement(App, { mode: "workspace" }));
+    expect(html.match(/<main[\s>]/g)).toHaveLength(1);
+    expect(html.indexOf("<header")).toBeGreaterThan(-1);
+    expect(html.indexOf("<header")).toBeLessThan(html.indexOf("<main"));
+    expect(html.indexOf('href="#workspace-main"')).toBeLessThan(html.indexOf("<header"));
+    expect(html).toContain('<main id="workspace-main" tabindex="-1"');
+  });
 });

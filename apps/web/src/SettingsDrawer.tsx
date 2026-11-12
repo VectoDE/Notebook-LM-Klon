@@ -16,6 +16,7 @@ import { useEffect, useRef } from "react";
 import { AppearanceControls } from "./AppearanceControls.js";
 import { Icon } from "./Icon.js";
 import { trapTabKey } from "./focus-trap.js";
+import { useReturnFocus } from "./useReturnFocus.js";
 import { LANGUAGES, useTheme } from "./useTheme.jsx";
 
 export interface SettingsDrawerProps {
@@ -23,6 +24,8 @@ export interface SettingsDrawerProps {
   readonly onClose: () => void;
   readonly activeModel?: string | undefined;
   readonly onModelChange?: ((model: string) => void) | undefined;
+  /** Ziel für den Fokus nach dem Schließen, wenn der Auslöser ihn nicht mehr annimmt. */
+  readonly returnFocusFallback?: (() => HTMLElement | null | undefined) | undefined;
 }
 
 const MODELS: readonly { readonly id: string; readonly label: string }[] = [
@@ -38,10 +41,14 @@ export function SettingsDrawer({
   isOpen,
   onClose,
   activeModel = "gemini-2.5-flash",
-  onModelChange
+  onModelChange,
+  returnFocusFallback
 }: SettingsDrawerProps) {
   const { theme, colorMode, language, setTheme, setColorMode, setLanguage, t } = useTheme();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+
+  // Vor showModal(): Auslöser merken, nach dem Schließen dorthin zurück
+  useReturnFocus(isOpen, returnFocusFallback);
 
   // Als Modal öffnen: Hintergrund inert, Fokus im Dialog, Escape löst "cancel" aus.
   useEffect(() => {

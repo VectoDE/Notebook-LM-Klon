@@ -27,11 +27,9 @@ describe("Sprachkatalog (Issue #301)", () => {
     }
   });
 
-  it("ersetzt Platzhalter und fällt auf Deutsch bzw. den Schlüssel zurück", () => {
-    expect(translate("en", "navSourcesAria", { count: 3 })).toBe("Sources (3)");
-    expect(translate("de", "navSourcesAria", { count: 2 })).toBe("Quellen (2)");
-    expect(translate("de", "navSourcesAria")).toBe("Quellen ({count})");
-    expect(translate("en", "navSourcesAria", { other: 1 })).toBe("Sources ({count})");
+  it("liefert die Sprache und fällt sonst auf den Schlüssel zurück", () => {
+    expect(translate("en", "skipToContent")).toBe("Skip to content");
+    expect(translate("de", "skipToContent")).toBe("Zum Inhalt springen");
     expect(translate("en", "unbekannt")).toBe("unbekannt");
   });
 });
@@ -49,7 +47,8 @@ describe("Oberfläche auf Englisch", () => {
     expect(html).toContain('<span class="rn-topnav-label">Settings</span>');
     expect(html).toContain('<span class="rn-appearance-button-label">Appearance</span>');
     expect(html).toContain('aria-label="Open menu"');
-    expect(html).toContain('aria-label="Sources (2)"');
+    expect(html).toContain("Skip to content");
+    expect(html).toContain('<span class="rn-tab-label">Sources</span>');
     expect(html).toContain('aria-label="Chat &amp; citations"');
     expect(html).toContain('aria-label="Studio (6 tools)"');
     expect(html).not.toContain("Einstellungen");

@@ -68,13 +68,7 @@ for (const width of [390, 1440]) {
       await page.getByRole("button", { name: "Open menu" }).click();
       const sheet = page.getByRole("dialog", { name: "Menu" });
       await expect(sheet).toBeVisible();
-      for (const text of [
-        "Sections",
-        "Documents and links",
-        "Settings",
-        "Appearance",
-        "Color scheme"
-      ]) {
+      for (const text of ["Model, privacy, language", "Settings", "Appearance", "Color scheme"]) {
         await expect(sheet, text).toContainText(text);
       }
       for (const german of ["Bereiche", "Einstellungen", "Darstellung", "Farbschema"]) {
@@ -102,6 +96,9 @@ for (const width of [390, 1440]) {
       await page.keyboard.press("Escape");
       await expect(menu).toBeHidden();
     }
+
+    // Sprunglink und Hauptbereich
+    await expect(page.getByTestId("skip-link")).toHaveText("Skip to content");
 
     // Wahl übersteht Neuladen, zurück auf Deutsch
     await page.reload();

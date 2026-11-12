@@ -98,15 +98,11 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navVideo: "Video",
     navAudio: "Audio",
     navAreas: "Bereiche",
-    navAreasMenu: "Bereiche im Menü",
+    skipToContent: "Zum Inhalt springen",
     navSources: "Quellen",
-    navSourcesHint: "Dokumente und Links",
-    navSourcesAria: "Quellen ({count})",
     navChat: "Chat",
-    navChatHint: "Fragen mit Belegen",
     navChatAria: "Chat & Zitate",
     navStudio: "Studio",
-    navStudioHint: "Sechs Werkzeuge",
     navStudioAria: "Studio (6 Werkzeuge)",
     navSettings: "Einstellungen",
     navSettingsHint: "Modell, Datenschutz, Sprache",
@@ -172,15 +168,11 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navVideo: "Video",
     navAudio: "Audio",
     navAreas: "Sections",
-    navAreasMenu: "Sections in menu",
+    skipToContent: "Skip to content",
     navSources: "Sources",
-    navSourcesHint: "Documents and links",
-    navSourcesAria: "Sources ({count})",
     navChat: "Chat",
-    navChatHint: "Questions with citations",
     navChatAria: "Chat & citations",
     navStudio: "Studio",
-    navStudioHint: "Six tools",
     navStudioAria: "Studio (6 tools)",
     navSettings: "Settings",
     navSettingsHint: "Model, privacy, language",
@@ -190,19 +182,9 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   }
 };
 
-/** Platzhalter wie {count} im Katalogtext ersetzen. */
-export type TranslationValues = Readonly<Record<string, string | number>>;
-
-function interpolate(text: string, values?: TranslationValues): string {
-  if (!values) return text;
-  return text.replace(/\{(\w+)\}/g, (match, name: string) =>
-    name in values ? String(values[name]) : match
-  );
-}
-
 /** Text zum Schlüssel in der Sprache; fehlt er, Deutsch, sonst der Schlüssel selbst. */
-export function translate(language: Language, key: string, values?: TranslationValues): string {
-  return interpolate(TRANSLATIONS[language][key] ?? TRANSLATIONS.de[key] ?? key, values);
+export function translate(language: Language, key: string): string {
+  return TRANSLATIONS[language][key] ?? TRANSLATIONS.de[key] ?? key;
 }
 
 export interface ThemeContextValue {
@@ -215,7 +197,7 @@ export interface ThemeContextValue {
   readonly setTheme: (theme: DesignTheme) => void;
   readonly setColorMode: (mode: ColorModePreference) => void;
   readonly setLanguage: (lang: Language) => void;
-  readonly t: (key: string, values?: TranslationValues) => string;
+  readonly t: (key: string) => string;
 }
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -298,10 +280,7 @@ export function ThemeProvider({
     setLanguageState(newLang);
   }, []);
 
-  const t = useCallback(
-    (key: string, values?: TranslationValues): string => translate(language, key, values),
-    [language]
-  );
+  const t = useCallback((key: string): string => translate(language, key), [language]);
 
   const value = useMemo<ThemeContextValue>(
     () => ({
@@ -331,7 +310,7 @@ export function useTheme(): ThemeContextValue {
       setTheme: () => {},
       setColorMode: () => {},
       setLanguage: () => {},
-      t: (key: string, values?: TranslationValues) => translate("de", key, values)
+      t: (key: string) => translate("de", key)
     };
   }
   return context;

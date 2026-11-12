@@ -26,6 +26,14 @@ export interface LiveLyricsProps {
   readonly reducedMotion?: boolean | undefined;
 }
 
+/** Systemeinstellung „Bewegung reduzieren“; ohne window (Server-Rendering) false. */
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)
+  );
+}
+
 export function LiveLyrics({
   lines,
   currentTimeMs,
@@ -36,14 +44,14 @@ export function LiveLyrics({
   const containerRef = useRef<HTMLElement | null>(null);
   const activeLineRef = useRef<HTMLButtonElement | null>(null);
 
-  // Find active line index
-  const activeIndex = lines.findIndex(
+  // Aktive Zeile: an der Grenze zweier Zeilen gewinnt die spätere (Sprung auf startMs trifft sie)
+  const activeIndex = lines.findLastIndex(
     (line) => currentTimeMs >= line.startMs && currentTimeMs <= line.endMs
   );
 
-  // Auto-scroll active line to center
+  // Aktive Zeile in die Mitte rollen: bei jedem Zeilenwechsel, ohne Animation bei reduzierter Bewegung
   useEffect(() => {
-    if (!activeLineRef.current || !containerRef.current) return;
+    if (activeIndex < 0 || !activeLineRef.current || !containerRef.current) return;
     const container = containerRef.current;
     const activeEl = activeLineRef.current;
 
@@ -55,9 +63,9 @@ export function LiveLyrics({
 
     container.scrollTo({
       top: Math.max(0, targetTop),
-      behavior: reducedMotion ? "auto" : "smooth"
+      behavior: reducedMotion || prefersReducedMotion() ? "auto" : "smooth"
     });
-  }, [reducedMotion]);
+  }, [activeIndex, reducedMotion]);
 
   return (
     <section

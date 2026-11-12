@@ -41,6 +41,18 @@
   --rn-color-panel-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 12px 32px -16px
     rgba(15, 23, 42, 0.22);
 
+  /* Schriftstufen: Titel > Untertitel > Text > Meta. Basis sind die erzeugten Größen unten,
+     Minimum bleibt --rn-text-small (14 px). */
+  --rn-text-title: var(--rn-text-h2);
+  --rn-text-subtitle: var(--rn-text-h3);
+  --rn-text-body: var(--rn-text-base);
+  --rn-text-meta: var(--rn-text-small);
+
+  /* Schatten und Abdunklung für schwebende Ebenen (Popover, Dialog, Schublade) */
+  --rn-shadow-popover: 0 18px 48px -18px rgba(0, 0, 0, 0.35);
+  --rn-shadow-dialog: 0 24px 64px -24px rgba(0, 0, 0, 0.45);
+  --rn-color-scrim: rgb(0 0 0 / 0.45);
+
   /* Aliasse für ältere Namen in Bauteilen */
   --rn-color-background: var(--rn-color-canvas);
   --rn-color-surface: var(--rn-color-panel);
@@ -69,7 +81,33 @@ html[data-design][data-color-mode="dark"] {
 html[data-color-mode="dark"][data-design="editorial-calm"] {
   --rn-color-panel-shadow: none;
 }
+html[data-design="pure"] {
+  --rn-shadow-popover: 0 18px 48px -18px rgba(55, 48, 163, 0.32);
+  --rn-shadow-dialog: 0 24px 64px -24px rgba(55, 48, 163, 0.4);
+}
+html[data-design="immersive-cinema"] {
+  --rn-shadow-popover: 0 22px 56px -18px rgba(0, 0, 0, 0.75);
+  --rn-shadow-dialog: 0 28px 72px -24px rgba(0, 0, 0, 0.8);
+  --rn-color-scrim: rgb(0 0 0 / 0.6);
+}
+html[data-design="editorial-calm"] {
+  --rn-shadow-popover: 0 14px 36px -18px rgba(16, 32, 27, 0.28);
+  --rn-shadow-dialog: 0 20px 48px -24px rgba(16, 32, 27, 0.32);
+}
+html[data-design="fusion"] {
+  --rn-text-title: 1.625rem;
+  --rn-shadow-popover: 0 18px 48px -18px rgba(19, 78, 74, 0.4);
+  --rn-shadow-dialog: 0 24px 64px -24px rgba(19, 78, 74, 0.45);
+}
+html[data-design][data-color-mode="dark"] {
+  --rn-shadow-popover: 0 22px 56px -18px rgba(0, 0, 0, 0.7);
+  --rn-shadow-dialog: 0 28px 72px -24px rgba(0, 0, 0, 0.8);
+  --rn-color-scrim: rgb(0 0 0 / 0.6);
+}
 html[data-color-mode="aaa-contrast"] {
+  --rn-shadow-popover: none;
+  --rn-shadow-dialog: none;
+  --rn-color-scrim: rgb(0 0 0 / 0.75);
   --rn-panel-radius: 6px;
   --rn-color-panel-shadow: none;
   --rn-focus-outline-offset: 3px;
@@ -975,9 +1013,21 @@ html[data-design="editorial-calm"] .workspace-header::after {
   background: var(--rn-color-brand);
 }
 
-html[data-design="editorial-calm"] .workspace-panel p,
-html[data-design="editorial-calm"] .workspace-panel li {
+/* Silbentrennung nur im Fließtext. Überschriften, Beschreibungen, Knöpfe,
+   Navigation und Beschriftungen bleiben ungetrennt (Lern-karten vermeiden). */
+html[data-design="editorial-calm"] .rn-msg-body,
+html[data-design="editorial-calm"] .rn-inspector-content,
+html[data-design="editorial-calm"] .rn-summary-text,
+html[data-design="editorial-calm"] .rn-quiz-explanation-text {
   hyphens: auto;
+}
+
+html[data-design="editorial-calm"] :is(h1, h2, h3, h4),
+html[data-design="editorial-calm"] .rn-tool-desc,
+html[data-design="editorial-calm"] .rn-flashcard-text,
+html[data-design="editorial-calm"]
+  :is(button, a, label, .rn-btn, .rn-tab, .rn-chip, .rn-eyebrow, .rn-panel-sub) {
+  hyphens: manual;
 }
 
 /* --- Immersive Cinema: Tiefe und Kino --- */

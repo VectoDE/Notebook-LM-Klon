@@ -200,37 +200,18 @@ const NARROW_HEADER_QUERY = "(max-width: 599.98px)";
 type PanelTab = "sources" | "chat" | "studio";
 
 /**
- * Bereiche des Arbeitsbereichs: Schlüssel im Sprachkatalog für kurzen Namen, Hinweis im Menü
- * und vollen Namen für Screenreader.
+ * Bereiche des Arbeitsbereichs: Schlüssel im Sprachkatalog für den kurzen Namen und den
+ * vollen Namen für Screenreader (beginnt mit dem sichtbaren Namen).
  */
 const PANEL_TABS: readonly {
   readonly id: PanelTab;
   readonly labelKey: string;
-  readonly hintKey: string;
   readonly ariaKey: string;
   readonly icon: IconName;
 }[] = [
-  {
-    id: "sources",
-    labelKey: "navSources",
-    hintKey: "navSourcesHint",
-    ariaKey: "navSourcesAria",
-    icon: "sources"
-  },
-  {
-    id: "chat",
-    labelKey: "navChat",
-    hintKey: "navChatHint",
-    ariaKey: "navChatAria",
-    icon: "chat"
-  },
-  {
-    id: "studio",
-    labelKey: "navStudio",
-    hintKey: "navStudioHint",
-    ariaKey: "navStudioAria",
-    icon: "studio"
-  }
+  { id: "sources", labelKey: "navSources", ariaKey: "navSources", icon: "sources" },
+  { id: "chat", labelKey: "navChat", ariaKey: "navChatAria", icon: "chat" },
+  { id: "studio", labelKey: "navStudio", ariaKey: "navStudioAria", icon: "studio" }
 ];
 
 /** Reagiert auf eine Media Query; ohne window (Server-Rendering) immer false. */
@@ -272,6 +253,7 @@ export function WorkspaceLayout({
   const appearancePanelRef = useRef<HTMLDialogElement>(null);
   const appearanceOpenedByKeyboard = useRef(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLDialogElement>(null);
 
   const appearanceProps = {
@@ -480,6 +462,11 @@ export function WorkspaceLayout({
 
   return (
     <div className="workspace-shell" data-testid="workspace-shell">
+      {/* Sprunglink: erstes fokussierbares Element, nur bei Fokus sichtbar */}
+      <a href="#workspace-main" className="rn-skip-link" data-testid="skip-link">
+        {t("skipToContent")}
+      </a>
+
       {/* Kopf: Logo links, Bereiche als Reiterleiste, Darstellung in einem Menü */}
       <header data-testid="workspace-header" className="workspace-header">
         <div className="workspace-brand">
@@ -497,7 +484,7 @@ export function WorkspaceLayout({
                 key={tab.id}
                 type="button"
                 onClick={() => goToPanel(tab.id)}
-                aria-current={activeMobileTab === tab.id ? "page" : undefined}
+                aria-current={activeMobileTab === tab.id ? "true" : undefined}
                 data-testid={`top-tab-${tab.id}`}
                 className="rn-topnav-item"
               >
@@ -514,6 +501,7 @@ export function WorkspaceLayout({
           })}
           <span className="rn-topnav-divider" aria-hidden="true" />
           <button
+            ref={settingsButtonRef}
             type="button"
             onClick={() => setIsSettingsOpen(true)}
             data-testid="btn-open-settings"
@@ -577,7 +565,13 @@ export function WorkspaceLayout({
       </header>
 
       {/* Main 3-Panel Workspace Container */}
-      <div id="workspace-main" data-testid="workspace-3panel-container" className="workspace-main">
+      <main
+        id="workspace-main"
+        tabIndex={-1}
+        aria-labelledby="app-title"
+        data-testid="workspace-3panel-container"
+        className="workspace-main"
+      >
         {/* Panel 1: Left Sources Panel */}
         <div
           data-testid="panel-left-wrapper"
@@ -634,7 +628,7 @@ export function WorkspaceLayout({
             onSourceJump={handleCitationClick}
           />
         </div>
-      </div>
+      </main>
 
       {/* Untere Reiterleiste (unter 600 px): im Daumenbereich, Symbol und Kurzname */}
       <nav aria-label={t("navAreas")} data-testid="mobile-bottom-nav" className="mobile-bottom-nav">
@@ -646,16 +640,17 @@ export function WorkspaceLayout({
               key={tab.id}
               type="button"
               onClick={() => setActiveMobileTab(tab.id)}
-              aria-current={isActive ? "page" : undefined}
-              aria-label={t(tab.ariaKey, { count: sources.length })}
+              aria-current={isActive ? "true" : undefined}
+              aria-label={isSources ? undefined : t(tab.ariaKey)}
               data-testid={`tab-btn-${tab.id}`}
               className="rn-tab"
             >
-              <span className="rn-tab-indicator">
+              <span className="rn-tab-indicator" aria-hidden="true">
                 <Icon name={tab.icon} size={22} />
                 {isSources && <span className="rn-tab-count">{sources.length}</span>}
               </span>
               <span className="rn-tab-label">{t(tab.labelKey)}</span>
+              {isSources && <span className="rn-visually-hidden"> ({sources.length})</span>}
             </button>
           );
         })}
@@ -691,52 +686,27 @@ export function WorkspaceLayout({
           </div>
 
           <div className="rn-sheet-body">
-            <nav aria-label={t("navAreasMenu")}>
-              <h3 className="rn-sheet-section">{t("navAreas")}</h3>
-              <ul className="rn-sheet-nav">
-                {PANEL_TABS.map((tab) => (
-                  <li key={tab.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveMobileTab(tab.id);
-                        closeMenu();
-                      }}
-                      aria-current={activeMobileTab === tab.id ? "page" : undefined}
-                      data-testid={`sheet-tab-${tab.id}`}
-                      className="rn-sheet-item"
-                    >
-                      <Icon name={tab.icon} size={22} />
-                      <span className="rn-sheet-item-text">
-                        <span className="rn-sheet-item-title">{t(tab.labelKey)}</span>
-                        <span className="rn-sheet-item-hint">{t(tab.hintKey)}</span>
-                      </span>
-                      {tab.id === "sources" && (
-                        <span className="rn-topnav-count">{sources.length}</span>
-                      )}
-                    </button>
-                  </li>
-                ))}
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      closeMenu(false);
-                      setIsSettingsOpen(true);
-                    }}
-                    aria-haspopup="dialog"
-                    data-testid="sheet-open-settings"
-                    className="rn-sheet-item"
-                  >
-                    <Icon name="settings" size={22} />
-                    <span className="rn-sheet-item-text">
-                      <span className="rn-sheet-item-title">{t("navSettings")}</span>
-                      <span className="rn-sheet-item-hint">{t("navSettingsHint")}</span>
-                    </span>
-                  </button>
-                </li>
-              </ul>
-            </nav>
+            {/* Die Bereiche (Quellen, Chat, Studio) stehen in der unteren Leiste, hier nur der Rest */}
+            <ul className="rn-sheet-nav">
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMenu(false);
+                    setIsSettingsOpen(true);
+                  }}
+                  aria-haspopup="dialog"
+                  data-testid="sheet-open-settings"
+                  className="rn-sheet-item"
+                >
+                  <Icon name="settings" size={22} />
+                  <span className="rn-sheet-item-text">
+                    <span className="rn-sheet-item-title">{t("navSettings")}</span>
+                    <span className="rn-sheet-item-hint">{t("navSettingsHint")}</span>
+                  </span>
+                </button>
+              </li>
+            </ul>
 
             <section aria-labelledby="nav-sheet-appearance">
               <h3 id="nav-sheet-appearance" className="rn-sheet-section">
@@ -754,6 +724,10 @@ export function WorkspaceLayout({
         onClose={() => setIsSettingsOpen(false)}
         activeModel={activeModel}
         onModelChange={(model) => setActiveModel(model)}
+        // Aus dem Menü-Sheet geöffnet: das Sheet ist zu, der Fokus geht auf den Menüknopf
+        returnFocusFallback={() =>
+          isNarrowHeader ? menuButtonRef.current : settingsButtonRef.current
+        }
       />
     </div>
   );
@@ -764,9 +738,5 @@ export interface AppProps {
 }
 
 export const App: FunctionComponent<AppProps> = ({ initialTool = "overview" }: AppProps = {}) => {
-  return (
-    <main aria-labelledby="app-title">
-      <WorkspaceLayout initialTool={initialTool} />
-    </main>
-  );
+  return <WorkspaceLayout initialTool={initialTool} />;
 };
