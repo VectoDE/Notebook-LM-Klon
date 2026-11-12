@@ -84,17 +84,22 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
 }
 
 /* ==========================================================================
-   Kopfzeile
+   Kopfzeile: ein System aus einer Höhe
+   Alle Bedienelemente teilen Höhe (44 px, WCAG 2.5.5), Radius, Rand, Schrift und
+   Grundlinie. Auswahlfelder sind eigene Felder (Rand am Container, Auswahl darin
+   randlos); der Fokusring liegt am ganzen Feld. Eine ruhige Trennlinie unten.
    ========================================================================== */
 .workspace-header {
+  --rn-control-h: 44px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--rn-space-4);
+  gap: var(--rn-space-2);
   min-height: 64px;
   box-sizing: border-box;
+  padding: 0 var(--rn-space-6) !important;
   background: var(--rn-color-panel);
   border-bottom: 1px solid var(--rn-color-panel-border);
+  box-shadow: none;
   z-index: 5;
 }
 
@@ -103,6 +108,7 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   align-items: center;
   gap: var(--rn-space-3);
   min-width: 0;
+  margin-right: auto;
 }
 
 .workspace-title {
@@ -128,54 +134,123 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   min-width: 0;
 }
 
-.workspace-role-label {
-  font-size: var(--rn-text-small);
-  font-weight: 500;
-  color: var(--rn-color-text-secondary);
+/* Feine senkrechte Teilung zwischen Rolle und Darstellung */
+.workspace-actions::before {
+  content: "";
+  flex: none;
+  width: 1px;
+  height: 24px;
+  margin: 0 var(--rn-space-2);
+  background: var(--rn-color-panel-border);
 }
 
-/* Auswahlfelder ohne Browser-Optik: eigener Pfeil aus der Symbolfamilie */
-.rn-select {
+.rn-control {
   position: relative;
   display: inline-flex;
+  align-items: center;
+  gap: var(--rn-space-2);
+  height: var(--rn-control-h);
   min-width: 0;
+  box-sizing: border-box;
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-panel);
+  box-shadow: inset 0 0 0 1px var(--rn-color-border);
+  color: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 500;
+  line-height: 20px;
+  transition: background-color var(--rn-transition-base), box-shadow var(--rn-transition-base);
 }
 
-.rn-select > select {
+.rn-control:hover {
+  background: var(--rn-color-surface-variant);
+}
+
+/* Fokusring am ganzen Feld, nur bei Tastaturfokus (wie :focus-visible) */
+.rn-control:has(.rn-control-input:focus-visible) {
+  outline: var(--rn-focus-outline-width) solid var(--rn-color-focus-ring);
+  outline-offset: var(--rn-focus-outline-offset);
+}
+
+.rn-control-lead {
+  flex: none;
+  margin-left: 12px;
+  color: var(--rn-color-text-secondary);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 500;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.rn-control-input {
   appearance: none;
   -webkit-appearance: none;
+  height: var(--rn-control-h);
+  min-width: 0;
   width: 100%;
-  padding: 0 32px 0 12px;
+  margin: 0;
+  padding: 0 36px 0 12px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 20px;
+  cursor: pointer;
 }
 
-.rn-select-chevron {
+.rn-control-lead + .rn-control-input {
+  margin-left: calc(var(--rn-space-2) * -1);
+  padding-left: var(--rn-space-2);
+}
+
+/* Der Fokusring sitzt am ganzen Feld (focus-within), nicht doppelt an der Auswahl */
+.rn-control .rn-control-input:focus-visible {
+  outline: none !important;
+}
+
+.rn-control-input option {
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-primary);
+}
+
+.rn-control-chevron {
   position: absolute;
-  right: 10px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
   color: var(--rn-color-text-secondary);
 }
 
-.rn-header-control {
-  display: inline-flex;
-  align-items: center;
+.rn-control--button {
   justify-content: center;
-  gap: var(--rn-space-2);
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: var(--rn-radius-md);
-  border: 1px solid var(--rn-color-border);
-  background-color: var(--rn-color-panel);
-  color: var(--rn-color-text-primary);
-  font-family: var(--rn-font-family-ui);
-  font-size: var(--rn-text-small);
-  font-weight: 500;
+  padding: 0 var(--rn-space-4) 0 14px;
+  border: 0;
   cursor: pointer;
 }
 
-.rn-header-control:hover {
-  background-color: var(--rn-color-surface-variant);
+.rn-control--button .rn-icon {
+  color: var(--rn-color-text-secondary);
+}
+
+/* Hochkontrast: kräftigerer Rand an allen Feldern */
+html[data-color-mode="aaa-contrast"] .rn-control {
+  box-shadow: inset 0 0 0 2px var(--rn-color-border);
+}
+
+/* Bewegung im Kopf bleibt aus: kein Anheben beim Überfahren */
+html[data-design] .workspace-header :where(button, .rn-control):hover {
+  transform: none;
+  box-shadow: inset 0 0 0 1px var(--rn-color-border);
+}
+
+html[data-color-mode="aaa-contrast"] .workspace-header :where(button, .rn-control):hover {
+  box-shadow: inset 0 0 0 2px var(--rn-color-border);
 }
 
 /* ==========================================================================
@@ -358,7 +433,7 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="page"] .rn-tab-indica
   }
 }
 
-/* Schmale Bildschirme: Kopfzeile in genau zwei Zeilen.
+/* Schmale Bildschirme: Kopfzeile in genau zwei Zeilen, gleiche Feldhöhe.
    Zeile 1: Logo, Version, Rolle. Zeile 2: Design, Farbschema, Einstellungen. */
 @media (max-width: 599.98px) {
   .workspace-header {
@@ -373,16 +448,18 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="page"] .rn-tab-indica
   }
   .workspace-brand {
     grid-area: brand;
+    margin-right: 0;
   }
   .workspace-role {
     grid-area: role;
     justify-content: flex-end;
   }
-  .workspace-role .rn-select {
+  .workspace-role .rn-control {
     flex: 1 1 auto;
     max-width: 220px;
   }
-  .workspace-role-label {
+  /* Beschriftung und Symbole bleiben für Screenreader, sichtbar zählt der Platz */
+  .rn-control-lead {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -391,21 +468,28 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="page"] .rn-tab-indica
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
+  .rn-control-lead + .rn-control-input {
+    margin-left: 0;
+  }
+  .rn-control-input,
+  .rn-control-lead + .rn-control-input {
+    padding: 0 30px 0 12px;
+  }
+  .rn-control-chevron {
+    right: 10px;
+  }
   .workspace-actions {
     grid-area: actions;
     width: 100%;
   }
-  .workspace-actions .rn-select {
+  .workspace-actions::before {
+    display: none;
+  }
+  .workspace-actions .rn-control {
     flex: 1 1 0;
   }
-  .rn-select > select {
-    padding: 0 28px 0 10px;
-  }
-  .rn-select-chevron {
-    right: 8px;
-  }
   .workspace-actions .workspace-settings-button {
-    flex: 0 0 44px;
+    flex: 0 0 var(--rn-control-h);
     padding: 0;
   }
 }
@@ -413,6 +497,16 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="page"] .rn-tab-indica
 @media (max-width: 399.98px) {
   .workspace-version {
     display: none;
+  }
+  .workspace-actions {
+    gap: 6px;
+  }
+  .rn-control-input,
+  .rn-control-lead + .rn-control-input {
+    padding: 0 26px 0 10px;
+  }
+  .rn-control-chevron {
+    right: 8px;
   }
 }
 
@@ -1259,11 +1353,6 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
    ========================================================================== */
 
 /* --- Pure: ruhige Klarheit. Schwebende Flächen, weiche Tiefe, keine Linien --- */
-html[data-design="pure"] .workspace-header {
-  border-bottom-color: transparent;
-  box-shadow: 0 1px 0 var(--rn-color-panel-border);
-}
-
 html[data-design="pure"] .rn-tool {
   border-color: transparent;
   background: var(--rn-color-canvas);

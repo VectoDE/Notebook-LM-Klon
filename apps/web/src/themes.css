@@ -916,7 +916,7 @@ summary:focus-visible,
   animation: rn-enter var(--rn-enter-duration) var(--rn-transition-ease) both;
 }
 
-:where(button, .rn-header-control) {
+:where(button, .rn-control) {
   transition: transform var(--rn-transition-base), box-shadow var(--rn-transition-base),
     background-color var(--rn-transition-base), border-color var(--rn-transition-base);
 }
@@ -971,7 +971,7 @@ html[data-design="editorial-calm"] .workspace-header::after {
   left: var(--rn-space-6);
   bottom: -1px;
   width: 64px;
-  height: 3px;
+  height: 2px;
   background: var(--rn-color-brand);
 }
 
@@ -1012,7 +1012,7 @@ html[data-design="immersive-cinema"] .workspace-header::after {
   left: 0;
   right: 0;
   bottom: -1px;
-  height: 2px;
+  height: 1px;
   pointer-events: none;
   background: linear-gradient(
       90deg,
@@ -1022,7 +1022,7 @@ html[data-design="immersive-cinema"] .workspace-header::after {
       transparent 100%
     )
     0 0 / 50% 100% no-repeat;
-  animation: rn-cinema-sweep 9s linear infinite;
+  animation: rn-cinema-sweep 16s linear infinite;
 }
 
 html[data-design="immersive-cinema"] .workspace-panel {
@@ -1042,7 +1042,7 @@ html[data-design="immersive-cinema"] .rn-cinema-enter {
   animation-name: rn-cinema-focus-in;
 }
 
-html[data-design="immersive-cinema"] :where(button, .rn-header-control):hover {
+html[data-design="immersive-cinema"] :where(button, .rn-control):hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 20px -6px color-mix(in srgb, var(--rn-color-brand) 70%, transparent);
 }
@@ -1074,7 +1074,7 @@ html[data-design="fusion"] .workspace-header::after {
   left: 0;
   right: 0;
   bottom: -1px;
-  height: 2px;
+  height: 1px;
   pointer-events: none;
   background: linear-gradient(
       90deg,
@@ -1084,14 +1084,14 @@ html[data-design="fusion"] .workspace-header::after {
       var(--rn-color-brand)
     )
     0 0 / 200% 100%;
-  animation: rn-fusion-line 6s linear infinite;
+  animation: rn-fusion-line 14s linear infinite;
 }
 
 html[data-design="fusion"] .workspace-panel {
   border: 1px solid var(--rn-color-panel-border);
 }
 
-html[data-design="fusion"] :where(button, .rn-header-control):hover {
+html[data-design="fusion"] :where(button, .rn-control):hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--rn-color-brand) 80%, transparent);
 }
@@ -1119,7 +1119,7 @@ html[data-color-mode="aaa-contrast"] .workspace-panel {
   .rn-cinema-enter {
     animation: none !important;
   }
-  :where(button, .rn-header-control):hover {
+  :where(button, .rn-control):hover {
     transform: none !important;
   }
 }

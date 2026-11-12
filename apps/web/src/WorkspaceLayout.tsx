@@ -381,7 +381,7 @@ export function WorkspaceLayout({
 
   return (
     <div className="workspace-shell" data-testid="workspace-shell">
-      {/* Workspace Header */}
+      {/* Workspace Header: ein Bedienelement-System (gleiche Höhe, Schrift, Radius, Rand) */}
       <header data-testid="workspace-header" className="workspace-header">
         <div className="workspace-brand">
           <h1 id="app-title" className="workspace-title">
@@ -390,18 +390,18 @@ export function WorkspaceLayout({
           <span className="workspace-version">v{WORKSPACE_VERSION}</span>
         </div>
 
-        {/* Mitte: Rolle */}
+        {/* Rolle: sichtbare Beschriftung im Feld, gemeinsame Grundlinie mit dem Wert */}
         <div className="workspace-role">
-          <label htmlFor="role-select" className="workspace-role-label">
-            Rolle
-          </label>
-          <span className="rn-select">
+          <div className="rn-control">
+            <label htmlFor="role-select" className="rn-control-lead workspace-role-label">
+              Rolle
+            </label>
             <select
               id="role-select"
               value={userRole}
               onChange={(e) => setUserRole(e.target.value as "owner" | "editor" | "viewer")}
               data-testid="role-switcher-select"
-              className="rn-header-control"
+              className="rn-control-input"
             >
               <option value="owner">{isNarrowHeader ? "Inhaber" : "Inhaber (Owner)"}</option>
               <option value="editor">
@@ -411,19 +411,20 @@ export function WorkspaceLayout({
                 {isNarrowHeader ? "Betrachter" : "Betrachter (Viewer)"}
               </option>
             </select>
-            <Icon name="chevron" size={16} className="rn-select-chevron" />
-          </span>
+            <Icon name="chevron" size={16} className="rn-control-chevron" />
+          </div>
         </div>
 
-        {/* Rechts: Design, Farbschema, Einstellungen */}
+        {/* Design, Farbschema, Einstellungen */}
         <div className="workspace-actions">
-          <span className="rn-select">
+          <div className="rn-control">
+            <Icon name="palette" size={18} className="rn-control-lead rn-control-icon" />
             <select
               value={theme}
               onChange={(e) => setTheme(e.target.value as DesignTheme)}
               data-testid="theme-selector-header"
               aria-label={t("themeLabel")}
-              className="rn-header-control"
+              className="rn-control-input"
             >
               <option value="pure">
                 {isNarrowHeader ? SHORT_THEME_LABELS.pure : t("themePure")}
@@ -438,33 +439,34 @@ export function WorkspaceLayout({
                 {isNarrowHeader ? SHORT_THEME_LABELS.fusion : t("themeFusion")}
               </option>
             </select>
-            <Icon name="chevron" size={16} className="rn-select-chevron" />
-          </span>
+            <Icon name="chevron" size={16} className="rn-control-chevron" />
+          </div>
 
           {/* Farbschema: Hell, Dunkel, AAA-Hochkontrast */}
-          <span className="rn-select">
+          <div className="rn-control">
+            <Icon name="contrast" size={18} className="rn-control-lead rn-control-icon" />
             <select
               value={colorMode}
               onChange={(e) => setColorMode(e.target.value as ColorMode)}
               data-testid="color-mode-selector-header"
               aria-label={t("colorModeLabel")}
-              className="rn-header-control"
+              className="rn-control-input"
             >
               <option value="light">{t("modeLight")}</option>
               <option value="dark">{t("modeDark")}</option>
               <option value="aaa-contrast">{isNarrowHeader ? "AAA" : t("modeAAA")}</option>
             </select>
-            <Icon name="chevron" size={16} className="rn-select-chevron" />
-          </span>
+            <Icon name="chevron" size={16} className="rn-control-chevron" />
+          </div>
 
           <button
             type="button"
             onClick={() => setIsSettingsOpen(true)}
             data-testid="btn-open-settings"
             aria-label="Einstellungen & Compliance öffnen"
-            className="rn-header-control workspace-settings-button"
+            className="rn-control rn-control--button workspace-settings-button"
           >
-            <Icon name="settings" />
+            <Icon name="settings" size={18} />
             {!isNarrowHeader && <span>Einstellungen</span>}
           </button>
         </div>

@@ -37,8 +37,13 @@ describe("WorkspaceLayout Component (Issue #31)", () => {
     expect(html).toContain('aria-label="Studio (6 Werkzeuge)"');
     expect(html).toContain('<span class="rn-tab-count">2</span>');
     expect(html).toContain('<span class="rn-tab-label">Studio</span>');
-    // Eigene Auswahlfelder mit Pfeil aus der Symbolfamilie
-    expect(html.match(/class="rn-select-chevron"/g)?.length).toBe(3);
+    // Kopf: ein Bedienelement-System, Rolle mit sichtbarer Beschriftung im Feld
+    expect(html.match(/class="rn-control-chevron"/g)?.length).toBe(3);
+    expect(html.match(/class="rn-control-input"/g)?.length).toBe(3);
+    expect(html).toContain(
+      '<label for="role-select" class="rn-control-lead workspace-role-label">Rolle</label>'
+    );
+    expect(html).toContain('class="rn-control rn-control--button workspace-settings-button"');
   });
 
   it("renders Studio Mindmap view when activeTool is mindmap", () => {

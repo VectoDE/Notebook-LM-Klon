@@ -30,7 +30,10 @@ const PATHS = {
   chevron: "m6 9 6 6 6-6",
   speaker: "M4 9v6h4l5 4V5L8 9H4Zm12.5-.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12",
   stage: "M3 5h18v11H3V5Zm5 15h8M12 16v4",
-  file: "M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm7 0v5h5"
+  file: "M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm7 0v5h5",
+  palette:
+    "M12 21a9 9 0 1 1 9-9c0 2.2-1.8 3.5-3.6 3.5H15a2 2 0 0 0-1.4 3.4A1.3 1.3 0 0 1 12 21ZM7.5 11.5h.01M10 7.5h.01M14.5 7.5h.01",
+  contrast: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-18v18"
 } as const;
 
 export type IconName = keyof typeof PATHS;
