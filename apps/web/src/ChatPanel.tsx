@@ -52,10 +52,16 @@ export function ChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll on mount and updates
+  // Mitscrollen erst bei neuen Inhalten, nicht beim Öffnen: so bleibt die Zusammenfassung
+  // oben sichtbar (vor allem auf dem Telefon)
+  // (Vergleich mit dem zuletzt gesehenen Stand, robust gegen doppelte Effekte im StrictMode)
+  const contentKey = `${messages.length}:${messages[messages.length - 1]?.content ?? ""}`;
+  const seenKey = useRef(contentKey);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth" });
-  });
+    if (seenKey.current === contentKey) return;
+    seenKey.current = contentKey;
+    messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+  }, [contentKey]);
 
   // Fokus zurueck ins Eingabefeld, sobald die Generierung endet (Tastaturbedienung)
   const wasGenerating = useRef(false);
