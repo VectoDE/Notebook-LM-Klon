@@ -8,6 +8,7 @@ import type {
 import { useState } from "react";
 import { DeepDiveStage } from "./DeepDiveStage.js";
 import { FlashcardsViewer } from "./FlashcardsViewer.js";
+import { Icon, type IconName } from "./Icon.js";
 import { InteractiveAudioHostPlayer } from "./InteractiveAudioHostPlayer.js";
 import { MindmapViewer } from "./MindmapViewer.js";
 import { QuizViewer } from "./QuizViewer.js";
@@ -29,6 +30,23 @@ export type StudioTool =
   | "flashcards"
   | "quiz"
   | "briefing";
+
+interface StudioAction {
+  readonly label: string;
+  readonly testId: string;
+  readonly run: () => void;
+}
+
+interface StudioToolEntry {
+  readonly id: Exclude<StudioTool, "overview">;
+  readonly icon: IconName;
+  readonly title: string;
+  readonly description: string;
+  readonly primary: StudioAction;
+  readonly secondary?:
+    | (StudioAction & { readonly ariaLabel: string; readonly icon: IconName })
+    | undefined;
+}
 
 export interface StudioPanelProps {
   readonly notebookTitle?: string | undefined;
@@ -84,406 +102,172 @@ export function StudioPanel({
     }
   };
 
+  // Werkzeugliste: eine Quelle für Symbol, Titel, Beschreibung und Aktionen
+  const tools: readonly StudioToolEntry[] = [
+    {
+      id: "audio",
+      icon: "audio",
+      title: "Audio-Overview",
+      description: "Zwei-Sprecher-Podcast mit interaktiver Host-Zwischenfrage.",
+      primary: {
+        label: "Player öffnen",
+        testId: "btn-open-audio-tool",
+        run: () => selectTool("audio")
+      },
+      secondary: {
+        label: "Bühne",
+        ariaLabel: "Bühne im Vollbild öffnen (Deep Dive)",
+        icon: "stage",
+        testId: "btn-open-deep-dive-stage",
+        run: () => setIsDeepDiveOpen(true)
+      }
+    },
+    {
+      id: "video",
+      icon: "video",
+      title: "Video-Overview",
+      description: "Animierte Folien, Diagramme und WebM-Videoexport.",
+      primary: {
+        label: "Video ansehen",
+        testId: "btn-open-video-tool",
+        run: () => selectTool("video")
+      }
+    },
+    {
+      id: "mindmap",
+      icon: "mindmap",
+      title: "Wissens-Mindmap",
+      description: "Interaktiver hierarchischer Wissensbaum mit SVG-Export.",
+      primary: {
+        label: "Erkunden",
+        testId: "btn-open-mindmap-tool",
+        run: () => selectTool("mindmap")
+      },
+      secondary: {
+        label: "SVG",
+        ariaLabel: "SVG exportieren (Mindmap)",
+        icon: "download",
+        testId: "btn-export-mindmap-svg",
+        run: () => handleExport("mindmap")
+      }
+    },
+    {
+      id: "flashcards",
+      icon: "cards",
+      title: "Lernkarten",
+      description: "Spaced-Repetition-Karten (SM-2) mit Anki-CSV-Export.",
+      primary: {
+        label: "Lernen",
+        testId: "btn-open-flashcards-tool",
+        run: () => selectTool("flashcards")
+      },
+      secondary: {
+        label: "Anki",
+        ariaLabel: "Anki-CSV exportieren (Lernkarten)",
+        icon: "download",
+        testId: "btn-export-anki-csv",
+        run: () => handleExport("anki")
+      }
+    },
+    {
+      id: "quiz",
+      icon: "quiz",
+      title: "Interaktives Quiz",
+      description: "Multiple-Choice-Test mit quellenbelegten Erklärungen.",
+      primary: { label: "Starten", testId: "btn-open-quiz-tool", run: () => selectTool("quiz") },
+      secondary: {
+        label: "JSON",
+        ariaLabel: "JSON exportieren (Quiz)",
+        icon: "download",
+        testId: "btn-export-quiz-md",
+        run: () => handleExport("quiz")
+      }
+    },
+    {
+      id: "briefing",
+      icon: "briefing",
+      title: "Briefing & Timeline",
+      description: "Management-Zusammenfassung, FAQ und Meilensteine.",
+      primary: {
+        label: "Als Markdown exportieren",
+        testId: "btn-export-briefing-md",
+        run: () => handleExport("briefing")
+      }
+    }
+  ];
+
   return (
     <section
       aria-label="Studio-Panel"
-      className="studio-panel"
+      className="studio-panel rn-panel-body"
       data-testid="studio-panel"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        padding: "var(--rn-pad-panel)",
-        background: "var(--rn-color-panel)",
-        color: "var(--rn-color-text-primary)",
-        overflowY: "auto"
-      }}
     >
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "16px"
-        }}
-      >
-        <h2 style={{ fontSize: "1.25rem", margin: 0, fontWeight: 700 }}>Studio</h2>
+      <header className="rn-panel-head">
+        <div className="rn-panel-heading">
+          <h2>Studio</h2>
+          <p className="rn-panel-sub">
+            {currentTool === "overview"
+              ? `${tools.length} Werkzeuge aus Ihren Quellen`
+              : notebookTitle}
+          </p>
+        </div>
         {currentTool !== "overview" && (
           <button
             type="button"
             onClick={() => selectTool("overview")}
             data-testid="btn-back-to-studio-overview"
-            style={{
-              padding: "4px 10px",
-              borderRadius: "var(--rn-radius-sm)",
-              border: "1px solid var(--rn-color-border)",
-              background: "transparent",
-              cursor: "pointer",
-              fontSize: "0.875rem"
-            }}
+            className="rn-btn rn-btn--ghost rn-btn--compact"
           >
-            ← Alle Werkzeuge
+            <Icon name="back" size={18} />
+            Alle Werkzeuge
           </button>
         )}
       </header>
 
-      {/* Werkzeugansicht: Schlüssel je Werkzeug, damit die Einblendung (Cinema) bei jedem Wechsel läuft */}
+      {/* Werkzeugansicht: Schlüssel je Werkzeug, damit die Einblendung bei jedem Wechsel läuft */}
       <div
         key={currentTool}
         data-testid="studio-tool-view"
-        className="rn-cinema-enter"
-        style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
+        className="rn-cinema-enter rn-tool-view"
       >
-        {/* 6 Studio Cards Overview */}
         {currentTool === "overview" && (
-          <div
-            data-testid="studio-tools-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-              gap: "12px",
-              marginBottom: "20px"
-            }}
-          >
-            {/* Card 1: Audio Overview */}
-            <article
-              data-testid="tool-card-audio"
-              style={{
-                padding: "14px",
-                borderRadius: "var(--rn-radius-md)",
-                background: "var(--rn-color-surface-variant)",
-                border: "1px solid var(--rn-color-border)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between"
-              }}
-            >
-              <div>
-                <h3 style={{ fontSize: "1rem", margin: "0 0 6px 0" }}>Audio-Overview</h3>
-                <p
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "var(--rn-color-text-secondary)",
-                    margin: 0
-                  }}
-                >
-                  Zwei-Sprecher-Podcast mit interaktiver Host-Zwischenfrage.
-                </p>
-              </div>
-              <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
-                <button
-                  type="button"
-                  onClick={() => selectTool("audio")}
-                  data-testid="btn-open-audio-tool"
-                  style={{
-                    flex: 1,
-                    minHeight: "36px",
-                    borderRadius: "var(--rn-radius-sm)",
-                    border: "none",
-                    background: "var(--rn-color-accent)",
-                    color: "var(--rn-color-accent-text)",
-                    fontSize: "0.875rem",
-                    fontWeight: 600,
-                    cursor: "pointer"
-                  }}
-                >
-                  Player öffnen
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsDeepDiveOpen(true)}
-                  data-testid="btn-open-deep-dive-stage"
-                  aria-label="Deep-Dive-Bühne im Vollbild öffnen"
-                  style={{
-                    padding: "0 8px",
-                    borderRadius: "var(--rn-radius-sm)",
-                    border: "1px solid var(--rn-color-border)",
-                    background: "var(--rn-color-panel)",
-                    fontSize: "0.875rem",
-                    cursor: "pointer"
-                  }}
-                >
-                  Cinema
-                </button>
-              </div>
-            </article>
-
-            {/* Card 2: Video Overview */}
-            <article
-              data-testid="tool-card-video"
-              style={{
-                padding: "14px",
-                borderRadius: "var(--rn-radius-md)",
-                background: "var(--rn-color-surface-variant)",
-                border: "1px solid var(--rn-color-border)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between"
-              }}
-            >
-              <div>
-                <h3 style={{ fontSize: "1rem", margin: "0 0 6px 0" }}>Video-Overview</h3>
-                <p
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "var(--rn-color-text-secondary)",
-                    margin: 0
-                  }}
-                >
-                  Animierte Folien, Diagramme und WebM-Videoexport.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => selectTool("video")}
-                data-testid="btn-open-video-tool"
-                style={{
-                  marginTop: "12px",
-                  minHeight: "36px",
-                  borderRadius: "var(--rn-radius-sm)",
-                  border: "none",
-                  background: "var(--rn-color-accent)",
-                  color: "var(--rn-color-accent-text)",
-                  fontSize: "0.875rem",
-                  fontWeight: 600,
-                  cursor: "pointer"
-                }}
-              >
-                Video ansehen
-              </button>
-            </article>
-
-            {/* Card 3: Mindmap */}
-            <article
-              data-testid="tool-card-mindmap"
-              style={{
-                padding: "14px",
-                borderRadius: "var(--rn-radius-md)",
-                background: "var(--rn-color-surface-variant)",
-                border: "1px solid var(--rn-color-border)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between"
-              }}
-            >
-              <div>
-                <h3 style={{ fontSize: "1rem", margin: "0 0 6px 0" }}>Wissens-Mindmap</h3>
-                <p
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "var(--rn-color-text-secondary)",
-                    margin: 0
-                  }}
-                >
-                  Interaktiver hierarchischer Wissensbaum mit SVG-Export.
-                </p>
-              </div>
-              <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
-                <button
-                  type="button"
-                  onClick={() => selectTool("mindmap")}
-                  data-testid="btn-open-mindmap-tool"
-                  style={{
-                    flex: 1,
-                    minHeight: "36px",
-                    borderRadius: "var(--rn-radius-sm)",
-                    border: "none",
-                    background: "var(--rn-color-accent)",
-                    color: "var(--rn-color-accent-text)",
-                    fontSize: "0.875rem",
-                    fontWeight: 600,
-                    cursor: "pointer"
-                  }}
-                >
-                  Erkunden
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleExport("mindmap")}
-                  data-testid="btn-export-mindmap-svg"
-                  style={{
-                    padding: "0 8px",
-                    borderRadius: "var(--rn-radius-sm)",
-                    border: "1px solid var(--rn-color-border)",
-                    background: "var(--rn-color-panel)",
-                    fontSize: "0.875rem",
-                    cursor: "pointer"
-                  }}
-                >
-                  SVG
-                </button>
-              </div>
-            </article>
-
-            {/* Card 4: Flashcards */}
-            <article
-              data-testid="tool-card-flashcards"
-              style={{
-                padding: "14px",
-                borderRadius: "var(--rn-radius-md)",
-                background: "var(--rn-color-surface-variant)",
-                border: "1px solid var(--rn-color-border)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between"
-              }}
-            >
-              <div>
-                <h3 style={{ fontSize: "1rem", margin: "0 0 6px 0" }}>Lernkarten</h3>
-                <p
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "var(--rn-color-text-secondary)",
-                    margin: 0
-                  }}
-                >
-                  Spaced-Repetition-Karten (SM-2) mit Anki-CSV-Export.
-                </p>
-              </div>
-              <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
-                <button
-                  type="button"
-                  onClick={() => selectTool("flashcards")}
-                  data-testid="btn-open-flashcards-tool"
-                  style={{
-                    flex: 1,
-                    minHeight: "36px",
-                    borderRadius: "var(--rn-radius-sm)",
-                    border: "none",
-                    background: "var(--rn-color-accent)",
-                    color: "var(--rn-color-accent-text)",
-                    fontSize: "0.875rem",
-                    fontWeight: 600,
-                    cursor: "pointer"
-                  }}
-                >
-                  Lernen
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleExport("anki")}
-                  data-testid="btn-export-anki-csv"
-                  style={{
-                    padding: "0 8px",
-                    borderRadius: "var(--rn-radius-sm)",
-                    border: "1px solid var(--rn-color-border)",
-                    background: "var(--rn-color-panel)",
-                    fontSize: "0.875rem",
-                    cursor: "pointer"
-                  }}
-                >
-                  Anki
-                </button>
-              </div>
-            </article>
-
-            {/* Card 5: Quiz */}
-            <article
-              data-testid="tool-card-quiz"
-              style={{
-                padding: "14px",
-                borderRadius: "var(--rn-radius-md)",
-                background: "var(--rn-color-surface-variant)",
-                border: "1px solid var(--rn-color-border)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between"
-              }}
-            >
-              <div>
-                <h3 style={{ fontSize: "1rem", margin: "0 0 6px 0" }}>Interaktives Quiz</h3>
-                <p
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "var(--rn-color-text-secondary)",
-                    margin: 0
-                  }}
-                >
-                  Multiple-Choice-Test mit quellenbelegten Erklärungen.
-                </p>
-              </div>
-              <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
-                <button
-                  type="button"
-                  onClick={() => selectTool("quiz")}
-                  data-testid="btn-open-quiz-tool"
-                  style={{
-                    flex: 1,
-                    minHeight: "36px",
-                    borderRadius: "var(--rn-radius-sm)",
-                    border: "none",
-                    background: "var(--rn-color-accent)",
-                    color: "var(--rn-color-accent-text)",
-                    fontSize: "0.875rem",
-                    fontWeight: 600,
-                    cursor: "pointer"
-                  }}
-                >
-                  Starten
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleExport("quiz")}
-                  data-testid="btn-export-quiz-md"
-                  style={{
-                    padding: "0 8px",
-                    borderRadius: "var(--rn-radius-sm)",
-                    border: "1px solid var(--rn-color-border)",
-                    background: "var(--rn-color-panel)",
-                    fontSize: "0.875rem",
-                    cursor: "pointer"
-                  }}
-                >
-                  MD
-                </button>
-              </div>
-            </article>
-
-            {/* Card 6: Executive Briefing */}
-            <article
-              data-testid="tool-card-briefing"
-              style={{
-                padding: "14px",
-                borderRadius: "var(--rn-radius-md)",
-                background: "var(--rn-color-surface-variant)",
-                border: "1px solid var(--rn-color-border)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between"
-              }}
-            >
-              <div>
-                <h3 style={{ fontSize: "1rem", margin: "0 0 6px 0" }}>Briefing & Timeline</h3>
-                <p
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "var(--rn-color-text-secondary)",
-                    margin: 0
-                  }}
-                >
-                  Management-Zusammenfassung, FAQ und Meilensteine.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleExport("briefing")}
-                data-testid="btn-export-briefing-md"
-                style={{
-                  marginTop: "12px",
-                  minHeight: "36px",
-                  borderRadius: "var(--rn-radius-sm)",
-                  border: "none",
-                  background: "var(--rn-color-accent)",
-                  color: "var(--rn-color-accent-text)",
-                  fontSize: "0.875rem",
-                  fontWeight: 600,
-                  cursor: "pointer"
-                }}
-              >
-                Exportieren (MD)
-              </button>
-            </article>
-          </div>
+          <ul data-testid="studio-tools-grid" className="rn-tools" aria-label="Studio-Werkzeuge">
+            {tools.map((tool) => (
+              <li key={tool.id}>
+                <article data-testid={`tool-card-${tool.id}`} className="rn-tool">
+                  <span className="rn-tool-tile">
+                    <Icon name={tool.icon} size={22} />
+                  </span>
+                  <div className="rn-tool-text">
+                    <h3 className="rn-tool-title">{tool.title}</h3>
+                    <p className="rn-tool-desc">{tool.description}</p>
+                  </div>
+                  <div className="rn-tool-actions">
+                    <button
+                      type="button"
+                      onClick={tool.primary.run}
+                      data-testid={tool.primary.testId}
+                      className="rn-btn rn-btn--primary rn-tool-primary"
+                    >
+                      {tool.primary.label}
+                    </button>
+                    {tool.secondary && (
+                      <button
+                        type="button"
+                        onClick={tool.secondary.run}
+                        data-testid={tool.secondary.testId}
+                        aria-label={tool.secondary.ariaLabel}
+                        className="rn-btn rn-btn--secondary"
+                      >
+                        <Icon name={tool.secondary.icon} size={18} />
+                        {tool.secondary.label}
+                      </button>
+                    )}
+                  </div>
+                </article>
+              </li>
+            ))}
+          </ul>
         )}
 
         {/* Tool Viewer: Audio */}

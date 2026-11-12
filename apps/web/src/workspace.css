@@ -784,3 +784,139 @@ html[data-color-mode="aaa-contrast"] .rn-chip {
     animation: none !important;
   }
 }
+
+/* ==========================================================================
+   Panel-Kopf und Panel-Körper (Quellen, Studio)
+   ========================================================================== */
+.rn-panel-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: var(--rn-pad-panel);
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-primary);
+  overflow-y: auto;
+}
+
+.rn-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--rn-space-3);
+  margin-bottom: var(--rn-space-5);
+}
+
+.rn-panel-heading {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rn-panel-heading h2 {
+  margin: 0;
+}
+
+.rn-panel-sub {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  color: var(--rn-color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.rn-count {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 var(--rn-space-3);
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Studio: Werkzeugliste
+   ========================================================================== */
+.rn-tool-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.rn-tools {
+  display: grid;
+  gap: var(--rn-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-tool {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "tile text"
+    "actions actions";
+  column-gap: var(--rn-space-4);
+  row-gap: var(--rn-space-4);
+  padding: var(--rn-space-4);
+  border-radius: var(--rn-radius-lg);
+  border: 1px solid var(--rn-color-panel-border);
+  background: var(--rn-color-panel);
+}
+
+.rn-tool:hover,
+.rn-tool:focus-within {
+  border-color: var(--rn-color-border);
+}
+
+html[data-color-mode="aaa-contrast"] .rn-tool {
+  border-color: var(--rn-color-border);
+}
+
+/* Symbolkachel: getönte Fläche, Symbol in Primärfarbe (Grafik, mindestens 3:1) */
+.rn-tool-tile {
+  grid-area: tile;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-primary);
+}
+
+.rn-tool-text {
+  grid-area: text;
+  display: grid;
+  gap: var(--rn-space-1);
+  align-content: center;
+  min-width: 0;
+}
+
+.rn-tool-title {
+  margin: 0;
+}
+
+.rn-tool-desc {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-tool-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rn-space-2);
+}
+
+.rn-tool-primary {
+  flex: 1 1 auto;
+}
