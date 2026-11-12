@@ -47,7 +47,7 @@ Notebook-LM-Klon mit Frontend, Backend und Datenbank. Alle Richtlinien und Geset
 | 23 | Upload | Direkt nach R2 per presigned Multipart-URL bzw. Streaming-Fallback |
 | 24 | D1-Limit | Demo-Kontingente (z. B. 3 Notebooks/Nutzer, Löschung nach 30 Tagen), Vollausbau per Konfiguration |
 | 25 | Google Docs | Google Picker + OAuth, Scope `drive.file` |
-| 26 | Lizenz | Apache-2.0 |
+| 26 | Lizenz | MIT |
 | 27 | Rechtstexte | Impressum und Datenschutz als Entwurf, Hinweis auf anwaltliche Prüfung |
 
 ## Entscheidungen (Runde 5)
