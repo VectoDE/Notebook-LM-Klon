@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" width="1200" height="680" role="img" aria-labelledby="arch-title arch-desc">
+  <title id="arch-title">NotebookLM Klon – Single-Worker Edge-Architektur</title>
+  <desc id="arch-desc">Architekturübersicht: Browser PWA mit Web Worker für Parsing/OCR, Cloudflare Single-Worker mit Hono API, D1 SQLite Datenbank, R2 Medienspeicher, NotebookDO und JobDO sowie Multi-LLM-Provider.</desc>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg-primary: #FAF8F5;
+      --bg-card: #FFFFFF;
+      --text-primary: #141413;
+      --text-secondary: #3D3935;
+      --border-subtle: #334155;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #FAF8F5;
+        --bg-card: #F8FAFC;
+        --text-primary: #141413;
+        --text-secondary: #475569;
+        --border-subtle: #CBD5E1;
+      }
+    }
+  </style>
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FAF8F5" />
+      <stop offset="50%" stop-color="#F3EFEA" />
+      <stop offset="100%" stop-color="#FFFFFF" />
+    </linearGradient>
+    <linearGradient id="cardBrowser" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F8FAFC" />
+      <stop offset="100%" stop-color="#FFFFFF" />
+    </linearGradient>
+    <linearGradient id="cardWorker" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#DBEAFE" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#FFFFFF" />
+    </linearGradient>
+    <linearGradient id="cardProvider" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#D1FAE5" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#FFFFFF" />
+    </linearGradient>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284C7" />
+    </marker>
+    <marker id="arrowEmerald" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#047857" />
+    </marker>
+    <marker id="arrowAmber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#B45309" />
+    </marker>
+  </defs>
+
+  <rect width="1200" height="680" rx="20" fill="url(#bgGrad)" />
+
+  <!-- Header -->
+  <text x="48" y="54" fill="#141413" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="24" font-weight="700">NotebookLM Klon · Single-Worker Edge-Architektur (Cloudflare Free &amp; Paid)</text>
+  <text x="48" y="82" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14">Ein einziger Cloudflare Worker · Eine D1-Datenbank · Ein R2-Medienspeicher · Zwei SQLite Durable Objects · Null CPU-Limit-Engpässe</text>
+
+  <!-- Column 1: Browser Client -->
+  <rect x="40" y="110" width="330" height="520" rx="16" fill="url(#cardBrowser)" stroke="#CBD5E1" stroke-width="1.5" />
+  <text x="64" y="146" fill="#075985" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="700">1. Browser Client (React 19 PWA)</text>
+  <text x="64" y="168" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">Entlastet das 10-ms-CPU-Budget des Workers</text>
+
+  <rect x="64" y="190" width="282" height="92" rx="12" fill="#FFFFFF" stroke="#F8FAFC" stroke-width="1.5" />
+  <text x="80" y="216" fill="#141413" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">4 Live-Designs (WCAG 2.2 AAA)</text>
+  <text x="80" y="238" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">Pure NotebookLM · Immersive Cinema</text>
+  <text x="80" y="256" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">Editorial Calm · Fusion (Light/OLED/Contrast)</text>
+
+  <rect x="64" y="300" width="282" height="96" rx="12" fill="#FFFFFF" stroke="#0284C7" stroke-width="1.5" />
+  <text x="80" y="326" fill="#075985" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Ingest Web Worker (Browser-Thread)</text>
+  <text x="80" y="348" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• PDF.js, Mammoth (DOCX), Markdown/TXT</text>
+  <text x="80" y="366" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• Tesseract.js WASM OCR (DE/EN)</text>
+  <text x="80" y="384" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• 800-Token-Chunker + int8-Quantisierung</text>
+
+  <rect x="64" y="414" width="282" height="92" rx="12" fill="#FFFFFF" stroke="#F8FAFC" stroke-width="1.5" />
+  <text x="80" y="440" fill="#141413" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Canvas Video-Renderer &amp; PWA Cache</text>
+  <text x="80" y="462" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• 60-fps Folien + Audio → WebM/MP4 Export</text>
+  <text x="80" y="480" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• Service Worker + IndexedDB Offline-Store</text>
+
+  <rect x="64" y="524" width="282" height="84" rx="12" fill="#FFFFFF" stroke="#10B981" stroke-width="1.5" />
+  <text x="80" y="550" fill="#065F46" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Lokales Ollama (127.0.0.1:11434)</text>
+  <text x="80" y="572" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">100 % Air-Gapped Datenschutz-Modus:</text>
+  <text x="80" y="590" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">Daten verlassen niemals das Endgerät</text>
+
+  <!-- Column 2: Cloudflare Single Worker -->
+  <rect x="425" y="110" width="420" height="520" rx="16" fill="url(#cardWorker)" stroke="#3B82F6" stroke-width="2" />
+  <text x="449" y="146" fill="#1E40AF" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="700">2. Cloudflare Single-Worker (wrangler.jsonc)</text>
+  <text x="449" y="168" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">Static Assets + Hono API (/api/v1/*) · &lt; 2 ms CPU/Request</text>
+
+  <rect x="449" y="190" width="372" height="92" rx="12" fill="#FFFFFF" stroke="#3B82F6" stroke-width="1.5" />
+  <text x="465" y="216" fill="#141413" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Hono Edge Gateway &amp; Security Layer</text>
+  <text x="465" y="238" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• WebAuthn Passkeys, 24h Gast-Login, Turnstile</text>
+  <text x="465" y="256" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• AES-256-GCM BYOK Envelope · Strict CSP · RBAC</text>
+
+  <rect x="449" y="300" width="178" height="145" rx="12" fill="#FFFFFF" stroke="#D97706" stroke-width="1.5" />
+  <text x="465" y="326" fill="#78350F" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">NotebookDO (SQLite)</text>
+  <text x="465" y="348" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">• 30 s CPU-Budget</text>
+  <text x="465" y="368" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">• In-Memory Int8Array</text>
+  <text x="465" y="386" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  Vektor-Dot-Product</text>
+  <text x="465" y="406" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">• Hibernatable WebSockets</text>
+  <text x="465" y="424" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  Live-Präsenz &amp; Sync</text>
+
+  <rect x="643" y="300" width="178" height="145" rx="12" fill="#FFFFFF" stroke="#D97706" stroke-width="1.5" />
+  <text x="659" y="326" fill="#78350F" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">JobDO (SQLite Queue)</text>
+  <text x="659" y="348" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">• Asynchrone Studio-Jobs</text>
+  <text x="659" y="368" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">• alarm() Ausführung mit</text>
+  <text x="659" y="386" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  Exponential Backoff</text>
+  <text x="659" y="406" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">• Audio-TTS, Mindmap,</text>
+  <text x="659" y="424" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  DSGVO-ZIP-Export</text>
+
+  <rect x="449" y="465" width="178" height="143" rx="12" fill="#FFFFFF" stroke="#0284C7" stroke-width="1.5" />
+  <text x="465" y="491" fill="#075985" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Cloudflare D1 (DB)</text>
+  <text x="465" y="513" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">• Einzige SQL-Datenbank</text>
+  <text x="465" y="533" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">• Chunks + int8-Vektoren</text>
+  <text x="465" y="553" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">• FTS5 BM25 Volltextsuche</text>
+  <text x="465" y="573" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">• Users, Workspaces, Audit</text>
+
+  <rect x="643" y="465" width="178" height="143" rx="12" fill="#FFFFFF" stroke="#0284C7" stroke-width="1.5" />
+  <text x="659" y="491" fill="#075985" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Cloudflare R2 (MEDIA)</text>
+  <text x="659" y="513" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">• Einziger Medienspeicher</text>
+  <text x="659" y="533" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">• S3-Presigned PUT oder</text>
+  <text x="659" y="551" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  Streaming-Fallback</text>
+  <text x="659" y="571" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">• Audio-Overviews &amp; PDFs</text>
+
+  <!-- Column 3: Multi-LLM & RelationFlow -->
+  <rect x="900" y="110" width="260" height="520" rx="16" fill="url(#cardProvider)" stroke="#10B981" stroke-width="1.5" />
+  <text x="924" y="146" fill="#064E3B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="700">3. Multi-LLM &amp; Integration</text>
+  <text x="924" y="168" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">BYOK + RelationFlow Auto-Router</text>
+
+  <rect x="920" y="190" width="220" height="95" rx="12" fill="#FFFFFF" stroke="#10B981" stroke-width="1.5" />
+  <text x="936" y="216" fill="#065F46" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Google Gemini API</text>
+  <text x="936" y="238" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• Chat-Streaming &amp; JSON</text>
+  <text x="936" y="256" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• gemini-embedding-001 (768d)</text>
+  <text x="936" y="274" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• Native Multi-Speaker TTS</text>
+
+  <rect x="920" y="303" width="220" height="86" rx="12" fill="#FFFFFF" stroke="#F8FAFC" stroke-width="1.5" />
+  <text x="936" y="329" fill="#141413" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">OpenAI &amp; Anthropic Claude</text>
+  <text x="936" y="351" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• BYOK Streaming-Adapter</text>
+  <text x="936" y="369" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• Fallback-Kette bei 429/5xx</text>
+
+  <rect x="920" y="407" width="220" height="86" rx="12" fill="#FFFFFF" stroke="#F8FAFC" stroke-width="1.5" />
+  <text x="936" y="433" fill="#141413" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">EU Ollama via CF Tunnel</text>
+  <text x="936" y="455" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• Cloudflare Access Token</text>
+  <text x="936" y="473" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• DSGVO-Souveränes Hosting</text>
+
+  <rect x="920" y="511" width="220" height="97" rx="12" fill="#FFFFFF" stroke="#0284C7" stroke-width="1.5" />
+  <text x="936" y="537" fill="#075985" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">RelationFlow RAG-Bridge</text>
+  <text x="936" y="559" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• POST /notebooks/:id/search</text>
+  <text x="936" y="577" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• Team-Spaces &amp; Rollen</text>
+  <text x="936" y="595" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• Verifizierte [n]-Zitate</text>
+
+  <!-- Connectors -->
+  <line x1="346" y1="236" x2="445" y2="236" stroke="#0284C7" stroke-width="2" marker-end="url(#arrowBlue)" />
+  <line x1="346" y1="350" x2="445" y2="350" stroke="#B45309" stroke-width="2" marker-end="url(#arrowAmber)" />
+  <line x1="821" y1="236" x2="916" y2="236" stroke="#047857" stroke-width="2" marker-end="url(#arrowEmerald)" />
+</svg>

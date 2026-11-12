@@ -26,3 +26,10 @@ test-results/
 Thumbs.db
 *.log
 *.tsbuildinfo
+
+# Lokale Entwicklungsdatenbank (nie committen)
+.data/
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm

@@ -5,6 +5,7 @@
   <source media="(prefers-color-scheme: light)" srcset="./assets/hero-banner-light.svg">
   <img alt="RelationNotes Hero Banner" src="./assets/hero-banner-light.svg" width="100%">
 </picture>
+<sub>Grafik in <a href="./assets/hero-banner-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="./assets/hero-banner-en.svg" hreflang="en" lang="en">English</a></sub>
 
 Willkommen im offiziellen technischen Projekthandbuch und Architektur-Wiki von **RelationNotes – NotebookLM & RelationFlow Knowledge Studio**.
 

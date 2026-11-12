@@ -5,6 +5,7 @@
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero-banner-light.svg">
   <img alt="RelationNotes – NotebookLM & RelationFlow Knowledge Studio" src="docs/assets/hero-banner-light.svg" width="100%">
 </picture>
+<sub>Grafik in <a href="docs/assets/hero-banner-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="docs/assets/hero-banner-en.svg" hreflang="en" lang="en">English</a></sub>
 
 # RelationNotes
 
@@ -65,6 +66,7 @@ Klassische KI-Chats halluzinieren Zusammenhänge und verlieren nach dem Gespräc
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/architecture-overview-light.svg">
   <img alt="Systemarchitektur – RelationNotes auf Cloudflare Workers, D1, R2 und SQLite Durable Objects" src="docs/assets/architecture-overview-light.svg" width="100%">
 </picture>
+<sub>Grafik in <a href="docs/assets/architecture-overview-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="docs/assets/architecture-overview-en.svg" hreflang="en" lang="en">English</a></sub>
 
 ```mermaid
 flowchart TB
@@ -110,7 +112,7 @@ flowchart TB
 
 | Hybrid-RAG-Pipeline (`FTS5` + `Int8` + `RRF k=60`) | Bidirektionale RelationFlow-Brücke (`v1`) |
 | :---: | :---: |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/rag-pipeline-dark.svg"><source media="(prefers-color-scheme: light)" srcset="docs/assets/rag-pipeline-light.svg"><img alt="Hybrid-RAG-Pipeline" src="docs/assets/rag-pipeline-light.svg" width="100%"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/relationflow-bridge-dark.svg"><source media="(prefers-color-scheme: light)" srcset="docs/assets/relationflow-bridge-light.svg"><img alt="RelationFlow-Integration" src="docs/assets/relationflow-bridge-light.svg" width="100%"></picture> |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/rag-pipeline-dark.svg"><source media="(prefers-color-scheme: light)" srcset="docs/assets/rag-pipeline-light.svg"><img alt="Hybrid-RAG-Pipeline" src="docs/assets/rag-pipeline-light.svg" width="100%"></picture><br><sub>Grafik in <a href="docs/assets/rag-pipeline-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="docs/assets/rag-pipeline-en.svg" hreflang="en" lang="en">English</a></sub> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/relationflow-bridge-dark.svg"><source media="(prefers-color-scheme: light)" srcset="docs/assets/relationflow-bridge-light.svg"><img alt="RelationFlow-Integration" src="docs/assets/relationflow-bridge-light.svg" width="100%"></picture><br><sub>Grafik in <a href="docs/assets/relationflow-bridge-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="docs/assets/relationflow-bridge-en.svg" hreflang="en" lang="en">English</a></sub> |
 | Details in [`docs/rag-and-vectors.md`](docs/rag-and-vectors.md) | Details in [`docs/relationflow-integration.md`](docs/relationflow-integration.md) |
 
 ---
@@ -140,6 +142,7 @@ flowchart TB
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/security-layers-light.svg">
   <img alt="Defense-in-Depth Sicherheits- & Compliance-Schichten" src="docs/assets/security-layers-light.svg" width="100%">
 </picture>
+<sub>Grafik in <a href="docs/assets/security-layers-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="docs/assets/security-layers-en.svg" hreflang="en" lang="en">English</a></sub>
 
 - **Kryptografisches Budget innerhalb von 10 ms CPU-Zeit:** Durch unseren Benchmark ([`apps/worker/src/crypto-benchmark.ts`](apps/worker/src/crypto-benchmark.ts)) ist nachgewiesen, dass `SHA-256` (`~0,01 ms`), `AES-256-GCM` Envelope-Roundtrip mit `AAD` (`~0,03 ms`) und `ECDSA P-256` Passkey-Verifikation (`~0,25 ms`) zusammen **`< 0,6 ms` CPU-Zeit** benötigen – über **94 % der 10-ms-Free-Tier-Reserve** bleiben frei für Fachlogik.
 - **DSGVO-Rechte per 1-Klick:** Vollständiger maschinenlesbarer Datenexport (Art. 15 / Art. 20 DSGVO) sowie kryptografisch verifizierte Kaskadenlöschung über D1, R2 und Durable Objects (Art. 17 DSGVO).
@@ -216,7 +219,7 @@ Notebook-LM-Klon/
 ├── packages/
 │   └── shared/                     # Geteilte Zod-Schemata, RFC 9457 Problem Details, UTF-8/Encoding-Prüfer
 ├── docs/                           # 9 Fachkapitel + 5 SVG-Architekturdiagramme + GitHub-Wiki-Quellen
-│   ├── assets/                     # hero-banner.svg, architecture-overview.svg, rag-pipeline.svg, relationflow-bridge.svg, security-layers.svg
+│   ├── assets/                     # Diagramme und Hero je Deutsch (-de), Englisch (-en) und automatisch (systemLanguage); Quellen in src/, Texte in i18n/strings.json
 │   └── wiki/                       # 1:1 synchronisierte GitHub-Wiki-Seiten (Home, _Sidebar, _Footer, Kapitel 1–8)
 ├── biome.json                      # Linter, Formatter & 29 WAI-ARIA A11y-Regeln
 ├── CHANGELOG.md                    # Versionshistorie nach Keep a Changelog

@@ -1,0 +1,741 @@
+{
+  "hero-banner": {
+    "title": {
+      "de": "RelationNotes – NotebookLM & RelationFlow Knowledge Studio",
+      "en": "RelationNotes – NotebookLM & RelationFlow Knowledge Studio"
+    },
+    "desc": {
+      "de": "RelationNotes – NotebookLM & RelationFlow Knowledge Studio. Quellengebundene KI-Synthese mit Inline-Zitaten, Hybrid-RAG und Wissensgraph-Brücke zu RelationFlow, dargestellt als Wissensgraph aus fünf verbundenen Knoten.",
+      "en": "RelationNotes – NotebookLM & RelationFlow Knowledge Studio. Source-grounded AI synthesis with inline citations, hybrid RAG and a knowledge-graph bridge to RelationFlow, shown as a knowledge graph of five connected nodes."
+    },
+    "texts": {}
+  },
+  "architecture-overview": {
+    "title": {
+      "de": "NotebookLM Klon – Single-Worker Edge-Architektur",
+      "en": "NotebookLM Clone – Single-Worker Edge Architecture"
+    },
+    "desc": {
+      "de": "Architekturübersicht: Browser PWA mit Web Worker für Parsing/OCR, Cloudflare Single-Worker mit Hono API, D1 SQLite Datenbank, R2 Medienspeicher, NotebookDO und JobDO sowie Multi-LLM-Provider.",
+      "en": "Architecture overview: browser PWA with a Web Worker for parsing/OCR, a single Cloudflare Worker with Hono API, D1 SQLite database, R2 media storage, NotebookDO and JobDO, and multiple LLM providers."
+    },
+    "texts": {
+      "t01": {
+        "de": "NotebookLM Klon · Single-Worker Edge-Architektur (Cloudflare Free & Paid)",
+        "en": "NotebookLM Clone · Single-Worker Edge Architecture (Cloudflare Free & Paid)"
+      },
+      "t02": {
+        "de": "Ein einziger Cloudflare Worker · Eine D1-Datenbank · Ein R2-Medienspeicher · Zwei SQLite Durable Objects · Null CPU-Limit-Engpässe",
+        "en": "One Cloudflare Worker · One D1 database · One R2 media store · Two SQLite Durable Objects · Zero CPU-limit bottlenecks"
+      },
+      "t03": {
+        "de": "1. Browser Client (React 19 PWA)",
+        "en": "1. Browser Client (React 19 PWA)"
+      },
+      "t04": {
+        "de": "Entlastet das 10-ms-CPU-Budget des Workers",
+        "en": "Offloads the Worker's 10 ms CPU budget"
+      },
+      "t05": {
+        "de": "4 Live-Designs (WCAG 2.2 AAA)",
+        "en": "4 live designs (WCAG 2.2 AAA)"
+      },
+      "t06": {
+        "de": "Pure NotebookLM · Immersive Cinema",
+        "en": "Pure NotebookLM · Immersive Cinema"
+      },
+      "t07": {
+        "de": "Editorial Calm · Fusion (Light/OLED/Contrast)",
+        "en": "Editorial Calm · Fusion (Light/OLED/Contrast)"
+      },
+      "t08": {
+        "de": "Ingest Web Worker (Browser-Thread)",
+        "en": "Ingest Web Worker (browser thread)"
+      },
+      "t09": {
+        "de": "• PDF.js, Mammoth (DOCX), Markdown/TXT",
+        "en": "• PDF.js, Mammoth (DOCX), Markdown/TXT"
+      },
+      "t10": {
+        "de": "• Tesseract.js WASM OCR (DE/EN)",
+        "en": "• Tesseract.js WASM OCR (DE/EN)"
+      },
+      "t11": {
+        "de": "• 800-Token-Chunker + int8-Quantisierung",
+        "en": "• 800-token chunker + int8 quantization"
+      },
+      "t12": {
+        "de": "Canvas Video-Renderer & PWA Cache",
+        "en": "Canvas video renderer & PWA cache"
+      },
+      "t13": {
+        "de": "• 60-fps Folien + Audio → WebM/MP4 Export",
+        "en": "• 60 fps slides + audio → WebM/MP4 export"
+      },
+      "t14": {
+        "de": "• Service Worker + IndexedDB Offline-Store",
+        "en": "• Service Worker + IndexedDB offline store"
+      },
+      "t15": {
+        "de": "Lokales Ollama (127.0.0.1:11434)",
+        "en": "Local Ollama (127.0.0.1:11434)"
+      },
+      "t16": {
+        "de": "100 % Air-Gapped Datenschutz-Modus:",
+        "en": "100 % air-gapped privacy mode:"
+      },
+      "t17": {
+        "de": "Daten verlassen niemals das Endgerät",
+        "en": "Data never leaves the device"
+      },
+      "t18": {
+        "de": "2. Cloudflare Single-Worker (wrangler.jsonc)",
+        "en": "2. Cloudflare Single-Worker (wrangler.jsonc)"
+      },
+      "t19": {
+        "de": "Static Assets + Hono API (/api/v1/*) · < 2 ms CPU/Request",
+        "en": "Static Assets + Hono API (/api/v1/*) · < 2 ms CPU/Request"
+      },
+      "t20": {
+        "de": "Hono Edge Gateway & Security Layer",
+        "en": "Hono Edge Gateway & Security Layer"
+      },
+      "t21": {
+        "de": "• WebAuthn Passkeys, 24h Gast-Login, Turnstile",
+        "en": "• WebAuthn passkeys, 24 h guest login, Turnstile"
+      },
+      "t22": {
+        "de": "• AES-256-GCM BYOK Envelope · Strict CSP · RBAC",
+        "en": "• AES-256-GCM BYOK Envelope · Strict CSP · RBAC"
+      },
+      "t23": {
+        "de": "NotebookDO (SQLite)",
+        "en": "NotebookDO (SQLite)"
+      },
+      "t24": {
+        "de": "• 30 s CPU-Budget",
+        "en": "• 30 s CPU budget"
+      },
+      "t25": {
+        "de": "• In-Memory Int8Array",
+        "en": "• In-Memory Int8Array"
+      },
+      "t26": {
+        "de": "  Vektor-Dot-Product",
+        "en": "  vector dot product"
+      },
+      "t27": {
+        "de": "• Hibernatable WebSockets",
+        "en": "• Hibernatable WebSockets"
+      },
+      "t28": {
+        "de": "  Live-Präsenz & Sync",
+        "en": "  live presence & sync"
+      },
+      "t29": {
+        "de": "JobDO (SQLite Queue)",
+        "en": "JobDO (SQLite Queue)"
+      },
+      "t30": {
+        "de": "• Asynchrone Studio-Jobs",
+        "en": "• Asynchronous Studio jobs"
+      },
+      "t31": {
+        "de": "• alarm() Ausführung mit",
+        "en": "• alarm() execution with"
+      },
+      "t32": {
+        "de": "  Exponential Backoff",
+        "en": "  exponential backoff"
+      },
+      "t33": {
+        "de": "• Audio-TTS, Mindmap,",
+        "en": "• Audio TTS, mindmap,"
+      },
+      "t34": {
+        "de": "  DSGVO-ZIP-Export",
+        "en": "  GDPR ZIP export"
+      },
+      "t35": {
+        "de": "Cloudflare D1 (DB)",
+        "en": "Cloudflare D1 (DB)"
+      },
+      "t36": {
+        "de": "• Einzige SQL-Datenbank",
+        "en": "• Single SQL database"
+      },
+      "t37": {
+        "de": "• Chunks + int8-Vektoren",
+        "en": "• Chunks + int8 vectors"
+      },
+      "t38": {
+        "de": "• FTS5 BM25 Volltextsuche",
+        "en": "• FTS5 BM25 text search"
+      },
+      "t39": {
+        "de": "• Users, Workspaces, Audit",
+        "en": "• Users, Workspaces, Audit"
+      },
+      "t40": {
+        "de": "Cloudflare R2 (MEDIA)",
+        "en": "Cloudflare R2 (MEDIA)"
+      },
+      "t41": {
+        "de": "• Einziger Medienspeicher",
+        "en": "• Single media store"
+      },
+      "t42": {
+        "de": "• S3-Presigned PUT oder",
+        "en": "• S3 presigned PUT or"
+      },
+      "t43": {
+        "de": "  Streaming-Fallback",
+        "en": "  streaming fallback"
+      },
+      "t44": {
+        "de": "• Audio-Overviews & PDFs",
+        "en": "• Audio Overviews & PDFs"
+      },
+      "t45": {
+        "de": "3. Multi-LLM & Integration",
+        "en": "3. Multi-LLM & Integration"
+      },
+      "t46": {
+        "de": "BYOK + RelationFlow Auto-Router",
+        "en": "BYOK + RelationFlow Auto-Router"
+      },
+      "t47": {
+        "de": "Google Gemini API",
+        "en": "Google Gemini API"
+      },
+      "t48": {
+        "de": "• Chat-Streaming & JSON",
+        "en": "• Chat streaming & JSON"
+      },
+      "t49": {
+        "de": "• gemini-embedding-001 (768d)",
+        "en": "• gemini-embedding-001 (768d)"
+      },
+      "t50": {
+        "de": "• Native Multi-Speaker TTS",
+        "en": "• Native multi-speaker TTS"
+      },
+      "t51": {
+        "de": "OpenAI & Anthropic Claude",
+        "en": "OpenAI & Anthropic Claude"
+      },
+      "t52": {
+        "de": "• BYOK Streaming-Adapter",
+        "en": "• BYOK streaming adapter"
+      },
+      "t53": {
+        "de": "• Fallback-Kette bei 429/5xx",
+        "en": "• Fallback chain on 429/5xx"
+      },
+      "t54": {
+        "de": "EU Ollama via CF Tunnel",
+        "en": "EU Ollama via CF Tunnel"
+      },
+      "t55": {
+        "de": "• Cloudflare Access Token",
+        "en": "• Cloudflare Access Token"
+      },
+      "t56": {
+        "de": "• DSGVO-Souveränes Hosting",
+        "en": "• GDPR-sovereign hosting"
+      },
+      "t57": {
+        "de": "RelationFlow RAG-Bridge",
+        "en": "RelationFlow RAG bridge"
+      },
+      "t58": {
+        "de": "• POST /notebooks/:id/search",
+        "en": "• POST /notebooks/:id/search"
+      },
+      "t59": {
+        "de": "• Team-Spaces & Rollen",
+        "en": "• Team spaces & roles"
+      },
+      "t60": {
+        "de": "• Verifizierte [n]-Zitate",
+        "en": "• Verified [n] citations"
+      }
+    }
+  },
+  "rag-pipeline": {
+    "title": {
+      "de": "Hybrid RAG & int8-Vektorsuche in Cloudflare D1 + NotebookDO",
+      "en": "Hybrid RAG & int8 vector search in Cloudflare D1 + NotebookDO"
+    },
+    "desc": {
+      "de": "Fünfstufige Pipeline: 1. Browser-Chunking, 2. 768d Embeddings und symmetrische int8-Quantisierung, 3. Speicherung in D1 + FTS5-Index, 4. Hybrid-Suche via NotebookDO In-Memory Dot-Product und D1 FTS5 BM25 mit Reciprocal Rank Fusion, 5. Zitat-validierter SSE-Chat.",
+      "en": "Five-stage pipeline: 1. browser chunking, 2. 768d embeddings and symmetric int8 quantization, 3. storage in D1 + FTS5 index, 4. hybrid search via NotebookDO in-memory dot product and D1 FTS5 BM25 with Reciprocal Rank Fusion, 5. citation-validated SSE chat."
+    },
+    "texts": {
+      "t01": {
+        "de": "Hybrid-RAG-Pipeline: 768d int8-Quantisierung + D1 FTS5 BM25 + Reciprocal Rank Fusion (RRF)",
+        "en": "Hybrid RAG pipeline: 768d int8 quantization + D1 FTS5 BM25 + Reciprocal Rank Fusion (RRF)"
+      },
+      "t02": {
+        "de": "75 % Speicherersparnis gegenüber Float32 · 0 ms Worker-CPU-Belastung beim Vektor-Scoring · Recall@10 ≥ 0,98",
+        "en": "75 % less storage than Float32 · 0 ms Worker CPU load for vector scoring · Recall@10 ≥ 0.98"
+      },
+      "t03": {
+        "de": "1. Browser-Ingest",
+        "en": "1. Browser ingest"
+      },
+      "t04": {
+        "de": "• PDF / DOCX / MD / OCR",
+        "en": "• PDF / DOCX / MD / OCR"
+      },
+      "t05": {
+        "de": "• Im Web Worker geparst",
+        "en": "• Parsed in a Web Worker"
+      },
+      "t06": {
+        "de": "• Token-bewusstes Chunking:",
+        "en": "• Token-aware chunking:"
+      },
+      "t07": {
+        "de": "  ≈ 800 Tokens / Chunk",
+        "en": "  ≈ 800 tokens / chunk"
+      },
+      "t08": {
+        "de": "  100 Tokens Überlappung",
+        "en": "  100 tokens overlap"
+      },
+      "t09": {
+        "de": "• Metadaten je Chunk:",
+        "en": "• Metadata per chunk:"
+      },
+      "t10": {
+        "de": "  page, start_ms, ord",
+        "en": "  page, start_ms, ord"
+      },
+      "t11": {
+        "de": "2. 768d → int8 Quant",
+        "en": "2. 768d → int8 Quant"
+      },
+      "t12": {
+        "de": "• gemini-embedding-001",
+        "en": "• gemini-embedding-001"
+      },
+      "t13": {
+        "de": "  oder nomic-embed-text",
+        "en": "  or nomic-embed-text"
+      },
+      "t14": {
+        "de": "• Symmetrische Quantisierung:",
+        "en": "• Symmetric quantization:"
+      },
+      "t15": {
+        "de": "scale = max(|v_i|) / 127",
+        "en": "scale = max(|v_i|) / 127"
+      },
+      "t16": {
+        "de": "q_i = round(v_i / scale)",
+        "en": "q_i = round(v_i / scale)"
+      },
+      "t17": {
+        "de": "• Float32: 3.072 Bytes",
+        "en": "• Float32: 3,072 bytes"
+      },
+      "t18": {
+        "de": "• Int8 BLOB: 768 Bytes (-75%)",
+        "en": "• Int8 BLOB: 768 bytes (-75%)"
+      },
+      "t19": {
+        "de": "3. D1 Persistenz & FTS5",
+        "en": "3. D1 persistence & FTS5"
+      },
+      "t20": {
+        "de": "• Tabelle chunks (Text, Seite)",
+        "en": "• Table chunks (text, page)"
+      },
+      "t21": {
+        "de": "• Tabelle chunk_vectors:",
+        "en": "• Table chunk_vectors:"
+      },
+      "t22": {
+        "de": "  768-Byte BLOB + scale REAL",
+        "en": "  768-byte BLOB + scale REAL"
+      },
+      "t23": {
+        "de": "• Virtuelle Tabelle chunks_fts:",
+        "en": "• Virtual table chunks_fts:"
+      },
+      "t24": {
+        "de": "  USING fts5(unicode61)",
+        "en": "  USING fts5(unicode61)"
+      },
+      "t25": {
+        "de": "  Sync-Trigger (AI / AU / AD)",
+        "en": "  Sync triggers (AI / AU / AD)"
+      },
+      "t26": {
+        "de": "• 5.000 Chunks ≈ 3,8 MB",
+        "en": "• 5,000 chunks ≈ 3.8 MB"
+      },
+      "t27": {
+        "de": "4. Hybrid RRF Suche",
+        "en": "4. Hybrid RRF search"
+      },
+      "t28": {
+        "de": "• Pfad A (Semantisch):",
+        "en": "• Path A (semantic):"
+      },
+      "t29": {
+        "de": "  NotebookDO hält Int8Array",
+        "en": "  NotebookDO keeps Int8Array"
+      },
+      "t30": {
+        "de": "  im RAM → Dot-Product < 3 ms",
+        "en": "  in RAM → dot product < 3 ms"
+      },
+      "t31": {
+        "de": "• Pfad B (Lexikalisch):",
+        "en": "• Path B (lexical):"
+      },
+      "t32": {
+        "de": "  D1 FTS5 MATCH + bm25()",
+        "en": "  D1 FTS5 MATCH + bm25()"
+      },
+      "t33": {
+        "de": "• Fusion via RRF (k=60):",
+        "en": "• Fusion via RRF (k=60):"
+      },
+      "t34": {
+        "de": "1/(60+r_vec) + 1/(60+r_fts)",
+        "en": "1/(60+r_vec) + 1/(60+r_fts)"
+      },
+      "t35": {
+        "de": "5. Grounded Chat",
+        "en": "5. Grounded Chat"
+      },
+      "t36": {
+        "de": "• Top-k Chunks als",
+        "en": "• Top-k chunks as"
+      },
+      "t37": {
+        "de": "  nummerierter Kontext",
+        "en": "  numbered context"
+      },
+      "t38": {
+        "de": "• Halluzinations-Check:",
+        "en": "• Hallucination check:"
+      },
+      "t39": {
+        "de": "  Jedes [n]-Zitat wird gegen",
+        "en": "  every [n] citation is checked"
+      },
+      "t40": {
+        "de": "  reale Chunk-IDs geprüft",
+        "en": "  against real chunk IDs"
+      },
+      "t41": {
+        "de": "• 1-Klick-Sprung zur",
+        "en": "• One-click jump to the"
+      },
+      "t42": {
+        "de": "  Fundstelle / Zeitmarke",
+        "en": "  passage / timestamp"
+      }
+    }
+  },
+  "relationflow-bridge": {
+    "title": {
+      "de": "Andock-Architektur an Everlast RelationFlow",
+      "en": "Docking architecture for Everlast RelationFlow"
+    },
+    "desc": {
+      "de": "Zeigt die nahtlose Integration des NotebookLM-Klons als Wissens-, RAG- und Studio-Modul in die RelationFlow-Plattform über Workspaces, Rollen (Owner, Editor, Viewer), Auto-LLM-Router und die dedizierte /api/v1/notebooks/:id/search Schnittstelle.",
+      "en": "Shows how the NotebookLM clone plugs into the RelationFlow platform as a knowledge, RAG and Studio module via workspaces, roles (Owner, Editor, Viewer), an auto LLM router and the dedicated /api/v1/notebooks/:id/search endpoint."
+    },
+    "texts": {
+      "t01": {
+        "de": "Andocken an RelationFlow (Everlast Consulting) – Modulare Bridge-Architektur",
+        "en": "Docking onto RelationFlow (Everlast Consulting) – modular bridge architecture"
+      },
+      "t02": {
+        "de": "Gemeinsames Rollenmodell (Owner/Editor/Viewer) · Intelligenter Auto-Modell-Router · Eigenständige Hybrid-RAG-API für KI-Assistenten",
+        "en": "Shared role model (Owner/Editor/Viewer) · Smart auto model router · Standalone hybrid RAG API for AI assistants"
+      },
+      "t03": {
+        "de": "RelationFlow KI-Workspace (Bestandssystem)",
+        "en": "RelationFlow AI workspace (existing system)"
+      },
+      "t04": {
+        "de": "• Team-Spaces mit mandantenfähiger Rollensteuerung",
+        "en": "• Team spaces with multi-tenant role control"
+      },
+      "t05": {
+        "de": "• Spezialisierte KI-Assistenten & Agentic Workflows",
+        "en": "• Specialized AI assistants & agentic workflows"
+      },
+      "t06": {
+        "de": "• Multi-Modell-Orchestrierung (Auto-Select)",
+        "en": "• Multi-model orchestration (auto-select)"
+      },
+      "t07": {
+        "de": "• DSGVO-konformes EU-Hosting für den Mittelstand",
+        "en": "• GDPR-compliant EU hosting for mid-sized companies"
+      },
+      "t08": {
+        "de": "Typischer Agenten-Aufruf aus RelationFlow:",
+        "en": "Typical agent call from RelationFlow:"
+      },
+      "t09": {
+        "de": "POST /api/v1/notebooks/:id/search",
+        "en": "POST /api/v1/notebooks/:id/search"
+      },
+      "t10": {
+        "de": "{ \"query\": \"Kündigungsfrist Rahmenvertrag\",",
+        "en": "{ \"query\": \"notice period master contract\","
+      },
+      "t11": {
+        "de": "  \"topK\": 8, \"mode\": \"hybrid_rrf\" }",
+        "en": "  \"topK\": 8, \"mode\": \"hybrid_rrf\" }"
+      },
+      "t12": {
+        "de": "→ Liefert exakt belegte Chunks + Seite/Offset",
+        "en": "→ Returns precisely cited chunks + page/offset"
+      },
+      "t13": {
+        "de": "RelationFlow Bridge",
+        "en": "RelationFlow Bridge"
+      },
+      "t14": {
+        "de": "1. Workspace- & RBAC-Sync",
+        "en": "1. Workspace & RBAC sync"
+      },
+      "t15": {
+        "de": "   owner | editor | viewer",
+        "en": "   owner | editor | viewer"
+      },
+      "t16": {
+        "de": "2. Auto-LLM-Router",
+        "en": "2. Auto LLM router"
+      },
+      "t17": {
+        "de": "   Datenschutz → EU-Ollama",
+        "en": "   Privacy → EU Ollama"
+      },
+      "t18": {
+        "de": "   Audio/TTS → Gemini Native",
+        "en": "   Audio/TTS → Gemini Native"
+      },
+      "t19": {
+        "de": "3. OpenAPI 3.1 RAG-Vertrag",
+        "en": "3. OpenAPI 3.1 RAG contract"
+      },
+      "t20": {
+        "de": "   RFC 9457 Problem Details",
+        "en": "   RFC 9457 Problem Details"
+      },
+      "t21": {
+        "de": "   AI Act Art. 50 Telemetrie",
+        "en": "   AI Act Art. 50 telemetry"
+      },
+      "t22": {
+        "de": "NotebookLM Klon (Deep-Knowledge & Studio)",
+        "en": "NotebookLM Clone (Deep Knowledge & Studio)"
+      },
+      "t23": {
+        "de": "• Quellengestützter Chat mit klickbaren [n]-Zitaten",
+        "en": "• Source-grounded chat with clickable [n] citations"
+      },
+      "t24": {
+        "de": "• Zwei-Sprecher Audio-Overview + Live-Fragen-Modus",
+        "en": "• Two-host Audio Overview + live question mode"
+      },
+      "t25": {
+        "de": "• Interaktiver 60-fps Video-Overview (WebM/MP4)",
+        "en": "• Interactive 60 fps Video Overview (WebM/MP4)"
+      },
+      "t26": {
+        "de": "• SVG-Mindmap (ARIA-Tree), Lernkarten (SM-2) & Quiz",
+        "en": "• SVG mindmap (ARIA tree), flashcards (SM-2) & quiz"
+      },
+      "t27": {
+        "de": "• Hybrid-Vektorsuche (NotebookDO int8 + D1 FTS5)",
+        "en": "• Hybrid vector search (NotebookDO int8 + D1 FTS5)"
+      },
+      "t28": {
+        "de": "• Barrierefreiheit nach WCAG 2.2 AAA / EN 301 549",
+        "en": "• Accessibility per WCAG 2.2 AAA / EN 301 549"
+      },
+      "t29": {
+        "de": "Mehrwert für RelationFlow-Kunden:",
+        "en": "Added value for RelationFlow customers:"
+      },
+      "t30": {
+        "de": "Sofort nutzbares Forschungs- & Lernstudio auf",
+        "en": "A ready-to-use research & learning studio on"
+      },
+      "t31": {
+        "de": "Firmendokumenten, ohne Vendor-Lock-in.",
+        "en": "existing company documents, no vendor lock-in."
+      }
+    }
+  },
+  "security-layers": {
+    "title": {
+      "de": "Defense-in-Depth Sicherheits-, Datenschutz- und Compliance-Schichten",
+      "en": "Defense-in-depth security, privacy and compliance layers"
+    },
+    "desc": {
+      "de": "Vier Sicherheits- und Rechts-Säulen: 1. Edge- & Transport-Sicherheit (Turnstile, CSP, Trusted Types, HSTS), 2. Authentifizierung & Kryptografie (WebAuthn Passkeys, AES-256-GCM BYOK Envelope Encryption, SSRF-Guard), 3. EU-Recht & Datenschutz (DSGVO Art. 15/17/20, EU AI Act Art. 50, TDDDG, DDG), 4. Barrierefreiheit & Supply-Chain (WCAG 2.2 AAA, OpenSSF Scorecard, CodeQL, osv-scanner).",
+      "en": "Four security and legal pillars: 1. edge & transport security (Turnstile, CSP, Trusted Types, HSTS), 2. authentication & cryptography (WebAuthn passkeys, AES-256-GCM BYOK envelope encryption, SSRF guard), 3. EU law & data protection (GDPR Art. 15/17/20, EU AI Act Art. 50, TDDDG, DDG), 4. accessibility & supply chain (WCAG 2.2 AAA, OpenSSF Scorecard, CodeQL, osv-scanner)."
+    },
+    "texts": {
+      "t01": {
+        "de": "Defense-in-Depth: Security, DSGVO, EU AI Act Art. 50 & WCAG 2.2 AAA",
+        "en": "Defense in depth: security, GDPR, EU AI Act Art. 50 & WCAG 2.2 AAA"
+      },
+      "t02": {
+        "de": "Security by Design & Privacy by Default · Null unverschlüsselte API-Keys · Null Tracking-Cookies · Vollständige Supply-Chain-Prüfung",
+        "en": "Security by design & privacy by default · Zero unencrypted API keys · Zero tracking cookies · Full supply-chain checks"
+      },
+      "t03": {
+        "de": "1. Edge & Browser Hardening",
+        "en": "1. Edge & Browser Hardening"
+      },
+      "t04": {
+        "de": "• Strikte Content-Security-Policy",
+        "en": "• Strict Content Security Policy"
+      },
+      "t05": {
+        "de": "  object-src 'none', base-uri 'none'",
+        "en": "  object-src 'none', base-uri 'none'"
+      },
+      "t06": {
+        "de": "  frame-ancestors 'none'",
+        "en": "  frame-ancestors 'none'"
+      },
+      "t07": {
+        "de": "• Trusted Types für DOM-Skripte",
+        "en": "• Trusted Types for DOM scripts"
+      },
+      "t08": {
+        "de": "• Cloudflare Turnstile Siteverify",
+        "en": "• Cloudflare Turnstile Siteverify"
+      },
+      "t09": {
+        "de": "• HSTS, COOP, CORP, Permissions",
+        "en": "• HSTS, COOP, CORP, Permissions"
+      },
+      "t10": {
+        "de": "• Token-Bucket Rate-Limiting",
+        "en": "• Token-bucket rate limiting"
+      },
+      "t11": {
+        "de": "  429 Too Many Requests + Retry-After",
+        "en": "  429 Too Many Requests + Retry-After"
+      },
+      "t12": {
+        "de": "2. Auth & Kryptografie",
+        "en": "2. Auth & Cryptography"
+      },
+      "t13": {
+        "de": "• WebAuthn Passkeys (ES256/RS256)",
+        "en": "• WebAuthn passkeys (ES256/RS256)"
+      },
+      "t14": {
+        "de": "  sign_count Klon-Erkennung",
+        "en": "  sign_count clone detection"
+      },
+      "t15": {
+        "de": "• __Host-sid Session-Cookie",
+        "en": "• __Host-sid session cookie"
+      },
+      "t16": {
+        "de": "  Nur SHA-256-Hash in D1 gespeichert",
+        "en": "  only the SHA-256 hash stored in D1"
+      },
+      "t17": {
+        "de": "• AES-256-GCM BYOK Envelope",
+        "en": "• AES-256-GCM BYOK Envelope"
+      },
+      "t18": {
+        "de": "  AAD = user_id|provider|key_version",
+        "en": "  AAD = user_id|provider|key_version"
+      },
+      "t19": {
+        "de": "• Strenger SSRF- & Magic-Byte-Guard",
+        "en": "• Strict SSRF & magic-byte guard"
+      },
+      "t20": {
+        "de": "• RBAC Middleware (Kein IDOR)",
+        "en": "• RBAC middleware (no IDOR)"
+      },
+      "t21": {
+        "de": "3. DSGVO, AI Act & TDDDG",
+        "en": "3. GDPR, AI Act & TDDDG"
+      },
+      "t22": {
+        "de": "• DSGVO Self-Service-Portal:",
+        "en": "• GDPR self-service portal:"
+      },
+      "t23": {
+        "de": "  Art. 20 ZIP-Export & Art. 17 Löschung",
+        "en": "  Art. 20 ZIP export & Art. 17 erasure"
+      },
+      "t24": {
+        "de": "• Automatische TTL-Bereinigung:",
+        "en": "• Automatic TTL cleanup:"
+      },
+      "t25": {
+        "de": "  Gäste nach 24 h, Demo nach 30 Tagen",
+        "en": "  guests after 24 h, demo after 30 days"
+      },
+      "t26": {
+        "de": "• EU AI Act Art. 50 Transparenz:",
+        "en": "• EU AI Act Art. 50 transparency:"
+      },
+      "t27": {
+        "de": "  Sichtbare + maschinenlesbare Flags",
+        "en": "  visible + machine-readable flags"
+      },
+      "t28": {
+        "de": "• TDDDG: Kein Cookie-Banner nötig",
+        "en": "• TDDDG: no cookie banner needed"
+      },
+      "t29": {
+        "de": "• Impressum-Schutz via Worker-Env",
+        "en": "• Legal notice kept in Worker env"
+      },
+      "t30": {
+        "de": "4. WCAG 2.2 AAA & OpenSSF",
+        "en": "4. WCAG 2.2 AAA & OpenSSF"
+      },
+      "t31": {
+        "de": "• Kontrast ≥ 7:1 (AAA-Modus)",
+        "en": "• Contrast ≥ 7:1 (AAA mode)"
+      },
+      "t32": {
+        "de": "• Klickflächen ≥ 44×44 px (2.5.5)",
+        "en": "• Target size ≥ 44×44 px (2.5.5)"
+      },
+      "t33": {
+        "de": "• Mindmap als WAI-ARIA role=\"tree\"",
+        "en": "• Mindmap as WAI-ARIA role=\"tree\""
+      },
+      "t34": {
+        "de": "• Synchrones WebVTT & Transkripte",
+        "en": "• Synced WebVTT & transcripts"
+      },
+      "t35": {
+        "de": "• SHA-gepinnte GitHub Actions",
+        "en": "• SHA-pinned GitHub Actions"
+      },
+      "t36": {
+        "de": "• CodeQL, gitleaks, osv-scanner",
+        "en": "• CodeQL, gitleaks, osv-scanner"
+      },
+      "t37": {
+        "de": "• SLSA Build Provenance & SBOM",
+        "en": "• SLSA Build Provenance & SBOM"
+      }
+    }
+  }
+}
