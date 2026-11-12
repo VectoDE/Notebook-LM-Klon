@@ -3193,9 +3193,10 @@ html[data-color-mode="aaa-contrast"] .rn-share-notice {
   gap: var(--rn-space-2);
 }
 
+/* Höhe folgt dem Graphen, höchstens 64 % der Fensterhöhe: kein leerer Raum unter kleinen Graphen */
 .rn-graph-canvas {
   position: relative;
-  height: min(64vh, 640px);
+  max-height: min(64vh, 640px);
   min-height: 320px;
   overflow: auto;
   border-radius: var(--rn-radius-lg);
