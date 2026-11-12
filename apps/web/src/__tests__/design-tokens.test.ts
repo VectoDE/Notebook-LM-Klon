@@ -137,10 +137,10 @@ describe("Design-Tokens: Vollständigkeit", () => {
   });
 
   it("gibt jedem Design eine eigene Schrift (Zuordnung Design-Umbau)", () => {
-    expect(TYPOGRAPHY.pure.body).toMatch(/^"Inter Variable"/);
-    expect(TYPOGRAPHY["editorial-calm"].headings).toMatch(/^"Source Serif 4 Variable"/);
-    expect(TYPOGRAPHY["immersive-cinema"].body).toMatch(/^"Space Grotesk Variable"/);
-    expect(TYPOGRAPHY.fusion.body).toMatch(/^"Geist Variable"/);
+    expect(TYPOGRAPHY.pure.body).toMatch(/^"Inter"/);
+    expect(TYPOGRAPHY["editorial-calm"].headings).toMatch(/^"Source Serif 4"/);
+    expect(TYPOGRAPHY["immersive-cinema"].body).toMatch(/^"Space Grotesk"/);
+    expect(TYPOGRAPHY.fusion.body).toMatch(/^"Geist"/);
     const primaries = THEMES.map((t) => TYPOGRAPHY[t].headings.split(",")[0]);
     expect(new Set(primaries).size).toBe(THEMES.length);
   });
@@ -154,7 +154,7 @@ describe("Design-Tokens: Vollständigkeit", () => {
       expect(hasSerif(TYPOGRAPHY[theme].ui), theme).toBe(false);
     }
     expect(hasSerif(TYPOGRAPHY["editorial-calm"].headings)).toBe(true);
-    expect(TYPOGRAPHY["editorial-calm"].body).toMatch(/^"Inter Variable"/);
+    expect(TYPOGRAPHY["editorial-calm"].body).toMatch(/^"Inter"/);
   });
 
   it("Fließtext 16 px, Karten 12 px in allen Designs (Issue #328)", () => {

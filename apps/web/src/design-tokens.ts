@@ -80,16 +80,15 @@ export interface TypographyTokens {
   readonly ui: string;
 }
 
-const INTER = '"Inter Variable", "Inter", system-ui, sans-serif';
-const SERIF = '"Source Serif 4 Variable", "Source Serif 4", Georgia, serif';
-const GROTESK =
-  '"Space Grotesk Variable", "Space Grotesk", "Inter Variable", system-ui, sans-serif';
-const GEIST = '"Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif';
-export const FONT_MONO = '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace';
+const INTER = '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif';
+const SERIF = '"Source Serif 4", Georgia, "Times New Roman", serif';
+const GROTESK = '"Space Grotesk", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif';
+const GEIST = '"Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif';
+export const FONT_MONO = '"JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace';
 
 /**
- * Eine eigene Schrift je Design (alle SIL OFL 1.1, selbst gehostet, Lizenzen unter
- * public/fonts/LICENSES):
+ * Eine eigene Schrift je Design (alle SIL OFL 1.1, selbst gehostet als WOFF2-Latin-Subset in
+ * src/fonts mit @font-face in fonts.css, Lizenzen unter public/fonts/LICENSES):
  * - Pure: Inter, neutrale Klarheit für die Arbeitsfläche.
  * - Editorial Calm: Source Serif 4 nur für Überschriften, Fließtext und Bedienelemente in Inter
  *   (Issue #328: Serif nur für Überschriften, Fließtext Sans).
