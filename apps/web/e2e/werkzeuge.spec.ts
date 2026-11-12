@@ -44,6 +44,17 @@ for (const width of [360, 390, 430, 1440]) {
           await openPanel(page, "studio");
           await page.getByTestId(tool.open).click();
           await expect(page.locator(tool.root)).toBeVisible();
+          // Einblendungen (z. B. Cinema mit Skalierung) erst ausklingen lassen, dann messen
+          await page.getByTestId("studio-tool-view").evaluate((el) =>
+            Promise.all(
+              el
+                .getAnimations({ subtree: true })
+                .filter(
+                  (anim) => anim.effect?.getComputedTiming().iterations !== Number.POSITIVE_INFINITY
+                )
+                .map((anim) => anim.finished)
+            )
+          );
           expect(await inlineStyles(page), tool.id).toEqual([]);
           expect(await findLayoutProblems(page), tool.id).toEqual([]);
           expect(await smallButtons(page, "studio-tool-view"), tool.id).toEqual([]);
