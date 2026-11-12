@@ -134,7 +134,7 @@ test.describe("Kopfknöpfe", () => {
     await page.setViewportSize({ width: 800, height: 900 });
     await page.goto("/");
     const nav = page.getByRole("navigation", { name: "Bereiche" });
-    await expect(nav.getByRole("button")).toHaveCount(3);
+    await expect(nav.getByRole("button")).toHaveCount(4);
     await expect(nav.getByTestId("btn-open-settings")).toHaveCount(0);
     await expect(page.getByRole("banner").getByTestId("btn-open-settings")).toBeVisible();
   });

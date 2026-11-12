@@ -37,7 +37,7 @@ describe("WorkspaceLayout Component (Issue #31)", () => {
     expect(html).not.toContain('aria-label="Quellen (2)"');
     expect(html).toContain('<span class="rn-visually-hidden"> (2)</span>');
     expect(html).toContain('aria-label="Chat &amp; Zitate"');
-    expect(html).toContain('aria-label="Studio (6 Werkzeuge)"');
+    expect(html).toContain('aria-label="Studio (7 Werkzeuge)"');
     expect(html).toContain('<span class="rn-tab-count">2</span>');
     expect(html).toContain('<span class="rn-tab-label">Studio</span>');
     // Reiter oben gibt es nur 600 bis 899 px (ein Bereich sichtbar): ohne Fenster kein aria-current

@@ -18,6 +18,7 @@ import {
 import { AppearanceControls, type UserRole } from "./AppearanceControls.js";
 import { BrandLogo } from "./BrandLogo.js";
 import { type ChatMessage, ChatPanel } from "./ChatPanel.js";
+import { GraphViewer } from "./GraphViewer.js";
 import { Icon, type IconName } from "./Icon.js";
 import { NotebookTitle } from "./NotebookTitle.js";
 import { PanelRail, PanelToggle, RailButton } from "./PanelRail.js";
@@ -34,6 +35,7 @@ import {
   technicalErrorDetail
 } from "./chat-client.js";
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
+import { buildKnowledgeGraph } from "./knowledge-graph.js";
 import {
   type CollapsedPanels,
   type CollapsiblePanel,
@@ -224,7 +226,7 @@ export const DEFAULT_VIDEO_STORYBOARD: VideoStoryboard = {
 
 export interface WorkspaceLayoutProps {
   readonly initialTool?: StudioTool | undefined;
-  readonly initialPanelTab?: "sources" | "chat" | "studio" | undefined;
+  readonly initialPanelTab?: PanelTab | undefined;
   readonly notebookId?: string | undefined;
   /** Test-Hook: ersetzt fetch fuer den Chat-Client. */
   readonly chatFetch?: typeof fetch | undefined;
@@ -242,7 +244,8 @@ const NARROW_HEADER_QUERY = "(max-width: 599.98px)";
  */
 const SINGLE_PANEL_QUERY = "(max-width: 899.98px)";
 
-type PanelTab = "sources" | "chat" | "studio";
+/** Bereiche; graph teilt sich ab 900 px die mittlere Spalte mit dem Chat (Issue #327). */
+type PanelTab = "sources" | "chat" | "studio" | "graph";
 type Popover = "appearance" | "account";
 
 /**
@@ -253,7 +256,8 @@ const PANEL_TABS: readonly {
   readonly id: PanelTab;
   readonly labelKey: string;
   readonly ariaKey: string;
-  readonly skipKey: string;
+  /** Sprunglink zur Spalte; der Graph hat keine eigene Spalte und keinen Sprunglink. */
+  readonly skipKey?: string | undefined;
   readonly icon: IconName;
 }[] = [
   {
@@ -270,7 +274,8 @@ const PANEL_TABS: readonly {
     ariaKey: "navStudioAria",
     skipKey: "skipToStudio",
     icon: "studio"
-  }
+  },
+  { id: "graph", labelKey: "navGraph", ariaKey: "navGraphAria", icon: "graph" }
 ];
 
 /** Werkzeuge in der Symbolleiste der eingeklappten Studio-Spalte. */
@@ -290,7 +295,8 @@ const RAIL_TOOLS: readonly {
 const COLUMN_IDS: Readonly<Record<PanelTab, string>> = {
   sources: "sources-column",
   chat: "chat-column",
-  studio: "studio-column"
+  studio: "studio-column",
+  graph: "chat-column"
 };
 
 /** Reagiert auf eine Media Query; ohne window (Server-Rendering) immer false. */
@@ -330,6 +336,8 @@ export function WorkspaceLayout({
 
   // Panels & Navigation state
   const [activeMobileTab, setActiveMobileTab] = useState<PanelTab>(initialPanelTab);
+  // Wissensgraph statt Chat in der mittleren Spalte (Issue #327); der Chat bleibt erhalten
+  const [isGraphOpen, setIsGraphOpen] = useState(initialPanelTab === "graph");
   const [sources, setSources] = useState<WorkspaceSource[]>(DEFAULT_SOURCES);
   const [activeCitation, setActiveCitation] = useState<CitationLocation | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -441,7 +449,11 @@ export function WorkspaceLayout({
    */
   const goToPanel = (tab: PanelTab) => {
     setActiveMobileTab(tab);
-    if (tab !== "chat" && isCollapsed(tab)) setPanelCollapsed(tab, false);
+    if (tab === "graph") setIsGraphOpen(true);
+    if (tab === "chat") setIsGraphOpen(false);
+    if ((tab === "sources" || tab === "studio") && isCollapsed(tab)) {
+      setPanelCollapsed(tab, false);
+    }
     requestAnimationFrame(() => {
       document.querySelector<HTMLElement>(`[data-panel="${tab}"]`)?.focus({ preventScroll: true });
     });
@@ -608,6 +620,19 @@ export function WorkspaceLayout({
     if (isCollapsed("sources")) setPanelCollapsed("sources", false);
   };
 
+  /**
+   * Sprung aus dem Graphen in die Quellen. Unter 900 px verschwindet der Graph dabei aus dem
+   * Bild: dann geht der Fokus in die Quellen, sonst bliebe er auf einem unsichtbaren Knopf.
+   */
+  const jumpToSourceFromGraph = (sourceId: string) => {
+    handleCitationClick({ sourceId });
+    if (!isSinglePanel) return;
+    requestAnimationFrame(() => {
+      if (document.activeElement?.closest("[data-panel='sources']")) return;
+      document.querySelector<HTMLElement>("[data-panel='sources']")?.focus({ preventScroll: true });
+    });
+  };
+
   const updateMessage = useCallback((id: string, patch: (m: ChatMessage) => ChatMessage) => {
     setMessages((prev) => prev.map((m) => (m.id === id ? patch(m) : m)));
   }, []);
@@ -693,6 +718,9 @@ export function WorkspaceLayout({
     if (lastPromptRef.current) void handleSendMessage(lastPromptRef.current, { isRetry: true });
   };
 
+  // Wissensgraph aus Quellen und Mindmap (keine erfundenen Inhalte, Issue #327)
+  const knowledgeGraph = useMemo(() => buildKnowledgeGraph(sources, DEFAULT_MINDMAP), [sources]);
+
   const sourcesCollapsed = isCollapsed("sources");
   const studioCollapsed = isCollapsed("studio");
 
@@ -706,7 +734,7 @@ export function WorkspaceLayout({
       <a href="#workspace-main" className="rn-skip-link" data-testid="skip-link">
         {t("skipToContent")}
       </a>
-      {PANEL_TABS.map((tab) => (
+      {PANEL_TABS.filter((tab) => tab.skipKey).map((tab) => (
         <a
           key={tab.id}
           href={`#${COLUMN_IDS[tab.id]}`}
@@ -717,7 +745,7 @@ export function WorkspaceLayout({
             goToPanel(tab.id);
           }}
         >
-          {t(tab.skipKey)}
+          {t(tab.skipKey as string)}
         </a>
       ))}
 
@@ -956,21 +984,32 @@ export function WorkspaceLayout({
         <div
           id={COLUMN_IDS.chat}
           data-testid="panel-center-wrapper"
-          className={`workspace-panel panel-center ${activeMobileTab === "chat" ? "panel-active" : ""}`}
+          className={`workspace-panel panel-center ${activeMobileTab === "chat" || activeMobileTab === "graph" ? "panel-active" : ""}`}
         >
-          <ChatPanel
-            notebookTitle={notebookTitle}
-            notebookSummary="Dieses Notebook dokumentiert die vollständige Cloudflare Single-Worker- und In-Memory-Vektor-Architektur für latenzfreie Inferenz."
-            notebookSummaryLang={DEFAULT_CONTENT_LANGS.summary}
-            messages={chatMessages}
-            activeModel={activeModel}
-            onSendMessage={(text) => handleSendMessage(text)}
-            onStop={handleStopChat}
-            onRetry={handleRetryChat}
-            onCitationClick={handleCitationClick}
-            isGenerating={isGenerating}
-            panelAttributes={panelAttributes("chat")}
-          />
+          <div className="rn-panel-slot" hidden={isGraphOpen}>
+            <ChatPanel
+              notebookTitle={notebookTitle}
+              notebookSummary="Dieses Notebook dokumentiert die vollständige Cloudflare Single-Worker- und In-Memory-Vektor-Architektur für latenzfreie Inferenz."
+              notebookSummaryLang={DEFAULT_CONTENT_LANGS.summary}
+              messages={chatMessages}
+              activeModel={activeModel}
+              onSendMessage={(text) => handleSendMessage(text)}
+              onStop={handleStopChat}
+              onRetry={handleRetryChat}
+              onCitationClick={handleCitationClick}
+              isGenerating={isGenerating}
+              panelAttributes={panelAttributes("chat")}
+            />
+          </div>
+          {isGraphOpen && (
+            <GraphViewer
+              graph={knowledgeGraph}
+              contentLang={DEFAULT_CONTENT_LANGS.sources}
+              onSourceJump={jumpToSourceFromGraph}
+              onClose={isSinglePanel ? undefined : () => goToPanel("chat")}
+              panelAttributes={panelAttributes("graph")}
+            />
+          )}
         </div>
 
         {/* Panel 3: Right Studio Panel */}
@@ -1008,6 +1047,7 @@ export function WorkspaceLayout({
               notebookTitle={notebookTitle}
               activeTool={initialTool}
               toolRequest={studioToolRequest}
+              onOpenGraph={() => goToPanel("graph")}
               mindmapData={DEFAULT_MINDMAP}
               flashcardsData={DEFAULT_FLASHCARDS}
               quizData={DEFAULT_QUIZ}

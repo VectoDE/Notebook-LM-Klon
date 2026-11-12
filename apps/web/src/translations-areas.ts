@@ -450,6 +450,58 @@ const ENTRIES: readonly Entry[] = [
   ],
   ["accountOpenSettings", "Einstellungen öffnen", "Open settings"],
 
+  // Wissensgraph (Issue #327)
+  ["navGraph", "Graph", "Graph"],
+  ["navGraphAria", "Graph der Begriffe und Quellen", "Graph of concepts and sources"],
+  ["toolGraphTitle", "Wissensgraph", "Knowledge graph"],
+  [
+    "toolGraphDesc",
+    "Zeigt, welche Begriffe in welchen Quellen vorkommen und wie sie zusammenhängen.",
+    "Shows which concepts appear in which sources and how they connect."
+  ],
+  ["toolGraphOpen", "Anzeigen", "Show"],
+  ["graphTitle", "Wissensgraph", "Knowledge graph"],
+  [
+    "graphSub",
+    "{concepts} Begriffe, {sources} Quellen, {links} Verbindungen",
+    "{concepts} concepts, {sources} sources, {links} links"
+  ],
+  ["graphBack", "Zurück zum Chat", "Back to chat"],
+  ["graphTabList", "Liste", "List"],
+  ["graphSvgLabel", "Wissensgraph als Grafik", "Knowledge graph as a graphic"],
+  [
+    "graphVisualHint",
+    "Pfeiltasten wechseln zwischen den Knoten, Eingabe oder Leertaste zeigt die Details. Die Liste enthält denselben Inhalt als Text.",
+    "Arrow keys move between nodes, Enter or Space shows the details. The list holds the same content as text."
+  ],
+  ["graphKindConcept", "Begriff", "Concept"],
+  ["graphKindSource", "Quelle", "Source"],
+  ["graphNodeAria", "{label}, {kind}, {n} Verbindungen", "{label}, {kind}, {n} links"],
+  ["graphLegendLabel", "Legende", "Legend"],
+  ["graphLegendRelated", "Durchgezogen: hängt zusammen mit", "Solid: related to"],
+  ["graphLegendOccurs", "Gestrichelt: kommt vor in", "Dashed: appears in"],
+  ["graphLegendConcept", "Abgerundet: Begriff", "Rounded: concept"],
+  ["graphLegendSource", "Eckig: Quelle", "Square: source"],
+  ["graphRelated", "Hängt zusammen mit", "Related to"],
+  ["graphOccursIn", "Kommt vor in", "Appears in"],
+  ["graphContains", "Enthält die Begriffe", "Contains the concepts"],
+  ["graphNone", "keine", "none"],
+  ["graphShowSource", "Quelle anzeigen", "Show source"],
+  ["graphShowSourceAria", "Quelle anzeigen: {title}", "Show source: {title}"],
+  ["graphDetailsTitle", "Details", "Details"],
+  [
+    "graphDetailsEmpty",
+    "Wählen Sie einen Knoten, um seine Verbindungen zu sehen.",
+    "Select a node to see its links."
+  ],
+  ["graphSelected", "Ausgewählt: {label}", "Selected: {label}"],
+  ["graphListConcepts", "Begriffe", "Concepts"],
+  ["graphListSources", "Quellen", "Sources"],
+  [
+    "graphEmpty",
+    "Noch keine Begriffe oder Quellen. Fügen Sie Quellen hinzu.",
+    "No concepts or sources yet. Add sources."
+  ],
   // Komponenten (Issue #329): Ansichten, Leerzustände, Hinweis-Leiste
   ["viewToggleSources", "Ansicht der Quellen", "Source view"],
   ["viewList", "Liste", "List"],
