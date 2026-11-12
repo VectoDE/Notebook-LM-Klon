@@ -25,7 +25,9 @@ import {
   LANGUAGES,
   type Language,
   SYSTEM_COLOR_QUERIES,
+  applyReduceMotion,
   applyThemeToDocument,
+  readReduceMotion,
   resolveColorMode,
   resolveInitialPreferences,
   systemColorMode
@@ -90,7 +92,25 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     modeLight: "Hell",
     modeDark: "Dunkel",
     modeAAA: "Hoher Kontrast (AAA)",
-    motionLabel: "Reduzierte Bewegung",
+    motionLabel: "Bewegung",
+    motionToggle: "Bewegung reduzieren",
+    motionHint:
+      "Hält Hintergrund- und Übergangsanimationen an. Gilt zusätzlich zur Einstellung des Geräts.",
+    chatWelcome:
+      "Willkommen in Ihrem RelationNotes Arbeitsbereich. Ihre Quellen sind geladen. Sie können Fragen stellen oder im Bereich Studio Lernmaterial erzeugen [1].",
+    errorTechnical: "Technische Angabe",
+    errorNetwork:
+      "Keine Verbindung zum Server. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.",
+    errorNotFound:
+      "Dieses Notebook wurde auf dem Server nicht gefunden. Laden Sie die Seite neu; besteht der Fehler weiter, öffnen Sie das Notebook erneut.",
+    errorAuth:
+      "Sie sind nicht mehr angemeldet. Melden Sie sich erneut an und versuchen Sie es noch einmal.",
+    errorRateLimit:
+      "Zu viele Anfragen in kurzer Zeit. Warten Sie einen Moment und versuchen Sie es dann erneut.",
+    errorServer:
+      "Der Server hat einen Fehler gemeldet. Versuchen Sie es in einigen Minuten erneut.",
+    errorGeneric: "Die Anfrage hat nicht geklappt. Versuchen Sie es erneut.",
+    errorHostAnswer: "Die Hosts konnten nicht antworten.",
     navOverview: "Übersicht",
     navMindmap: "Mindmap",
     navFlashcards: "Lernkarten",
@@ -160,7 +180,21 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     modeLight: "Light",
     modeDark: "Dark",
     modeAAA: "High contrast (AAA)",
-    motionLabel: "Reduced Motion",
+    motionLabel: "Motion",
+    motionToggle: "Reduce motion",
+    motionHint:
+      "Stops background and transition animations. Applies in addition to your device setting.",
+    chatWelcome:
+      "Welcome to your RelationNotes workspace. Your sources are loaded. Ask questions or create learning material in the Studio area [1].",
+    errorTechnical: "Technical detail",
+    errorNetwork: "No connection to the server. Check your internet connection and try again.",
+    errorNotFound:
+      "This notebook was not found on the server. Reload the page; if the problem persists, open the notebook again.",
+    errorAuth: "You are no longer signed in. Sign in again and retry.",
+    errorRateLimit: "Too many requests in a short time. Wait a moment, then try again.",
+    errorServer: "The server reported an error. Try again in a few minutes.",
+    errorGeneric: "The request did not work. Please try again.",
+    errorHostAnswer: "The hosts could not answer.",
     navOverview: "Overview",
     navMindmap: "Mindmap",
     navFlashcards: "Flashcards",
@@ -194,6 +228,9 @@ export interface ThemeContextValue {
   /** Tatsächlich angewendeter Farbmodus (bei "system" der des Geräts). */
   readonly resolvedColorMode: ColorMode;
   readonly language: Language;
+  /** Schalter „Bewegung reduzieren“ der App (zusätzlich zu prefers-reduced-motion). */
+  readonly reduceMotion: boolean;
+  readonly setReduceMotion: (enabled: boolean) => void;
   readonly setTheme: (theme: DesignTheme) => void;
   readonly setColorMode: (mode: ColorModePreference) => void;
   readonly setLanguage: (lang: Language) => void;
@@ -239,6 +276,9 @@ export function ThemeProvider({
   const [theme, setThemeState] = useState<DesignTheme>(initial.theme);
   const [colorMode, setColorModeState] = useState<ColorModePreference>(initial.colorMode);
   const [language, setLanguageState] = useState<Language>(initial.language);
+  const [reduceMotion, setReduceMotion] = useState<boolean>(() =>
+    readReduceMotion(browserEnvironment().storage)
+  );
   const [systemMode, setSystemMode] = useState<ColorMode>(() =>
     systemColorMode(browserEnvironment())
   );
@@ -268,6 +308,11 @@ export function ThemeProvider({
     );
   }, [theme, colorMode, language, systemMode]);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    applyReduceMotion(document.documentElement, reduceMotion, browserEnvironment().storage);
+  }, [reduceMotion]);
+
   const setTheme = useCallback((newTheme: DesignTheme) => {
     setThemeState(newTheme);
   }, []);
@@ -288,12 +333,24 @@ export function ThemeProvider({
       colorMode,
       resolvedColorMode,
       language,
+      reduceMotion,
+      setReduceMotion,
       setTheme,
       setColorMode,
       setLanguage,
       t
     }),
-    [theme, colorMode, resolvedColorMode, language, setTheme, setColorMode, setLanguage, t]
+    [
+      theme,
+      colorMode,
+      resolvedColorMode,
+      language,
+      reduceMotion,
+      setTheme,
+      setColorMode,
+      setLanguage,
+      t
+    ]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -307,6 +364,8 @@ export function useTheme(): ThemeContextValue {
       colorMode: "system",
       resolvedColorMode: "light",
       language: "de",
+      reduceMotion: false,
+      setReduceMotion: () => {},
       setTheme: () => {},
       setColorMode: () => {},
       setLanguage: () => {},

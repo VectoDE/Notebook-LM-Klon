@@ -377,7 +377,7 @@ html[data-color-mode="aaa-contrast"] .workspace-header .rn-control:hover {
   box-shadow: var(--rn-shadow-popover);
   z-index: 40;
   transform-origin: top right;
-  animation: rn-popover-in 160ms var(--rn-transition-ease) both;
+  animation: rn-popover-in var(--rn-motion-fast) var(--rn-transition-ease) both;
 }
 
 /* Das Menü selbst trägt nur nach Mausklick den Fokus; der Ring gehört an die Felder */
@@ -502,6 +502,33 @@ html[data-color-mode="aaa-contrast"] .rn-popover {
   line-height: 20px;
 }
 
+/* Farbschema: einzeilige Optionen, alle gleich hoch (44 px Ziel) */
+.rn-choices--compact .rn-choice {
+  min-height: 44px;
+  padding-block: 4px;
+}
+
+/* Schalter „Bewegung reduzieren“ in den Einstellungen */
+.rn-check-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--rn-space-3);
+  min-height: 44px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-radius: var(--rn-radius-md);
+  color: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rn-check-row:hover {
+  background: var(--rn-color-surface-variant);
+}
+
 .rn-segmented {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -562,7 +589,7 @@ html[data-color-mode="aaa-contrast"] .rn-popover {
 .rn-sheet[open] {
   display: flex;
   flex-direction: column;
-  animation: rn-sheet-in 220ms var(--rn-transition-ease) both;
+  animation: rn-sheet-in var(--rn-motion-medium) var(--rn-transition-ease) both;
 }
 
 .rn-sheet::backdrop {
@@ -715,6 +742,16 @@ html[data-color-mode="aaa-contrast"] .rn-popover {
   .rn-appearance-chevron {
     transition: none;
   }
+}
+
+/* Schalter „Bewegung reduzieren“ (Issue #315): dieselben Regeln */
+html[data-reduce-motion="true"] .rn-popover,
+html[data-reduce-motion="true"] .rn-sheet[open] {
+  animation: none;
+}
+
+html[data-reduce-motion="true"] .rn-appearance-chevron {
+  transition: none;
 }
 
 /* ==========================================================================
@@ -1032,7 +1069,8 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indica
 
 .rn-summary-title {
   margin: 0;
-  font-size: var(--rn-text-h3) !important;
+  /* Zwischenstufe: größer als Kartentitel, kleiner als Paneltitel */
+  font-size: var(--rn-text-lead);
 }
 
 .rn-summary-text {
@@ -1145,6 +1183,21 @@ html[data-color-mode="aaa-contrast"] .rn-chip {
   color: var(--rn-color-error);
   border: 1px solid var(--rn-color-error);
   font-size: var(--rn-text-small);
+}
+
+.rn-msg-error-text {
+  display: grid;
+  gap: var(--rn-space-1);
+  flex: 1 1 16rem;
+  min-width: 0;
+  line-height: 1.45;
+}
+
+/* Statuscode nur als Detail unter dem Klartext; gleiche Farbe, damit 7:1 hält */
+.rn-msg-error-detail {
+  font-size: var(--rn-text-small);
+  font-weight: 400;
+  overflow-wrap: anywhere;
 }
 
 .rn-msg-note {
@@ -1349,6 +1402,12 @@ html[data-color-mode="aaa-contrast"] .rn-chip {
   .rn-caret {
     animation: none !important;
   }
+}
+
+/* Schalter „Bewegung reduzieren“ (Issue #315): dieselben Regeln */
+html[data-reduce-motion="true"] .rn-msg,
+html[data-reduce-motion="true"] .rn-caret {
+  animation: none !important;
 }
 
 /* ==========================================================================
@@ -1561,7 +1620,8 @@ html[data-color-mode="aaa-contrast"] .rn-tool {
   margin-bottom: var(--rn-space-4);
   padding: var(--rn-space-3) var(--rn-space-4);
   border-radius: var(--rn-radius-md);
-  border: 1.5px dashed var(--rn-color-panel-border);
+  /* Rand ist Bedeutungsträger der Ablagefläche: Token mit mindestens 3:1 (WCAG 1.4.11) */
+  border: 1.5px dashed var(--rn-color-border);
   background: transparent;
   color: var(--rn-color-text-secondary);
   transition: background-color var(--rn-transition-base), border-color var(--rn-transition-base);
@@ -1617,7 +1677,22 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   color: var(--rn-color-text-secondary);
 }
 
-.rn-select-all label {
+.rn-select-all {
+  cursor: pointer;
+  border-radius: var(--rn-radius-md);
+}
+
+.rn-select-all:hover {
+  background: var(--rn-color-surface-variant);
+}
+
+/* 44 × 44 px Trefferfläche um das Kästchen; negative Ränder halten das Zeilenlayout gleich */
+.rn-check-hit {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -12px;
   cursor: pointer;
 }
 
@@ -1827,6 +1902,11 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   }
 }
 
+/* Schalter „Bewegung reduzieren“ (Issue #315): dieselben Regeln */
+html[data-reduce-motion="true"] .rn-dialog-card {
+  animation: none !important;
+}
+
 /* ==========================================================================
    Werkzeugansichten: gemeinsamer Kopf, Fortschritt, Aktionsreihen
    Alle Texte stehen auf geprüften Token-Flächen (panel, canvas, surface-variant,
@@ -1857,7 +1937,8 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
 .rn-tool-view-title {
   margin: 0;
   font-family: var(--rn-font-family-headings);
-  font-size: var(--rn-text-h3);
+  /* Werkzeugtitel: Zwischenstufe unter dem Paneltitel „Studio“ */
+  font-size: var(--rn-text-lead);
   font-weight: var(--rn-weight-heading);
   line-height: 1.25;
   color: var(--rn-color-text-primary);
@@ -2782,8 +2863,8 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .rn-video-slide {
-    animation: rn-video-slide-in 400ms ease-out both;
+  :where(html:not([data-reduce-motion="true"])) .rn-video-slide {
+    animation: rn-video-slide-in var(--rn-motion-medium) ease-out both;
   }
 }
 
@@ -3061,11 +3142,17 @@ html[data-color-mode="aaa-contrast"] .rn-stage-btn.rn-video-toggle[aria-pressed=
   color: var(--rn-color-stage-muted);
 }
 
-@media (max-width: 767.98px) {
+/* Unter 1024 px: Orb oben, Transkript in voller Breite darunter (Issue #315) */
+@media (max-width: 1023.98px) {
   .rn-stage-body {
     grid-template-columns: minmax(0, 1fr);
     align-content: start;
     gap: var(--rn-space-4);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .rn-stage-body {
     padding: var(--rn-space-4);
   }
   .rn-stage-head,
@@ -3148,7 +3235,7 @@ html[data-color-mode="aaa-contrast"] .rn-stage-btn.rn-video-toggle[aria-pressed=
 .player-header h3 {
   margin: 0;
   font-family: var(--rn-font-family-headings);
-  font-size: var(--rn-text-h3);
+  font-size: var(--rn-text-lead);
   line-height: 1.25;
   color: var(--rn-color-stage-text);
 }
@@ -3515,7 +3602,7 @@ html[data-color-mode="aaa-contrast"] .rn-stage-btn.rn-video-toggle[aria-pressed=
    ========================================================================== */
 @media (max-width: 899.98px) {
   .workspace-panel.panel-active {
-    animation: rn-panel-in 220ms var(--rn-transition-ease) both;
+    animation: rn-panel-in var(--rn-motion-medium) var(--rn-transition-ease) both;
   }
 }
 
@@ -3547,6 +3634,26 @@ html[data-color-mode="aaa-contrast"] .rn-stage-btn.rn-video-toggle[aria-pressed=
   .rn-lyrics {
     scroll-behavior: auto;
   }
+}
+
+/* Schalter „Bewegung reduzieren“ (Issue #315): dieselben Regeln */
+html[data-reduce-motion="true"] .workspace-panel.panel-active,
+html[data-reduce-motion="true"] .rn-drawer[open],
+html[data-reduce-motion="true"] .rn-stage[open],
+html[data-reduce-motion="true"] .rn-stage-live {
+  animation: none;
+}
+
+html[data-reduce-motion="true"] .rn-progress::-webkit-progress-value,
+html[data-reduce-motion="true"] .rn-quiz-option,
+html[data-reduce-motion="true"] .rn-rating,
+html[data-reduce-motion="true"] .rn-lyrics-line,
+html[data-reduce-motion="true"] .rn-mm-box {
+  transition: none;
+}
+
+html[data-reduce-motion="true"] .rn-lyrics {
+  scroll-behavior: auto;
 }
 
 /* ==========================================================================
@@ -3614,7 +3721,7 @@ html[data-design="editorial-calm"] .rn-summary {
 }
 
 html[data-design="editorial-calm"] .rn-summary-title {
-  font-size: var(--rn-text-h2) !important;
+  font-size: var(--rn-text-h2);
 }
 
 html[data-design="editorial-calm"] .rn-summary-text {
@@ -3817,6 +3924,15 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indica
   }
 }
 
+/* Schalter „Bewegung reduzieren“ (Issue #315): dieselben Regeln */
+html[data-reduce-motion="true"][data-design] .rn-summary::before {
+  animation: none !important;
+}
+
+html[data-reduce-motion="true"][data-design] .rn-tool:hover {
+  transform: none !important;
+}
+
 /* ==========================================================================
    Studio auf dem Telefon: Werkzeuge als Liste statt Karten
    Eine Fläche, Trennlinien, Symbol links, Aktion unter dem Text.
@@ -3896,8 +4012,8 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indica
 
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: scroll()) {
-    :where(html:not([data-color-mode="aaa-contrast"]))
-      :is(.chat-log, .rn-sources, .rn-panel-body, .rn-inspector) {
+    :where(html:not([data-color-mode="aaa-contrast"]):not([data-reduce-motion="true"]))
+      :is(.chat-log, .rn-sources, .rn-panel-body, .rn-inspector, .rn-stage-body, .rn-lyrics) {
       --rn-scroll-fade-size: 28px;
       animation: rn-fade-top-in linear both, rn-fade-bottom-out linear both;
       animation-timeline: scroll(self block), scroll(self block);

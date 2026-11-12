@@ -11,8 +11,10 @@ import {
   useRef,
   useState
 } from "react";
+import { ChatApiError, errorKeyForStatus, technicalErrorDetail } from "./chat-client.js";
 import { focusFirstAvailable } from "./focus-return.js";
 import { podcastStateLabel } from "./stage-visuals.js";
+import { useTheme } from "./useTheme.js";
 
 export interface SpeechRecognitionResultLike {
   readonly [index: number]: { readonly transcript: string };
@@ -57,6 +59,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
     onInterjectSubmit,
     currentTrackTitle = "Audio Overview: Deep Dive Podcast"
   } = props;
+  const { t } = useTheme();
 
   const [machineCtx, setMachineCtx] = useState<PodcastStateMachineContext>(() =>
     stateMachine.getContext()
@@ -262,7 +265,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
           })
         });
         if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
+          throw new ChatApiError(`HTTP ${res.status}`, res.status);
         }
         response = (await res.json()) as AudioInterjectResponse;
       }
@@ -277,8 +280,18 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
       setQuestionText("");
       setLiveTranscript("");
     } catch (err) {
-      const errMessage = err instanceof Error ? err.message : String(err);
-      setStatusMessage(`Fehler beim Abrufen der Host-Antwort: ${errMessage}`);
+      // Klartext mit Handlungshinweis, Statuscode nur als technische Angabe (Issue #315)
+      const key =
+        err instanceof ChatApiError
+          ? errorKeyForStatus(err.status)
+          : err instanceof TypeError
+            ? "errorNetwork"
+            : "errorGeneric";
+      const detail =
+        err instanceof ChatApiError
+          ? ` (${t("errorTechnical")}: ${technicalErrorDetail(err.status, err.message)})`
+          : "";
+      setStatusMessage(`${t("errorHostAnswer")} ${t(key)}${detail}`);
       stateMachine.dispatch({ type: "CANCEL_INTERJECT" });
     } finally {
       setIsSubmitting(false);

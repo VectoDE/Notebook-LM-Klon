@@ -27,7 +27,8 @@ export const LANGUAGES: readonly Language[] = ["de", "en"] as const;
 export const STORAGE_KEYS = {
   theme: "rn_design",
   colorMode: "rn_color_mode",
-  language: "rn_language"
+  language: "rn_language",
+  reduceMotion: "rn_reduce_motion"
 } as const;
 
 /** Ältere gespeicherte Werte (vor Issue #252) auf die neuen Namen abbilden. */
@@ -123,4 +124,43 @@ export function applyThemeToDocument(
   } catch {
     // Speichern nicht möglich (z. B. privater Modus): Auswahl gilt nur für diese Sitzung.
   }
+}
+
+/**
+ * Schalter „Bewegung reduzieren“ (Issue #315): Attribut am <html>, das dieselben Regeln
+ * auslöst wie prefers-reduced-motion: reduce (themes.css, workspace.css).
+ */
+export const REDUCE_MOTION_ATTRIBUTE = "data-reduce-motion";
+export const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+/** Gespeicherte Wahl lesen: nur "true" schaltet ein, alles andere (auch Fehler) aus. */
+export function readReduceMotion(storage: Pick<Storage, "getItem"> | undefined): boolean {
+  return safeRead(storage, STORAGE_KEYS.reduceMotion) === "true";
+}
+
+/** Setzt oder entfernt das Attribut und speichert die Wahl (Speicherfehler werden ignoriert). */
+export function applyReduceMotion(
+  root: Pick<Element, "setAttribute" | "removeAttribute">,
+  enabled: boolean,
+  storage?: Pick<Storage, "setItem"> | undefined
+): void {
+  if (enabled) root.setAttribute(REDUCE_MOTION_ATTRIBUTE, "true");
+  else root.removeAttribute(REDUCE_MOTION_ATTRIBUTE);
+  try {
+    storage?.setItem(STORAGE_KEYS.reduceMotion, enabled ? "true" : "false");
+  } catch {
+    // Speichern nicht möglich: Wahl gilt nur für diese Sitzung.
+  }
+}
+
+/**
+ * Soll Bewegung entfallen? Ja, wenn der Schalter in der App an ist oder das Gerät es wünscht.
+ * Für Canvas- und Scroll-Code, den CSS nicht erreicht (Orb, Live-Transkript).
+ */
+export function shouldReduceMotion(
+  root: Pick<Element, "getAttribute"> | undefined,
+  matchMedia?: ((query: string) => { readonly matches: boolean }) | undefined
+): boolean {
+  if (root?.getAttribute(REDUCE_MOTION_ATTRIBUTE) === "true") return true;
+  return Boolean(matchMedia?.(REDUCED_MOTION_QUERY).matches);
 }

@@ -11,6 +11,7 @@ import {
   type KeyboardEvent,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState
 } from "react";
@@ -21,7 +22,13 @@ import { Icon, type IconName } from "./Icon.js";
 import { SettingsDrawer } from "./SettingsDrawer.js";
 import { SourcesPanel } from "./SourcesPanel.js";
 import { StudioPanel, type StudioTool } from "./StudioPanel.js";
-import { ChatApiError, mapCitations, streamChat } from "./chat-client.js";
+import {
+  ChatApiError,
+  errorKeyForStatus,
+  mapCitations,
+  streamChat,
+  technicalErrorDetail
+} from "./chat-client.js";
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, WorkspaceSource } from "./workspace-types.js";
@@ -332,8 +339,8 @@ export function WorkspaceLayout({
     {
       id: "msg_intro",
       role: "assistant",
-      content:
-        "Willkommen in Ihrem RelationNotes Arbeitsbereich. Ihre Quellen sind geladen. Sie können Zwischenfragen stellen oder die Studio-Werkzeuge rechts nutzen [1]."
+      // Ortsneutral (mobil liegt Studio nicht rechts); Text aus dem Sprachkatalog, siehe chatMessages
+      content: t("chatWelcome")
     }
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -445,9 +452,15 @@ export function WorkspaceLayout({
       if (err instanceof DOMException && err.name === "AbortError") {
         updateMessage(assistantId, (m) => ({ ...m, aborted: true }));
       } else {
-        const message =
-          err instanceof ChatApiError ? err.message : "Unerwarteter Fehler beim Chat.";
-        updateMessage(assistantId, (m) => ({ ...m, error: message }));
+        // Klartext mit Handlungshinweis; Statuscode und Servertext nur als Detail (Issue #315)
+        const error = t(
+          err instanceof ChatApiError ? errorKeyForStatus(err.status) : "errorGeneric"
+        );
+        const errorDetail =
+          err instanceof ChatApiError
+            ? `${t("errorTechnical")}: ${technicalErrorDetail(err.status, err.message)}`
+            : undefined;
+        updateMessage(assistantId, (m) => ({ ...m, error, errorDetail }));
       }
     } finally {
       updateMessage(assistantId, (m) => ({ ...m, isStreaming: false }));
@@ -455,6 +468,12 @@ export function WorkspaceLayout({
       setIsGenerating(false);
     }
   };
+
+  // Begrüßung folgt der gewählten Sprache, auch nach einem Wechsel
+  const chatMessages = useMemo(
+    () => messages.map((m) => (m.id === "msg_intro" ? { ...m, content: t("chatWelcome") } : m)),
+    [messages, t]
+  );
 
   const handleRetryChat = () => {
     if (lastPromptRef.current) void handleSendMessage(lastPromptRef.current, { isRetry: true });
@@ -600,7 +619,7 @@ export function WorkspaceLayout({
           <ChatPanel
             notebookTitle="Cloudflare Edge Stack Architecture"
             notebookSummary="Dieses Notebook dokumentiert die vollständige Cloudflare Single-Worker- und In-Memory-Vektor-Architektur für latenzfreie Inferenz."
-            messages={messages}
+            messages={chatMessages}
             activeModel={activeModel}
             onSendMessage={(text) => handleSendMessage(text)}
             onStop={handleStopChat}

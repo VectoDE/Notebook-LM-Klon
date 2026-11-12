@@ -230,9 +230,25 @@ test.describe("Bühne und Audio: Inhalte", () => {
       const hex = sample.accent.replace("#", "");
       const want = [0, 2, 4].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
       expect(sample.a ?? 0).toBeGreaterThan(150);
-      expect(Math.abs((sample.r ?? 0) - (want[0] ?? 0))).toBeLessThanOrEqual(4);
-      expect(Math.abs((sample.g ?? 0) - (want[1] ?? 0))).toBeLessThanOrEqual(4);
-      expect(Math.abs((sample.b ?? 0) - (want[2] ?? 0))).toBeLessThanOrEqual(4);
+      // Farbton des Bühnenakzents; blasse Akzente werden für den Orb kräftiger (Issue #315)
+      const hsl = (rgb: number[]) => {
+        const [r, g, b] = rgb.map((v) => v / 255) as [number, number, number];
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const d = max - min;
+        let h = 0;
+        if (d > 0) {
+          if (max === r) h = ((g - b) / d + 6) % 6;
+          else if (max === g) h = (b - r) / d + 2;
+          else h = (r - g) / d + 4;
+        }
+        return { h: h * 60, l: (max + min) / 2 };
+      };
+      const got = hsl([sample.r ?? 0, sample.g ?? 0, sample.b ?? 0]);
+      const target = hsl(want as number[]);
+      const diff = Math.abs(got.h - target.h);
+      expect(Math.min(diff, 360 - diff)).toBeLessThanOrEqual(10);
+      expect(got.l).toBeLessThanOrEqual(Math.max(target.l, 0.7) + 0.03);
     });
   }
 });

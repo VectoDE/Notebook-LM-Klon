@@ -8,12 +8,14 @@ import {
   FIT_PADDING,
   MindmapViewer,
   NODE_FONT_SIZE,
+  PHONE_QUERY,
   TOGGLE_RADIUS,
   buildParentMap,
   buildTreeMeta,
   computeMindmapLayout,
   fitMindmap,
   flattenLayoutNodes,
+  initialMindmapTab,
   nodeWidthFor,
   resolveActiveId,
   tabKeyTarget,
@@ -290,6 +292,19 @@ describe("MindmapViewer Layout Engine & Component (Sub-Issue #122)", () => {
         pan: { x: FIT_PADDING, y: FIT_PADDING }
       });
       expect(fitMindmap(nodes, { width: 0, height: 0 }).zoom).toBe(1);
+    });
+  });
+
+  describe("initialMindmapTab (Issue #315)", () => {
+    it("startet auf dem Telefon mit der Baumliste, sonst mit der Grafik", () => {
+      expect(initialMindmapTab((q) => ({ matches: q === PHONE_QUERY }))).toBe("tree");
+      expect(initialMindmapTab(() => ({ matches: false }))).toBe("visual");
+      expect(initialMindmapTab(undefined)).toBe("visual");
+    });
+
+    it("zeigt keine Eyebrow über dem Titel", () => {
+      const html = renderToStaticMarkup(createElement(MindmapViewer, { rootNode: sampleTree }));
+      expect(html).not.toContain("rn-eyebrow");
     });
   });
 });

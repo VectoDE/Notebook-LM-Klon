@@ -2,11 +2,16 @@ import { describe, expect, it, vi } from "vitest";
 import {
   COLOR_MODE_PREFERENCES,
   LANGUAGES,
+  REDUCED_MOTION_QUERY,
+  REDUCE_MOTION_ATTRIBUTE,
   STORAGE_KEYS,
   SYSTEM_COLOR_QUERIES,
+  applyReduceMotion,
   applyThemeToDocument,
+  readReduceMotion,
   resolveColorMode,
   resolveInitialPreferences,
+  shouldReduceMotion,
   systemColorMode
 } from "../theme-preferences.js";
 
@@ -155,5 +160,53 @@ describe("applyThemeToDocument", () => {
     };
     expect(() => applyThemeToDocument(root, prefs, failing)).not.toThrow();
     expect(root.setAttribute).toHaveBeenCalledTimes(6);
+  });
+});
+
+describe("Bewegung reduzieren (Issue #315)", () => {
+  it('liest nur "true" als eingeschaltet', () => {
+    expect(STORAGE_KEYS.reduceMotion).toBe("rn_reduce_motion");
+    expect(readReduceMotion(storage({ rn_reduce_motion: "true" }))).toBe(true);
+    expect(readReduceMotion(storage({ rn_reduce_motion: "false" }))).toBe(false);
+    expect(readReduceMotion(storage({}))).toBe(false);
+    expect(readReduceMotion(undefined)).toBe(false);
+    const broken = {
+      getItem: () => {
+        throw new Error("SecurityError");
+      }
+    };
+    expect(readReduceMotion(broken)).toBe(false);
+  });
+
+  it("setzt bzw. entfernt das Attribut und speichert die Wahl", () => {
+    const root = { setAttribute: vi.fn(), removeAttribute: vi.fn() };
+    const store = { setItem: vi.fn() };
+    applyReduceMotion(root, true, store);
+    expect(root.setAttribute).toHaveBeenCalledWith(REDUCE_MOTION_ATTRIBUTE, "true");
+    expect(store.setItem).toHaveBeenLastCalledWith("rn_reduce_motion", "true");
+    applyReduceMotion(root, false, store);
+    expect(root.removeAttribute).toHaveBeenCalledWith(REDUCE_MOTION_ATTRIBUTE);
+    expect(store.setItem).toHaveBeenLastCalledWith("rn_reduce_motion", "false");
+  });
+
+  it("arbeitet ohne Speicher und bei Speicherfehlern weiter", () => {
+    const root = { setAttribute: vi.fn(), removeAttribute: vi.fn() };
+    expect(() => applyReduceMotion(root, true)).not.toThrow();
+    const failing = {
+      setItem: () => {
+        throw new Error("QuotaExceededError");
+      }
+    };
+    expect(() => applyReduceMotion(root, false, failing)).not.toThrow();
+  });
+
+  it("folgt dem Schalter in der App oder der Geräteeinstellung", () => {
+    const on = { getAttribute: () => "true" };
+    const off = { getAttribute: () => null };
+    expect(shouldReduceMotion(on)).toBe(true);
+    expect(shouldReduceMotion(off)).toBe(false);
+    expect(shouldReduceMotion(undefined)).toBe(false);
+    expect(shouldReduceMotion(off, media({ [REDUCED_MOTION_QUERY]: true }))).toBe(true);
+    expect(shouldReduceMotion(off, media({}))).toBe(false);
   });
 });

@@ -193,7 +193,8 @@ export function SourcesPanel({
       </div>
 
       {sources.length > 0 && (
-        <div className="rn-select-all">
+        // Ganze Zeile ist das Label: Trefferfläche 44 px hoch (WCAG 2.5.5, Issue #315)
+        <label className="rn-select-all" htmlFor="select-all-sources-checkbox">
           <input
             id="select-all-sources-checkbox"
             type="checkbox"
@@ -202,8 +203,8 @@ export function SourcesPanel({
             data-testid="select-all-sources-checkbox"
             className="rn-checkbox"
           />
-          <label htmlFor="select-all-sources-checkbox">Alle Quellen auswählen</label>
-        </div>
+          <span>Alle Quellen auswählen</span>
+        </label>
       )}
 
       {/* Liste */}
@@ -227,15 +228,22 @@ export function SourcesPanel({
                 className="rn-source"
               >
                 <div className="rn-source-main">
-                  <input
-                    type="checkbox"
-                    id={`source-checkbox-${source.id}`}
-                    checked={isSelected}
-                    onChange={() => onToggleSelect?.(source.id)}
-                    aria-label={`Quelle ${source.title} für Chat auswählen`}
-                    data-testid={`source-checkbox-${source.id}`}
-                    className="rn-checkbox"
-                  />
+                  {/* Label als 44-px-Trefferfläche um das 20-px-Kästchen (Issue #315) */}
+                  <label
+                    className="rn-check-hit"
+                    htmlFor={`source-checkbox-${source.id}`}
+                    data-testid={`source-check-hit-${source.id}`}
+                  >
+                    <input
+                      type="checkbox"
+                      id={`source-checkbox-${source.id}`}
+                      checked={isSelected}
+                      onChange={() => onToggleSelect?.(source.id)}
+                      aria-label={`Quelle ${source.title} für Chat auswählen`}
+                      data-testid={`source-checkbox-${source.id}`}
+                      className="rn-checkbox"
+                    />
+                  </label>
                   <span className="rn-source-type" aria-hidden="true">
                     {sourceTypeLabel(source.mimeType)}
                   </span>

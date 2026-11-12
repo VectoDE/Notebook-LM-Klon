@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   ChatApiError,
   type ChatStreamEvent,
+  errorKeyForStatus,
   mapCitations,
   parseSseStream,
   streamChat,
+  technicalErrorDetail,
   toChatEvent
 } from "../chat-client.js";
 
@@ -198,5 +200,23 @@ describe("streamChat", () => {
     );
     const events = await collect(streamChat({ notebookId: "x", message: "m", fetchImpl }));
     expect(events).toEqual([{ type: "error", message: "Provider down" }]);
+  });
+});
+
+describe("Fehlertexte in Klartext (Issue #315)", () => {
+  it("ordnet Statuscodes einem Hinweis im Sprachkatalog zu", () => {
+    expect(errorKeyForStatus(0)).toBe("errorNetwork");
+    expect(errorKeyForStatus(401)).toBe("errorAuth");
+    expect(errorKeyForStatus(403)).toBe("errorAuth");
+    expect(errorKeyForStatus(404)).toBe("errorNotFound");
+    expect(errorKeyForStatus(429)).toBe("errorRateLimit");
+    expect(errorKeyForStatus(502)).toBe("errorServer");
+    expect(errorKeyForStatus(400)).toBe("errorGeneric");
+  });
+
+  it("führt den Statuscode nur als technische Angabe, ohne Doppelung", () => {
+    expect(technicalErrorDetail(404, "Anfrage fehlgeschlagen (HTTP 404).")).toBe("HTTP 404");
+    expect(technicalErrorDetail(409, "Notebook gesperrt")).toBe("HTTP 409 · Notebook gesperrt");
+    expect(technicalErrorDetail(0, "Netzwerkfehler")).toBe("Netzwerkfehler");
   });
 });

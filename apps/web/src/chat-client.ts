@@ -49,6 +49,25 @@ export class ChatApiError extends Error {
 }
 
 /**
+ * Schlüssel im Sprachkatalog für eine verständliche Fehlermeldung mit Handlungshinweis
+ * (WCAG 3.3.3, Issue #315). Der Statuscode erscheint nur als technische Angabe.
+ */
+export function errorKeyForStatus(status: number): string {
+  if (status === 0) return "errorNetwork";
+  if (status === 401 || status === 403) return "errorAuth";
+  if (status === 404) return "errorNotFound";
+  if (status === 429) return "errorRateLimit";
+  if (status >= 500) return "errorServer";
+  return "errorGeneric";
+}
+
+/** Technische Angabe zum Fehler: Statuscode und Text des Servers, ohne Doppelungen. */
+export function technicalErrorDetail(status: number, message: string): string {
+  if (status <= 0) return message;
+  return message.includes(`HTTP ${status}`) ? `HTTP ${status}` : `HTTP ${status} · ${message}`;
+}
+
+/**
  * Parst einen SSE-Byte-Stream (WHATWG-Format). Behandelt CRLF/LF/CR,
  * mehrzeilige data-Felder, Kommentare und Nachrichten ueber Chunk-Grenzen hinweg.
  */
