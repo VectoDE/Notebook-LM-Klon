@@ -80,11 +80,8 @@ export const App: FunctionComponent<AppProps> = ({
   mode = "legacy"
 }: AppProps = {}) => {
   if (mode === "workspace") {
-    return (
-      <main aria-labelledby="app-title">
-        <WorkspaceLayout initialTool={initialTool} />
-      </main>
-    );
+    // WorkspaceLayout bringt Kopfzeile (banner) und main selbst mit
+    return <WorkspaceLayout initialTool={initialTool} />;
   }
 
   const currentTool = initialTool;

@@ -33,15 +33,23 @@ describe("WorkspaceLayout Component (Issue #31)", () => {
     expect(html).toContain('data-testid="tab-btn-chat"');
     expect(html).toContain('data-testid="tab-btn-studio"');
     // Reiter: kurze sichtbare Namen, volle Namen für Screenreader, Zähler an Quellen
-    expect(html).toContain('aria-label="Quellen (2)"');
+    // Quellen: Name aus dem Inhalt, beginnt mit der sichtbaren Beschriftung (WCAG 2.5.3)
+    expect(html).not.toContain('aria-label="Quellen (2)"');
+    expect(html).toContain('<span class="rn-visually-hidden"> (2)</span>');
     expect(html).toContain('aria-label="Chat &amp; Zitate"');
     expect(html).toContain('aria-label="Studio (6 Werkzeuge)"');
     expect(html).toContain('<span class="rn-tab-count">2</span>');
     expect(html).toContain('<span class="rn-tab-label">Studio</span>');
     // Kopf: Bereiche als Reiter mit aria-current, Darstellung und Menü als Auslöser
     expect(html).toContain('data-testid="top-tab-chat" class="rn-topnav-item"');
-    expect(html).toMatch(/aria-current="page" data-testid="top-tab-chat"/);
-    expect(html).not.toMatch(/aria-current="page" data-testid="top-tab-studio"/);
+    expect(html).toMatch(/aria-current="true" data-testid="top-tab-chat"/);
+    expect(html).not.toMatch(/aria-current="true" data-testid="top-tab-studio"/);
+    expect(html).not.toContain('aria-current="page"');
+    // Sprunglink als erstes Element, Kopfzeile (banner) vor und außerhalb von main
+    expect(html).toMatch(/^<div[^>]*><a href="#workspace-main" class="rn-skip-link"/);
+    expect(html).toContain("Zum Inhalt springen");
+    expect(html).toMatch(/<\/header><main id="workspace-main" tabindex="-1"/);
+    expect(html.indexOf("<header")).toBeLessThan(html.indexOf("<main"));
     expect(html).toMatch(
       /aria-expanded="false" aria-controls="appearance-menu" aria-haspopup="dialog"/
     );
