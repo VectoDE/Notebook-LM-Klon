@@ -49,6 +49,7 @@ for (const width of [360, 390, 430, 1440]) {
             Promise.all(
               el
                 .getAnimations({ subtree: true })
+                .filter((anim) => anim.timeline === document.timeline)
                 .filter(
                   (anim) => anim.effect?.getComputedTiming().iterations !== Number.POSITIVE_INFINITY
                 )

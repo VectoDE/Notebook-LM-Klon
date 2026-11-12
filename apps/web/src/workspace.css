@@ -341,7 +341,7 @@ html[data-color-mode="aaa-contrast"] .workspace-header .rn-control:hover {
   border-radius: var(--rn-radius-lg);
   background: var(--rn-color-panel);
   border: 1px solid var(--rn-color-panel-border);
-  box-shadow: 0 18px 48px -18px rgba(0, 0, 0, 0.35), var(--rn-color-panel-shadow);
+  box-shadow: var(--rn-shadow-popover);
   z-index: 40;
   transform-origin: top right;
   animation: rn-popover-in 160ms var(--rn-transition-ease) both;
@@ -1315,6 +1315,8 @@ html[data-color-mode="aaa-contrast"] .rn-chip {
 
 .rn-panel-heading h2 {
   margin: 0;
+  /* Panelkopf = Titelstufe; Fusion hebt --rn-text-title in themes.css an */
+  --rn-text-h2: var(--rn-text-title);
 }
 
 .rn-panel-sub {
@@ -1400,11 +1402,12 @@ html[data-color-mode="aaa-contrast"] .rn-tool {
 
 .rn-tool-title {
   margin: 0;
+  --rn-text-h3: var(--rn-text-subtitle);
 }
 
 .rn-tool-desc {
   margin: 0;
-  font-size: var(--rn-text-small);
+  font-size: var(--rn-text-body);
   line-height: 1.5;
   color: var(--rn-color-text-secondary);
 }
@@ -1615,7 +1618,7 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
 }
 
 .rn-source-title {
-  font-size: var(--rn-text-small);
+  font-size: var(--rn-text-body);
   font-weight: 600;
   line-height: 1.35;
 }
@@ -1661,7 +1664,7 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
 }
 
 .rn-inspector-content {
-  font-size: var(--rn-text-small);
+  font-size: var(--rn-text-body);
   line-height: 1.6;
   white-space: pre-wrap;
 }
@@ -1704,7 +1707,7 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   border: 1px solid var(--rn-color-panel-border);
   background: var(--rn-color-panel);
   color: var(--rn-color-text-primary);
-  box-shadow: 0 24px 64px -24px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--rn-shadow-dialog);
   animation: rn-enter var(--rn-enter-duration) var(--rn-transition-ease) both;
 }
 
@@ -1714,7 +1717,7 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
 
 .rn-dialog-text {
   margin: 0;
-  font-size: var(--rn-text-small);
+  font-size: var(--rn-text-body);
   color: var(--rn-color-text-secondary);
 }
 
@@ -3281,7 +3284,7 @@ html[data-color-mode="aaa-contrast"] .rn-stage-btn.rn-video-toggle[aria-pressed=
 }
 
 .rn-drawer::backdrop {
-  background: rgb(0 0 0 / 0.45);
+  background: var(--rn-color-scrim);
 }
 
 @keyframes rn-drawer-in {
@@ -3703,10 +3706,6 @@ html[data-design="fusion"] .rn-tab[aria-current="page"] .rn-tab-indicator {
   background: color-mix(in srgb, var(--rn-color-stage-accent) 30%, var(--rn-color-panel));
 }
 
-html[data-design="fusion"] .rn-panel-heading h2 {
-  font-size: 1.625rem !important;
-}
-
 /* --- AAA-Hochkontrast: flach, klare Ränder, keine Verläufe und kein Leuchten --- */
 html[data-color-mode="aaa-contrast"] .rn-tool,
 html[data-color-mode="aaa-contrast"] .rn-summary {
@@ -3786,5 +3785,58 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="page"] .rn-tab-indica
   }
   html[data-design] .rn-tools .rn-tool-primary {
     flex: 0 1 auto;
+  }
+}
+
+/* ==========================================================================
+   Scroll-Verlauf: scrollbare Listen blenden den Rand aus, hinter dem noch
+   Inhalt liegt. Die Randbreite folgt der Scrollposition (Scroll-driven
+   Animation): in Ruhe am Anfang/Ende bleibt der Text voll deckend, der
+   Kontrast sinkt nur in der Randzone Richtung verdecktem Inhalt. Ohne
+   Unterstützung, bei reduzierter Bewegung und im AAA-Kontrast entfällt er.
+   ========================================================================== */
+@property --rn-fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --rn-fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes rn-fade-top-in {
+  to {
+    --rn-fade-top: var(--rn-scroll-fade-size);
+  }
+}
+
+@keyframes rn-fade-bottom-out {
+  from {
+    --rn-fade-bottom: var(--rn-scroll-fade-size);
+  }
+  to {
+    --rn-fade-bottom: 0px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    :where(html:not([data-color-mode="aaa-contrast"]))
+      :is(.chat-log, .rn-sources, .rn-panel-body, .rn-inspector) {
+      --rn-scroll-fade-size: 28px;
+      animation: rn-fade-top-in linear both, rn-fade-bottom-out linear both;
+      animation-timeline: scroll(self block), scroll(self block);
+      animation-range: 0 var(--rn-scroll-fade-size), calc(100% - var(--rn-scroll-fade-size)) 100%;
+      mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        #000 var(--rn-fade-top),
+        #000 calc(100% - var(--rn-fade-bottom)),
+        transparent 100%
+      );
+    }
   }
 }
