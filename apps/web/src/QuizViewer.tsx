@@ -78,107 +78,56 @@ export function QuizViewer({
 
   if (totalQuestions === 0) {
     return (
-      <section aria-label={title} style={{ padding: "24px", textAlign: "center" }}>
-        <p>Keine Quizfragen vorhanden.</p>
+      <section aria-label={title} className="rn-tool-view rn-tool-view--empty">
+        <p className="rn-tool-empty">Keine Quizfragen vorhanden.</p>
       </section>
     );
   }
 
+  const answeredCount = Object.keys(selectedAnswers).length;
+
   return (
-    <section
-      aria-label={`Quiz: ${title}`}
-      className="relationnotes-quiz-viewer"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        padding: "16px",
-        maxWidth: "680px",
-        margin: "0 auto",
-        width: "100%"
-      }}
-    >
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "16px",
-          borderBottom: "1px solid var(--rn-color-panel-border)",
-          paddingBottom: "8px"
-        }}
-      >
-        <h2 style={{ fontSize: "1.2rem", margin: 0 }}>{title}</h2>
-        <span
-          data-testid="quiz-progress-indicator"
-          style={{ fontSize: "0.95rem", color: "var(--rn-color-text-secondary)" }}
-        >
+    <section aria-label={`Quiz: ${title}`} className="rn-tool-view rn-quiz">
+      <header className="rn-tool-view-head">
+        <h2 className="rn-tool-view-title">{title}</h2>
+        <span data-testid="quiz-progress-indicator" className="rn-tool-view-meta">
           Frage {activeQuestionIndex + 1} von {totalQuestions}
         </span>
       </header>
+      <progress
+        className="rn-progress"
+        aria-label="Beantwortete Fragen"
+        max={totalQuestions}
+        value={answeredCount}
+      />
 
       {/* Screenreader live announcement */}
       <output
         aria-live="polite"
         data-testid="a11y-quiz-announcement"
-        style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden" }}
+        className="rn-visually-hidden"
       >
         {liveMessage}
       </output>
 
       {showSummary ? (
-        <div
-          data-testid="quiz-summary-card"
-          style={{
-            background: "var(--rn-color-surface-variant)",
-            padding: "24px",
-            borderRadius: "var(--rn-radius-md)",
-            border: "1px solid var(--rn-color-border)",
-            textAlign: "center"
-          }}
-        >
-          <h3 style={{ fontSize: "1.4rem", margin: "0 0 12px 0" }}>Quiz-Auswertung</h3>
-          <p
-            style={{
-              fontSize: "1.2rem",
-              fontWeight: "bold",
-              color: "var(--rn-color-text-primary)"
-            }}
-          >
-            Ergebnis: {evaluation.correctCount} von {evaluation.totalQuestions} richtig (
-            {evaluation.scorePercentage}%)
+        <div data-testid="quiz-summary-card" className="rn-quiz-summary">
+          <p className="rn-eyebrow">Quiz-Auswertung</p>
+          <p className="rn-quiz-score">
+            <span className="rn-quiz-score-value">{evaluation.scorePercentage}%</span>
+            <span className="rn-quiz-score-text">
+              Ergebnis: {evaluation.correctCount} von {evaluation.totalQuestions} richtig (
+              {evaluation.scorePercentage}%)
+            </span>
           </p>
-
-          <div
-            style={{ marginTop: "24px", display: "flex", justifyContent: "center", gap: "12px" }}
-          >
-            <button
-              type="button"
-              onClick={handleReset}
-              style={{
-                minHeight: "44px",
-                padding: "0 20px",
-                background: "var(--rn-color-accent)",
-                color: "var(--rn-color-accent-text)",
-                border: "none",
-                borderRadius: "var(--rn-radius-sm)",
-                fontWeight: "bold",
-                cursor: "pointer"
-              }}
-            >
+          <div className="rn-tool-actions-row rn-tool-actions-row--center">
+            <button type="button" onClick={handleReset} className="rn-btn rn-btn--primary">
               Quiz wiederholen
             </button>
             <button
               type="button"
               onClick={() => setShowSummary(false)}
-              style={{
-                minHeight: "44px",
-                padding: "0 16px",
-                background: "var(--rn-color-surface-variant)",
-                color: "var(--rn-color-text-primary)",
-                border: "none",
-                borderRadius: "var(--rn-radius-sm)",
-                cursor: "pointer"
-              }}
+              className="rn-btn rn-btn--secondary"
             >
               Antworten ansehen
             </button>
@@ -186,52 +135,24 @@ export function QuizViewer({
         </div>
       ) : (
         currentQuestion && (
-          <div
-            data-testid={`quiz-question-${currentQuestion.id}`}
-            style={{
-              background: "var(--rn-color-panel)",
-              border: "1px solid var(--rn-color-panel-border)",
-              borderRadius: "var(--rn-radius-md)",
-              padding: "20px"
-            }}
-          >
-            <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
-              <legend
-                style={{
-                  fontSize: "1.1rem",
-                  fontWeight: 600,
-                  color: "var(--rn-color-text-primary)",
-                  marginBottom: "16px",
-                  lineHeight: 1.4
-                }}
-              >
-                {currentQuestion.question}
-              </legend>
+          <div data-testid={`quiz-question-${currentQuestion.id}`} className="rn-quiz-card">
+            <fieldset className="rn-quiz-fieldset">
+              <legend className="rn-quiz-question">{currentQuestion.question}</legend>
 
               <div
                 role="radiogroup"
                 aria-label={`Antwortoptionen für Frage ${activeQuestionIndex + 1}`}
-                style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+                className="rn-quiz-options"
               >
                 {currentQuestion.options.map((optionText, optIdx) => {
                   const hasAnswered = selectedAnswers[currentQuestion.id] !== undefined;
                   const isSelected = selectedAnswers[currentQuestion.id] === optIdx;
                   const isCorrectAnswer = optIdx === currentQuestion.correctAnswerIndex;
-
-                  let optionBg = "var(--rn-color-surface-variant)";
-                  let optionBorder = "var(--rn-color-border)";
-                  let textColor = "var(--rn-color-text-primary)";
-
+                  let state = "open";
                   if (hasAnswered) {
-                    if (isCorrectAnswer) {
-                      optionBg = "var(--rn-color-success-surface)";
-                      optionBorder = "var(--rn-color-success)";
-                      textColor = "var(--rn-color-success)";
-                    } else if (isSelected) {
-                      optionBg = "var(--rn-color-error-surface)";
-                      optionBorder = "var(--rn-color-error)";
-                      textColor = "var(--rn-color-error)";
-                    }
+                    if (isCorrectAnswer) state = "correct";
+                    else if (isSelected) state = "wrong";
+                    else state = "idle";
                   }
 
                   const optionId = `${containerId}-q${currentQuestion.id}-opt${optIdx}`;
@@ -240,18 +161,8 @@ export function QuizViewer({
                     <label
                       key={`opt-${currentQuestion.id}-${optIdx}-${optionText.slice(0, 8)}`}
                       htmlFor={optionId}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        padding: "12px 16px",
-                        minHeight: "44px",
-                        borderRadius: "var(--rn-radius-sm)",
-                        border: `2px solid ${optionBorder}`,
-                        background: optionBg,
-                        color: textColor,
-                        cursor: hasAnswered ? "default" : "pointer",
-                        transition: "all 0.15s ease"
-                      }}
+                      className="rn-quiz-option"
+                      data-state={state}
                     >
                       <input
                         id={optionId}
@@ -260,9 +171,14 @@ export function QuizViewer({
                         value={optIdx}
                         checked={isSelected}
                         onChange={() => handleSelectOption(currentQuestion.id, optIdx)}
-                        style={{ marginRight: "12px", width: "20px", height: "20px" }}
+                        className="rn-quiz-radio"
                       />
-                      <span style={{ fontSize: "1rem" }}>{optionText}</span>
+                      <span className="rn-quiz-option-letter" aria-hidden="true">
+                        {String.fromCharCode(65 + optIdx)}
+                      </span>
+                      <span className="rn-quiz-option-text">{optionText}</span>
+                      {state === "correct" && <span className="rn-quiz-flag">Richtig</span>}
+                      {state === "wrong" && <span className="rn-quiz-flag">Falsch</span>}
                     </label>
                   );
                 })}
@@ -271,85 +187,36 @@ export function QuizViewer({
 
             {/* Explanation with Grounded Source Citation & Jump */}
             {selectedAnswers[currentQuestion.id] !== undefined && (
-              <div
-                data-testid="quiz-explanation-box"
-                style={{
-                  marginTop: "16px",
-                  padding: "14px",
-                  background: "var(--rn-color-surface-variant)",
-                  borderRadius: "var(--rn-radius-sm)",
-                  borderLeft: "4px solid var(--rn-color-brand)"
-                }}
-              >
-                <p
-                  style={{
-                    margin: "0 0 6px 0",
-                    fontWeight: 600,
-                    color: "var(--rn-color-text-primary)"
-                  }}
-                >
-                  Erklärung:
-                </p>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "0.95rem",
-                    color: "var(--rn-color-text-secondary)"
-                  }}
-                >
-                  {currentQuestion.explanation}
-                </p>
+              <div data-testid="quiz-explanation-box" className="rn-quiz-explanation">
+                <p className="rn-quiz-explanation-title">Erklärung:</p>
+                <p className="rn-quiz-explanation-text">{currentQuestion.explanation}</p>
 
                 {(currentQuestion.sourceCitation || currentQuestion.sourceId) && (
-                  <div style={{ marginTop: "10px" }}>
-                    <button
-                      type="button"
-                      aria-label="Quelle für diese Begründung öffnen"
-                      onClick={() => {
-                        onSourceJump?.({
-                          sourceId: currentQuestion.sourceId,
-                          chunkId: currentQuestion.chunkId,
-                          sourceCitation: currentQuestion.sourceCitation
-                        });
-                      }}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        color: "var(--rn-color-primary)",
-                        cursor: "pointer",
-                        textDecoration: "underline",
-                        padding: 0,
-                        fontSize: "0.9rem",
-                        minHeight: "44px",
-                        display: "inline-flex",
-                        alignItems: "center"
-                      }}
-                    >
-                      Quelle belegen: {currentQuestion.sourceCitation ?? "Originalzitat ansehen"}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    aria-label="Quelle für diese Begründung öffnen"
+                    onClick={() => {
+                      onSourceJump?.({
+                        sourceId: currentQuestion.sourceId,
+                        chunkId: currentQuestion.chunkId,
+                        sourceCitation: currentQuestion.sourceCitation
+                      });
+                    }}
+                    className="rn-link-btn"
+                  >
+                    Quelle belegen: {currentQuestion.sourceCitation ?? "Originalzitat ansehen"}
+                  </button>
                 )}
               </div>
             )}
 
             {/* Navigation buttons */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginTop: "20px"
-              }}
-            >
+            <div className="rn-tool-actions-row rn-tool-actions-row--split">
               <button
                 type="button"
                 disabled={activeQuestionIndex === 0}
                 onClick={() => setActiveQuestionIndex((i) => i - 1)}
-                style={{
-                  minHeight: "44px",
-                  padding: "0 16px",
-                  cursor: activeQuestionIndex > 0 ? "pointer" : "default"
-                }}
+                className="rn-btn rn-btn--ghost"
               >
                 Zurück
               </button>
@@ -358,25 +225,12 @@ export function QuizViewer({
                 <button
                   type="button"
                   onClick={() => setActiveQuestionIndex((i) => i + 1)}
-                  style={{ minHeight: "44px", padding: "0 16px", cursor: "pointer" }}
+                  className="rn-btn rn-btn--secondary"
                 >
                   Weiter
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleFinishQuiz}
-                  style={{
-                    minHeight: "44px",
-                    padding: "0 20px",
-                    background: "var(--rn-color-success)",
-                    color: "var(--rn-color-panel)",
-                    border: "none",
-                    borderRadius: "var(--rn-radius-sm)",
-                    fontWeight: "bold",
-                    cursor: "pointer"
-                  }}
-                >
+                <button type="button" onClick={handleFinishQuiz} className="rn-btn rn-btn--primary">
                   Quiz abschließen
                 </button>
               )}

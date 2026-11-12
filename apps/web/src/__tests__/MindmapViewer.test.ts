@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import type { MindmapNode } from "@notebook-lm/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -116,12 +118,25 @@ describe("MindmapViewer Layout Engine & Component (Sub-Issue #122)", () => {
     expect(NODE_FONT_SIZE).toBeGreaterThanOrEqual(14);
     const html = renderToStaticMarkup(createElement(MindmapViewer, { rootNode: sampleTree }));
     expect(html).toContain('data-testid="mindmap-toolbar"');
-    expect(html).toMatch(/data-testid="mindmap-toolbar"[^>]*style="[^"]*gap:12px/);
-    // Reiter, Zoom und Zurücksetzen: jeweils mindestens 44 px hoch
+    expect(html).toMatch(/data-testid="mindmap-toolbar" class="rn-mindmap-toolbar"/);
+    // Reiter, Zoom und Zurücksetzen: Klassen mit mindestens 44 px Höhe in workspace.css
+    const css = readFileSync(resolve(import.meta.dirname, "../workspace.css"), "utf8");
+    const minHeight = (selector: string) => {
+      const start = css.indexOf(`\n${selector} {`);
+      expect(start, selector).toBeGreaterThan(-1);
+      const block = css.slice(start, css.indexOf("}", start));
+      return Number(/min-height:\s*(\d+)px/.exec(block)?.[1] ?? 0);
+    };
     const buttons = html.match(/<button[^>]*>/g) ?? [];
     expect(buttons.length).toBeGreaterThanOrEqual(5);
     for (const b of buttons) {
-      expect(b).toContain("min-height:44px");
+      const cls = /class="([^"]+)"/.exec(b)?.[1] ?? "";
+      const selector = cls.includes("rn-seg-tab")
+        ? ".rn-seg-tab"
+        : cls.includes("rn-icon-btn")
+          ? ".rn-icon-btn"
+          : ".rn-zoom .rn-btn";
+      expect(minHeight(selector), b).toBeGreaterThanOrEqual(44);
     }
     expect(html).toContain(`r="${TOGGLE_RADIUS}"`);
   });
