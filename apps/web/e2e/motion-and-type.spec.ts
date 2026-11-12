@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { DESIGNS, MODES, chooseDesign, findSmallText } from "./helpers";
 
 test.describe("Immersive Cinema: Bewegungssprache", () => {
-  test("Hintergrund, Kopf und Panels sind animiert", async ({ page }) => {
+  test("Kopf und Panels sind animiert, Hintergrund ohne Verlauf (Issue #328)", async ({ page }) => {
     await page.goto("/");
     await chooseDesign(page, "immersive-cinema", "dark");
     const names = await page.evaluate(() => ({
@@ -15,7 +15,7 @@ test.describe("Immersive Cinema: Bewegungssprache", () => {
       panel: getComputedStyle(document.querySelector(".workspace-panel") as Element).animationName
     }));
     expect(names).toEqual({
-      background: "rn-cinema-drift",
+      background: "none",
       sweep: "rn-cinema-sweep",
       panel: "rn-cinema-rise"
     });
@@ -38,7 +38,7 @@ test.describe("Immersive Cinema: Bewegungssprache", () => {
     });
   });
 
-  test("Atmosphäre je Design: Fusion fließt, Pure und Editorial ruhen, AAA flach", async ({
+  test("Atmosphäre je Design: nur Fusion hat einen fließenden Verlauf, AAA flach (Issue #328)", async ({
     page
   }) => {
     await page.goto("/");
@@ -48,16 +48,32 @@ test.describe("Immersive Cinema: Bewegungssprache", () => {
         const header = document.querySelector(".workspace-header") as Element;
         return {
           background: getComputedStyle(shell, "::before").animationName,
+          gradient: getComputedStyle(shell, "::before").backgroundImage.includes("gradient"),
           line: getComputedStyle(header, "::after").animationName,
           font: getComputedStyle(document.body).fontFamily.split(",")[0]
         };
       });
-    const expected: Record<string, { background: string; line: string; font: string }> = {
-      pure: { background: "none", line: "none", font: '"Inter Variable"' },
-      "editorial-calm": { background: "none", line: "none", font: '"Source Serif 4 Variable"' },
-      fusion: { background: "rn-fusion-flow", line: "rn-fusion-line", font: '"Geist Variable"' },
+    const expected: Record<
+      string,
+      { background: string; gradient: boolean; line: string; font: string }
+    > = {
+      pure: { background: "none", gradient: false, line: "none", font: '"Inter Variable"' },
+      // Fließtext ohne Serifen, Source Serif 4 nur in Überschriften (Issue #328)
+      "editorial-calm": {
+        background: "none",
+        gradient: false,
+        line: "none",
+        font: '"Inter Variable"'
+      },
+      fusion: {
+        background: "rn-fusion-flow",
+        gradient: true,
+        line: "rn-fusion-line",
+        font: '"Geist Variable"'
+      },
       "immersive-cinema": {
-        background: "rn-cinema-drift",
+        background: "none",
+        gradient: false,
         line: "rn-cinema-sweep",
         font: '"Space Grotesk Variable"'
       }

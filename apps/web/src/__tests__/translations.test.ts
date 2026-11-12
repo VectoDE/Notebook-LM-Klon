@@ -65,7 +65,7 @@ describe("Oberfläche auf Englisch", () => {
       "Applies to new answers.",
       "Coming soon",
       "BYOK stands for",
-      "Design, color scheme and motion are set under “Appearance”."
+      "Design and color scheme are set under “Appearance”."
     ]) {
       expect(html, text).toContain(text);
     }

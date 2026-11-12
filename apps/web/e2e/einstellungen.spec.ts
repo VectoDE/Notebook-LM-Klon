@@ -55,10 +55,12 @@ for (const width of [390, 1440]) {
           };
         })
       );
-      // Sprache zuerst, Darstellung nur noch im Kopfmenü bzw. Menü-Sheet (Issue #319)
+      // Sprache zuerst; Design und Farbschema im Kopfmenü bzw. Menü-Sheet (Issue #319),
+      // „Bewegung reduzieren“ zusätzlich hier (Issue #328)
       expect(titles.map((x) => x.text)).toEqual([
         "Sprache",
         "KI-Modell",
+        "Bewegung",
         "Eigene API-Schlüssel (BYOK)In Vorbereitung",
         "EU AI Act"
       ]);
@@ -68,7 +70,7 @@ for (const width of [390, 1440]) {
       // Hinweise, wann eine Einstellung greift und wo sie gespeichert ist
       await expect(drawer).toContainText("Gilt für neue Antworten.");
       await expect(drawer).toContainText(
-        "Design, Farbschema und Bewegung stellen Sie unter „Darstellung“ ein."
+        "Design und Farbschema stellen Sie unter „Darstellung“ ein."
       );
       await expect(drawer).toContainText(
         "Gilt für die Oberfläche und wird auf diesem Gerät gespeichert."

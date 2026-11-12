@@ -124,7 +124,8 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   display: flex;
   align-items: center;
   gap: var(--rn-space-4);
-  min-height: 64px;
+  /* Obere Leiste 56 px ab 600 px (Issue #328), Telefon siehe unten */
+  min-height: var(--rn-header-h);
   box-sizing: border-box;
   padding: 0 var(--rn-space-6) !important;
   background: var(--rn-color-panel);
@@ -182,9 +183,9 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   max-width: 100%;
   min-height: 44px;
   box-sizing: border-box;
-  padding: 4px 10px;
+  padding: 4px 12px;
   border: 0;
-  border-radius: var(--rn-radius-md);
+  border-radius: var(--rn-radius-pill);
   background: transparent;
   color: var(--rn-color-text-primary);
   font-family: var(--rn-font-family-headings);
@@ -240,9 +241,9 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   justify-content: center;
   gap: var(--rn-space-2);
   height: var(--rn-control-h);
-  padding: 0 14px;
+  padding: 0 var(--rn-space-4);
   border: 0;
-  border-radius: var(--rn-radius-md);
+  border-radius: var(--rn-radius-pill);
   background: transparent;
   color: var(--rn-color-text-secondary);
   font-family: var(--rn-font-family-ui);
@@ -332,7 +333,7 @@ html[data-color-mode="aaa-contrast"] .rn-topnav-item[aria-current="true"] {
   min-width: 0;
   box-sizing: border-box;
   border-radius: var(--rn-radius-md);
-  background: var(--rn-color-panel);
+  background: var(--rn-color-field);
   box-shadow: inset 0 0 0 1px var(--rn-color-border);
   color: var(--rn-color-text-primary);
   font-family: var(--rn-font-family-ui);
@@ -399,6 +400,7 @@ html[data-color-mode="aaa-contrast"] .rn-topnav-item[aria-current="true"] {
   justify-content: center;
   padding: 0 var(--rn-space-4) 0 14px;
   border: 0;
+  border-radius: var(--rn-radius-pill);
   cursor: pointer;
 }
 
@@ -608,7 +610,7 @@ html[data-color-mode="aaa-contrast"] .rn-popover {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--rn-space-1);
   padding: var(--rn-space-1);
-  border-radius: var(--rn-radius-md);
+  border-radius: 26px;
   background: var(--rn-color-surface-variant);
 }
 
@@ -629,7 +631,7 @@ html[data-color-mode="aaa-contrast"] .rn-popover {
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  border-radius: var(--rn-radius-sm);
+  border-radius: var(--rn-radius-pill);
   color: var(--rn-color-text-secondary);
   font-family: var(--rn-font-family-ui);
   font-size: var(--rn-text-small);
@@ -837,8 +839,8 @@ html[data-reduce-motion="true"] .rn-appearance-chevron {
   justify-content: center;
   gap: var(--rn-space-2);
   min-height: 44px;
-  padding: 0 var(--rn-space-4);
-  border-radius: var(--rn-radius-sm);
+  padding: 0 var(--rn-space-5);
+  border-radius: var(--rn-radius-pill);
   border: 1px solid transparent;
   font-family: var(--rn-font-family-ui);
   font-size: var(--rn-text-small);
@@ -887,7 +889,7 @@ html[data-reduce-motion="true"] .rn-appearance-chevron {
   min-width: 44px;
   min-height: 44px;
   padding: 0;
-  border-radius: var(--rn-radius-sm);
+  border-radius: var(--rn-radius-pill);
   border: 1px solid transparent;
   background: transparent;
   color: var(--rn-color-text-secondary);
@@ -1423,11 +1425,7 @@ html[data-color-mode="aaa-contrast"] .rn-chip {
   width: 22px;
   height: 22px;
   border-radius: 7px;
-  background: linear-gradient(
-    135deg,
-    var(--rn-color-brand),
-    color-mix(in srgb, var(--rn-color-brand) 40%, var(--rn-color-stage-accent))
-  );
+  background: var(--rn-color-brand);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rn-color-text-primary) 12%, transparent);
 }
 
@@ -1576,7 +1574,7 @@ html[data-color-mode="aaa-contrast"] .rn-chip {
   padding: var(--rn-space-2) var(--rn-space-2) var(--rn-space-2) var(--rn-space-4);
   border-radius: var(--rn-radius-lg);
   border: 1px solid var(--rn-color-border);
-  background: var(--rn-color-panel);
+  background: var(--rn-color-field);
   box-shadow: var(--rn-color-panel-shadow);
 }
 
@@ -1856,11 +1854,11 @@ html[data-color-mode="aaa-contrast"] .rn-tool {
   box-sizing: border-box;
   min-height: 44px;
   padding: 0 var(--rn-space-3);
-  border-radius: var(--rn-radius-sm);
+  border-radius: var(--rn-radius-md);
   border: 1px solid var(--rn-color-border);
-  background: var(--rn-color-panel);
+  background: var(--rn-color-field);
   color: var(--rn-color-text-primary);
-  font-size: var(--rn-text-small);
+  font-size: var(--rn-text-base);
 }
 
 .rn-checkbox {
@@ -1969,7 +1967,6 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
 
 .rn-search-input {
   padding-left: 38px;
-  background: var(--rn-color-canvas);
 }
 
 .rn-select-all {
@@ -2503,24 +2500,25 @@ html[data-color-mode="aaa-contrast"] .rn-share-notice {
   justify-content: space-between;
 }
 
+/* Textknopf: Pille ohne Unterstrich (Issue #328), Fläche erscheint beim Überfahren */
 .rn-link-btn {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  padding: 0 var(--rn-space-1);
+  padding: 0 var(--rn-space-3);
   border: 0;
+  border-radius: var(--rn-radius-pill);
   background: transparent;
   color: var(--rn-color-primary);
   font: inherit;
   font-size: var(--rn-text-small);
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration: none;
   cursor: pointer;
 }
 
 .rn-link-btn:hover {
-  text-decoration-thickness: 2px;
+  background: var(--rn-color-surface-variant);
 }
 
 /* ==========================================================================
@@ -2787,8 +2785,8 @@ html[data-color-mode="aaa-contrast"] .rn-share-notice {
   justify-items: center;
   gap: 2px;
   min-height: 56px;
-  padding: var(--rn-space-2);
-  border-radius: var(--rn-radius-md);
+  padding: var(--rn-space-2) var(--rn-space-3);
+  border-radius: var(--rn-radius-pill);
   border: 1px solid var(--rn-color-border);
   background: var(--rn-color-panel);
   color: var(--rn-color-text-primary);
@@ -2888,7 +2886,7 @@ html[data-color-mode="aaa-contrast"] .rn-share-notice {
   display: inline-flex;
   padding: 3px;
   gap: 2px;
-  border-radius: var(--rn-radius-md);
+  border-radius: var(--rn-radius-pill);
   border: 1px solid var(--rn-color-border);
   background: var(--rn-color-surface-variant);
 }
@@ -2897,7 +2895,7 @@ html[data-color-mode="aaa-contrast"] .rn-share-notice {
   min-height: 44px;
   padding: 0 var(--rn-space-3);
   border: 0;
-  border-radius: calc(var(--rn-radius-md) - 3px);
+  border-radius: var(--rn-radius-pill);
   background: transparent;
   color: var(--rn-color-text-secondary);
   font: inherit;
@@ -2920,7 +2918,7 @@ html[data-color-mode="aaa-contrast"] .rn-share-notice {
   margin: 0;
   padding: 0 0 0 2px;
   border: 1px solid var(--rn-color-border);
-  border-radius: var(--rn-radius-md);
+  border-radius: var(--rn-radius-pill);
   background: var(--rn-color-panel);
 }
 
@@ -2941,7 +2939,7 @@ html[data-color-mode="aaa-contrast"] .rn-share-notice {
 .rn-zoom .rn-btn {
   min-height: 44px;
   border-left: 1px solid var(--rn-color-panel-border);
-  border-radius: 0 var(--rn-radius-md) var(--rn-radius-md) 0;
+  border-radius: 0 var(--rn-radius-pill) var(--rn-radius-pill) 0;
 }
 
 .rn-mindmap-canvas {
@@ -4176,18 +4174,10 @@ html[data-design="pure"] .rn-source-type {
 }
 
 html[data-design="pure"] .rn-summary {
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--rn-color-brand) 9%, var(--rn-color-panel)),
-    var(--rn-color-surface-variant)
-  );
+  background: color-mix(in srgb, var(--rn-color-brand) 9%, var(--rn-color-panel));
 }
 
 /* --- Editorial Calm: Ruhe und Lesen. Spalten, Linien, Typografie trägt --- */
-html[data-design="editorial-calm"] .workspace-header {
-  min-height: 72px;
-}
-
 html[data-design="editorial-calm"] .rn-panel-head {
   padding-bottom: var(--rn-space-4);
   border-bottom: 1px solid var(--rn-color-panel-border);
@@ -4210,6 +4200,7 @@ html[data-design="editorial-calm"] .rn-summary {
   border-radius: 0;
   background: transparent;
   border-left: 3px solid var(--rn-color-brand);
+  box-shadow: none;
 }
 
 html[data-design="editorial-calm"] .rn-summary-title {
@@ -4224,10 +4215,6 @@ html[data-design="editorial-calm"] .rn-summary-text {
 html[data-design="editorial-calm"] .chat-column,
 html[data-design="editorial-calm"] .rn-composer {
   max-width: 66ch;
-}
-
-html[data-design="editorial-calm"] .rn-chip {
-  border-radius: var(--rn-radius-sm);
 }
 
 html[data-design="editorial-calm"] .rn-avatar {
@@ -4249,6 +4236,13 @@ html[data-design="editorial-calm"] .rn-tool {
   border: 0;
   border-radius: 0;
   background: transparent;
+  box-shadow: none;
+}
+
+/* Inhaltsverzeichnis statt Karten: die Zeile hebt sich nicht an */
+html[data-design="editorial-calm"] .rn-tool:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 html[data-design="editorial-calm"] .workspace-panel .rn-tool {
@@ -4281,11 +4275,7 @@ html[data-design="immersive-cinema"] .workspace-panel {
 html[data-design="immersive-cinema"] .rn-tool,
 html[data-design="immersive-cinema"] .rn-summary {
   position: relative;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--rn-color-brand) 7%, var(--rn-color-panel)),
-    var(--rn-color-panel) 70%
-  );
+  background: color-mix(in srgb, var(--rn-color-brand) 7%, var(--rn-color-panel));
 }
 
 html[data-design="immersive-cinema"] .rn-summary {
@@ -4295,11 +4285,7 @@ html[data-design="immersive-cinema"] .rn-summary {
 
 html[data-design="immersive-cinema"] .rn-tool-tile,
 html[data-design="immersive-cinema"] .rn-source-type {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--rn-color-brand) 32%, var(--rn-color-panel)),
-    color-mix(in srgb, var(--rn-color-stage-accent) 22%, var(--rn-color-panel))
-  );
+  background: color-mix(in srgb, var(--rn-color-brand) 32%, var(--rn-color-panel));
   color: var(--rn-color-text-primary);
   box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--rn-color-brand) 80%, transparent);
 }
