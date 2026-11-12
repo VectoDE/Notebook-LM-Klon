@@ -32,6 +32,13 @@ export interface FlashcardsViewerProps {
     | ((cardIndex: number, rating: FlashcardRating, updatedState: SM2State) => void)
     | undefined;
   readonly initialStates?: Readonly<Record<number, SM2State>> | undefined;
+  /**
+   * Sprache der Inhalte (BCP 47). Weicht sie von der Oberfläche ab, bekommen die Inhalte
+   * ein lang-Attribut (WCAG 3.1.2, Issue #323); Bedientexte folgen weiter der Oberfläche.
+   */
+  readonly contentLang?: string | undefined;
+  /** Sprache der Quellenhinweise (Titel der Quellen), z. B. "en". */
+  readonly sourceLang?: string | undefined;
 }
 
 /** Klartext für das Wiederholungsdatum: "heute", "morgen", "in 6 Tagen". */
@@ -59,7 +66,9 @@ export function FlashcardsViewer({
   title: titleProp,
   onSourceJump,
   onCardReviewed,
-  initialStates = {}
+  initialStates = {},
+  contentLang,
+  sourceLang
 }: FlashcardsViewerProps) {
   const { t, tf, language } = useTheme();
   const title = titleProp ?? t("cardsDefaultTitle");
@@ -207,7 +216,9 @@ export function FlashcardsViewer({
           </span>
         </div>
 
-        <p className="rn-flashcard-text">{isFlipped ? currentCard?.back : currentCard?.front}</p>
+        <p className="rn-flashcard-text" lang={contentLang}>
+          {isFlipped ? currentCard?.back : currentCard?.front}
+        </p>
 
         <div className="rn-flashcard-foot">
           <button
@@ -232,7 +243,10 @@ export function FlashcardsViewer({
               }}
               className="rn-link-btn"
             >
-              {tf("cardsSource", { hint: currentCard.sourceHint })}
+              {/* Bedientext in Oberflächensprache, Quellentitel in seiner eigenen */}
+              {t("cardsSource").split("{hint}")[0]}
+              <span lang={sourceLang}>{currentCard.sourceHint}</span>
+              {t("cardsSource").split("{hint}")[1]}
             </button>
           )}
         </div>

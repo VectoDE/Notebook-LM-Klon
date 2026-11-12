@@ -63,6 +63,12 @@ const ENTRIES: readonly Entry[] = [
   ["srcTitleLabel", "Titel (optional)", "Title (optional)"],
   ["srcTitlePlaceholder", "z. B. API-Dokumentation", "e.g. API documentation"],
   ["srcUrlLabel", "URL", "URL"],
+  ["srcUrlRequired", "Bitte geben Sie eine URL ein.", "Please enter a URL."],
+  [
+    "srcUrlInvalid",
+    "Diese Adresse ist keine gültige URL. Sie muss mit https:// oder http:// beginnen, z. B. https://example.org/artikel.",
+    "This address is not a valid URL. It must start with https:// or http://, e.g. https://example.org/article."
+  ],
   ["srcCancel", "Abbrechen", "Cancel"],
   ["srcImport", "Importieren", "Import"],
 
@@ -379,6 +385,8 @@ const ENTRIES: readonly Entry[] = [
   ["podStateInterjecting", "Zwischenfrage", "Question"],
   ["podStateAnswering", "Hosts antworten", "Hosts answering"],
   ["podStateResuming", "Wird fortgesetzt", "Resuming"],
+  ["podStateError", "Fehler", "Error"],
+  ["audioRetry", "Erneut versuchen", "Try again"],
 
   // Bühne und Transkript
   ["stageEyebrow", "Deep Dive", "Deep Dive"],

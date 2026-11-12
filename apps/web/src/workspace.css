@@ -1067,7 +1067,7 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indica
  * Angesprungener Bereich (ab 900 px): kurz umrandet. Ohne Animation, die Markierung
  * verschwindet nach PANEL_FLASH_MS (WorkspaceLayout); gilt so auch bei reduzierter Bewegung.
  */
-.workspace-panel[data-flash="true"] {
+[data-panel][data-flash="true"] {
   outline: 3px solid var(--rn-color-focus-ring);
   outline-offset: -3px;
 }
@@ -1671,6 +1671,20 @@ html[data-color-mode="aaa-contrast"] .rn-tool {
 .rn-form {
   display: grid;
   gap: var(--rn-space-4);
+}
+
+/* Eigene Fehlermeldung unter dem Feld (Issue #323): Text in Fehlerfarbe auf dem Panel,
+   der Rahmen des Felds wechselt zusätzlich, die Meldung trägt aber den Inhalt */
+.rn-field-error {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--rn-color-error);
+}
+
+.rn-input[aria-invalid="true"] {
+  border-color: var(--rn-color-error);
 }
 
 /* ==========================================================================
@@ -2785,6 +2799,11 @@ html[data-reduce-motion="true"] .rn-dialog-card {
 .rn-stage,
 .audio-player-container {
   --rn-color-focus-ring: var(--rn-color-stage-accent);
+}
+
+/* Fehlerkasten im Player liegt auf der hellen Fehlerfläche: Ring in Fehlerfarbe (≥ 3:1) */
+.audio-player-container .audio-error {
+  --rn-color-focus-ring: var(--rn-color-error);
 }
 
 .rn-stage-btn {
@@ -4121,5 +4140,36 @@ html[data-reduce-motion="true"][data-design] .rn-tool:hover {
         transparent 100%
       );
     }
+  }
+}
+
+/*
+ * Geringe Höhe (Querformat, 400 % Zoom; Issue #323): Kopf und untere Leiste werden
+ * kompakt, damit mehr Arbeitsfläche bleibt. Beide bleiben fest an ihrem Platz, so
+ * überdecken sie nie Inhalt oder Fokus (WCAG 2.4.11/2.4.12). Ziele bleiben 44 px.
+ * Steht am Ende, damit es die Kopfregeln der schmalen Breiten übersteuert.
+ */
+@media (max-height: 480px) {
+  .workspace-header,
+  html[data-design] .workspace-header {
+    min-height: 48px;
+    padding-block: 2px !important;
+  }
+}
+
+@media (max-height: 480px) and (max-width: 599.98px) {
+  .mobile-bottom-nav {
+    padding-top: 3px;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+  }
+  .rn-tab {
+    flex-direction: row;
+    gap: 4px;
+    min-height: 44px;
+    padding: 0;
+  }
+  .rn-tab-indicator {
+    width: 36px;
+    height: 28px;
   }
 }

@@ -32,7 +32,7 @@ import {
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
 import { browserStorage, readStoredModel, storeModel } from "./theme-preferences.js";
 import { useTheme } from "./useTheme.js";
-import type { CitationLocation, WorkspaceSource } from "./workspace-types.js";
+import type { CitationLocation, PanelFocusAttributes, WorkspaceSource } from "./workspace-types.js";
 
 export const DEFAULT_MINDMAP: MindmapNode = {
   id: "cf_root",
@@ -104,7 +104,8 @@ export const DEFAULT_SOURCES: WorkspaceSource[] = [
     chunksCount: 8,
     isSelected: true,
     rawText:
-      "# Architecture Overview\n\nCloudflare Worker serves as the single unified entry point. In-Memory vectors are managed inside NotebookDO with int8 quantization."
+      "# Architecture Overview\n\nCloudflare Worker serves as the single unified entry point. In-Memory vectors are managed inside NotebookDO with int8 quantization.",
+    lang: "en"
   },
   {
     id: "src_2",
@@ -115,9 +116,23 @@ export const DEFAULT_SOURCES: WorkspaceSource[] = [
     chunksCount: 14,
     isSelected: true,
     rawText:
-      "D1 Migration 0002 introduces FTS5 tables with BM25 ranking for hybrid lexical and vector search."
+      "D1 Migration 0002 introduces FTS5 tables with BM25 ranking for hybrid lexical and vector search.",
+    lang: "en"
   }
 ];
+
+/**
+ * Sprache der Demo-Inhalte (Issue #323): Zusammenfassung, Lernkarten und Quiz sind deutsch,
+ * Quellentitel und Mindmap-Begriffe englisch. So bekommen sie in der jeweils anderen
+ * Oberflächensprache ein lang-Attribut (WCAG 3.1.2). Der Notebook-Titel gilt als Name.
+ */
+export const DEFAULT_CONTENT_LANGS = {
+  summary: "de",
+  mindmap: "en",
+  flashcards: "de",
+  quiz: "de",
+  sources: "en"
+} as const;
 
 export const DEFAULT_VIDEO_STORYBOARD: VideoStoryboard = {
   id: "vs_demo",
@@ -303,6 +318,13 @@ export function WorkspaceLayout({
   };
 
   useEffect(() => () => clearTimeout(flashTimerRef.current), []);
+
+  // Fokusziel ist die benannte Region im Bereich, nicht der Layout-Wrapper (Issue #323)
+  const panelAttributes = (tab: PanelTab): PanelFocusAttributes => ({
+    "data-panel": tab,
+    "data-flash": flashedPanel === tab ? "true" : undefined,
+    tabIndex: -1
+  });
 
   // WCAG 1.4.13: Kurzinfo per Escape schließen, ohne Zeiger oder Fokus zu bewegen
   useEffect(() => {
@@ -641,9 +663,6 @@ export function WorkspaceLayout({
         {/* Panel 1: Left Sources Panel */}
         <div
           data-testid="panel-left-wrapper"
-          data-panel="sources"
-          data-flash={flashedPanel === "sources" ? "true" : undefined}
-          tabIndex={-1}
           className={`workspace-panel panel-left ${activeMobileTab === "sources" ? "panel-active" : ""}`}
         >
           <SourcesPanel
@@ -654,20 +673,19 @@ export function WorkspaceLayout({
             onUploadFiles={handleUploadFiles}
             onImportUrl={handleImportUrl}
             onClearActiveCitation={() => setActiveCitation(null)}
+            panelAttributes={panelAttributes("sources")}
           />
         </div>
 
         {/* Panel 2: Center Citation Chat Panel */}
         <div
           data-testid="panel-center-wrapper"
-          data-panel="chat"
-          data-flash={flashedPanel === "chat" ? "true" : undefined}
-          tabIndex={-1}
           className={`workspace-panel panel-center ${activeMobileTab === "chat" ? "panel-active" : ""}`}
         >
           <ChatPanel
             notebookTitle="Cloudflare Edge Stack Architecture"
             notebookSummary="Dieses Notebook dokumentiert die vollständige Cloudflare Single-Worker- und In-Memory-Vektor-Architektur für latenzfreie Inferenz."
+            notebookSummaryLang={DEFAULT_CONTENT_LANGS.summary}
             messages={chatMessages}
             activeModel={activeModel}
             onSendMessage={(text) => handleSendMessage(text)}
@@ -675,15 +693,13 @@ export function WorkspaceLayout({
             onRetry={handleRetryChat}
             onCitationClick={handleCitationClick}
             isGenerating={isGenerating}
+            panelAttributes={panelAttributes("chat")}
           />
         </div>
 
         {/* Panel 3: Right Studio Panel */}
         <div
           data-testid="panel-right-wrapper"
-          data-panel="studio"
-          data-flash={flashedPanel === "studio" ? "true" : undefined}
-          tabIndex={-1}
           className={`workspace-panel panel-right ${activeMobileTab === "studio" ? "panel-active" : ""}`}
         >
           <StudioPanel
@@ -695,6 +711,8 @@ export function WorkspaceLayout({
             videoStoryboard={DEFAULT_VIDEO_STORYBOARD}
             audioStateMachine={audioStateMachine}
             onSourceJump={handleCitationClick}
+            contentLangs={DEFAULT_CONTENT_LANGS}
+            panelAttributes={panelAttributes("studio")}
           />
         </div>
       </main>

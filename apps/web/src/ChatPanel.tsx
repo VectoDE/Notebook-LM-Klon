@@ -2,7 +2,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon.js";
 import { shouldReduceMotion } from "./theme-preferences.js";
 import { useTheme } from "./useTheme.js";
-import type { CitationLocation } from "./workspace-types.js";
+import type { CitationLocation, PanelFocusAttributes } from "./workspace-types.js";
 
 export interface ChatMessage {
   readonly id: string;
@@ -23,6 +23,8 @@ export interface ChatMessage {
 export interface ChatPanelProps {
   readonly notebookTitle?: string | undefined;
   readonly notebookSummary?: string | undefined;
+  /** Sprache der Zusammenfassung (BCP 47), für lang bei abweichender Oberfläche (#323). */
+  readonly notebookSummaryLang?: string | undefined;
   readonly promptChips?: readonly string[] | undefined;
   readonly messages: readonly ChatMessage[];
   readonly activeModel?: string | undefined;
@@ -32,11 +34,14 @@ export interface ChatPanelProps {
   readonly onStop?: (() => void) | undefined;
   readonly onRetry?: (() => void) | undefined;
   readonly isGenerating?: boolean | undefined;
+  /** Fokusziel für die Bereichsnavigation (data-panel, tabIndex, data-flash). */
+  readonly panelAttributes?: PanelFocusAttributes | undefined;
 }
 
 export function ChatPanel({
   notebookTitle = "RelationNotes Studio",
   notebookSummary,
+  notebookSummaryLang,
   promptChips: promptChipsProp,
   messages,
   activeModel = "gemini-2.5-flash",
@@ -45,7 +50,8 @@ export function ChatPanel({
   onReadAloud,
   onStop,
   onRetry,
-  isGenerating = false
+  isGenerating = false,
+  panelAttributes
 }: ChatPanelProps) {
   const { t, tf, language } = useTheme();
   // Vorschlagsfragen sind Bedientext und folgen der Sprache; eigene Fragen bleiben unverändert
@@ -186,7 +192,12 @@ export function ChatPanel({
   const canSend = inputText.trim().length > 0 && !isGenerating;
 
   return (
-    <section aria-label={t("chatPanelLabel")} className="chat-panel" data-testid="chat-panel">
+    <section
+      aria-label={t("chatPanelLabel")}
+      className="chat-panel"
+      data-testid="chat-panel"
+      {...panelAttributes}
+    >
       {/* Statusmeldungen fuer Screenreader (nicht pro Token, sondern pro Zustand) */}
       <output
         aria-live="polite"
@@ -209,7 +220,9 @@ export function ChatPanel({
             >
               <p className="rn-eyebrow">{t("chatSummaryLabel")}</p>
               <h2 className="rn-summary-title">{notebookTitle}</h2>
-              <p className="rn-summary-text">{notebookSummary}</p>
+              <p className="rn-summary-text" lang={notebookSummaryLang}>
+                {notebookSummary}
+              </p>
             </article>
           )}
 

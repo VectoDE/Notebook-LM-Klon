@@ -1,9 +1,11 @@
 import { type ChangeEvent, type DragEvent, useEffect, useId, useRef, useState } from "react";
 import { Icon } from "./Icon.js";
 import { trapTabKey } from "./focus-trap.js";
+import { shouldReduceMotion } from "./theme-preferences.js";
+import { type SourceUrlError, validateSourceUrl } from "./url-validation.js";
 import { useReturnFocus } from "./useReturnFocus.js";
 import { useTheme } from "./useTheme.js";
-import type { CitationLocation, WorkspaceSource } from "./workspace-types.js";
+import type { CitationLocation, PanelFocusAttributes, WorkspaceSource } from "./workspace-types.js";
 
 export interface SourcesPanelProps {
   readonly sources: readonly WorkspaceSource[];
@@ -15,6 +17,8 @@ export interface SourcesPanelProps {
     | ((url: string, title?: string | undefined) => void | Promise<void>)
     | undefined;
   readonly onClearActiveCitation?: (() => void) | undefined;
+  /** Fokusziel für die Bereichsnavigation (data-panel, tabIndex, data-flash). */
+  readonly panelAttributes?: PanelFocusAttributes | undefined;
 }
 
 export function SourcesPanel({
@@ -24,13 +28,15 @@ export function SourcesPanel({
   onToggleSelectAll,
   onUploadFiles,
   onImportUrl,
-  onClearActiveCitation
+  onClearActiveCitation,
+  panelAttributes
 }: SourcesPanelProps) {
   const { t, tf } = useTheme();
   const [filterText, setFilterText] = useState("");
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [urlTitleInput, setUrlTitleInput] = useState("");
+  const [urlError, setUrlError] = useState<SourceUrlError | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [inspectedSourceId, setInspectedSourceId] = useState<string | null>(
     () => activeCitation?.sourceId ?? null
@@ -43,6 +49,7 @@ export function SourcesPanel({
   const urlAddressRef = useRef<HTMLInputElement>(null);
   const searchInputId = useId();
   const urlDialogTitleId = useId();
+  const urlErrorId = useId();
 
   // Vor showModal(): Auslöser merken, nach dem Schließen dorthin zurück (#314)
   useReturnFocus(isUrlModalOpen, () => urlButtonRef.current);
@@ -66,7 +73,13 @@ export function SourcesPanel({
   // Scroll to highlighted citation passage
   useEffect(() => {
     if (inspectedSourceId && highlightRef.current) {
-      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      // "Bewegung reduzieren" springt ohne Animation (WCAG 2.3.3, Issue #323)
+      highlightRef.current.scrollIntoView({
+        behavior: shouldReduceMotion(document.documentElement, window.matchMedia?.bind(window))
+          ? "auto"
+          : "smooth",
+        block: "center"
+      });
       highlightRef.current.focus?.();
     }
   }, [inspectedSourceId]);
@@ -109,13 +122,24 @@ export function SourcesPanel({
     e.target.value = "";
   };
 
+  const closeUrlDialog = () => {
+    setUrlError(null);
+    setIsUrlModalOpen(false);
+  };
+
+  // Eigene Fehlermeldung statt Browserblase; der Fokus bleibt im URL-Feld (Issue #323)
   const handleUrlSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!urlInput.trim()) return;
+    const error = validateSourceUrl(urlInput);
+    setUrlError(error);
+    if (error) {
+      urlAddressRef.current?.focus();
+      return;
+    }
     await onImportUrl?.(urlInput.trim(), urlTitleInput.trim() || undefined);
     setUrlInput("");
     setUrlTitleInput("");
-    setIsUrlModalOpen(false);
+    closeUrlDialog();
   };
 
   const inspectedSource = sources.find((s) => s.id === inspectedSourceId);
@@ -125,6 +149,7 @@ export function SourcesPanel({
       aria-label={t("srcPanelLabel")}
       className="sources-panel rn-panel-body"
       data-testid="sources-panel"
+      {...panelAttributes}
     >
       <header className="rn-panel-head">
         <div className="rn-panel-heading">
@@ -255,7 +280,9 @@ export function SourcesPanel({
                     />
                   </label>
                   <div className="rn-source-text">
-                    <span className="rn-source-title">{source.title}</span>
+                    <span className="rn-source-title" lang={source.lang}>
+                      {source.title}
+                    </span>
                     <small className="rn-source-meta">
                       <span className="rn-source-type" aria-hidden="true">
                         {sourceTypeLabel(source.mimeType)}
@@ -291,7 +318,7 @@ export function SourcesPanel({
           className="rn-inspector"
         >
           <div className="rn-inspector-head">
-            <h3>{inspectedSource.title}</h3>
+            <h3 lang={inspectedSource.lang}>{inspectedSource.title}</h3>
             <button
               type="button"
               onClick={() => {
@@ -313,7 +340,11 @@ export function SourcesPanel({
             </div>
           )}
 
-          <div data-testid="inspector-source-content" className="rn-inspector-content">
+          <div
+            data-testid="inspector-source-content"
+            className="rn-inspector-content"
+            lang={inspectedSource.rawText ? inspectedSource.lang : undefined}
+          >
             {activeCitation?.quote &&
             inspectedSource.rawText &&
             inspectedSource.rawText.includes(activeCitation.quote) ? (
@@ -350,7 +381,7 @@ export function SourcesPanel({
           className="rn-dialog"
           onCancel={(e) => {
             e.preventDefault();
-            setIsUrlModalOpen(false);
+            closeUrlDialog();
           }}
           // Tab läuft im Dialog um, statt in die Browserleiste zu springen
           onKeyDown={(e) => {
@@ -361,7 +392,7 @@ export function SourcesPanel({
             <h3 id={urlDialogTitleId}>{t("srcDialogTitle")}</h3>
             <p className="rn-dialog-text">{t("srcDialogText")}</p>
 
-            <form onSubmit={handleUrlSubmit} className="rn-form">
+            <form onSubmit={handleUrlSubmit} className="rn-form" noValidate>
               <div className="rn-field">
                 <label htmlFor="url-title-input">{t("srcTitleLabel")}</label>
                 <input
@@ -382,18 +413,29 @@ export function SourcesPanel({
                   ref={urlAddressRef}
                   type="url"
                   required
+                  aria-invalid={urlError ? "true" : undefined}
+                  aria-describedby={urlError ? urlErrorId : undefined}
                   value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
+                  onChange={(e) => {
+                    setUrlInput(e.target.value);
+                    // Nach einer Korrektur verschwindet die Meldung, sobald die Adresse passt
+                    if (urlError) setUrlError(validateSourceUrl(e.target.value));
+                  }}
                   placeholder="https://docs.google.com/document/d/…"
                   data-testid="url-address-input"
                   className="rn-input"
                 />
+                {urlError && (
+                  <p id={urlErrorId} data-testid="url-address-error" className="rn-field-error">
+                    {t(urlError)}
+                  </p>
+                )}
               </div>
 
               <div className="rn-dialog-actions">
                 <button
                   type="button"
-                  onClick={() => setIsUrlModalOpen(false)}
+                  onClick={closeUrlDialog}
                   data-testid="btn-cancel-url-dialog"
                   className="rn-btn rn-btn--secondary"
                 >
