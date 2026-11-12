@@ -110,8 +110,6 @@ test.describe("Einstellungen", () => {
         await page.keyboard.press("Tab");
         expect(await drawer.evaluate((el) => el.contains(document.activeElement))).toBe(true);
       }
-      await drawer.getByTestId("theme-option-editorial-calm").check();
-      await expect(page.locator("html")).toHaveAttribute("data-design", "editorial-calm");
       await drawer.getByTestId("lang-option-en").check();
       await expect(page.getByRole("dialog", { name: /Settings/ })).toBeVisible();
       await page.keyboard.press("Escape");

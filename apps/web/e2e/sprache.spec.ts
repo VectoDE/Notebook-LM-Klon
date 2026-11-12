@@ -36,20 +36,17 @@ for (const width of [390, 1440]) {
     // Einstellungen und Darstellung
     await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
     for (const text of [
-      "Appearance",
-      "Design",
-      "Color scheme",
-      "Automatic (match device)",
-      "High contrast (AAA)",
       "Language",
       "AI model",
       "Applies to new answers.",
       "Your own API keys (BYOK)",
-      "Coming soon"
+      "Coming soon",
+      "BYOK stands for “bring your own key”",
+      "Design, color scheme and motion are set under “Appearance”."
     ]) {
       await expect(drawer, text).toContainText(text);
     }
-    for (const german of ["Darstellung", "Farbschema", "Sprache", "Hell", "Dunkel"]) {
+    for (const german of ["Darstellung", "Sprache", "Modell", "Schlüssel"]) {
       await expect(drawer, german).not.toContainText(german);
     }
     expect(await findLayoutProblems(page)).toEqual([]);
@@ -68,7 +65,14 @@ for (const width of [390, 1440]) {
       await page.getByRole("button", { name: "Open menu" }).click();
       const sheet = page.getByRole("dialog", { name: "Menu" });
       await expect(sheet).toBeVisible();
-      for (const text of ["Model, privacy, language", "Settings", "Appearance", "Color scheme"]) {
+      for (const text of [
+        "Language, AI model, privacy",
+        "Settings",
+        "Appearance",
+        "Color scheme",
+        "Reduce motion",
+        "Role"
+      ]) {
         await expect(sheet, text).toContainText(text);
       }
       for (const german of ["Bereiche", "Einstellungen", "Darstellung", "Farbschema"]) {
@@ -80,11 +84,11 @@ for (const width of [390, 1440]) {
     } else {
       const top = page.getByTestId("top-nav");
       await expect(page.getByRole("navigation", { name: "Sections" }).first()).toBeVisible();
-      for (const label of ["Sources", "Chat", "Studio", "Settings"]) {
+      for (const label of ["Sources", "Chat", "Studio"]) {
         await expect(top, label).toContainText(label);
       }
       await expect(top).not.toContainText("Quellen");
-      await expect(top).not.toContainText("Einstellungen");
+      await expect(page.getByTestId("btn-open-settings")).toHaveText("Settings");
       const appearance = page.getByTestId("btn-open-appearance");
       await expect(appearance).toHaveText("Appearance");
       await appearance.click();
@@ -92,6 +96,8 @@ for (const width of [390, 1440]) {
       await expect(menu).toBeVisible();
       await expect(menu).toContainText("Automatic (match device)");
       await expect(menu).toContainText("Design and color scheme are saved on this device.");
+      await expect(menu).toContainText("Reduce motion");
+      await expect(menu.getByLabel("Role")).toBeVisible();
       expect(await findLayoutProblems(page)).toEqual([]);
       await page.keyboard.press("Escape");
       await expect(menu).toBeHidden();

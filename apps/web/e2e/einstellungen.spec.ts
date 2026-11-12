@@ -55,8 +55,8 @@ for (const width of [390, 1440]) {
           };
         })
       );
+      // Sprache zuerst, Darstellung nur noch im Kopfmenü bzw. Menü-Sheet (Issue #319)
       expect(titles.map((x) => x.text)).toEqual([
-        "Darstellung",
         "Sprache",
         "KI-Modell",
         "Eigene API-Schlüssel (BYOK)In Vorbereitung",
@@ -68,7 +68,7 @@ for (const width of [390, 1440]) {
       // Hinweise, wann eine Einstellung greift und wo sie gespeichert ist
       await expect(drawer).toContainText("Gilt für neue Antworten.");
       await expect(drawer).toContainText(
-        "Design und Farbschema werden auf diesem Gerät gespeichert."
+        "Design, Farbschema und Bewegung stellen Sie unter „Darstellung“ ein."
       );
       await expect(drawer).toContainText(
         "Gilt für die Oberfläche und wird auf diesem Gerät gespeichert."
@@ -81,7 +81,7 @@ for (const width of [390, 1440]) {
       const byokText = (await byok.locator(".rn-drawer-text").innerText()).trim();
       expect(byokText.split(/(?<=\.)\s+/).length).toBeLessThanOrEqual(2);
 
-      expect(await modeNames(page, "settings-drawer")).toEqual(MODE_NAMES);
+      await expect(drawer.locator("[data-testid^='mode-option-']")).toHaveCount(0);
       expect(await findLayoutProblems(page)).toEqual([]);
     });
 
@@ -153,7 +153,13 @@ test.describe("Farbmodus Automatisch (wie Gerät)", () => {
     await page.emulateMedia({ colorScheme: "dark", contrast: "no-preference" });
     await expect(html).toHaveAttribute("data-color-mode", "dark");
 
-    const drawer = await openSettings(page, 1440);
+    const openMenu = async () => {
+      await page.getByTestId("btn-open-appearance").click();
+      const menu = page.getByTestId("appearance-menu");
+      await expect(menu).toBeVisible();
+      return menu;
+    };
+    const drawer = await openMenu();
     await expect(drawer.getByTestId("mode-option-system")).toBeChecked();
     expect(await page.evaluate(() => localStorage.getItem("rn_color_mode"))).toBe("system");
 
@@ -167,7 +173,7 @@ test.describe("Farbmodus Automatisch (wie Gerät)", () => {
     await expect(html).toHaveAttribute("data-color-mode", "light");
 
     // Zurück auf Automatisch: übernimmt sofort den Gerätemodus
-    const again = await openSettings(page, 1440);
+    const again = await openMenu();
     await again.getByTestId("mode-option-system").check();
     await expect(html).toHaveAttribute("data-color-mode", "dark");
     expect(await page.evaluate(() => localStorage.getItem("rn_color_mode"))).toBe("system");
