@@ -278,15 +278,19 @@ const PANEL_TABS: readonly {
   { id: "graph", labelKey: "navGraph", ariaKey: "navGraphAria", icon: "graph" }
 ];
 
-/** Werkzeuge in der Symbolleiste der eingeklappten Studio-Spalte. */
+/**
+ * Werkzeuge in der Symbolleiste der eingeklappten Studio-Spalte. Der Wissensgraph steht wie
+ * im Studio nach der Mindmap; er öffnet in der mittleren Spalte (Issue #327, #335).
+ */
 const RAIL_TOOLS: readonly {
-  readonly tool: Exclude<StudioTool, "overview" | "briefing">;
+  readonly tool: Exclude<StudioTool, "overview" | "briefing"> | "graph";
   readonly icon: IconName;
   readonly labelKey: string;
 }[] = [
   { tool: "audio", icon: "audio", labelKey: "studioAudioCard" },
   { tool: "video", icon: "video", labelKey: "studioVideoCard" },
   { tool: "mindmap", icon: "mindmap", labelKey: "toolMindmapTitle" },
+  { tool: "graph", icon: "graph", labelKey: "toolGraphTitle" },
   { tool: "flashcards", icon: "cards", labelKey: "toolCardsTitle" },
   { tool: "quiz", icon: "quiz", labelKey: "toolQuizTitle" }
 ];
@@ -1039,7 +1043,9 @@ export function WorkspaceLayout({
                   key={item.tool}
                   icon={item.icon}
                   label={t(item.labelKey)}
-                  onClick={() => openStudioTool(item.tool)}
+                  onClick={() =>
+                    item.tool === "graph" ? goToPanel("graph") : openStudioTool(item.tool)
+                  }
                   tipSide="left"
                   testId={`rail-tool-${item.tool}`}
                 />

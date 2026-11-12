@@ -154,6 +154,16 @@ test.describe("1024 px: drei Bereiche ohne Umbrüche", () => {
     });
   }
 
+  test("eingeklapptes Studio: Wissensgraph über die Symbolleiste erreichbar", async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.goto("/");
+    const rail = page.locator("[data-testid^='rail-tool-']");
+    const ids = await rail.evaluateAll((els) => els.map((el) => el.getAttribute("data-testid")));
+    expect(ids.indexOf("rail-tool-graph")).toBe(ids.indexOf("rail-tool-mindmap") + 1);
+    await page.getByTestId("rail-tool-graph").click();
+    await expect(page.locator("[data-panel='graph']")).toBeVisible();
+  });
+
   test("eigene Wahl gilt: ausgeklapptes Studio bleibt nach dem Neuladen offen", async ({
     page
   }) => {
