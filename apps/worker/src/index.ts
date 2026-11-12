@@ -13,6 +13,7 @@ import {
 } from "./auth-middleware.js";
 import { registerBYOKRoutes } from "./byok-routes.js";
 import { registerChatRoutes } from "./chat-routes.js";
+import { registerChunkIngestionRoutes } from "./chunk-ingestion.js";
 import { runScheduledCleanup } from "./cleanup.js";
 import { resolveAppConfig } from "./config.js";
 import { CoreRepository } from "./core-repository.js";
@@ -260,8 +261,12 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   app.use("/api/v1/sources/:id/upload", requireSourceRole(coreRepo, ragRepo, "editor"));
   app.use("/api/v1/sources/:id/upload/complete", requireSourceRole(coreRepo, ragRepo, "editor"));
   app.use("/api/v1/sources/:id/file", requireSourceRole(coreRepo, ragRepo, "viewer"));
+  // Chunk ingestion and source deletion change notebook content: editor role required.
+  app.use("/api/v1/sources/:id/chunks", requireSourceRole(coreRepo, ragRepo, "editor"));
+  app.on("DELETE", "/api/v1/sources/:id", requireSourceRole(coreRepo, ragRepo, "editor"));
   registerUrlImportRoutes(app, { ragRepo });
   registerSourcesUploadRoutes(app, { coreRepo, ragRepo });
+  registerChunkIngestionRoutes(app, { ragRepo, coreRepo });
 
   // 6. Providers: catalog and routing decision are public, the network probe needs a session
   app.use("/api/v1/providers/ollama/probe", requireAuth());
