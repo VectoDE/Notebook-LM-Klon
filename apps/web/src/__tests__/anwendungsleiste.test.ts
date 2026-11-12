@@ -134,11 +134,11 @@ describe("Teilen-Dialog: nur Oberfläche", () => {
 });
 
 describe("Konto und Spaltenleiste", () => {
-  it("Konto zeigt nur den Gast-Zustand, ohne Anmeldefeld", () => {
+  it("Konto zeigt den Gast-Zustand, ohne Anmeldefeld (Anmelden läuft über den Dialog)", () => {
     const html = renderToStaticMarkup(createElement(AccountStatus));
     expect(html).toContain(">Gast</p>");
     expect(html).toContain(">Nicht angemeldet</p>");
-    expect(html).toContain("Anmelden ist noch nicht möglich");
+    expect(html).toContain("bleiben auf diesem Gerät gespeichert");
     expect(html).not.toMatch(/<input|password|Passwort/);
   });
 

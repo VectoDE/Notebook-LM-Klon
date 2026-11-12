@@ -445,10 +445,102 @@ const ENTRIES: readonly Entry[] = [
   ["accountSignedOut", "Nicht angemeldet", "Not signed in"],
   [
     "accountText",
-    "Anmelden ist noch nicht möglich. Titel, Darstellung und Einstellungen bleiben auf diesem Gerät gespeichert.",
-    "Signing in is not available yet. Title, appearance and settings stay saved on this device."
+    "Titel, Darstellung und Einstellungen bleiben auf diesem Gerät gespeichert.",
+    "Title, appearance and settings stay saved on this device."
   ],
   ["accountOpenSettings", "Einstellungen öffnen", "Open settings"],
+
+  // Anmelden mit Turnstile (Issue #233)
+  ["signInOpen", "Anmelden", "Sign in"],
+  ["signInTitle", "Anmelden", "Sign in"],
+  ["signInClose", "Anmelden schließen", "Close sign-in"],
+  [
+    "signInIntro",
+    "Zum Schutz vor Bots prüft Cloudflare Turnstile kurz Ihren Browser. Erst dann lässt sich die Anmeldung abschicken.",
+    "Cloudflare Turnstile briefly checks your browser to keep bots out. You can only send the sign-in after that."
+  ],
+  [
+    "signInTestKey",
+    "Testmodus: Hier läuft der öffentliche Test-Schlüssel von Cloudflare. Er schützt nicht vor Bots und ist nur für die Entwicklung gedacht.",
+    "Test mode: this uses Cloudflare's public test key. It does not stop bots and is for development only."
+  ],
+  [
+    "signInNoSiteKeyTitle",
+    "Anmelden ist gerade nicht möglich",
+    "Signing in is not possible right now"
+  ],
+  [
+    "signInErrorNoSiteKey",
+    "Der Bot-Schutz ist für diese Installation nicht eingerichtet (Turnstile-Site-Key fehlt). Bitte wenden Sie sich an den Betreiber.",
+    "Bot protection is not set up for this installation (Turnstile site key missing). Please contact the operator."
+  ],
+  ["signInCheckLoading", "Bot-Prüfung wird geladen …", "Loading bot check …"],
+  [
+    "signInCheckFailed",
+    "Die Bot-Prüfung konnte nicht geladen werden. Prüfen Sie Ihre Verbindung oder Inhaltsblocker und öffnen Sie den Dialog erneut.",
+    "The bot check could not be loaded. Check your connection or content blocker and open this dialog again."
+  ],
+  ["signInGuestTitle", "Als Gast", "As a guest"],
+  [
+    "signInGuestText",
+    "Ohne E-Mail-Adresse, 24 Stunden gültig. Danach werden die Gastdaten gelöscht.",
+    "No email address needed, valid for 24 hours. Guest data is deleted afterwards."
+  ],
+  ["signInGuestButton", "Als Gast starten", "Continue as guest"],
+  ["signInMagicTitle", "Mit Anmeldelink", "With a sign-in link"],
+  ["signInEmailLabel", "E-Mail-Adresse", "Email address"],
+  ["signInMagicButton", "Anmeldelink senden", "Send sign-in link"],
+  ["signInBusy", "Wird gesendet …", "Sending …"],
+  [
+    "signInNeedCheck",
+    "Bitte zuerst die Bot-Prüfung abschließen.",
+    "Please complete the bot check first."
+  ],
+  [
+    "signInGuestSuccess",
+    "Sie sind als Gast angemeldet. Der Zugang gilt 24 Stunden.",
+    "You are signed in as a guest. Access lasts 24 hours."
+  ],
+  [
+    "signInMagicLinkSuccess",
+    "Der Anmeldelink ist unterwegs. Er gilt 15 Minuten.",
+    "The sign-in link is on its way. It is valid for 15 minutes."
+  ],
+  [
+    "signInErrorServerConfig",
+    "Der Server hat keinen Bot-Schutz eingerichtet und nimmt deshalb keine Anmeldungen an.",
+    "The server has no bot protection set up and does not accept sign-ins."
+  ],
+  [
+    "signInErrorBot",
+    "Die Bot-Prüfung wurde nicht bestätigt. Bitte erneut prüfen lassen.",
+    "The bot check was not confirmed. Please run it again."
+  ],
+  [
+    "signInErrorEmail",
+    "Bitte eine gültige E-Mail-Adresse eingeben.",
+    "Please enter a valid email address."
+  ],
+  [
+    "signInErrorRateLimit",
+    "Zu viele Versuche. Bitte in einer Minute erneut versuchen.",
+    "Too many attempts. Please try again in a minute."
+  ],
+  [
+    "signInErrorMail",
+    "Die E-Mail konnte nicht zugestellt werden. Bitte später erneut versuchen.",
+    "The email could not be delivered. Please try again later."
+  ],
+  [
+    "signInErrorNetwork",
+    "Keine Verbindung zum Server. Bitte Verbindung prüfen.",
+    "No connection to the server. Please check your connection."
+  ],
+  [
+    "signInErrorGeneric",
+    "Anmelden hat nicht geklappt. Bitte erneut versuchen.",
+    "Signing in did not work. Please try again."
+  ],
 
   // Wissensgraph (Issue #327)
   ["navGraph", "Graph", "Graph"],

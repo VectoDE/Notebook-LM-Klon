@@ -2400,6 +2400,68 @@ html[data-color-mode="aaa-contrast"] .rn-share-notice {
   line-height: 1.5;
 }
 
+/* --- Anmelden: Gastzugang und Magic-Link mit Turnstile (Issue #233) --- */
+.rn-signin-card,
+.rn-signin-section,
+.rn-signin-check {
+  display: grid;
+  gap: var(--rn-space-3);
+}
+
+.rn-signin-card {
+  gap: var(--rn-space-4);
+}
+
+/* Turnstile-Widget: feste Mindesthöhe gegen Layout-Sprung beim Nachladen */
+.rn-signin-widget {
+  min-height: 65px;
+}
+
+.rn-signin-test {
+  margin: 0;
+  padding: var(--rn-space-3);
+  border: 1px dashed var(--rn-color-text-secondary);
+  border-radius: var(--rn-radius-sm);
+  color: var(--rn-color-text-primary);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.rn-signin-alert {
+  margin: 0;
+  padding: var(--rn-space-3);
+  border-radius: var(--rn-radius-sm);
+  background: var(--rn-color-error-surface);
+  color: var(--rn-color-error);
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+}
+
+.rn-signin-alert p {
+  margin: 0;
+}
+
+.rn-signin-alert-title {
+  font-weight: 700;
+}
+
+.rn-signin-status {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-signin-status--error {
+  color: var(--rn-color-error);
+}
+
+.rn-signin-status--success {
+  color: var(--rn-color-success);
+}
+
 /* ==========================================================================
    Werkzeugansichten: gemeinsamer Kopf, Fortschritt, Aktionsreihen
    Alle Texte stehen auf geprüften Token-Flächen (panel, canvas, surface-variant,

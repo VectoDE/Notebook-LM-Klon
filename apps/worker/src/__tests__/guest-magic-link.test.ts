@@ -658,30 +658,33 @@ describe("Turnstile fail-closed on guest login and magic-link (Issue #233)", () 
     ["undefined", undefined],
     ["empty", ""],
     ["whitespace", "   "]
-  ])("returns 503 on both routes when the secret is %s and never calls Siteverify", async (_label, secret) => {
-    const siteverify = createSiteverifyMock(true);
-    const { app, repo, mail, close } = buildApp({
-      turnstileSecretKey: secret,
-      customFetch: siteverify.fetch
-    });
+  ])(
+    "returns 503 on both routes when the secret is %s and never calls Siteverify",
+    async (_label, secret) => {
+      const siteverify = createSiteverifyMock(true);
+      const { app, repo, mail, close } = buildApp({
+        turnstileSecretKey: secret,
+        customFetch: siteverify.fetch
+      });
 
-    const guest = await post(app, "guest", { turnstileToken: "valid_token" });
-    expect(guest.status).toBe(503);
-    expect(guest.headers.get("content-type")).toContain("application/problem+json");
-    expect(await codeOf(guest)).toBe("TURNSTILE_NOT_CONFIGURED");
+      const guest = await post(app, "guest", { turnstileToken: "valid_token" });
+      expect(guest.status).toBe(503);
+      expect(guest.headers.get("content-type")).toContain("application/problem+json");
+      expect(await codeOf(guest)).toBe("TURNSTILE_NOT_CONFIGURED");
 
-    const magic = await post(app, "magic-link", {
-      email: "nosecret@example.com",
-      turnstileToken: "valid_token"
-    });
-    expect(magic.status).toBe(503);
-    expect(await codeOf(magic)).toBe("TURNSTILE_NOT_CONFIGURED");
+      const magic = await post(app, "magic-link", {
+        email: "nosecret@example.com",
+        turnstileToken: "valid_token"
+      });
+      expect(magic.status).toBe(503);
+      expect(await codeOf(magic)).toBe("TURNSTILE_NOT_CONFIGURED");
 
-    expect(siteverify.calls).toHaveLength(0);
-    expect(await countUsers(repo)).toBe(0);
-    expect(mail.lastSentEmail).toBeUndefined();
-    close();
-  });
+      expect(siteverify.calls).toHaveLength(0);
+      expect(await countUsers(repo)).toBe(0);
+      expect(mail.lastSentEmail).toBeUndefined();
+      close();
+    }
+  );
 
   it.each([
     ["missing", {}],
