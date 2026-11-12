@@ -396,7 +396,61 @@ const ENTRIES: readonly Entry[] = [
     "Live-Audio-Synthese · Antworten mit Quellenangabe",
     "Live audio synthesis · answers with source references"
   ],
-  ["lyricsLabel", "Live Transkript und Songtexte", "Live transcript and lyrics"]
+  ["lyricsLabel", "Live Transkript und Songtexte", "Live transcript and lyrics"],
+
+  // Anwendungsleiste und Spalten (Issue #325)
+  ["titleEditHint", "Zum Umbenennen auswählen", "Select to rename"],
+  ["titleInputLabel", "Notebook-Titel", "Notebook title"],
+  ["titleSaved", "Titel gespeichert: {title}", "Title saved: {title}"],
+  ["skipToSources", "Zu den Quellen", "Skip to sources"],
+  ["skipToChat", "Zum Chat", "Skip to chat"],
+  ["skipToStudio", "Zum Studio", "Skip to Studio"],
+  ["panelCollapseSources", "Quellen einklappen", "Collapse sources"],
+  ["panelExpandSources", "Quellen ausklappen", "Expand sources"],
+  ["panelCollapseStudio", "Studio einklappen", "Collapse Studio"],
+  ["panelExpandStudio", "Studio ausklappen", "Expand Studio"],
+  ["panelSourcesCollapsed", "Quellen eingeklappt", "Sources collapsed"],
+  ["panelSourcesExpanded", "Quellen ausgeklappt", "Sources expanded"],
+  ["panelStudioCollapsed", "Studio eingeklappt", "Studio collapsed"],
+  ["panelStudioExpanded", "Studio ausgeklappt", "Studio expanded"],
+  ["shortcutSources", "Alt+Umschalt+1", "Alt+Shift+1"],
+  ["shortcutStudio", "Alt+Umschalt+3", "Alt+Shift+3"],
+  ["railSourcesLabel", "Quellen (eingeklappt)", "Sources (collapsed)"],
+  ["railStudioLabel", "Studio (eingeklappt)", "Studio (collapsed)"],
+  ["shareButton", "Teilen", "Share"],
+  ["shareTitle", "„{title}“ teilen", "Share “{title}”"],
+  ["shareClose", "Teilen schließen", "Close sharing"],
+  ["shareNoticeTitle", "Freigabe noch nicht verfügbar", "Sharing not available yet"],
+  [
+    "shareNotice",
+    "So wird das Teilen später aussehen. Einladungen werden noch nicht verschickt, und niemand außer Ihnen erhält Zugriff.",
+    "This is how sharing will look. Invitations are not sent yet, and nobody but you gets access."
+  ],
+  ["shareEmailLabel", "E-Mail-Adresse", "Email address"],
+  ["shareEmailPlaceholder", "name@beispiel.de", "name@example.com"],
+  ["shareRoleLabel", "Rolle", "Role"],
+  ["shareRoleOwner", "Eigentümer", "Owner"],
+  ["shareRoleEditor", "Bearbeiten", "Can edit"],
+  ["shareRoleViewer", "Betrachten", "Can view"],
+  ["shareSend", "Einladung senden", "Send invitation"],
+  [
+    "shareSendUnavailable",
+    "Nicht gesendet: Die Freigabe ist noch nicht verfügbar.",
+    "Not sent: sharing is not available yet."
+  ],
+  ["sharePeopleTitle", "Personen mit Zugriff", "People with access"],
+  ["shareGuestYou", "Gast (Sie)", "Guest (you)"],
+  ["shareDone", "Fertig", "Done"],
+  ["shareMenuHint", "Freigabe noch nicht verfügbar", "Sharing not available yet"],
+  ["accountButton", "Konto", "Account"],
+  ["accountGuest", "Gast", "Guest"],
+  ["accountSignedOut", "Nicht angemeldet", "Not signed in"],
+  [
+    "accountText",
+    "Anmelden ist noch nicht möglich. Titel, Darstellung und Einstellungen bleiben auf diesem Gerät gespeichert.",
+    "Signing in is not available yet. Title, appearance and settings stay saved on this device."
+  ],
+  ["accountOpenSettings", "Einstellungen öffnen", "Open settings"]
 
   // Rollen
 ];

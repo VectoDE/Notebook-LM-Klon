@@ -24,10 +24,19 @@ export async function chooseDesign(page: Page, design: string, mode: string): Pr
   await container.waitFor({ state: "hidden" });
 }
 
-/** Öffnet einen Bereich: unter 600 px über die untere Leiste, sonst über die Reiter im Kopf. */
+/**
+ * Öffnet einen Bereich: unter 600 px über die untere Leiste, 600 bis 899 px über die Reiter
+ * unter dem Kopf. Ab 900 px sind alle Spalten sichtbar (Issue #325): dann führt der
+ * Sprunglink in die Spalte und klappt sie bei Bedarf aus.
+ */
 export async function openPanel(page: Page, panel: "sources" | "chat" | "studio"): Promise<void> {
   const bottom = page.getByTestId(`tab-btn-${panel}`);
-  await ((await bottom.isVisible()) ? bottom : page.getByTestId(`top-tab-${panel}`)).click();
+  if (await bottom.isVisible()) return bottom.click();
+  const top = page.getByTestId(`top-tab-${panel}`);
+  if (await top.isVisible()) return top.click();
+  await page.getByTestId(`skip-link-${panel}`).focus();
+  await page.keyboard.press("Enter");
+  await page.locator(`[data-panel='${panel}']`).waitFor({ state: "visible" });
 }
 
 export interface LayoutProblem {

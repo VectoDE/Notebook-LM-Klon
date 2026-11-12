@@ -8,6 +8,8 @@ import type {
 } from "@notebook-lm/shared";
 import { describe, expect, it, vi } from "vitest";
 import {
+  DOWNLOAD_FILENAME_MAX_LENGTH,
+  escapeHtmlText,
   exportArtifactToPrintHtml,
   exportBriefingToMarkdown,
   exportFAQToMarkdown,
@@ -18,8 +20,37 @@ import {
   exportMindmapToSvgString,
   exportQuizToJson,
   exportTimelineToMarkdown,
+  toSafeFilename,
   triggerBrowserDownload
 } from "../artifact-exporters.js";
+
+describe("Titel als reiner Text in Exporten (Issue #325)", () => {
+  it("maskiert HTML-Sonderzeichen und lässt normalen Text unverändert", () => {
+    expect(escapeHtmlText("Cloudflare Edge Stack")).toBe("Cloudflare Edge Stack");
+    expect(escapeHtmlText(`<img src="x" onerror='a()'> & Co`)).toBe(
+      "&lt;img src=&quot;x&quot; onerror=&#39;a()&#39;&gt; &amp; Co"
+    );
+  });
+});
+
+describe("Sichere Dateinamen (Issue #325)", () => {
+  it("lässt übliche Namen stehen und ersetzt Pfad-, Markup- und Leerzeichen", () => {
+    expect(toSafeFilename("export.csv")).toBe("export.csv");
+    expect(toSafeFilename("Größe_Übersicht-2.svg")).toBe("Größe_Übersicht-2.svg");
+    expect(toSafeFilename("Mein Projekt_mindmap.svg")).toBe("Mein_Projekt_mindmap.svg");
+    expect(toSafeFilename('<img src=x onerror="a()">_quiz.json')).toBe(
+      "img_src_x_onerror_a_quiz.json"
+    );
+    expect(toSafeFilename("../../etc/passwd")).toBe("etc_passwd");
+    expect(toSafeFilename("a\u0000b\nc")).toBe("a_b_c");
+  });
+
+  it("kürzt lange Namen und fällt bei leerem Ergebnis auf „download“ zurück", () => {
+    expect(toSafeFilename("x".repeat(300))).toHaveLength(DOWNLOAD_FILENAME_MAX_LENGTH);
+    expect(toSafeFilename("")).toBe("download");
+    expect(toSafeFilename("<>/")).toBe("download");
+  });
+});
 
 describe("Artifact Exporters (Sub-Issue #124)", () => {
   describe("triggerBrowserDownload", () => {

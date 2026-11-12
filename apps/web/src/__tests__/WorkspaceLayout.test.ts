@@ -40,8 +40,8 @@ describe("WorkspaceLayout Component (Issue #31)", () => {
     expect(html).toContain('aria-label="Studio (6 Werkzeuge)"');
     expect(html).toContain('<span class="rn-tab-count">2</span>');
     expect(html).toContain('<span class="rn-tab-label">Studio</span>');
-    // Kopf: Bereiche als Sprungziele; ohne Fenster (alle Bereiche sichtbar) kein aria-current
-    expect(html).toContain('data-testid="top-tab-chat" class="rn-topnav-item rn-tip-host"');
+    // Reiter oben gibt es nur 600 bis 899 px (ein Bereich sichtbar): ohne Fenster kein aria-current
+    expect(html).toContain('data-testid="top-tab-chat" class="rn-topnav-item"');
     expect(html).not.toMatch(/aria-current="true" data-testid="top-tab-/);
     // Untere Leiste bleibt Reiterleiste mit aria-current
     expect(html).toMatch(
@@ -51,11 +51,15 @@ describe("WorkspaceLayout Component (Issue #31)", () => {
     // Einstellungen öffnen einen Dialog: nicht in der Navigation „Bereiche“ (Issue #319)
     const nav = html.slice(html.indexOf('data-testid="top-nav"'), html.indexOf("</nav>"));
     expect(nav).not.toContain("btn-open-settings");
+    // Reiter liegen außerhalb der Anwendungsleiste (banner), zwischen Kopf und main
+    expect(html.indexOf("</header>")).toBeLessThan(html.indexOf('data-testid="top-nav"'));
     expect(html).toContain('<span class="rn-settings-button-label">Einstellungen</span>');
     // Sprunglink als erstes Element, Kopfzeile (banner) vor und außerhalb von main
     expect(html).toMatch(/^<div[^>]*><a href="#workspace-main" class="rn-skip-link"/);
     expect(html).toContain("Zum Inhalt springen");
-    expect(html).toMatch(/<\/header><main id="workspace-main" tabindex="-1"/);
+    expect(html).toMatch(
+      /<\/nav><main id="workspace-main" tabindex="-1" aria-labelledby="notebook-title"/
+    );
     expect(html.indexOf("<header")).toBeLessThan(html.indexOf("<main"));
     expect(html).toMatch(
       /aria-expanded="false" aria-controls="appearance-menu" aria-haspopup="dialog"/

@@ -239,7 +239,7 @@ test.describe("Zitat-Sprung bei reduzierter Bewegung (#323 A4)", () => {
 });
 
 test.describe("Fokus der Navigation auf benannte Regionen (#323 A5)", () => {
-  test("1440 px: Reiter fokussieren die Region mit Namen, Markierung bleibt", async ({ page }) => {
+  test("1440 px: Sprunglinks fokussieren die Region mit Namen und Fokusring", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
     const names = {
@@ -247,13 +247,14 @@ test.describe("Fokus der Navigation auf benannte Regionen (#323 A5)", () => {
       chat: "Wissens- und Chat-Panel",
       studio: "Studio-Panel"
     };
+    // Ab 900 px gibt es keine Reiter mehr (Issue #325), die Sprunglinks führen in die Spalten
     for (const [tab, name] of Object.entries(names)) {
-      await page.getByTestId(`top-tab-${tab}`).click();
+      await page.getByTestId(`skip-link-${tab}`).focus();
+      await page.keyboard.press("Enter");
       const region = page.getByRole("region", { name, exact: true });
       await expect(region).toBeFocused();
       await expect(region).toHaveAttribute("data-panel", tab);
-      await expect(region).toHaveAttribute("data-flash", "true");
-      await expect(region).toHaveCSS("outline-style", "solid");
+      await expect(region).not.toHaveAttribute("data-flash", /.*/);
     }
     // Die Layout-Wrapper sind keine Fokusziele mehr
     await expect(page.getByTestId("panel-left-wrapper")).not.toHaveAttribute("tabindex", /.*/);

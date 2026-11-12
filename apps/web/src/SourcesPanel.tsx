@@ -1,4 +1,12 @@
-import { type ChangeEvent, type DragEvent, useEffect, useId, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  type DragEvent,
+  type ReactNode,
+  useEffect,
+  useId,
+  useRef,
+  useState
+} from "react";
 import { Icon } from "./Icon.js";
 import { trapTabKey } from "./focus-trap.js";
 import { shouldReduceMotion } from "./theme-preferences.js";
@@ -17,9 +25,14 @@ export interface SourcesPanelProps {
     | ((url: string, title?: string | undefined) => void | Promise<void>)
     | undefined;
   readonly onClearActiveCitation?: (() => void) | undefined;
-  /** Fokusziel für die Bereichsnavigation (data-panel, tabIndex, data-flash). */
+  /** Fokusziel für die Bereichsnavigation (data-panel, tabIndex). */
   readonly panelAttributes?: PanelFocusAttributes | undefined;
+  /** Bedienelement am Spaltenrand im Kopf, z. B. der Knopf zum Einklappen (Issue #325). */
+  readonly headerAction?: ReactNode | undefined;
 }
+
+/** Erlaubte Dateiarten beim Hochladen (auch für den Knopf in der eingeklappten Leiste). */
+export const SOURCE_FILE_ACCEPT = ".pdf,.txt,.md,text/plain,text/markdown,application/pdf";
 
 export function SourcesPanel({
   sources,
@@ -29,7 +42,8 @@ export function SourcesPanel({
   onUploadFiles,
   onImportUrl,
   onClearActiveCitation,
-  panelAttributes
+  panelAttributes,
+  headerAction
 }: SourcesPanelProps) {
   const { t, tf } = useTheme();
   const [filterText, setFilterText] = useState("");
@@ -153,12 +167,16 @@ export function SourcesPanel({
     >
       <header className="rn-panel-head">
         <div className="rn-panel-heading">
-          <h2>{t("sourcesTitle")}</h2>
+          {/* Zähler neben dem Titel: der Rand bleibt frei für den Knopf zum Einklappen */}
+          <div className="rn-panel-title-row">
+            <h2>{t("sourcesTitle")}</h2>
+            <span data-testid="sources-count-badge" className="rn-count">
+              {tf(sources.length === 1 ? "srcCountOne" : "srcCountMany", { n: sources.length })}
+            </span>
+          </div>
           <p className="rn-panel-sub">{t("srcSub")}</p>
         </div>
-        <span data-testid="sources-count-badge" className="rn-count">
-          {tf(sources.length === 1 ? "srcCountOne" : "srcCountMany", { n: sources.length })}
-        </span>
+        {headerAction}
       </header>
 
       {/* Hochladen und Importieren */}
@@ -187,7 +205,7 @@ export function SourcesPanel({
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".pdf,.txt,.md,text/plain,text/markdown,application/pdf"
+          accept={SOURCE_FILE_ACCEPT}
           hidden
           data-testid="file-upload-input"
           onChange={handleFileInputChange}

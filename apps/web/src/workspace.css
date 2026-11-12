@@ -115,14 +115,13 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
 }
 
 /* ==========================================================================
-   Kopfzeile: Logo, Bereiche als Reiterleiste, Darstellung im Menü
-   Alle Bedienelemente teilen Höhe (44 px, WCAG 2.5.5), Radius und Schrift.
-   Drei Spalten: Marke links, Bereiche mittig, Darstellung rechts.
+   Anwendungsleiste (Issue #325): Logo und Notebook-Titel links, rechts Teilen,
+   Einstellungen, Darstellung und Konto. Alle Bedienelemente teilen Höhe (44 px,
+   WCAG 2.5.5), Radius und Schrift.
    ========================================================================== */
 .workspace-header {
   --rn-control-h: 44px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  display: flex;
   align-items: center;
   gap: var(--rn-space-4);
   min-height: 64px;
@@ -136,14 +135,14 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
 
 .workspace-brand {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
   gap: var(--rn-space-3);
   min-width: 0;
-  justify-self: start;
 }
 
-.workspace-title {
-  margin: 0;
+.workspace-logo {
+  flex: none;
   line-height: 0;
 }
 
@@ -157,17 +156,88 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   color: var(--rn-color-text-secondary);
 }
 
-/* --- Bereiche: ruhige Reiter, der aktive liegt auf einer hellen Fläche --- */
-.rn-topnav {
+/* --- Bearbeitbarer Notebook-Titel: Hauptüberschrift der Seite --- */
+.rn-nb-title-wrap {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
-  gap: var(--rn-space-1);
-  justify-self: center;
+  min-width: 0;
+}
+
+.rn-nb-title {
+  min-width: 0;
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.rn-nb-title[hidden] {
+  display: none;
+}
+
+.rn-nb-title-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rn-space-2);
+  max-width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: var(--rn-radius-md);
+  background: transparent;
+  color: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-h3);
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: left;
+  cursor: text;
+}
+
+.rn-nb-title-button:hover {
+  background: var(--rn-color-surface-variant);
+}
+
+/* Lange Titel brechen um, höchstens zwei Zeilen */
+.rn-nb-title-text {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.rn-nb-title-icon {
+  color: var(--rn-color-text-secondary);
+}
+
+/* Mittlere Breiten: kleinerer Titel, damit er einzeilig bleibt und der Stift am Text sitzt */
+@media (min-width: 600px) and (max-width: 1279.98px) {
+  .rn-nb-title-button,
+  .rn-nb-title-input {
+    font-size: var(--rn-text-base);
+  }
+}
+
+.rn-nb-title-input {
+  width: min(100%, 520px);
+  min-width: 0;
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-h3);
+  font-weight: 600;
+}
+
+/* --- Bereiche 600 bis 899 px: Reiterleiste unter der Anwendungsleiste --- */
+.rn-topnav {
+  display: none;
 }
 
 .rn-topnav-item {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--rn-space-2);
   height: var(--rn-control-h);
   padding: 0 14px;
@@ -218,12 +288,19 @@ html[data-color-mode="aaa-contrast"] .rn-topnav-item[aria-current="true"] {
   box-shadow: inset 0 0 0 2px var(--rn-color-border);
 }
 
-/* --- Rechts: Darstellung (Desktop) bzw. Menü-Knopf (Telefon) --- */
+/* --- Rechts: Teilen, Einstellungen, Darstellung, Konto (Desktop) bzw. Menü (Telefon) --- */
 .rn-header-end {
   display: flex;
+  flex: none;
   align-items: center;
   gap: var(--rn-space-2);
-  justify-self: end;
+}
+
+/* Konto: rundes Symbol, Name als Kurzinfo */
+.rn-header-end .rn-account-button {
+  width: var(--rn-control-h);
+  padding: 0;
+  border-radius: var(--rn-radius-pill);
 }
 
 .rn-popover-anchor {
@@ -342,7 +419,8 @@ html[data-design] .workspace-header .rn-control:hover {
   box-shadow: inset 0 0 0 1px var(--rn-color-border);
 }
 
-html[data-design] .workspace-header .rn-topnav-item:hover {
+html[data-design] .rn-topnav-item:hover {
+  transform: none;
   box-shadow: none;
 }
 
@@ -897,7 +975,8 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indica
 }
 
 /* ==========================================================================
-   Raster: drei Spalten ab 900 px, darunter ein Panel; Reiter oben, unter 600 px unten
+   Raster: drei Spalten ab 900 px (die Spalten sind die Navigation), 600 bis 899 px ein
+   Bereich mit Reitern oben, unter 600 px ein Bereich mit Reiterleiste unten (Issue #325)
    ========================================================================== */
 @media (min-width: 600px) {
   .mobile-bottom-nav {
@@ -914,6 +993,86 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indica
     flex: 1 1 auto;
     min-width: 0;
     max-width: none;
+  }
+}
+
+/* Inhalt einer einklappbaren Spalte (Quellen, Studio) */
+.rn-panel-slot {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.rn-panel-slot[hidden] {
+  display: none;
+}
+
+/* Knopf zum Einklappen sitzt im Spaltenkopf, am Rand zur Mitte hin */
+.rn-panel-head .rn-panel-heading {
+  flex: 1 1 auto;
+}
+
+.rn-panel-head .rn-panel-toggle {
+  flex: none;
+  margin: -6px -8px 0;
+}
+
+/* Unter 900 px ist immer nur ein Bereich sichtbar: Einklappen entfällt */
+@media (max-width: 899.98px) {
+  .rn-panel-toggle {
+    display: none;
+  }
+}
+
+/* Eingeklappte Spalte: schmale Leiste mit Symbolen, die Mitte nutzt den Platz */
+@media (min-width: 900px) {
+  .workspace-panel[data-collapsed="true"] {
+    position: relative;
+    z-index: 5;
+    flex: 0 0 64px;
+    min-width: 64px;
+    max-width: 64px;
+    /* Kurzinfos ragen über die Leiste hinaus in die Mitte */
+    overflow: visible;
+  }
+}
+
+.rn-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--rn-space-2);
+  height: 100%;
+  box-sizing: border-box;
+  padding: var(--rn-space-3) 0;
+}
+
+.rn-rail-items {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--rn-space-1);
+  padding-top: var(--rn-space-2);
+  border-top: 1px solid var(--rn-color-panel-border);
+}
+
+.rn-rail-button {
+  width: 44px;
+  height: 44px;
+}
+
+html[data-color-mode="aaa-contrast"] .rn-rail-items {
+  border-top: 2px solid var(--rn-color-border);
+}
+
+/* Übergang beim Ein- und Ausklappen nur ohne reduzierte Bewegung */
+@media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
+  html:not([data-reduce-motion="true"]) :is(.panel-left, .panel-right) {
+    transition: flex-grow var(--rn-motion-medium) var(--rn-transition-ease), flex-basis
+      var(--rn-motion-medium) var(--rn-transition-ease), min-width var(--rn-motion-medium)
+      var(--rn-transition-ease), max-width var(--rn-motion-medium) var(--rn-transition-ease);
   }
 }
 
@@ -938,18 +1097,21 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indica
 }
 
 /*
- * Unter 1024 px: Einstellungen und Darstellung nur als Symbol. Die Beschriftung bleibt der
- * Name für Screenreader und erscheint bei Zeiger und Tastaturfokus als Kurzinfo (Issue #319).
+ * Unter 1024 px: Teilen, Einstellungen und Darstellung nur als Symbol. Die Beschriftung
+ * bleibt der Name für Screenreader und erscheint bei Zeiger und Tastaturfokus als Kurzinfo
+ * (Issue #319).
  */
 @media (max-width: 1023.98px) {
   .rn-appearance-button,
-  .rn-settings-button {
+  .rn-settings-button,
+  .rn-share-button {
     width: var(--rn-control-h);
     padding: 0;
   }
   .rn-appearance-button-label,
   .rn-appearance-chevron,
-  .rn-settings-button-label {
+  .rn-settings-button-label,
+  .rn-share-button-label {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -962,61 +1124,141 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indica
 
 @media (max-width: 899.98px) {
   .workspace-header {
-    grid-template-columns: auto minmax(0, 1fr) auto;
     padding: 0 16px !important;
     gap: var(--rn-space-2);
   }
 }
 
-/* Schmales Tablet: Bereiche nur als Symbol, der Name bleibt für Screenreader */
-@media (max-width: 767.98px) {
-  .rn-topnav-item .rn-topnav-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
+/* Reiter 600 bis 899 px: eine Leiste unter dem Kopf, drei gleich breite Reiter */
+@media (min-width: 600px) and (max-width: 899.98px) {
+  .rn-topnav {
+    display: flex;
+    justify-content: center;
+    gap: var(--rn-space-1);
+    padding: 6px 16px;
+    background: var(--rn-color-panel);
+    border-bottom: 1px solid var(--rn-color-panel-border);
+    z-index: 25;
   }
   .rn-topnav-item {
-    min-width: var(--rn-control-h);
-    justify-content: center;
-    padding: 0 10px;
+    flex: 1 1 0;
+    max-width: 220px;
   }
 }
 
-/* Telefon: Logo und Menü-Knopf; Bereiche liegen unten in der Reiterleiste */
+/* Telefon: Logo, Titel und Menü-Knopf; Bereiche liegen unten in der Reiterleiste */
 @media (max-width: 599.98px) {
   .workspace-header {
-    grid-template-columns: minmax(0, 1fr) auto;
     min-height: 60px;
     padding: 8px 16px !important;
   }
-  .rn-topnav,
-  .rn-header-end .rn-appearance-button,
-  .rn-header-end .rn-settings-button {
+  .rn-header-end > :not(.rn-menu-button) {
     display: none;
   }
   .rn-header-end .rn-menu-button {
     display: inline-flex;
   }
+  .rn-nb-title-button,
+  .rn-nb-title-input {
+    font-size: var(--rn-text-base);
+  }
+  .rn-nb-title-button {
+    padding: 2px 6px;
+  }
+  .rn-nb-title-icon {
+    display: none;
+  }
+  /* Eine Zeile mit Auslassung: der Kopf bleibt so hoch wie ein Bedienziel */
+  .rn-nb-title-text {
+    -webkit-line-clamp: 1;
+  }
 }
 
 /*
- * Kurzinfo der Kopfknöpfe (WCAG 1.4.13): erscheint bei Zeiger und Tastaturfokus, bleibt,
- * solange Zeiger oder Fokus da sind, lässt sich überfahren (Teil des Knopfs, ohne Lücke
- * dank transparentem Rand) und mit Escape schließen (data-tips-hidden am Kopf).
+ * Kurzinfos (WCAG 1.4.13): erscheinen bei Zeiger und Tastaturfokus, bleiben, solange
+ * Zeiger oder Fokus da sind, lassen sich überfahren (Teil des Knopfs, ohne Lücke dank
+ * transparentem Rand) und mit Escape schließen (data-tips-hidden an der Hülle). Bei offenem
+ * Menü des Knopfs bleibt die Kurzinfo aus.
  */
 .rn-tip-host {
   position: relative;
 }
 
+.rn-tip {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.workspace-shell:not([data-tips-hidden="true"])
+  .rn-tip-host:is(:hover, :focus-visible):not([aria-haspopup][aria-expanded="true"])
+  > .rn-tip {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  z-index: 45;
+  padding: 6px 10px;
+  border-radius: var(--rn-radius-sm);
+  background: var(--rn-color-text-primary);
+  background-clip: padding-box;
+  color: var(--rn-color-panel);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 20px;
+  text-align: left;
+}
+
+.rn-tip--below,
+.rn-tip--below-start {
+  top: 100%;
+  border-top: 6px solid transparent;
+}
+
+.rn-tip--below {
+  right: 0;
+}
+
+.rn-tip--below-start {
+  left: 0;
+}
+
+.rn-tip--right,
+.rn-tip--left {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.rn-tip--right {
+  left: 100%;
+  border-left: 6px solid transparent;
+}
+
+.rn-tip--left {
+  right: 100%;
+  border-right: 6px solid transparent;
+}
+
+.rn-tip-kbd {
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 500;
+}
+
 @media (min-width: 600px) and (max-width: 1023.98px) {
-  .workspace-header:not([data-tips-hidden="true"])
+  .workspace-shell:not([data-tips-hidden="true"])
     .rn-header-end
     .rn-tip-host:is(:hover, :focus-visible):not([aria-expanded="true"])
-    :is(.rn-settings-button-label, .rn-appearance-button-label) {
+    :is(.rn-settings-button-label, .rn-appearance-button-label, .rn-share-button-label) {
     top: 100%;
     right: 0;
     width: auto;
@@ -1035,41 +1277,6 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indica
     font-weight: 600;
     line-height: 20px;
   }
-}
-
-@media (min-width: 600px) and (max-width: 767.98px) {
-  .workspace-header:not([data-tips-hidden="true"])
-    .rn-topnav
-    .rn-tip-host:is(:hover, :focus-visible)
-    .rn-topnav-label {
-    top: 100%;
-    left: 50%;
-    width: auto;
-    height: auto;
-    margin: 0;
-    overflow: visible;
-    clip: auto;
-    z-index: 45;
-    padding: 6px 10px;
-    border-top: 6px solid transparent;
-    border-radius: var(--rn-radius-sm);
-    background: var(--rn-color-text-primary);
-    background-clip: padding-box;
-    color: var(--rn-color-panel);
-    font-size: var(--rn-text-small);
-    font-weight: 600;
-    line-height: 20px;
-    transform: translateX(-50%);
-  }
-}
-
-/*
- * Angesprungener Bereich (ab 900 px): kurz umrandet. Ohne Animation, die Markierung
- * verschwindet nach PANEL_FLASH_MS (WorkspaceLayout); gilt so auch bei reduzierter Bewegung.
- */
-[data-panel][data-flash="true"] {
-  outline: 3px solid var(--rn-color-focus-ring);
-  outline-offset: -3px;
 }
 
 /* Telefon: Auswahlfelder mit 16 px, sonst vergrößert iOS beim Fokus die Seite */
@@ -1521,6 +1728,13 @@ html[data-reduce-motion="true"] .rn-caret {
   display: grid;
   gap: 2px;
   min-width: 0;
+}
+
+.rn-panel-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-1) var(--rn-space-2);
 }
 
 .rn-panel-heading h2 {
@@ -2026,6 +2240,167 @@ html[data-design="immersive-cinema"] .rn-source-meta .rn-source-type {
 /* Schalter „Bewegung reduzieren“ (Issue #315): dieselben Regeln */
 html[data-reduce-motion="true"] .rn-dialog-card {
   animation: none !important;
+}
+
+/* ==========================================================================
+   Teilen (Issue #325): nur Oberfläche, deutlicher Hinweis, nichts wird verschickt
+   ========================================================================== */
+.rn-share-card {
+  max-width: 520px;
+  gap: var(--rn-space-4);
+}
+
+.rn-share-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--rn-space-3);
+}
+
+.rn-share-title {
+  margin: 0;
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-h3);
+  font-weight: var(--rn-weight-heading);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.rn-share-notice {
+  display: grid;
+  gap: 2px;
+  padding: var(--rn-space-3) var(--rn-space-4);
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-surface-variant);
+  box-shadow: inset 4px 0 0 var(--rn-color-primary);
+}
+
+.rn-share-notice p {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-share-notice-title {
+  font-weight: 700;
+}
+
+html[data-color-mode="aaa-contrast"] .rn-share-notice {
+  box-shadow: inset 0 0 0 2px var(--rn-color-border);
+}
+
+.rn-share-invite {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 11rem);
+  gap: var(--rn-space-3);
+}
+
+.rn-share-status {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-share-people {
+  display: grid;
+  gap: var(--rn-space-2);
+}
+
+.rn-share-people-title {
+  margin: 0;
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 700;
+}
+
+.rn-share-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-share-person {
+  display: flex;
+  align-items: center;
+  gap: var(--rn-space-3);
+  min-height: 44px;
+  font-size: var(--rn-text-small);
+}
+
+.rn-share-avatar,
+.rn-account-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-share-person-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.rn-share-person-role {
+  color: var(--rn-color-text-secondary);
+}
+
+/* Senden ist noch nicht verfügbar: erreichbar, aber sichtbar zurückgenommen (gestrichelt) */
+.rn-btn--unavailable {
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+@media (max-width: 599.98px) {
+  .rn-share-invite {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- Konto: Gast-Zustand, ohne Anmeldung --- */
+.rn-account {
+  display: grid;
+  gap: var(--rn-space-4);
+  width: 320px;
+}
+
+.rn-account-status {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--rn-space-3);
+  row-gap: var(--rn-space-3);
+}
+
+.rn-account-text p {
+  margin: 0;
+}
+
+.rn-account-name {
+  font-size: var(--rn-text-base);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.rn-account-state {
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  line-height: 20px;
+}
+
+.rn-account-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
 }
 
 /* ==========================================================================

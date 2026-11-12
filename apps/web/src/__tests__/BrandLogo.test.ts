@@ -39,9 +39,12 @@ describe("BrandLogo (Logo C)", () => {
     expect(new Set(ids).size).toBe(4);
   });
 
-  it("steht als Überschrift in der Kopfzeile des Arbeitsbereichs", () => {
+  it("steht links in der Anwendungsleiste, die Hauptüberschrift ist der Notebook-Titel", () => {
     const html = renderToStaticMarkup(createElement(WorkspaceLayout));
-    expect(html).toMatch(/<h1 id="app-title"[^>]*><svg[^>]*data-testid="brand-logo"/);
+    // Issue #325: Logo vor dem Titel, h1 ist der (bearbeitbare) Notebook-Titel
+    expect(html).toMatch(/<span class="workspace-logo"><svg[^>]*data-testid="brand-logo"/);
+    expect(html).toMatch(/<h1 id="notebook-title" class="rn-nb-title"><button/);
+    expect(html.indexOf('data-testid="brand-logo"')).toBeLessThan(html.indexOf("<h1"));
     expect(html).toContain('data-testid="btn-open-appearance"');
   });
 });

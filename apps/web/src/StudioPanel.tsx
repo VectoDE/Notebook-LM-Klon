@@ -5,7 +5,7 @@ import type {
   QuizQuestion,
   VideoStoryboard
 } from "@notebook-lm/shared";
-import { useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { DeepDiveStage } from "./DeepDiveStage.js";
 import { FlashcardsViewer } from "./FlashcardsViewer.js";
 import { Icon, type IconName } from "./Icon.js";
@@ -14,6 +14,7 @@ import { MindmapViewer } from "./MindmapViewer.js";
 import { QuizViewer } from "./QuizViewer.js";
 import { VideoOverviewPlayer } from "./VideoOverviewPlayer.js";
 import {
+  escapeHtmlText,
   exportBriefingToMarkdown,
   exportFlashcardsToAnkiCsv,
   exportMindmapToSvgString,
@@ -71,8 +72,15 @@ export interface StudioPanelProps {
         readonly sources?: string | undefined;
       }
     | undefined;
-  /** Fokusziel für die Bereichsnavigation (data-panel, tabIndex, data-flash). */
+  /** Fokusziel für die Bereichsnavigation (data-panel, tabIndex). */
   readonly panelAttributes?: PanelFocusAttributes | undefined;
+  /** Bedienelement am Spaltenrand im Kopf, z. B. der Knopf zum Einklappen (Issue #325). */
+  readonly headerAction?: ReactNode | undefined;
+  /**
+   * Werkzeug von außen öffnen (Symbolleiste der eingeklappten Spalte). Jede neue Anfrage
+   * (neues Objekt) wählt das Werkzeug, auch wenn es dasselbe ist.
+   */
+  readonly toolRequest?: { readonly tool: StudioTool } | undefined;
 }
 
 export function StudioPanel({
@@ -86,11 +94,17 @@ export function StudioPanel({
   videoStoryboard,
   audioStateMachine,
   contentLangs,
-  panelAttributes
+  panelAttributes,
+  headerAction,
+  toolRequest
 }: StudioPanelProps) {
   const { t, tf } = useTheme();
   const [currentTool, setCurrentTool] = useState<StudioTool>(activeTool);
   const [isDeepDiveOpen, setIsDeepDiveOpen] = useState(false);
+
+  useEffect(() => {
+    if (toolRequest) setCurrentTool(toolRequest.tool);
+  }, [toolRequest]);
 
   const selectTool = (tool: StudioTool) => {
     setCurrentTool(tool);
@@ -114,7 +128,8 @@ export function StudioPanel({
           keyTakeaways: ["Durable Objects", "D1 SQLite"],
           actionItems: ["Architektur umsetzen"]
         },
-        notebookTitle
+        // Der Titel ist frei bearbeitbar: als reiner Text in die Markdown-Datei
+        escapeHtmlText(notebookTitle)
       );
       triggerBrowserDownload(result.filename, result.content, result.mimeType);
     }
@@ -226,6 +241,7 @@ export function StudioPanel({
       {...panelAttributes}
     >
       <header className="rn-panel-head">
+        {headerAction}
         <div className="rn-panel-heading">
           <h2>{t("studioTitle")}</h2>
           {/* In einer Werkzeugansicht trägt deren eigener Kopf den Notebook-Titel */}

@@ -16,11 +16,10 @@ export interface WorkspaceSource {
 
 /**
  * Fokusziel eines Bereichs (Issue #323): sitzt auf der benannten Region des Panels, nicht
- * auf dem Layout-Wrapper. data-flash markiert den angesprungenen Bereich kurz.
+ * auf dem Layout-Wrapper.
  */
 export interface PanelFocusAttributes {
   readonly "data-panel": string;
-  readonly "data-flash"?: "true" | undefined;
   readonly tabIndex: number;
 }
 
