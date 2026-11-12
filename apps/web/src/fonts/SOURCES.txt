@@ -1,0 +1,41 @@
+Schriftdateien RelationNotes (alle SIL Open Font License 1.1)
+Abgerufen am 2026-11-12. Prüfsummen: SHA256SUMS (prüfen mit: sha256sum -c SHA256SUMS)
+Lizenztexte: apps/web/public/fonts/LICENSES/
+
+Subset: Latin (Deutsch und Englisch), Achse wght, Schnitt normal, WOFF2.
+Abgerufen über Fontsource (offizieller Mirror der Google-Fonts-Builds, npm-Paket
+@fontsource-variable/*), Bytes identisch mit den Dateien der im pnpm-lock.yaml mit
+Integritäts-Hash geprüften Pakete gleicher Version.
+
+inter-latin-wght-normal.woff2
+  Familie:   Inter 4.001 (wght 100-900)
+  Upstream:  https://github.com/rsms/inter
+  Abruf:     https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.3.0/files/inter-latin-wght-normal.woff2
+  Lizenz:    Inter-OFL.txt
+
+source-serif-4-latin-wght-normal.woff2
+  Familie:   Source Serif 4 4.004 (wght 200-900)
+  Upstream:  https://github.com/adobe-fonts/source-serif
+  Abruf:     https://cdn.jsdelivr.net/npm/@fontsource-variable/source-serif-4@5.3.1/files/source-serif-4-latin-wght-normal.woff2
+  Lizenz:    SourceSerif4-OFL.txt (Reserved Font Name "Source")
+
+space-grotesk-latin-wght-normal.woff2
+  Familie:   Space Grotesk 2.000 (wght 300-700)
+  Upstream:  https://github.com/floriankarsten/space-grotesk
+  Abruf:     https://cdn.jsdelivr.net/npm/@fontsource-variable/space-grotesk@5.3.0/files/space-grotesk-latin-wght-normal.woff2
+  Lizenz:    SpaceGrotesk-OFL.txt
+
+geist-latin-wght-normal.woff2
+  Familie:   Geist 1.800 (wght 100-900)
+  Upstream:  https://github.com/vercel/geist-font
+  Abruf:     https://cdn.jsdelivr.net/npm/@fontsource-variable/geist@5.3.0/files/geist-latin-wght-normal.woff2
+  Lizenz:    Geist-OFL.txt
+
+jetbrains-mono-latin-wght-normal.woff2
+  Familie:   JetBrains Mono 2.211 (wght 100-800)
+  Upstream:  https://github.com/JetBrains/JetBrainsMono
+  Abruf:     https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono@5.3.0/files/jetbrains-mono-latin-wght-normal.woff2
+  Lizenz:    JetBrainsMono-OFL.txt
+
+Bekannte Grenze: das große Eszett (U+1E9E) liegt nicht im Latin-Subset und fällt auf die
+Systemschrift zurück. Die Oberfläche nutzt es nicht.

@@ -32,7 +32,7 @@
   --rn-space-8: 32px;
   --rn-space-10: 40px;
 
-  --rn-font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+  --rn-font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
   --rn-transition-base: var(--rn-transition-speed) var(--rn-transition-ease);
   /* Dauern für UI-Übergänge (Issue #315): höchstens 300 ms */
   --rn-motion-fast: 160ms;
@@ -179,9 +179,9 @@ html[data-reduce-motion="true"] *::after {
 /* @tokens:start */
 :root,
 html[data-design="pure"] {
-  --rn-font-family-body: "Inter Variable", "Inter", system-ui, sans-serif;
-  --rn-font-family-headings: "Inter Variable", "Inter", system-ui, sans-serif;
-  --rn-font-family-ui: "Inter Variable", "Inter", system-ui, sans-serif;
+  --rn-font-family-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --rn-font-family-headings: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --rn-font-family-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --rn-text-base: 1rem;
   --rn-text-small: 0.875rem;
   --rn-text-h2: 1.25rem;
@@ -389,12 +389,10 @@ html[data-design="pure"][data-color-mode="aaa-contrast"] {
 }
 
 html[data-design="immersive-cinema"] {
-  --rn-font-family-body: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", system-ui,
+  --rn-font-family-body: "Space Grotesk", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --rn-font-family-headings: "Space Grotesk", "Inter", system-ui, -apple-system, "Segoe UI",
     sans-serif;
-  --rn-font-family-headings: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", system-ui,
-    sans-serif;
-  --rn-font-family-ui: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", system-ui,
-    sans-serif;
+  --rn-font-family-ui: "Space Grotesk", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --rn-text-base: 1rem;
   --rn-text-small: 0.875rem;
   --rn-text-h2: 1.375rem;
@@ -508,9 +506,9 @@ html[data-design="immersive-cinema"][data-color-mode="aaa-contrast"] {
 }
 
 html[data-design="editorial-calm"] {
-  --rn-font-family-body: "Inter Variable", "Inter", system-ui, sans-serif;
-  --rn-font-family-headings: "Source Serif 4 Variable", "Source Serif 4", Georgia, serif;
-  --rn-font-family-ui: "Inter Variable", "Inter", system-ui, sans-serif;
+  --rn-font-family-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --rn-font-family-headings: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --rn-font-family-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --rn-text-base: 1rem;
   --rn-text-small: 0.875rem;
   --rn-text-h2: 1.5rem;
@@ -624,9 +622,9 @@ html[data-design="editorial-calm"][data-color-mode="aaa-contrast"] {
 }
 
 html[data-design="fusion"] {
-  --rn-font-family-body: "Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif;
-  --rn-font-family-headings: "Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif;
-  --rn-font-family-ui: "Geist Variable", "Geist", "Inter Variable", system-ui, sans-serif;
+  --rn-font-family-body: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --rn-font-family-headings: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --rn-font-family-ui: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --rn-text-base: 1rem;
   --rn-text-small: 0.875rem;
   --rn-text-h2: 1.5rem;

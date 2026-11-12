@@ -1,13 +1,9 @@
-// Schriften selbst gehostet (OFL, über Vite gebündelt, kein externes CDN)
-import "@fontsource-variable/inter";
-import "@fontsource-variable/source-serif-4";
-import "@fontsource-variable/jetbrains-mono";
-import "@fontsource-variable/space-grotesk";
-import "@fontsource-variable/geist";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.js";
 import { ThemeProvider } from "./useTheme.js";
+// Schriften selbst gehostet (OFL, Latin-Subset, von Vite gehasht, kein externes CDN)
+import "./fonts.css";
 import "./themes.css";
 import "./workspace.css";
 import "./components.css";

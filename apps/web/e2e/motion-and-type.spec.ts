@@ -50,32 +50,33 @@ test.describe("Immersive Cinema: Bewegungssprache", () => {
           background: getComputedStyle(shell, "::before").animationName,
           gradient: getComputedStyle(shell, "::before").backgroundImage.includes("gradient"),
           line: getComputedStyle(header, "::after").animationName,
-          font: getComputedStyle(document.body).fontFamily.split(",")[0]
+          // Chrome gibt einteilige Familiennamen ohne Anführungszeichen aus
+          font: (getComputedStyle(document.body).fontFamily.split(",")[0] ?? "").replace(/"/g, "")
         };
       });
     const expected: Record<
       string,
       { background: string; gradient: boolean; line: string; font: string }
     > = {
-      pure: { background: "none", gradient: false, line: "none", font: '"Inter Variable"' },
+      pure: { background: "none", gradient: false, line: "none", font: "Inter" },
       // Fließtext ohne Serifen, Source Serif 4 nur in Überschriften (Issue #328)
       "editorial-calm": {
         background: "none",
         gradient: false,
         line: "none",
-        font: '"Inter Variable"'
+        font: "Inter"
       },
       fusion: {
         background: "rn-fusion-flow",
         gradient: true,
         line: "rn-fusion-line",
-        font: '"Geist Variable"'
+        font: "Geist"
       },
       "immersive-cinema": {
         background: "none",
         gradient: false,
         line: "rn-cinema-sweep",
-        font: '"Space Grotesk Variable"'
+        font: "Space Grotesk"
       }
     };
     for (const [design, want] of Object.entries(expected)) {
