@@ -3,7 +3,7 @@ import { type ReactNode, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChatPanel } from "../ChatPanel.js";
-import { EmptyArt, EmptyState, type EmptyStateArt } from "../EmptyState.js";
+import { EMPTY_ART_WIDTH, EmptyArt, EmptyState, type EmptyStateArt } from "../EmptyState.js";
 import { QuizResults } from "../QuizViewer.js";
 import { SourcesPanel } from "../SourcesPanel.js";
 import { StudioPanel } from "../StudioPanel.js";
@@ -78,6 +78,15 @@ describe("Leerzustände (Issue #329)", () => {
       expect(svg).not.toContain("style=");
     }
     expect(new Set(drawings).size).toBe(arts.length);
+  });
+
+  it("zeichnet groß im Seitenverhältnis 120 × 88 (Issue #356: 240 bis 320 px)", () => {
+    expect(EMPTY_ART_WIDTH).toBeGreaterThanOrEqual(240);
+    expect(EMPTY_ART_WIDTH).toBeLessThanOrEqual(320);
+    const svg = renderToStaticMarkup(createElement(EmptyArt, { art: "chat" }));
+    expect(svg).toContain('viewBox="0 0 120 88"');
+    expect(svg).toContain(`width="${EMPTY_ART_WIDTH}"`);
+    expect(svg).toContain(`height="${Math.round((EMPTY_ART_WIDTH * 88) / 120)}"`);
   });
 
   it("Überschrift, Text, Aktion und kompakte Form", () => {
