@@ -73,12 +73,19 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
   );
   const [hostAnswer, setHostAnswer] = useState<AudioInterjectResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Fehler der Host-Antwort bleibt sichtbar im Player, bis erneut gefragt wird (#323)
+  const [answerError, setAnswerError] = useState<{
+    readonly message: string;
+    readonly detail: string;
+  } | null>(null);
+  const lastQuestionRef = useRef("");
 
   const inputRef = useRef<HTMLInputElement>(null);
   const interjectDialogRef = useRef<HTMLDialogElement>(null);
   const interjectButtonRef = useRef<HTMLButtonElement>(null);
   const playButtonRef = useRef<HTMLButtonElement>(null);
   const resumeButtonRef = useRef<HTMLButtonElement>(null);
+  const retryButtonRef = useRef<HTMLButtonElement>(null);
   const previousStateRef = useRef(machineCtx.state);
   const recognitionRef = useRef<SpeechRecognitionInstanceLike | null>(null);
 
@@ -112,6 +119,11 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
     }
   }, [machineCtx.state]);
 
+  // Nach einem Fehler: Fokus auf "Erneut versuchen" (läuft nach dem Effekt oben)
+  useEffect(() => {
+    if (answerError) retryButtonRef.current?.focus();
+  }, [answerError]);
+
   // Check Web Speech API support
   useEffect(() => {
     const windowWithSpeech = window as unknown as {
@@ -128,6 +140,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
 
   // Handle Play / Pause
   const handleTogglePlay = () => {
+    setAnswerError(null);
     if (machineCtx.state === "playing") {
       stateMachine.dispatch({ type: "PAUSE" });
       setStatusMessage(t("audioPausedMsg"));
@@ -208,6 +221,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
 
   // Handle 'Beitreten / Frage stellen'
   const handleOpenInterject = (mode: "mic" | "text" = "text") => {
+    setAnswerError(null);
     stateMachine.dispatch({ type: "JOIN_INTERJECT", inputMode: mode });
     setStatusMessage(mode === "mic" ? t("audioMicActive") : interjectTextStatus);
 
@@ -223,27 +237,22 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
     setStatusMessage(t("audioCancelled"));
   };
 
-  // Handle Question Submission
-  const handleSubmitQuestion = async (e?: FormEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
-    const cleanQuestion = questionText.trim();
-    if (!cleanQuestion || isSubmitting) {
-      return;
-    }
-
+  // Frage an die Hosts senden (aus dem Formular oder über "Erneut versuchen")
+  const submitQuestion = async (cleanQuestion: string) => {
     stopListening();
     setIsSubmitting(true);
+    setAnswerError(null);
+    lastQuestionRef.current = cleanQuestion;
     stateMachine.dispatch({ type: "SUBMIT_QUESTION", question: cleanQuestion });
     setStatusMessage(t("audioPreparing"));
+    const pausedAtMs = stateMachine.getContext().pausedAtMs;
 
     try {
       let response: AudioInterjectResponse;
       if (onInterjectSubmit) {
         response = await onInterjectSubmit({
           question: cleanQuestion,
-          currentTimeMs: machineCtx.pausedAtMs,
+          currentTimeMs: pausedAtMs,
           voiceMode: "dialogue"
         });
       } else {
@@ -253,7 +262,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userQuestion: cleanQuestion,
-            currentTimeMs: machineCtx.pausedAtMs,
+            currentTimeMs: pausedAtMs,
             voiceMode: "dialogue"
           })
         });
@@ -282,13 +291,30 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
             : "errorGeneric";
       const detail =
         err instanceof ChatApiError
-          ? ` (${t("errorTechnical")}: ${technicalErrorDetail(err.status, err.message)})`
+          ? `${t("errorTechnical")}: ${technicalErrorDetail(err.status, err.message)}`
           : "";
-      setStatusMessage(`${t("errorHostAnswer")} ${t(key)}${detail}`);
+      // Sichtbar im Player (role="alert"); die Live-Region meldet nur den Status
+      setAnswerError({ message: `${t("errorHostAnswer")} ${t(key)}`, detail });
+      setStatusMessage(tf("audioStatus", { state: t("podStateError") }));
       stateMachine.dispatch({ type: "CANCEL_INTERJECT" });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmitQuestion = (e: FormEvent) => {
+    e.preventDefault();
+    const cleanQuestion = questionText.trim();
+    if (!cleanQuestion || isSubmitting) {
+      return;
+    }
+    void submitQuestion(cleanQuestion);
+  };
+
+  // Dieselbe Frage noch einmal stellen: Zwischenfrage öffnen und direkt senden
+  const handleRetryQuestion = () => {
+    stateMachine.dispatch({ type: "JOIN_INTERJECT", inputMode: "text" });
+    void submitQuestion(lastQuestionRef.current);
   };
 
   // Handle speech finish & resume
@@ -334,8 +360,14 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
       <header className="player-header">
         <h2 id="audio-track-title">{currentTrackTitle}</h2>
         <div className="player-meta">
-          <span className="state-badge" data-testid="audio-state-badge">
-            {tf("audioStatus", { state: t(podcastStateKey(machineCtx.state)) })}
+          <span
+            className="state-badge"
+            data-testid="audio-state-badge"
+            data-state={answerError ? "error" : machineCtx.state}
+          >
+            {tf("audioStatus", {
+              state: t(answerError ? "podStateError" : podcastStateKey(machineCtx.state))
+            })}
           </span>
           <span className="time-display">
             <span className="sr-only">{t("audioTimeSr")}</span>
@@ -343,6 +375,29 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
           </span>
         </div>
       </header>
+
+      {answerError && (
+        <div role="alert" data-testid="audio-error" className="rn-msg-error audio-error">
+          <span className="rn-msg-error-text">
+            {answerError.message}
+            {answerError.detail && (
+              <small data-testid="audio-error-detail" className="rn-msg-error-detail">
+                {answerError.detail}
+              </small>
+            )}
+          </span>
+          <button
+            ref={retryButtonRef}
+            type="button"
+            onClick={handleRetryQuestion}
+            disabled={isSubmitting}
+            data-testid="btn-retry-audio"
+            className="rn-btn rn-btn--danger rn-btn--compact"
+          >
+            {t("audioRetry")}
+          </button>
+        </div>
+      )}
 
       {/* Main Playback Controls */}
       <fieldset className="player-controls">

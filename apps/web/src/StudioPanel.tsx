@@ -21,7 +21,7 @@ import {
   triggerBrowserDownload
 } from "./artifact-exporters.js";
 import { useTheme } from "./useTheme.js";
-import type { CitationLocation } from "./workspace-types.js";
+import type { CitationLocation, PanelFocusAttributes } from "./workspace-types.js";
 
 export type StudioTool =
   | "overview"
@@ -59,6 +59,20 @@ export interface StudioPanelProps {
   readonly quizData?: readonly QuizQuestion[] | undefined;
   readonly videoStoryboard?: VideoStoryboard | undefined;
   readonly audioStateMachine?: PodcastStateMachine | undefined;
+  /**
+   * Sprache je Artefakt (BCP 47), für lang bei abweichender Oberfläche (Issue #323).
+   * sources gilt für Quellenhinweise in den Lernkarten.
+   */
+  readonly contentLangs?:
+    | {
+        readonly mindmap?: string | undefined;
+        readonly flashcards?: string | undefined;
+        readonly quiz?: string | undefined;
+        readonly sources?: string | undefined;
+      }
+    | undefined;
+  /** Fokusziel für die Bereichsnavigation (data-panel, tabIndex, data-flash). */
+  readonly panelAttributes?: PanelFocusAttributes | undefined;
 }
 
 export function StudioPanel({
@@ -70,7 +84,9 @@ export function StudioPanel({
   flashcardsData,
   quizData,
   videoStoryboard,
-  audioStateMachine
+  audioStateMachine,
+  contentLangs,
+  panelAttributes
 }: StudioPanelProps) {
   const { t, tf } = useTheme();
   const [currentTool, setCurrentTool] = useState<StudioTool>(activeTool);
@@ -207,6 +223,7 @@ export function StudioPanel({
       aria-label={t("studioPanelLabel")}
       className="studio-panel rn-panel-body"
       data-testid="studio-panel"
+      {...panelAttributes}
     >
       <header className="rn-panel-head">
         <div className="rn-panel-heading">
@@ -298,6 +315,7 @@ export function StudioPanel({
           <MindmapViewer
             rootNode={mindmapData}
             title={notebookTitle}
+            contentLang={contentLangs?.mindmap}
             onSourceJump={(src) =>
               onSourceJump?.({
                 sourceId: src.sourceId ?? "src_1",
@@ -310,12 +328,17 @@ export function StudioPanel({
 
         {/* Tool Viewer: Flashcards */}
         {currentTool === "flashcards" && flashcardsData && (
-          <FlashcardsViewer cards={flashcardsData} title={notebookTitle} />
+          <FlashcardsViewer
+            cards={flashcardsData}
+            title={notebookTitle}
+            contentLang={contentLangs?.flashcards}
+            sourceLang={contentLangs?.sources}
+          />
         )}
 
         {/* Tool Viewer: Quiz */}
         {currentTool === "quiz" && quizData && (
-          <QuizViewer questions={quizData} title={notebookTitle} />
+          <QuizViewer questions={quizData} title={notebookTitle} contentLang={contentLangs?.quiz} />
         )}
       </div>
 

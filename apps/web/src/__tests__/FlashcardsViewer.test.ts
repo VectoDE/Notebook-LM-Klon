@@ -38,7 +38,7 @@ describe("FlashcardsViewer Component (Sub-Issue #123)", () => {
     expect(html).toContain("Karte 1 von 2");
     expect(html).toContain("Was ist RRF?");
     expect(html).toContain("Antwort aufdecken");
-    expect(html).toContain("Quelle: RAG Leitfaden S. 5");
+    expect(html).toContain("Quelle: <span>RAG Leitfaden S. 5</span>");
     expect(html).toContain(
       '<span class="rn-rating-label">Nochmal</span> <kbd class="rn-rating-key">1</kbd>'
     );

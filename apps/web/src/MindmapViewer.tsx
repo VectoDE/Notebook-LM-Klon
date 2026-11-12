@@ -34,6 +34,11 @@ export interface MindmapViewerProps {
       }) => void)
     | undefined;
   readonly initialZoom?: number | undefined;
+  /**
+   * Sprache der Inhalte (BCP 47). Weicht sie von der Oberfläche ab, bekommen die Inhalte
+   * ein lang-Attribut (WCAG 3.1.2, Issue #323); Bedientexte folgen weiter der Oberfläche.
+   */
+  readonly contentLang?: string | undefined;
 }
 
 export interface RenderLayoutNode {
@@ -391,7 +396,8 @@ export function MindmapViewer({
   rootNode,
   title: titleProp,
   onSourceJump,
-  initialZoom = 1.0
+  initialZoom = 1.0,
+  contentLang
 }: MindmapViewerProps) {
   const { t, tf } = useTheme();
   const title = titleProp ?? t("mmDefaultTitle");
@@ -662,6 +668,7 @@ export function MindmapViewer({
                     textAnchor="start"
                     fontSize={NODE_FONT_SIZE}
                     className="rn-mm-label"
+                    lang={contentLang}
                   >
                     {node.label}
                   </text>
@@ -748,7 +755,7 @@ export function MindmapViewer({
                     aria-hidden="true"
                     data-state={node.hasChildren ? (node.isCollapsed ? "closed" : "open") : "leaf"}
                   />
-                  <span className="rn-tree-text">
+                  <span className="rn-tree-text" lang={contentLang}>
                     <strong>{node.label}</strong>
                     {node.sourceCitation && (
                       <small className="rn-tree-cite">({node.sourceCitation})</small>

@@ -23,6 +23,11 @@ export interface QuizViewerProps {
       }) => void)
     | undefined;
   readonly onComplete?: ((result: QuizEvaluationResult) => void) | undefined;
+  /**
+   * Sprache der Inhalte (BCP 47). Weicht sie von der Oberfläche ab, bekommen die Inhalte
+   * ein lang-Attribut (WCAG 3.1.2, Issue #323); Bedientexte folgen weiter der Oberfläche.
+   */
+  readonly contentLang?: string | undefined;
 }
 
 function FlagIcon({ correct }: { readonly correct: boolean }) {
@@ -47,7 +52,8 @@ export function QuizViewer({
   questions,
   title: titleProp,
   onSourceJump,
-  onComplete
+  onComplete,
+  contentLang
 }: QuizViewerProps) {
   const { t, tf } = useTheme();
   const title = titleProp ?? t("quizDefaultTitle");
@@ -177,7 +183,9 @@ export function QuizViewer({
         currentQuestion && (
           <div data-testid={`quiz-question-${currentQuestion.id}`} className="rn-quiz-card">
             <fieldset ref={fieldsetRef} tabIndex={-1} className="rn-quiz-fieldset">
-              <legend className="rn-quiz-question">{currentQuestion.question}</legend>
+              <legend className="rn-quiz-question" lang={contentLang}>
+                {currentQuestion.question}
+              </legend>
 
               <div
                 role="radiogroup"
@@ -216,7 +224,9 @@ export function QuizViewer({
                       <span className="rn-quiz-option-letter" aria-hidden="true">
                         {String.fromCharCode(65 + optIdx)}
                       </span>
-                      <span className="rn-quiz-option-text">{optionText}</span>
+                      <span className="rn-quiz-option-text" lang={contentLang}>
+                        {optionText}
+                      </span>
                       {state === "correct" && (
                         <span className="rn-quiz-flag">
                           <FlagIcon correct />
@@ -239,7 +249,9 @@ export function QuizViewer({
             {selectedAnswers[currentQuestion.id] !== undefined && (
               <div data-testid="quiz-explanation-box" className="rn-quiz-explanation">
                 <p className="rn-quiz-explanation-title">{t("quizExplanation")}</p>
-                <p className="rn-quiz-explanation-text">{currentQuestion.explanation}</p>
+                <p className="rn-quiz-explanation-text" lang={contentLang}>
+                  {currentQuestion.explanation}
+                </p>
 
                 {(currentQuestion.sourceCitation || currentQuestion.sourceId) && (
                   <button
