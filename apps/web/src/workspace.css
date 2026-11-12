@@ -892,8 +892,9 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="page"] .rn-tab-indica
   }
 }
 
+/* Kompakt heißt schmaler Innenabstand, nicht kleineres Ziel: 44 px bleiben (WCAG 2.5.5) */
 .rn-btn--compact {
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 var(--rn-space-3);
 }
 
@@ -1117,6 +1118,21 @@ html[data-color-mode="aaa-contrast"] .rn-chip {
 
 .rn-cite:hover {
   background: var(--rn-color-panel);
+}
+
+/* Zitat-Pille bleibt im Fließtext 24 px, die Trefferfläche ist 44 x 44 px */
+.rn-cite {
+  position: relative;
+}
+
+.rn-cite::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: 44px;
+  transform: translate(-50%, -50%);
 }
 
 /* Eingabe */
