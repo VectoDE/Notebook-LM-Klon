@@ -4,6 +4,7 @@ import {
   NOTEBOOK_TITLE_MAX_LENGTH,
   NO_PANELS_COLLAPSED,
   PANEL_SHORTCUTS,
+  defaultCollapsedPanels,
   matchPanelShortcut,
   normalizeNotebookTitle,
   readCollapsedPanels,
@@ -76,6 +77,29 @@ describe("Eingeklappte Spalten speichern", () => {
       [LAYOUT_STORAGE_KEYS.collapsed]: JSON.stringify({ sources: true, studio: "ja" })
     });
     expect(readCollapsedPanels(stored)).toEqual({ sources: true, studio: false });
+  });
+
+  it("klappt ohne gespeicherte Wahl das Studio auf schmalem Desktop ein (Issue #335)", () => {
+    expect(defaultCollapsedPanels(undefined)).toEqual(NO_PANELS_COLLAPSED);
+    for (const width of [390, 899, 1280, 1440]) {
+      expect(defaultCollapsedPanels(width), String(width)).toEqual(NO_PANELS_COLLAPSED);
+    }
+    for (const width of [900, 1024, 1279]) {
+      expect(defaultCollapsedPanels(width), String(width)).toEqual({
+        sources: false,
+        studio: true
+      });
+    }
+    expect(readCollapsedPanels(memoryStorage(), 1024)).toEqual({ sources: false, studio: true });
+    expect(readCollapsedPanels(failing, 1024)).toEqual({ sources: false, studio: true });
+    expect(readCollapsedPanels(memoryStorage(), 1440)).toEqual(NO_PANELS_COLLAPSED);
+    // Eine gespeicherte Wahl gilt immer, auch auf 1024 px
+    const stored = memoryStorage({
+      [LAYOUT_STORAGE_KEYS.collapsed]: JSON.stringify({ sources: false, studio: false })
+    });
+    expect(readCollapsedPanels(stored, 1024)).toEqual(NO_PANELS_COLLAPSED);
+    const broken = memoryStorage({ [LAYOUT_STORAGE_KEYS.collapsed]: "kaputt{" });
+    expect(readCollapsedPanels(broken, 1024)).toEqual(NO_PANELS_COLLAPSED);
   });
 
   it("schreibt nur die beiden Spalten und ignoriert Speicherfehler", () => {

@@ -129,11 +129,46 @@ for (const width of WIDTHS) {
       await expect(list).toHaveAttribute("data-view", "list");
       await page.getByTestId("sources-view-toggle-cards").check({ force: true });
       await expect(list).toHaveAttribute("data-view", "cards");
-      // Zwei Spalten ab der Breite des Quellenbereichs, alle Haken bleiben bedienbar
-      const boxes = await list
-        .locator(":scope > li")
-        .evaluateAll((items) => items.slice(0, 2).map((el) => el.getBoundingClientRect().top));
-      expect(boxes[0]).toBeCloseTo(boxes[1] ?? 0, 0);
+      // In der schmalen Quellenspalte einspaltig, Titel ungekürzt (Issue #335)
+      const cards = await list.locator(":scope > li").evaluateAll((items) =>
+        items.map((el) => {
+          const r = el.getBoundingClientRect();
+          const title = el.querySelector(".rn-source-title") as HTMLElement;
+          return {
+            top: r.top,
+            bottom: r.bottom,
+            width: r.width,
+            listWidth: (el.parentElement as HTMLElement).clientWidth,
+            titleCut:
+              title.scrollHeight > title.clientHeight + 1 ||
+              title.scrollWidth > title.clientWidth + 1
+          };
+        })
+      );
+      expect(cards.length).toBeGreaterThan(1);
+      for (const [i, card] of cards.entries()) {
+        expect(card.width).toBeGreaterThan(card.listWidth - 2);
+        expect(card.titleCut).toBe(false);
+        if (i > 0) expect(card.top).toBeGreaterThanOrEqual(cards[i - 1]?.bottom ?? 0);
+      }
+
+      // Vorschau öffnen: die Liste wird nicht gestaucht, jede Karte bleibt ganz sichtbar hoch
+      const visibleHeights = () =>
+        list.evaluate((el) => {
+          const items = [...el.children].map((li) => li.getBoundingClientRect().height);
+          // Gestaucht hieße: die Liste ist niedriger als ihre Karten und schneidet sie ab
+          return { items, clipped: el.scrollHeight > el.clientHeight + 1 };
+        });
+      const before = await visibleHeights();
+      await list.locator("[data-testid^='btn-inspect-source-']").first().click();
+      await expect(page.getByTestId("source-inspector-drawer")).toBeInViewport();
+      const after = await visibleHeights();
+      expect(after.clipped).toBe(false);
+      expect(after.items.length).toBe(before.items.length);
+      for (const [i, h] of after.items.entries()) {
+        expect(h).toBeCloseTo(before.items[i] ?? 0, 0);
+      }
+      await page.getByTestId("btn-close-inspector").click();
 
       await page.reload();
       await openPanel(page, "sources");
@@ -190,11 +225,13 @@ for (const width of WIDTHS) {
       expect(overflow).toBe(false);
     });
 
-    test("Chat: Blasen, Pille mit Namen und mindestens 24 px", async ({ page }) => {
+    test("Chat: Blasen, Pille mit Namen, breiter als hoch, mindestens 24 px", async ({ page }) => {
       await chatWithCitation(page);
       await page.goto("/");
       await openPanel(page, "chat");
-      await expect(page.getByTestId("chat-empty-state")).toBeVisible();
+      // Begrüßung statt Leerzustand: nie beides zugleich (Issue #335)
+      await expect(page.locator(".rn-msg--assistant").first()).toBeVisible();
+      await expect(page.getByTestId("chat-empty-state")).toHaveCount(0);
       await page.getByTestId("chat-input-field").fill("Welche Suche?");
       await page.getByTestId("chat-input-field").press("Enter");
       const pill = page.getByTestId("citation-pill-1").last();
@@ -204,6 +241,8 @@ for (const width of WIDTHS) {
       const size = await boxOf(pill);
       expect(size.height).toBeGreaterThanOrEqual(24);
       expect(size.width).toBeGreaterThanOrEqual(24);
+      // Pille statt Kreis: breiter als hoch (Issue #335)
+      expect(size.width).toBeGreaterThan(size.height);
       // Frage und Antwort stehen in Blasen mit eigenem Hintergrund
       const bubbles = await page
         .locator(".rn-msg--user .rn-msg-body, .rn-msg--user, .rn-msg--assistant")
@@ -266,7 +305,7 @@ test.describe("Hinweis-Leiste", () => {
   test("englische Oberfläche: Hinweise und Leerzustände ohne deutschen Rest", async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem("rn_language", "en"));
     await page.goto("/");
-    await expect(page.getByTestId("chat-empty-state")).toContainText("No questions yet");
+    await expect(page.getByTestId("chat-empty-state")).toHaveCount(0);
     await page.getByTestId("btn-open-url-dialog").click();
     await page.getByTestId("url-address-input").fill("https://example.org/report");
     await page.getByTestId("btn-submit-url-dialog").click();

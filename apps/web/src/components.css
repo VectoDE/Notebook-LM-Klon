@@ -218,8 +218,10 @@ html[data-color-mode="aaa-contrast"] .rn-view-toggle {
 /* --------------------------------------------------------------------------
    Quellen als Karten
    -------------------------------------------------------------------------- */
+/* Karten erst ab 240 px Breite nebeneinander: in der Quellenspalte (bis 380 px) steht
+   jede Karte allein, Titel laufen ungekürzt über die volle Breite (Issue #335) */
 .rn-sources[data-view="cards"] {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 148px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
   gap: var(--rn-space-2);
 }
 
@@ -483,10 +485,11 @@ html[data-color-mode="aaa-contrast"] .rn-result-card {
   color: var(--rn-color-text-primary);
 }
 
+/* Hilfstext ist Fließtext: 16 px wie alle Lesetexte (Issue #335) */
 .rn-empty-text {
   max-width: 38ch;
   margin: 0;
-  font-size: var(--rn-text-small);
+  font-size: var(--rn-text-body);
   line-height: 1.55;
   color: var(--rn-color-text-secondary);
 }
@@ -551,15 +554,26 @@ html[data-color-mode="aaa-contrast"] .rn-result-card {
 /* --------------------------------------------------------------------------
    Hinweis-Leiste unten
    -------------------------------------------------------------------------- */
+/*
+ * Hinweisleiste unten, aber im Fluss statt darüber (Issue #335): Erscheint ein Hinweis,
+ * bekommt er einen eigenen Streifen am unteren Rand (auf dem Telefon über der Reiterleiste),
+ * und die Spalten werden um diese Höhe kürzer. So verdeckt er nie Eingabe, Modellkennzeichen
+ * oder andere Bedienelemente; der Verlauf darüber scrollt wie gewohnt.
+ */
 .rn-toast-region {
-  position: fixed;
-  left: 50%;
-  bottom: calc(var(--rn-space-4) + env(safe-area-inset-bottom, 0px));
-  z-index: 60;
-  width: max-content;
-  max-width: calc(100% - 32px);
-  transform: translateX(-50%);
-  pointer-events: none;
+  order: 1;
+  flex: none;
+  display: flex;
+  justify-content: center;
+  padding-inline: var(--rn-space-4);
+}
+
+.rn-toast-region:has(.rn-toast) {
+  padding-block: var(--rn-space-2) var(--rn-space-3);
+}
+
+.mobile-bottom-nav {
+  order: 2;
 }
 
 .rn-toast {
@@ -569,6 +583,7 @@ html[data-color-mode="aaa-contrast"] .rn-result-card {
   min-height: 48px;
   padding: 2px 2px 2px var(--rn-space-4);
   box-sizing: border-box;
+  max-width: 100%;
   border-radius: var(--rn-radius-md);
   /* Umgekehrte Flächen: dieselbe Paarung wie Fließtext, also 7:1 */
   background: var(--rn-color-text-primary);
@@ -613,18 +628,11 @@ html[data-color-mode="aaa-contrast"] .rn-toast {
   box-shadow: 0 0 0 2px var(--rn-color-panel), 0 0 0 4px var(--rn-color-text-primary);
 }
 
-/* Ab 900 px unten links: der Chat-Eingabe in der Mitte bleibt frei */
+/* Ab 900 px links unter der Quellenspalte, wie gewohnt */
 @media (min-width: 900px) {
   .rn-toast-region {
-    left: var(--rn-space-6);
-    transform: none;
-  }
-}
-
-/* Telefon: über der unteren Reiterleiste */
-@media (max-width: 599.98px) {
-  .rn-toast-region {
-    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    justify-content: flex-start;
+    padding-inline: var(--rn-space-3);
   }
 }
 

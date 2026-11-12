@@ -104,7 +104,8 @@ test.describe("1440 px: Spalten statt Reiter", () => {
     // Studio ebenso, dann wieder ausklappen
     await page.getByTestId("btn-collapse-studio").click();
     await expect(page.getByTestId("btn-expand-studio")).toBeFocused();
-    await expect(page.getByTestId("rail-studio").getByRole("button")).toHaveCount(6);
+    // Umschalter + Audio, Video, Mindmap, Graph, Lernkarten, Quiz (Issue #335)
+    await expect(page.getByTestId("rail-studio").getByRole("button")).toHaveCount(7);
     expect(await findLayoutProblems(page)).toEqual([]);
 
     await expand.click();

@@ -28,8 +28,11 @@
   min-height: 0;
 }
 
+/* Quellenspalte mit 360 px Grundbreite: Hochladen und Link, „Alle auswählen“ und die
+   Ansicht sowie die Metazeilen bleiben ab 1280 px einzeilig. Auf schmalem Desktop
+   (900 bis 1279 px) startet das Studio eingeklappt, dann erreicht sie 380 px (Issue #335) */
 .panel-left {
-  flex: 1 1 300px;
+  flex: 1 1 360px;
   min-width: 260px;
   max-width: 380px;
   height: 100%;
@@ -1329,11 +1332,13 @@ html[data-color-mode="aaa-contrast"] .rn-rail-items {
   container-type: inline-size;
 }
 
+/* Die Eingabe steht unter dem Verlauf, nicht darüber: das Ende des Verlaufs hat eigenen
+   Abstand, nichts liegt unter der Eingabe oder einer Blende (Issue #335) */
 .chat-log {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--rn-space-6) var(--rn-pad-panel) var(--rn-space-4);
+  padding: var(--rn-space-6) var(--rn-pad-panel) var(--rn-space-6);
 }
 
 /* Lesespalte: angenehme Zeilenlänge statt voller Breite */
@@ -1403,8 +1408,10 @@ html[data-color-mode="aaa-contrast"] .rn-chip {
   animation: rn-enter var(--rn-enter-duration) var(--rn-transition-ease) both;
 }
 
+/* Bei großer Schrift rutscht „Vorlesen“ unter den Namen statt über den Rand */
 .rn-msg-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--rn-space-2);
@@ -1505,14 +1512,14 @@ html[data-color-mode="aaa-contrast"] .rn-chip {
   }
 }
 
-/* Quellenverweis als kleine Marke im Text */
+/* Quellenverweis als kleine Pille mit Nummer im Text: breiter als hoch (Issue #335) */
 .rn-cite {
   display: inline-grid;
   place-items: center;
-  min-width: 24px;
+  min-width: 32px;
   min-height: 24px;
   margin: 0 2px;
-  padding: 0 6px;
+  padding: 0 var(--rn-space-2);
   vertical-align: baseline;
   border-radius: var(--rn-radius-pill);
   border: 1px solid var(--rn-color-primary);
@@ -1529,7 +1536,7 @@ html[data-color-mode="aaa-contrast"] .rn-chip {
   background: var(--rn-color-panel);
 }
 
-/* Zitat-Pille bleibt im Fließtext 24 px, die Trefferfläche ist 44 x 44 px */
+/* Zitat-Pille bleibt im Fließtext 24 px hoch, die Trefferfläche ist 44 x 44 px */
 .rn-cite {
   position: relative;
 }
@@ -1548,17 +1555,6 @@ html[data-color-mode="aaa-contrast"] .rn-chip {
 .chat-dock {
   position: relative;
   padding: 0 var(--rn-pad-panel) var(--rn-space-4);
-}
-
-.chat-dock::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 100%;
-  height: var(--rn-space-6);
-  pointer-events: none;
-  background: linear-gradient(to bottom, transparent, var(--rn-color-panel));
 }
 
 .rn-composer {
@@ -1665,7 +1661,7 @@ html[data-color-mode="aaa-contrast"] .rn-chip {
 
 @media (max-width: 599.98px) {
   .chat-log {
-    padding: var(--rn-space-5) var(--rn-space-4) var(--rn-space-3);
+    padding: var(--rn-space-5) var(--rn-space-4) var(--rn-space-5);
   }
   .chat-dock {
     padding: 0 var(--rn-space-3) var(--rn-space-3);
@@ -1741,11 +1737,19 @@ html[data-reduce-motion="true"] .rn-caret {
   --rn-text-h2: var(--rn-text-title);
 }
 
+/* Untertitel als Kennzeichnung (z. B. „6 Werkzeuge aus Ihren Quellen“): Metastufe, 14 px */
 .rn-panel-sub {
   margin: 0;
   font-size: var(--rn-text-small);
   color: var(--rn-color-text-secondary);
   overflow-wrap: anywhere;
+}
+
+/* Erklärt der Untertitel die Spalte in einem ganzen Satz, ist er Fließtext: 16 px
+   (Issue #335). Kennzeichnungen wie die Werkzeugzahl im Studio bleiben Metastufe. */
+.rn-panel-sub--help {
+  font-size: var(--rn-text-body);
+  line-height: var(--rn-line-body);
 }
 
 .rn-count {
@@ -1999,15 +2003,16 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   cursor: pointer;
 }
 
+/* Die Liste wächst mit ihrem Inhalt und scrollt mit dem Panel: eine offene Vorschau
+   darunter staucht sie nicht zusammen (Issue #335) */
 .rn-sources {
   display: grid;
   align-content: start;
   gap: var(--rn-space-1);
-  flex: 1;
+  flex: 1 0 auto;
   margin: 0;
   padding: 0;
   list-style: none;
-  overflow-y: auto;
 }
 
 .rn-sources-empty {
@@ -2066,7 +2071,8 @@ html[data-design="immersive-cinema"] .rn-source-meta .rn-source-type {
   background: var(--rn-color-panel);
 }
 
-/* Titel läuft über die volle Breite, Metazeile und Augen-Knopf teilen sich die zweite Zeile */
+/* Titel und Augen-Knopf teilen sich die erste Zeile, die Metazeile läuft darunter über die
+   volle Breite: Dateiname und Größe bleiben einzeilig (Issue #335) */
 .rn-source-text {
   display: contents;
 }
@@ -2078,21 +2084,23 @@ html[data-design="immersive-cinema"] .rn-source-meta .rn-source-type {
 }
 
 .rn-source-title {
-  grid-column: 2 / span 2;
+  grid-column: 2;
   grid-row: 1;
-  align-self: end;
+  align-self: center;
   min-width: 0;
 }
 
 .rn-source-meta {
-  grid-column: 2;
+  grid-column: 2 / span 2;
   grid-row: 2;
   min-width: 0;
+  padding-inline-end: var(--rn-space-2);
 }
 
 .rn-source-inspect {
   grid-column: 3;
-  grid-row: 2;
+  grid-row: 1;
+  align-self: start;
 }
 
 /* Titel brechen an Wortgrenzen; nur ein einzelnes zu langes Wort darf umbrechen */
@@ -2108,12 +2116,19 @@ html[data-design="immersive-cinema"] .rn-source-meta .rn-source-type {
   overflow-wrap: anywhere;
 }
 
+/* Größe bleibt zusammen („24 KB“), umbrochen wird höchstens vor ihr */
+.rn-source-size {
+  white-space: nowrap;
+}
+
 .rn-source-inspect[aria-label$="schließen"] {
   color: var(--rn-color-primary);
 }
 
 .rn-inspector {
+  flex: none;
   margin-top: var(--rn-space-4);
+  scroll-margin-block: var(--rn-space-4);
   padding: var(--rn-space-4);
   border-radius: var(--rn-radius-md);
   background: var(--rn-color-surface-variant);
@@ -2349,10 +2364,33 @@ html[data-color-mode="aaa-contrast"] .rn-share-notice {
   color: var(--rn-color-text-secondary);
 }
 
-/* Senden ist noch nicht verfügbar: erreichbar, aber sichtbar zurückgenommen (gestrichelt) */
-.rn-btn--unavailable {
-  border-style: dashed;
+/* Senden ist noch nicht verfügbar: erreichbar, aber ruhig zurückgenommen, mit sichtbarem
+   Hinweis „Bald verfügbar“ statt gestricheltem Rand (Issue #335). Text auf
+   surface-variant bzw. panel bleibt bei 7:1. */
+.rn-btn--unavailable,
+.rn-btn--unavailable:hover {
+  gap: var(--rn-space-2);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+  border-color: transparent;
   cursor: not-allowed;
+}
+
+html[data-color-mode="aaa-contrast"] .rn-btn--unavailable {
+  border-color: var(--rn-color-border);
+}
+
+.rn-btn-hint {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 var(--rn-space-2);
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 @media (max-width: 599.98px) {
@@ -2973,10 +3011,14 @@ html[data-color-mode="aaa-contrast"] .rn-share-notice {
   box-shadow: inset 0 0 0 1px var(--rn-color-border);
 }
 
+/* Bei großer Schrift (200 %) bricht die Gruppe um statt über den Rand zu ragen */
 .rn-zoom {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 2px;
+  min-width: 0;
+  max-width: 100%;
   margin: 0;
   padding: 0 0 0 2px;
   border: 1px solid var(--rn-color-border);

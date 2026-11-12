@@ -18,6 +18,22 @@ export const LAYOUT_STORAGE_KEYS = {
 
 export const NO_PANELS_COLLAPSED: CollapsedPanels = { sources: false, studio: false };
 
+/**
+ * Schmaler Desktop (900 bis 1279 px, z. B. 1024 px): drei Spalten passen nicht ohne
+ * Umbrüche in Knöpfen und Metadaten nebeneinander. Ohne gespeicherte Wahl startet das
+ * Studio deshalb eingeklappt (Symbolleiste mit allen Werkzeugen, ein Klick klappt aus);
+ * Quellen und Chat bekommen die Breite (Issue #335).
+ */
+export const NARROW_DESKTOP = { min: 900, max: 1279.98 } as const;
+
+export function defaultCollapsedPanels(viewportWidth: number | undefined): CollapsedPanels {
+  const narrowDesktop =
+    viewportWidth !== undefined &&
+    viewportWidth >= NARROW_DESKTOP.min &&
+    viewportWidth <= NARROW_DESKTOP.max;
+  return { sources: false, studio: narrowDesktop };
+}
+
 /** Längster Notebook-Titel; längere Eingaben werden gekürzt. */
 export const NOTEBOOK_TITLE_MAX_LENGTH = 120;
 
@@ -85,11 +101,17 @@ function parseObject(raw: string | null): Record<string, unknown> {
   }
 }
 
-/** Gespeicherter Zustand der Spalten; unbekannte oder kaputte Werte gelten als ausgeklappt. */
+/**
+ * Gespeicherter Zustand der Spalten; unbekannte oder kaputte Werte gelten als ausgeklappt.
+ * Ohne gespeicherte Wahl gilt die Vorgabe für die Fensterbreite (defaultCollapsedPanels).
+ */
 export function readCollapsedPanels(
-  storage: Pick<Storage, "getItem"> | undefined
+  storage: Pick<Storage, "getItem"> | undefined,
+  viewportWidth?: number
 ): CollapsedPanels {
-  const value = parseObject(safeGet(storage, LAYOUT_STORAGE_KEYS.collapsed));
+  const raw = safeGet(storage, LAYOUT_STORAGE_KEYS.collapsed);
+  if (raw === null) return defaultCollapsedPanels(viewportWidth);
+  const value = parseObject(raw);
   return { sources: value.sources === true, studio: value.studio === true };
 }
 

@@ -34,7 +34,7 @@ describe("Icon (eine Symbolfamilie, gefüllt; Issue #328)", () => {
     }
     // Gefüllt ist die Regel: nur Zeichen ohne Fläche bleiben reine Linie
     const lineOnly = ICON_NAMES.filter((name) => !iconShape(name).fill);
-    expect(lineOnly.sort()).toEqual(["audio", "check", "chevron", "close", "link", "menu", "plus"]);
+    expect(lineOnly.sort()).toEqual(["check", "chevron", "close", "menu", "plus"]);
     expect(ICON_NAMES.length - lineOnly.length).toBeGreaterThanOrEqual(25);
   });
 
