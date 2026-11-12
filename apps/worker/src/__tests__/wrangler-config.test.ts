@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import worker from "../index.js";
 
 const WRANGLER_PATH = join(import.meta.dirname, "../../wrangler.jsonc");
 
@@ -31,5 +32,16 @@ describe("Wrangler Single-Worker Configuration", () => {
       { name: "JOB_DO", class_name: "JobDO" }
     ]);
     expect(parsed.migrations[0]?.new_sqlite_classes).toEqual(["NotebookDO", "JobDO"]);
+  });
+
+  it("schedules the hourly cleanup cron handled by the worker's scheduled() export (#334)", () => {
+    const parsed = JSON.parse(readFileSync(WRANGLER_PATH, "utf-8")) as {
+      main: string;
+      triggers?: { crons?: string[] };
+    };
+
+    expect(parsed.triggers?.crons).toEqual(["0 * * * *"]);
+    expect(parsed.main).toBe("src/index.ts");
+    expect(typeof worker.scheduled).toBe("function");
   });
 });

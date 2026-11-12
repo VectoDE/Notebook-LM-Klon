@@ -534,5 +534,60 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
         await serverInstance.close();
       }
     }, 15000);
+
+    it("rate-limits by socket address and ignores spoofed IP headers (#334)", async () => {
+      clearRateLimitMemory();
+      const serverInstance = await startNodeServer({
+        port: 0,
+        dataDir: join(TEST_DATA_DIR, "srv-data-ratelimit"),
+        staticDir: join(TEST_DATA_DIR, "no-static")
+      });
+      const url = `http://localhost:${serverInstance.port}/api/v1/health`;
+
+      const first = await fetch(url, {
+        headers: { "cf-connecting-ip": "198.51.100.1", "x-forwarded-for": "198.51.100.1" }
+      });
+      const second = await fetch(url, {
+        headers: { "cf-connecting-ip": "198.51.100.2", "x-forwarded-for": "198.51.100.2" }
+      });
+
+      // Same socket, same bucket: rotating the spoofed headers does not reset the counter
+      expect(first.headers.get("X-RateLimit-Remaining")).toBe("119");
+      expect(second.headers.get("X-RateLimit-Remaining")).toBe("118");
+
+      await serverInstance.close();
+    });
+
+    it("uses the configured trusted proxy header when TRUSTED_PROXY_HEADER is set (#334)", async () => {
+      clearRateLimitMemory();
+      process.env.TRUSTED_PROXY_HEADER = "X-Forwarded-For";
+      const serverInstance = await startNodeServer({
+        port: 0,
+        dataDir: join(TEST_DATA_DIR, "srv-data-proxy"),
+        staticDir: join(TEST_DATA_DIR, "no-static")
+      });
+      Reflect.deleteProperty(process.env, "TRUSTED_PROXY_HEADER");
+      const url = `http://localhost:${serverInstance.port}/api/v1/health`;
+
+      const a1 = await fetch(url, { headers: { "x-forwarded-for": "6.6.6.6, 198.51.100.1" } });
+      const a2 = await fetch(url, { headers: { "x-forwarded-for": "7.7.7.7, 198.51.100.1" } });
+      const b1 = await fetch(url, { headers: { "x-forwarded-for": "198.51.100.2" } });
+
+      // The proxy-appended last entry identifies the client; client-prepended entries do not
+      expect(a1.headers.get("X-RateLimit-Remaining")).toBe("119");
+      expect(a2.headers.get("X-RateLimit-Remaining")).toBe("118");
+      expect(b1.headers.get("X-RateLimit-Remaining")).toBe("119");
+
+      await serverInstance.close();
+    });
+  });
+
+  it("passes trustedProxyHeader from options into the environment", () => {
+    const customDb = new DatabaseSync(":memory:");
+    const { env } = createNodeEnv({ db: customDb, trustedProxyHeader: "x-real-ip" });
+    expect((env as unknown as { TRUSTED_PROXY_HEADER?: string }).TRUSTED_PROXY_HEADER).toBe(
+      "x-real-ip"
+    );
+    customDb.close();
   });
 });
