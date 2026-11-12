@@ -18,7 +18,9 @@ describe("Logo und Favicon", () => {
   });
 
   it("Manifest verweist nur auf vorhandene Icons, inklusive maskierbarem Icon", () => {
-    const manifest = JSON.parse(readFileSync(resolve(webRoot, "public/manifest.webmanifest"), "utf8"));
+    const manifest = JSON.parse(
+      readFileSync(resolve(webRoot, "public/manifest.webmanifest"), "utf8")
+    );
     expect(manifest.icons.some((i: { purpose: string }) => i.purpose === "maskable")).toBe(true);
     for (const icon of manifest.icons as { src: string }[]) {
       expect(existsSync(resolve(webRoot, "public", icon.src.slice(1)))).toBe(true);
