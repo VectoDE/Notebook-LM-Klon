@@ -108,6 +108,20 @@ describe("Session Management, Cookies & Privacy Hashing (Sub-Issue #65)", () => 
     expect(extractSessionToken(`${DEV_SESSION_COOKIE_NAME}=def222`)).toBe("def222");
   });
 
+  it.each([undefined, "", "   "])(
+    "refuses to create a session when the salt secret is %j (no fallback salt)",
+    async (saltSecret) => {
+      const { adapter, close } = createSqliteAdapter();
+      const repo = new CoreRepository(adapter);
+      const sessionManager = new SessionManager({ repo, saltSecret });
+      await expect(sessionManager.createSession("usr_x", "127.0.0.1", "UA")).rejects.toThrow(
+        "SESSION_SALT_SECRET ist nicht konfiguriert"
+      );
+      expect(await adapter.query("SELECT id_hash FROM sessions")).toHaveLength(0);
+      close();
+    }
+  );
+
   it("creates, validates, slides, rotates, and revokes sessions without storing plaintext token", async () => {
     const { adapter, close } = createSqliteAdapter();
     const repo = new CoreRepository(adapter);

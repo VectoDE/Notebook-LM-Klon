@@ -382,6 +382,8 @@ export function createNodeEnv(options?: {
   dataDir?: string | undefined;
   appProfile?: "demo" | "full" | undefined;
   appOrigin?: string | undefined;
+  /** Defaults to process.env.SESSION_SALT_SECRET. No fallback: missing means login is blocked (503). */
+  sessionSaltSecret?: string | undefined;
   trustedProxyHeader?: string | undefined;
 }): { env: Env; db: DatabaseSync; dataDir: string } {
   const dataDir = options?.dataDir ?? resolve(".data");
@@ -400,6 +402,7 @@ export function createNodeEnv(options?: {
     MEDIA: r2,
     APP_PROFILE: options?.appProfile ?? "demo",
     APP_ORIGIN: options?.appOrigin ?? "http://localhost:8787",
+    SESSION_SALT_SECRET: options?.sessionSaltSecret ?? process.env.SESSION_SALT_SECRET,
     TRUSTED_PROXY_HEADER: options?.trustedProxyHeader,
     ASSETS: {
       fetch: async () => new Response("Not Found", { status: 404 })
