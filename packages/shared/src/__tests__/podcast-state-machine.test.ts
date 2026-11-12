@@ -294,8 +294,20 @@ describe("PodcastStateMachine (Sub-Issue #118)", () => {
     machine.dispatch({ type: "PLAY" });
     expect(machine.dispatch({ type: "PLAY" })).toBe(false);
 
-    // Test calling JOIN_INTERJECT when in invalid state like idle
+    // JOIN_INTERJECT aus "Bereit" (idle) startet die Wiedergabe und öffnet die Frage
     machine.dispatch({ type: "STOP" });
+    expect(machine.getState()).toBe("idle");
+    expect(machine.dispatch({ type: "JOIN_INTERJECT", inputMode: "text" })).toBe(true);
+    expect(machine.getState()).toBe("interjecting");
+    expect(machine.getContext().previousState).toBe("playing");
+    expect(machine.getContext().interjectInputMode).toBe("text");
+    expect(machine.getContext().volume).toBe(0.0);
+    // Abbrechen kehrt in die laufende Wiedergabe zurück
+    expect(machine.dispatch({ type: "CANCEL_INTERJECT" })).toBe(true);
+    expect(machine.getState()).toBe("playing");
+
+    // In Zuständen ohne Wiedergabekontext bleibt JOIN_INTERJECT wirkungslos
+    machine.dispatch({ type: "JOIN_INTERJECT" });
     expect(machine.dispatch({ type: "JOIN_INTERJECT" })).toBe(false);
   });
 
