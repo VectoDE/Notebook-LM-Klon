@@ -11,8 +11,9 @@ describe("WorkspaceLayout Component (Issue #31)", () => {
     expect(html).toContain('data-testid="workspace-header"');
     expect(html).toContain("RelationNotes");
     expect(html).toContain(WORKSPACE_VERSION);
-    expect(html).toContain('data-testid="role-switcher-select"');
-    expect(html).toContain('data-testid="theme-selector-header"');
+    expect(html).toContain('data-testid="top-nav"');
+    expect(html).toContain('data-testid="btn-open-appearance"');
+    expect(html).toContain('data-testid="btn-open-menu"');
     expect(html).toContain('data-testid="btn-open-settings"');
 
     // 3 panels
@@ -37,13 +38,20 @@ describe("WorkspaceLayout Component (Issue #31)", () => {
     expect(html).toContain('aria-label="Studio (6 Werkzeuge)"');
     expect(html).toContain('<span class="rn-tab-count">2</span>');
     expect(html).toContain('<span class="rn-tab-label">Studio</span>');
-    // Kopf: ein Bedienelement-System, Rolle mit sichtbarer Beschriftung im Feld
-    expect(html.match(/class="rn-control-chevron"/g)?.length).toBe(3);
-    expect(html.match(/class="rn-control-input"/g)?.length).toBe(3);
-    expect(html).toContain(
-      '<label for="role-select" class="rn-control-lead workspace-role-label">Rolle</label>'
+    // Kopf: Bereiche als Reiter mit aria-current, Darstellung und Menü als Auslöser
+    expect(html).toContain('data-testid="top-tab-chat" class="rn-topnav-item"');
+    expect(html).toMatch(/aria-current="page" data-testid="top-tab-chat"/);
+    expect(html).not.toMatch(/aria-current="page" data-testid="top-tab-studio"/);
+    expect(html).toMatch(
+      /aria-expanded="false" aria-controls="appearance-menu" aria-haspopup="dialog"/
     );
-    expect(html).toContain('class="rn-control rn-control--button workspace-settings-button"');
+    expect(html).toMatch(/aria-expanded="false" aria-controls="nav-sheet" aria-haspopup="dialog"/);
+    expect(html).toContain('aria-label="Menü öffnen"');
+    // Menüs sind beim Start zu und liegen nicht im Markup
+    expect(html).not.toContain('data-testid="appearance-menu"');
+    expect(html).not.toContain('data-testid="nav-sheet"');
+    // Panels sind Fokusziele der Reiter
+    expect(html).toContain('data-panel="sources" tabindex="-1"');
   });
 
   it("renders Studio Mindmap view when activeTool is mindmap", () => {

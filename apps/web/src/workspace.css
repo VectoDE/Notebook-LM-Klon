@@ -84,23 +84,23 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
 }
 
 /* ==========================================================================
-   Kopfzeile: ein System aus einer Höhe
-   Alle Bedienelemente teilen Höhe (44 px, WCAG 2.5.5), Radius, Rand, Schrift und
-   Grundlinie. Auswahlfelder sind eigene Felder (Rand am Container, Auswahl darin
-   randlos); der Fokusring liegt am ganzen Feld. Eine ruhige Trennlinie unten.
+   Kopfzeile: Logo, Bereiche als Reiterleiste, Darstellung im Menü
+   Alle Bedienelemente teilen Höhe (44 px, WCAG 2.5.5), Radius und Schrift.
+   Drei Spalten: Marke links, Bereiche mittig, Darstellung rechts.
    ========================================================================== */
 .workspace-header {
   --rn-control-h: 44px;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: var(--rn-space-2);
+  gap: var(--rn-space-4);
   min-height: 64px;
   box-sizing: border-box;
   padding: 0 var(--rn-space-6) !important;
   background: var(--rn-color-panel);
   border-bottom: 1px solid var(--rn-color-panel-border);
   box-shadow: none;
-  z-index: 5;
+  z-index: 30;
 }
 
 .workspace-brand {
@@ -108,7 +108,7 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   align-items: center;
   gap: var(--rn-space-3);
   min-width: 0;
-  margin-right: auto;
+  justify-self: start;
 }
 
 .workspace-title {
@@ -126,17 +126,64 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   color: var(--rn-color-text-secondary);
 }
 
-.workspace-role,
-.workspace-actions {
+/* --- Bereiche: ruhige Reiter, der aktive liegt auf einer hellen Fläche --- */
+.rn-topnav {
   display: flex;
   align-items: center;
-  gap: var(--rn-space-2);
-  min-width: 0;
+  gap: var(--rn-space-1);
+  justify-self: center;
 }
 
-/* Feine senkrechte Teilung zwischen Rolle und Darstellung */
-.workspace-actions::before {
-  content: "";
+.rn-topnav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rn-space-2);
+  height: var(--rn-control-h);
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--rn-radius-md);
+  background: transparent;
+  color: var(--rn-color-text-secondary);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--rn-transition-base), color var(--rn-transition-base);
+}
+
+.rn-topnav-item:hover {
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-primary);
+}
+
+.rn-topnav-item[aria-current="page"] {
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-primary);
+  font-weight: 600;
+}
+
+.rn-topnav-item[aria-current="page"] .rn-icon {
+  color: var(--rn-color-primary);
+}
+
+.rn-topnav-count {
+  min-width: 22px;
+  height: 22px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-panel);
+  box-shadow: inset 0 0 0 1px var(--rn-color-panel-border);
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 22px;
+  text-align: center;
+}
+
+.rn-topnav-divider {
   flex: none;
   width: 1px;
   height: 24px;
@@ -144,12 +191,44 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   background: var(--rn-color-panel-border);
 }
 
+html[data-color-mode="aaa-contrast"] .rn-topnav-item[aria-current="page"] {
+  box-shadow: inset 0 0 0 2px var(--rn-color-border);
+}
+
+/* --- Rechts: Darstellung (Desktop) bzw. Menü-Knopf (Telefon) --- */
+.rn-header-end {
+  display: flex;
+  align-items: center;
+  gap: var(--rn-space-2);
+  justify-self: end;
+}
+
+.rn-popover-anchor {
+  position: relative;
+}
+
+.rn-appearance-chevron {
+  color: var(--rn-color-text-secondary);
+  transition: transform var(--rn-transition-base);
+}
+
+.rn-appearance-button[aria-expanded="true"] .rn-appearance-chevron {
+  transform: rotate(180deg);
+}
+
+.rn-header-end .rn-menu-button {
+  display: none;
+  width: var(--rn-control-h);
+  padding: 0;
+}
+
+/* --- Bedienelement-System (Auswahlfelder und Knöpfe) --- */
 .rn-control {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--rn-space-2);
-  height: var(--rn-control-h);
+  height: var(--rn-control-h, 44px);
   min-width: 0;
   box-sizing: border-box;
   border-radius: var(--rn-radius-md);
@@ -167,27 +246,21 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   background: var(--rn-color-surface-variant);
 }
 
+.rn-control--block {
+  display: flex;
+  width: 100%;
+}
+
 /* Fokusring am ganzen Feld, nur bei Tastaturfokus (wie :focus-visible) */
 .rn-control:has(.rn-control-input:focus-visible) {
   outline: var(--rn-focus-outline-width) solid var(--rn-color-focus-ring);
   outline-offset: var(--rn-focus-outline-offset);
 }
 
-.rn-control-lead {
-  flex: none;
-  margin-left: 12px;
-  color: var(--rn-color-text-secondary);
-  font-family: var(--rn-font-family-ui);
-  font-size: var(--rn-text-small);
-  font-weight: 500;
-  line-height: 20px;
-  cursor: pointer;
-}
-
 .rn-control-input {
   appearance: none;
   -webkit-appearance: none;
-  height: var(--rn-control-h);
+  height: var(--rn-control-h, 44px);
   min-width: 0;
   width: 100%;
   margin: 0;
@@ -203,12 +276,7 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   cursor: pointer;
 }
 
-.rn-control-lead + .rn-control-input {
-  margin-left: calc(var(--rn-space-2) * -1);
-  padding-left: var(--rn-space-2);
-}
-
-/* Der Fokusring sitzt am ganzen Feld (focus-within), nicht doppelt an der Auswahl */
+/* Der Fokusring sitzt am ganzen Feld, nicht doppelt an der Auswahl */
 .rn-control .rn-control-input:focus-visible {
   outline: none !important;
 }
@@ -234,11 +302,10 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   cursor: pointer;
 }
 
-.rn-control--button .rn-icon {
+.rn-control--button > .rn-icon:first-child {
   color: var(--rn-color-text-secondary);
 }
 
-/* Hochkontrast: kräftigerer Rand an allen Feldern */
 html[data-color-mode="aaa-contrast"] .rn-control {
   box-shadow: inset 0 0 0 2px var(--rn-color-border);
 }
@@ -246,11 +313,334 @@ html[data-color-mode="aaa-contrast"] .rn-control {
 /* Bewegung im Kopf bleibt aus: kein Anheben beim Überfahren */
 html[data-design] .workspace-header :where(button, .rn-control):hover {
   transform: none;
+}
+
+html[data-design] .workspace-header .rn-control:hover {
   box-shadow: inset 0 0 0 1px var(--rn-color-border);
 }
 
-html[data-color-mode="aaa-contrast"] .workspace-header :where(button, .rn-control):hover {
+html[data-design] .workspace-header .rn-topnav-item:hover {
+  box-shadow: none;
+}
+
+html[data-color-mode="aaa-contrast"] .workspace-header .rn-control:hover {
   box-shadow: inset 0 0 0 2px var(--rn-color-border);
+}
+
+/* --- Darstellungsmenü (Desktop) --- */
+.rn-popover {
+  position: absolute;
+  top: calc(100% + var(--rn-space-2));
+  right: 0;
+  left: auto;
+  margin: 0;
+  color: var(--rn-color-text-primary);
+  width: 320px;
+  box-sizing: border-box;
+  padding: var(--rn-space-4);
+  border-radius: var(--rn-radius-lg);
+  background: var(--rn-color-panel);
+  border: 1px solid var(--rn-color-panel-border);
+  box-shadow: 0 18px 48px -18px rgba(0, 0, 0, 0.35), var(--rn-color-panel-shadow);
+  z-index: 40;
+  transform-origin: top right;
+  animation: rn-popover-in 160ms var(--rn-transition-ease) both;
+}
+
+/* Das Menü selbst trägt nur nach Mausklick den Fokus; der Ring gehört an die Felder */
+.rn-popover:focus-visible {
+  outline: none !important;
+}
+
+@keyframes rn-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+html[data-color-mode="aaa-contrast"] .rn-popover {
+  border: 2px solid var(--rn-color-border);
+  box-shadow: none;
+}
+
+/* --- Darstellung: Rolle, Design, Farbschema --- */
+.rn-appearance {
+  display: grid;
+  gap: var(--rn-space-5);
+}
+
+.rn-appearance-group {
+  display: grid;
+  gap: var(--rn-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.rn-appearance-label {
+  padding: 0;
+  color: var(--rn-color-text-secondary);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.rn-choices {
+  display: grid;
+  gap: var(--rn-space-1);
+}
+
+.rn-choice {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--rn-space-3);
+  min-height: 52px;
+  padding: 6px 12px;
+  box-sizing: border-box;
+  border-radius: var(--rn-radius-md);
+  color: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-ui);
+  cursor: pointer;
+  transition: background-color var(--rn-transition-base), box-shadow var(--rn-transition-base);
+}
+
+.rn-choice:hover {
+  background: var(--rn-color-surface-variant);
+}
+
+.rn-choice:has(:checked) {
+  background: var(--rn-color-surface-variant);
+  box-shadow: inset 0 0 0 1px var(--rn-color-border);
+}
+
+/* Echte Radioknöpfe, unsichtbar über der ganzen Fläche: Tastatur und Screenreader bleiben nativ */
+.rn-choice-input,
+.rn-segment-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.rn-choice:has(:focus-visible),
+.rn-segment:has(:focus-visible) {
+  outline: var(--rn-focus-outline-width) solid var(--rn-color-focus-ring);
+  outline-offset: var(--rn-focus-outline-offset);
+}
+
+.rn-choice-swatch {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--rn-color-border);
+}
+
+.rn-choice:has(:checked) .rn-choice-swatch {
+  box-shadow: inset 0 0 0 5px var(--rn-color-primary);
+}
+
+.rn-choice-text {
+  display: grid;
+  min-width: 0;
+}
+
+.rn-choice-title {
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.rn-choice-hint {
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  line-height: 20px;
+}
+
+.rn-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--rn-space-1);
+  padding: var(--rn-space-1);
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-surface-variant);
+}
+
+.rn-segment {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: var(--rn-radius-sm);
+  color: var(--rn-color-text-secondary);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--rn-transition-base), color var(--rn-transition-base);
+}
+
+.rn-segment:has(:checked) {
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-primary);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--rn-color-border);
+}
+
+/* --- Mobiles Menü: Vollbild-Sheet (nativer modaler Dialog) --- */
+.rn-sheet {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-primary);
+}
+
+.rn-sheet[open] {
+  display: flex;
+  flex-direction: column;
+  animation: rn-sheet-in 220ms var(--rn-transition-ease) both;
+}
+
+.rn-sheet::backdrop {
+  background: transparent;
+}
+
+@keyframes rn-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rn-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rn-space-3);
+  min-height: 64px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--rn-color-panel-border);
+}
+
+.rn-sheet-title {
+  margin: 0;
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-h3);
+  font-weight: var(--rn-weight-heading);
+  line-height: 1.3;
+}
+
+.rn-sheet-body {
+  flex: 1;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: var(--rn-space-6);
+  padding: var(--rn-space-4) 16px calc(var(--rn-space-6) + env(safe-area-inset-bottom, 0px));
+}
+
+.rn-sheet-section {
+  margin: 0 0 var(--rn-space-2);
+  color: var(--rn-color-text-secondary);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.rn-sheet-nav {
+  display: grid;
+  gap: var(--rn-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: var(--rn-radius-md);
+  background: transparent;
+  color: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-ui);
+  text-align: left;
+  cursor: pointer;
+}
+
+.rn-sheet-item > .rn-icon {
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-sheet-item:hover,
+.rn-sheet-item[aria-current="page"] {
+  background: var(--rn-color-surface-variant);
+}
+
+.rn-sheet-item[aria-current="page"] > .rn-icon {
+  color: var(--rn-color-primary);
+}
+
+html[data-color-mode="aaa-contrast"] .rn-sheet-item[aria-current="page"] {
+  box-shadow: inset 0 0 0 2px var(--rn-color-border);
+}
+
+.rn-sheet-item-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.rn-sheet-item-title {
+  font-size: var(--rn-text-base);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.rn-sheet-item-hint {
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  line-height: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rn-popover,
+  .rn-sheet[open] {
+    animation: none;
+  }
+  .rn-appearance-chevron {
+    transition: none;
+  }
 }
 
 /* ==========================================================================
@@ -400,9 +790,9 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="page"] .rn-tab-indica
 }
 
 /* ==========================================================================
-   Raster: drei Spalten ab 900 px, darunter ein Panel mit Reitern unten
+   Raster: drei Spalten ab 900 px, darunter ein Panel; Reiter oben, unter 600 px unten
    ========================================================================== */
-@media (min-width: 900px) {
+@media (min-width: 600px) {
   .mobile-bottom-nav {
     display: none !important;
   }
@@ -433,33 +823,18 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="page"] .rn-tab-indica
   }
 }
 
-/* Schmale Bildschirme: Kopfzeile in genau zwei Zeilen, gleiche Feldhöhe.
-   Zeile 1: Logo, Version, Rolle. Zeile 2: Design, Farbschema, Einstellungen. */
-@media (max-width: 599.98px) {
-  .workspace-header {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas:
-      "brand role"
-      "actions actions";
-    row-gap: var(--rn-space-2);
-    column-gap: var(--rn-space-3);
-    padding: 10px 16px !important;
+/* Mittlere Breiten: Beschriftungen von Version, Darstellung und Einstellungen weichen zuerst */
+@media (max-width: 1099.98px) {
+  .workspace-version {
+    display: none;
   }
-  .workspace-brand {
-    grid-area: brand;
-    margin-right: 0;
+  .rn-appearance-button {
+    width: var(--rn-control-h);
+    padding: 0;
   }
-  .workspace-role {
-    grid-area: role;
-    justify-content: flex-end;
-  }
-  .workspace-role .rn-control {
-    flex: 1 1 auto;
-    max-width: 220px;
-  }
-  /* Beschriftung und Symbole bleiben für Screenreader, sichtbar zählt der Platz */
-  .rn-control-lead {
+  .rn-appearance-button-label,
+  .rn-appearance-chevron,
+  .rn-topnav-item[data-testid="btn-open-settings"] .rn-topnav-label {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -468,45 +843,52 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="page"] .rn-tab-indica
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
-  .rn-control-lead + .rn-control-input {
-    margin-left: 0;
-  }
-  .rn-control-input,
-  .rn-control-lead + .rn-control-input {
-    padding: 0 30px 0 12px;
-  }
-  .rn-control-chevron {
-    right: 10px;
-  }
-  .workspace-actions {
-    grid-area: actions;
-    width: 100%;
-  }
-  .workspace-actions::before {
-    display: none;
-  }
-  .workspace-actions .rn-control {
-    flex: 1 1 0;
-  }
-  .workspace-actions .workspace-settings-button {
-    flex: 0 0 var(--rn-control-h);
+  .rn-topnav-item[data-testid="btn-open-settings"] {
+    width: var(--rn-control-h);
+    justify-content: center;
     padding: 0;
   }
 }
 
-@media (max-width: 399.98px) {
-  .workspace-version {
+@media (max-width: 899.98px) {
+  .workspace-header {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: 0 16px !important;
+    gap: var(--rn-space-2);
+  }
+}
+
+/* Schmales Tablet: Bereiche nur als Symbol, der Name bleibt für Screenreader */
+@media (max-width: 767.98px) {
+  .rn-topnav-item .rn-topnav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .rn-topnav-item {
+    min-width: var(--rn-control-h);
+    justify-content: center;
+    padding: 0 10px;
+  }
+}
+
+/* Telefon: Logo und Menü-Knopf; Bereiche liegen unten in der Reiterleiste */
+@media (max-width: 599.98px) {
+  .workspace-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 60px;
+    padding: 8px 16px !important;
+  }
+  .rn-topnav,
+  .rn-header-end .rn-appearance-button {
     display: none;
   }
-  .workspace-actions {
-    gap: 6px;
-  }
-  .rn-control-input,
-  .rn-control-lead + .rn-control-input {
-    padding: 0 26px 0 10px;
-  }
-  .rn-control-chevron {
-    right: 8px;
+  .rn-header-end .rn-menu-button {
+    display: inline-flex;
   }
 }
 

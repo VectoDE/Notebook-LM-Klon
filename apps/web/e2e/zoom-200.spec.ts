@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { DESIGNS, chooseDesign, findLayoutProblems } from "./helpers";
+import { DESIGNS, chooseDesign, findLayoutProblems, openPanel } from "./helpers";
 
 /**
  * WCAG 2.2 SC 1.4.4 (Text vergrößern): Bei 200 % Browser-Zoom halbiert sich der
@@ -31,14 +31,14 @@ for (const screen of ZOOM_200) {
           for (const tab of ["sources", "chat", "studio"] as const) {
             views.push({
               label: `Reiter ${tab}`,
-              open: () => page.getByTestId(`tab-btn-${tab}`).click()
+              open: () => openPanel(page, tab)
             });
           }
         }
         views.push({
           label: "Studio Mindmap",
           open: async () => {
-            if (screen.width < 900) await page.getByTestId("tab-btn-studio").click();
+            if (screen.width < 900) await openPanel(page, "studio");
             await page.getByTestId("btn-open-mindmap-tool").click();
           }
         });

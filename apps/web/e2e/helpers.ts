@@ -3,16 +3,31 @@ import type { Page } from "@playwright/test";
 export const DESIGNS = ["pure", "immersive-cinema", "editorial-calm", "fusion"] as const;
 export const MODES = ["light", "dark", "aaa-contrast"] as const;
 
-/** Setzt Design und Farbmodus über die Auswahlfelder im Kopf (wie ein Mensch). */
+/**
+ * Setzt Design und Farbmodus über die Darstellung (wie ein Mensch): auf dem Telefon im
+ * Menü-Sheet, sonst im Darstellungsmenü im Kopf. Danach ist das Menü wieder zu.
+ */
 export async function chooseDesign(page: Page, design: string, mode: string): Promise<void> {
-  await page.getByTestId("theme-selector-header").selectOption(design);
-  await page.getByTestId("color-mode-selector-header").selectOption(mode);
+  const menuButton = page.getByTestId("btn-open-menu");
+  const narrow = await menuButton.isVisible();
+  await (narrow ? menuButton : page.getByTestId("btn-open-appearance")).click();
+  const container = page.getByTestId(narrow ? "nav-sheet" : "appearance-menu");
+  await container.getByTestId(`theme-option-${design}`).check();
+  await container.getByTestId(`mode-option-${mode}`).check();
   await page.waitForFunction(
     ([d, m]) =>
       document.documentElement.dataset.design === d &&
       document.documentElement.dataset.colorMode === m,
     [design, mode] as const
   );
+  await page.keyboard.press("Escape");
+  await container.waitFor({ state: "hidden" });
+}
+
+/** Öffnet einen Bereich: unter 600 px über die untere Leiste, sonst über die Reiter im Kopf. */
+export async function openPanel(page: Page, panel: "sources" | "chat" | "studio"): Promise<void> {
+  const bottom = page.getByTestId(`tab-btn-${panel}`);
+  await ((await bottom.isVisible()) ? bottom : page.getByTestId(`top-tab-${panel}`)).click();
 }
 
 export interface LayoutProblem {
