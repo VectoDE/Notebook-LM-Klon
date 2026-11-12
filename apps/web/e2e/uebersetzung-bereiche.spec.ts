@@ -153,7 +153,7 @@ for (const width of [1440, 390]) {
 
     test("Studio: jede Werkzeugansicht auf Englisch", async ({ page }) => {
       await openPanel(page, "studio");
-      await expect(page.getByTestId("studio-panel")).toContainText("6 tools from your sources");
+      await expect(page.getByTestId("studio-panel")).toContainText("7 tools from your sources");
 
       const tools: readonly [string, string][] = [
         ["btn-open-audio-tool", "Audio Overview"],
@@ -231,5 +231,5 @@ test("Deutsch bleibt unverändert: Bereiche tragen deutsche Bedientexte", async 
   await openPanel(page, "sources");
   await expect(page.getByTestId("sources-panel")).toContainText("Datei hochladen");
   await openPanel(page, "studio");
-  await expect(page.getByTestId("studio-panel")).toContainText("6 Werkzeuge aus Ihren Quellen");
+  await expect(page.getByTestId("studio-panel")).toContainText("7 Werkzeuge aus Ihren Quellen");
 });

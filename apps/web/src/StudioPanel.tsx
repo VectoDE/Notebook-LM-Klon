@@ -41,7 +41,8 @@ interface StudioAction {
 }
 
 interface StudioToolEntry {
-  readonly id: Exclude<StudioTool, "overview">;
+  /** graph öffnet den Wissensgraphen außerhalb des Studios (Issue #327). */
+  readonly id: Exclude<StudioTool, "overview"> | "graph";
   readonly icon: IconName;
   readonly title: string;
   readonly description: string;
@@ -82,6 +83,11 @@ export interface StudioPanelProps {
    * (neues Objekt) wählt das Werkzeug, auch wenn es dasselbe ist.
    */
   readonly toolRequest?: { readonly tool: StudioTool } | undefined;
+  /**
+   * Wissensgraph öffnen (Issue #327). Er liegt nicht im Studio, sondern in der mittleren
+   * Spalte bzw. im Reiter „Graph“; ohne diese Funktion fehlt der Eintrag.
+   */
+  readonly onOpenGraph?: (() => void) | undefined;
   /** Anzahl ausgewählter Quellen; bei 0 erklärt ein Leerzustand, was fehlt (Issue #329). */
   readonly selectedSourceCount?: number | undefined;
   /** Kurze Rückmeldung in der Hinweis-Leiste, z. B. nach einem Export. */
@@ -102,6 +108,7 @@ export function StudioPanel({
   panelAttributes,
   headerAction,
   toolRequest,
+  onOpenGraph,
   selectedSourceCount,
   onNotify
 }: StudioPanelProps) {
@@ -196,6 +203,21 @@ export function StudioPanel({
         run: () => handleExport("mindmap")
       }
     },
+    ...(onOpenGraph
+      ? [
+          {
+            id: "graph",
+            icon: "graph",
+            title: t("toolGraphTitle"),
+            description: t("toolGraphDesc"),
+            primary: {
+              label: t("toolGraphOpen"),
+              testId: "btn-open-graph-tool",
+              run: onOpenGraph
+            }
+          } satisfies StudioToolEntry
+        ]
+      : []),
     {
       id: "flashcards",
       icon: "cards",

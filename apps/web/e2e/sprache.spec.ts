@@ -59,7 +59,7 @@ for (const width of [390, 1440]) {
       await expect(page.getByRole("navigation", { name: "Sections" }).first()).toBeVisible();
       await expect(bottom.getByRole("button", { name: "Sources (2)" })).toBeVisible();
       await expect(bottom.getByRole("button", { name: "Chat & citations" })).toBeVisible();
-      await expect(bottom.getByRole("button", { name: "Studio (6 tools)" })).toBeVisible();
+      await expect(bottom.getByRole("button", { name: "Studio (7 tools)" })).toBeVisible();
       await expect(bottom).toContainText("Sources");
 
       await page.getByRole("button", { name: "Open menu" }).click();
