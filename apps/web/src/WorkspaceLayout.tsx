@@ -199,33 +199,36 @@ const NARROW_HEADER_QUERY = "(max-width: 599.98px)";
 
 type PanelTab = "sources" | "chat" | "studio";
 
-/** Bereiche des Arbeitsbereichs: kurzer Name, Hinweis im Menü, voller Name für Screenreader. */
+/**
+ * Bereiche des Arbeitsbereichs: Schlüssel im Sprachkatalog für kurzen Namen, Hinweis im Menü
+ * und vollen Namen für Screenreader.
+ */
 const PANEL_TABS: readonly {
   readonly id: PanelTab;
-  readonly label: string;
-  readonly hint: string;
-  readonly ariaLabel: string;
+  readonly labelKey: string;
+  readonly hintKey: string;
+  readonly ariaKey: string;
   readonly icon: IconName;
 }[] = [
   {
     id: "sources",
-    label: "Quellen",
-    hint: "Dokumente und Links",
-    ariaLabel: "Quellen",
+    labelKey: "navSources",
+    hintKey: "navSourcesHint",
+    ariaKey: "navSourcesAria",
     icon: "sources"
   },
   {
     id: "chat",
-    label: "Chat",
-    hint: "Fragen mit Belegen",
-    ariaLabel: "Chat & Zitate",
+    labelKey: "navChat",
+    hintKey: "navChatHint",
+    ariaKey: "navChatAria",
     icon: "chat"
   },
   {
     id: "studio",
-    label: "Studio",
-    hint: "Sechs Werkzeuge",
-    ariaLabel: "Studio (6 Werkzeuge)",
+    labelKey: "navStudio",
+    hintKey: "navStudioHint",
+    ariaKey: "navStudioAria",
     icon: "studio"
   }
 ];
@@ -252,7 +255,7 @@ export function WorkspaceLayout({
   notebookId = "nb_active",
   chatFetch
 }: WorkspaceLayoutProps) {
-  const { theme, setTheme, colorMode, setColorMode } = useTheme();
+  const { theme, setTheme, colorMode, setColorMode, t } = useTheme();
   const isNarrowHeader = useMediaQuery(NARROW_HEADER_QUERY);
 
   // Panels & Navigation state
@@ -486,7 +489,7 @@ export function WorkspaceLayout({
           <span className="workspace-version">v{WORKSPACE_VERSION}</span>
         </div>
 
-        <nav aria-label="Bereiche" className="rn-topnav" data-testid="top-nav">
+        <nav aria-label={t("navAreas")} className="rn-topnav" data-testid="top-nav">
           {PANEL_TABS.map((tab) => {
             const isSources = tab.id === "sources";
             return (
@@ -499,7 +502,7 @@ export function WorkspaceLayout({
                 className="rn-topnav-item"
               >
                 <Icon name={tab.icon} size={18} />
-                <span className="rn-topnav-label">{tab.label}</span>
+                <span className="rn-topnav-label">{t(tab.labelKey)}</span>
                 {isSources && (
                   <span className="rn-topnav-count">
                     <span className="rn-visually-hidden">, </span>
@@ -518,7 +521,7 @@ export function WorkspaceLayout({
             className="rn-topnav-item"
           >
             <Icon name="settings" size={18} />
-            <span className="rn-topnav-label">Einstellungen</span>
+            <span className="rn-topnav-label">{t("navSettings")}</span>
           </button>
         </nav>
 
@@ -539,7 +542,7 @@ export function WorkspaceLayout({
               className="rn-control rn-control--button rn-appearance-button"
             >
               <Icon name="palette" size={18} />
-              <span className="rn-appearance-button-label">Darstellung</span>
+              <span className="rn-appearance-button-label">{t("appearanceTitle")}</span>
               <Icon name="chevron" size={16} className="rn-icon rn-appearance-chevron" />
             </button>
             {isAppearanceOpen && !isNarrowHeader && (
@@ -548,7 +551,7 @@ export function WorkspaceLayout({
                 ref={appearancePanelRef}
                 open
                 tabIndex={-1}
-                aria-label="Darstellung"
+                aria-label={t("appearanceTitle")}
                 data-testid="appearance-menu"
                 className="rn-popover"
                 onKeyDown={handleAppearanceKeyDown}
@@ -564,7 +567,7 @@ export function WorkspaceLayout({
             aria-expanded={isMenuOpen}
             aria-controls="nav-sheet"
             aria-haspopup="dialog"
-            aria-label="Menü öffnen"
+            aria-label={t("menuOpen")}
             data-testid="btn-open-menu"
             className="rn-control rn-control--button rn-menu-button"
           >
@@ -634,7 +637,7 @@ export function WorkspaceLayout({
       </div>
 
       {/* Untere Reiterleiste (unter 600 px): im Daumenbereich, Symbol und Kurzname */}
-      <nav aria-label="Bereiche" data-testid="mobile-bottom-nav" className="mobile-bottom-nav">
+      <nav aria-label={t("navAreas")} data-testid="mobile-bottom-nav" className="mobile-bottom-nav">
         {PANEL_TABS.map((tab) => {
           const isActive = activeMobileTab === tab.id;
           const isSources = tab.id === "sources";
@@ -644,7 +647,7 @@ export function WorkspaceLayout({
               type="button"
               onClick={() => setActiveMobileTab(tab.id)}
               aria-current={isActive ? "page" : undefined}
-              aria-label={isSources ? `Quellen (${sources.length})` : tab.ariaLabel}
+              aria-label={t(tab.ariaKey, { count: sources.length })}
               data-testid={`tab-btn-${tab.id}`}
               className="rn-tab"
             >
@@ -652,7 +655,7 @@ export function WorkspaceLayout({
                 <Icon name={tab.icon} size={22} />
                 {isSources && <span className="rn-tab-count">{sources.length}</span>}
               </span>
-              <span className="rn-tab-label">{tab.label}</span>
+              <span className="rn-tab-label">{t(tab.labelKey)}</span>
             </button>
           );
         })}
@@ -674,12 +677,12 @@ export function WorkspaceLayout({
         >
           <div className="rn-sheet-head">
             <h2 id="nav-sheet-title" className="rn-sheet-title">
-              Menü
+              {t("menuTitle")}
             </h2>
             <button
               type="button"
               onClick={() => closeMenu()}
-              aria-label="Menü schließen"
+              aria-label={t("menuClose")}
               data-testid="btn-close-menu"
               className="rn-icon-btn rn-dialog-close"
             >
@@ -688,8 +691,8 @@ export function WorkspaceLayout({
           </div>
 
           <div className="rn-sheet-body">
-            <nav aria-label="Bereiche im Menü">
-              <h3 className="rn-sheet-section">Bereiche</h3>
+            <nav aria-label={t("navAreasMenu")}>
+              <h3 className="rn-sheet-section">{t("navAreas")}</h3>
               <ul className="rn-sheet-nav">
                 {PANEL_TABS.map((tab) => (
                   <li key={tab.id}>
@@ -705,8 +708,8 @@ export function WorkspaceLayout({
                     >
                       <Icon name={tab.icon} size={22} />
                       <span className="rn-sheet-item-text">
-                        <span className="rn-sheet-item-title">{tab.label}</span>
-                        <span className="rn-sheet-item-hint">{tab.hint}</span>
+                        <span className="rn-sheet-item-title">{t(tab.labelKey)}</span>
+                        <span className="rn-sheet-item-hint">{t(tab.hintKey)}</span>
                       </span>
                       {tab.id === "sources" && (
                         <span className="rn-topnav-count">{sources.length}</span>
@@ -727,8 +730,8 @@ export function WorkspaceLayout({
                   >
                     <Icon name="settings" size={22} />
                     <span className="rn-sheet-item-text">
-                      <span className="rn-sheet-item-title">Einstellungen</span>
-                      <span className="rn-sheet-item-hint">Modell, Datenschutz, Sprache</span>
+                      <span className="rn-sheet-item-title">{t("navSettings")}</span>
+                      <span className="rn-sheet-item-hint">{t("navSettingsHint")}</span>
                     </span>
                   </button>
                 </li>
@@ -737,7 +740,7 @@ export function WorkspaceLayout({
 
             <section aria-labelledby="nav-sheet-appearance">
               <h3 id="nav-sheet-appearance" className="rn-sheet-section">
-                Darstellung
+                {t("appearanceTitle")}
               </h3>
               <AppearanceControls idPrefix="sheet" {...appearanceProps} />
             </section>

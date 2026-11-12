@@ -96,7 +96,23 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navFlashcards: "Lernkarten",
     navQuiz: "Quiz",
     navVideo: "Video",
-    navAudio: "Audio"
+    navAudio: "Audio",
+    navAreas: "Bereiche",
+    navAreasMenu: "Bereiche im Menü",
+    navSources: "Quellen",
+    navSourcesHint: "Dokumente und Links",
+    navSourcesAria: "Quellen ({count})",
+    navChat: "Chat",
+    navChatHint: "Fragen mit Belegen",
+    navChatAria: "Chat & Zitate",
+    navStudio: "Studio",
+    navStudioHint: "Sechs Werkzeuge",
+    navStudioAria: "Studio (6 Werkzeuge)",
+    navSettings: "Einstellungen",
+    navSettingsHint: "Modell, Datenschutz, Sprache",
+    menuOpen: "Menü öffnen",
+    menuTitle: "Menü",
+    menuClose: "Menü schließen"
   },
   en: {
     appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
@@ -154,9 +170,40 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navFlashcards: "Flashcards",
     navQuiz: "Quiz",
     navVideo: "Video",
-    navAudio: "Audio"
+    navAudio: "Audio",
+    navAreas: "Sections",
+    navAreasMenu: "Sections in menu",
+    navSources: "Sources",
+    navSourcesHint: "Documents and links",
+    navSourcesAria: "Sources ({count})",
+    navChat: "Chat",
+    navChatHint: "Questions with citations",
+    navChatAria: "Chat & citations",
+    navStudio: "Studio",
+    navStudioHint: "Six tools",
+    navStudioAria: "Studio (6 tools)",
+    navSettings: "Settings",
+    navSettingsHint: "Model, privacy, language",
+    menuOpen: "Open menu",
+    menuTitle: "Menu",
+    menuClose: "Close menu"
   }
 };
+
+/** Platzhalter wie {count} im Katalogtext ersetzen. */
+export type TranslationValues = Readonly<Record<string, string | number>>;
+
+function interpolate(text: string, values?: TranslationValues): string {
+  if (!values) return text;
+  return text.replace(/\{(\w+)\}/g, (match, name: string) =>
+    name in values ? String(values[name]) : match
+  );
+}
+
+/** Text zum Schlüssel in der Sprache; fehlt er, Deutsch, sonst der Schlüssel selbst. */
+export function translate(language: Language, key: string, values?: TranslationValues): string {
+  return interpolate(TRANSLATIONS[language][key] ?? TRANSLATIONS.de[key] ?? key, values);
+}
 
 export interface ThemeContextValue {
   readonly theme: DesignTheme;
@@ -168,7 +215,7 @@ export interface ThemeContextValue {
   readonly setTheme: (theme: DesignTheme) => void;
   readonly setColorMode: (mode: ColorModePreference) => void;
   readonly setLanguage: (lang: Language) => void;
-  readonly t: (key: string) => string;
+  readonly t: (key: string, values?: TranslationValues) => string;
 }
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -252,10 +299,7 @@ export function ThemeProvider({
   }, []);
 
   const t = useCallback(
-    (key: string): string => {
-      const dict = TRANSLATIONS[language];
-      return dict[key] ?? TRANSLATIONS.de[key] ?? key;
-    },
+    (key: string, values?: TranslationValues): string => translate(language, key, values),
     [language]
   );
 
@@ -287,7 +331,7 @@ export function useTheme(): ThemeContextValue {
       setTheme: () => {},
       setColorMode: () => {},
       setLanguage: () => {},
-      t: (key: string) => TRANSLATIONS.de[key] ?? key
+      t: (key: string, values?: TranslationValues) => translate("de", key, values)
     };
   }
   return context;
