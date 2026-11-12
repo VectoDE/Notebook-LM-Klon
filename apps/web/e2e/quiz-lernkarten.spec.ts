@@ -70,6 +70,8 @@ for (const design of DESIGNS) {
         Promise.all(
           document
             .getAnimations()
+            // Scroll-getriebene Animationen (Scroll-Verlauf) enden nie und bleiben außen vor
+            .filter((a) => a.timeline === document.timeline)
             .filter((a) => a.effect?.getComputedTiming().iterations !== Number.POSITIVE_INFINITY)
             .map((a) => a.finished)
         )
