@@ -481,6 +481,14 @@ html[data-color-mode="aaa-contrast"] .rn-result-card {
   width: min(240px, 100%);
 }
 
+/* Niedrige Flächen (200 % Zoom = 400 CSS-px hoch, 400 % = 256): Zeichnung flacher, damit
+   die Überschrift bei 200 % ohne Scrollen über der unteren Leiste steht */
+@media (max-height: 480px) {
+  .rn-empty-art {
+    max-height: 28vh;
+  }
+}
+
 .rn-empty-title {
   margin: 0;
   font-family: var(--rn-font-family-headings);

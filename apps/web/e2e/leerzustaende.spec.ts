@@ -6,9 +6,9 @@ import { DESIGNS, chooseDesign, openPanel } from "./helpers";
  * (400 % Zoom = 320 CSS-px, 200 % = 640 CSS-px) ohne waagerechtes Scrollen (WCAG 1.4.10).
  */
 const sizes = [
-  { name: "Desktop", width: 1440, height: 900, minArt: 240 },
-  { name: "Zoom 200 %", width: 640, height: 400, minArt: 200 },
-  { name: "Zoom 400 %", width: 320, height: 256, minArt: 200 }
+  { name: "Desktop", width: 1440, height: 900, minArt: 240, titleInView: true },
+  { name: "Zoom 200 %", width: 640, height: 400, minArt: 200, titleInView: true },
+  { name: "Zoom 400 %", width: 320, height: 256, minArt: 200, titleInView: false }
 ] as const;
 
 for (const size of sizes) {
@@ -42,6 +42,24 @@ for (const size of sizes) {
         await page.getByTestId("select-all-sources-checkbox").uncheck();
         await openPanel(page, "studio");
         await check("studio-empty-state");
+        // Überschrift ohne Scrollen sichtbar, nicht von der unteren Leiste verdeckt. Bei 400 %
+        // (256 px Höhe) braucht das Studio schon vor #356 senkrechtes Scrollen, das ist nach
+        // WCAG 1.4.10 zulässig.
+        if (size.titleInView) {
+          const title = await page
+            .getByTestId("studio-empty-state")
+            .locator(".rn-empty-title")
+            .boundingBox();
+          const nav = page.locator(".mobile-bottom-nav");
+          const limit = (await nav.isVisible())
+            ? ((await nav.boundingBox())?.y ?? size.height)
+            : size.height;
+          // mindestens 8 px Luft zur unteren Leiste
+          expect(
+            (title?.y ?? 0) + (title?.height ?? 0),
+            `${design}: Überschrift sichtbar`
+          ).toBeLessThanOrEqual(limit - 8);
+        }
       });
     }
   });
