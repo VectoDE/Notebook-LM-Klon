@@ -49,6 +49,7 @@ for (const width of [360, 390, 430, 1440]) {
             Promise.all(
               el
                 .getAnimations({ subtree: true })
+                .filter((anim) => anim.timeline === document.timeline)
                 .filter(
                   (anim) => anim.effect?.getComputedTiming().iterations !== Number.POSITIVE_INFINITY
                 )
@@ -167,6 +168,31 @@ test.describe("Panelwechsel", () => {
       .evaluate((el) => el.getAnimations().length);
     expect(count).toBe(0);
   });
+});
+
+test.describe("Studio-Kopf", () => {
+  for (const width of [390, 1440]) {
+    test(`${width} px: Notebook-Titel steht in jeder Werkzeugansicht genau einmal`, async ({
+      page
+    }) => {
+      await page.setViewportSize({ width, height: 860 });
+      await page.goto("/");
+      for (const open of [
+        "btn-open-mindmap-tool",
+        "btn-open-quiz-tool",
+        "btn-open-flashcards-tool",
+        "btn-open-audio-tool"
+      ]) {
+        await openPanel(page, "studio");
+        await page.getByTestId(open).click();
+        const titles = page
+          .getByTestId("studio-panel")
+          .getByText("Cloudflare Edge Stack Architecture", { exact: true });
+        await expect(titles, open).toHaveCount(1);
+        await page.getByTestId("btn-back-to-studio-overview").click();
+      }
+    });
+  }
 });
 
 test.describe("Mindmap einpassen", () => {

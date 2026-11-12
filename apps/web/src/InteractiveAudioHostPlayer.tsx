@@ -11,6 +11,8 @@ import {
   useRef,
   useState
 } from "react";
+import { focusFirstAvailable } from "./focus-return.js";
+import { podcastStateLabel } from "./stage-visuals.js";
 
 export interface SpeechRecognitionResultLike {
   readonly [index: number]: { readonly transcript: string };
@@ -70,6 +72,10 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const interjectButtonRef = useRef<HTMLButtonElement>(null);
+  const playButtonRef = useRef<HTMLButtonElement>(null);
+  const resumeButtonRef = useRef<HTMLButtonElement>(null);
+  const previousStateRef = useRef(machineCtx.state);
   const recognitionRef = useRef<SpeechRecognitionInstanceLike | null>(null);
 
   // Sync state machine changes
@@ -80,10 +86,25 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
     return unsubscribe;
   }, [stateMachine]);
 
-  // Focus input when entering interjecting state
+  // Fokus folgt dem Ablauf: Zwischenfrage -> Eingabefeld, Antwort -> "Podcast fortsetzen",
+  // danach zurück auf den auslösenden Knopf "Beitreten / Frage stellen".
   useEffect(() => {
-    if (machineCtx.state === "interjecting" && inputRef.current) {
-      inputRef.current.focus();
+    const previous = previousStateRef.current;
+    const current = machineCtx.state;
+    previousStateRef.current = current;
+    if (current === "interjecting") {
+      inputRef.current?.focus();
+      return;
+    }
+    if (current === "answering") {
+      resumeButtonRef.current?.focus();
+      return;
+    }
+    if (previous === "interjecting" || previous === "answering") {
+      focusFirstAvailable(
+        [interjectButtonRef.current, playButtonRef.current],
+        () => document.activeElement
+      );
     }
   }, [machineCtx.state]);
 
@@ -307,10 +328,11 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
       <header className="player-header">
         <h2 id="audio-track-title">{currentTrackTitle}</h2>
         <div className="player-meta">
-          <span aria-label="Wiedergabe-Status" className="state-badge">
-            Status: {machineCtx.state}
+          <span className="state-badge" data-testid="audio-state-badge">
+            Status: {podcastStateLabel(machineCtx.state)}
           </span>
-          <span aria-label="Aktuelle Zeit" className="time-display">
+          <span className="time-display">
+            <span className="sr-only">Zeit: </span>
             {formattedTime(machineCtx.currentTimeMs)} / {formattedTime(machineCtx.durationMs)}
           </span>
         </div>
@@ -320,6 +342,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
       <fieldset className="player-controls">
         <legend className="sr-only">Audio-Steuerung</legend>
         <button
+          ref={playButtonRef}
           type="button"
           onClick={handleTogglePlay}
           aria-label={machineCtx.state === "playing" ? "Podcast pausieren" : "Podcast abspielen"}
@@ -331,10 +354,12 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
 
         {machineCtx.state !== "interjecting" && machineCtx.state !== "answering" && (
           <button
+            ref={interjectButtonRef}
             type="button"
             onClick={() => handleOpenInterject("text")}
             aria-label="Beitreten und Rückfrage an die Hosts stellen"
             className="btn-interject"
+            data-testid="btn-audio-interject"
           >
             Beitreten / Frage stellen
           </button>
@@ -463,6 +488,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
 
           <div className="answer-actions">
             <button
+              ref={resumeButtonRef}
               type="button"
               onClick={handleHostAnswerComplete}
               className="btn-resume-podcast"
