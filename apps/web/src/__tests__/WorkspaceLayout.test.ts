@@ -31,6 +31,14 @@ describe("WorkspaceLayout Component (Issue #31)", () => {
     expect(html).toContain('data-testid="tab-btn-sources"');
     expect(html).toContain('data-testid="tab-btn-chat"');
     expect(html).toContain('data-testid="tab-btn-studio"');
+    // Reiter: kurze sichtbare Namen, volle Namen für Screenreader, Zähler an Quellen
+    expect(html).toContain('aria-label="Quellen (2)"');
+    expect(html).toContain('aria-label="Chat &amp; Zitate"');
+    expect(html).toContain('aria-label="Studio (6 Werkzeuge)"');
+    expect(html).toContain('<span class="rn-tab-count">2</span>');
+    expect(html).toContain('<span class="rn-tab-label">Studio</span>');
+    // Eigene Auswahlfelder mit Pfeil aus der Symbolfamilie
+    expect(html.match(/class="rn-select-chevron"/g)?.length).toBe(3);
   });
 
   it("renders Studio Mindmap view when activeTool is mindmap", () => {

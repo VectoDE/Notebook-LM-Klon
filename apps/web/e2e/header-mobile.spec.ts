@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { DESIGNS, chooseDesign, findLayoutProblems } from "./helpers";
 
 /** Mobiler Kopf: höchstens zwei Zeilen, nichts ragt heraus, Bedienziele mindestens 44 px. */
-for (const width of [320, 360, 390, 480, 599]) {
+for (const width of [320, 360, 390, 430, 480, 599]) {
   test.describe(`Kopfzeile bei ${width} px`, () => {
     test.use({ viewport: { width, height: 760 } });
 

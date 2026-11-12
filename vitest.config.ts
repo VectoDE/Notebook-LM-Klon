@@ -13,7 +13,8 @@ export default defineConfig({
         "apps/web/src/App.tsx",
         "apps/web/src/design-tokens.ts",
         "apps/web/src/theme-preferences.ts",
-        "apps/web/src/BrandLogo.tsx"
+        "apps/web/src/BrandLogo.tsx",
+        "apps/web/src/Icon.tsx"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {

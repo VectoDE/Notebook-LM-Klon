@@ -9,6 +9,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App.js";
 import { ThemeProvider } from "./useTheme.js";
 import "./themes.css";
+import "./workspace.css";
 
 const rootElement = document.getElementById("root");
 if (rootElement) {
