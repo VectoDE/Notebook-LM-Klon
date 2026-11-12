@@ -531,6 +531,61 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       expect(((await missing.json()) as { code: string }).code).toBe("SOURCE_NOT_FOUND");
     });
 
+    it("chunk ingestion and source deletion require the editor role on the source's notebook", async () => {
+      const init = await call("/api/v1/notebooks/nb_a/sources", {
+        method: "POST",
+        cookie: fx.cookies.alice,
+        json: pdfInit
+      });
+      const { sourceId } = (await init.json()) as { sourceId: string };
+      const chunksPath = `/api/v1/sources/${sourceId}/chunks`;
+      const json = {
+        chunks: [{ chunkIndex: 0, text: "Hallo Welt", vector: { float32: [0.5, -0.25] } }]
+      };
+
+      expect((await call(chunksPath, { method: "POST", json })).status).toBe(401);
+      expect(
+        (await call(chunksPath, { method: "POST", json, cookie: fx.cookies.mallory })).status
+      ).toBe(404);
+      const viewer = await call(chunksPath, { method: "POST", json, cookie: fx.cookies.bob });
+      expect(viewer.status).toBe(403);
+      expect(((await viewer.json()) as { code: string }).code).toBe("INSUFFICIENT_ROLE");
+      const editor = await call(chunksPath, { method: "POST", json, cookie: fx.cookies.carol });
+      expect(editor.status).toBe(200);
+      expect(await editor.json()).toMatchObject({
+        sourceId,
+        notebookId: "nb_a",
+        chunksIngested: 1,
+        vectorsIngested: 1,
+        status: "ready"
+      });
+      const stored = fx.sqlite
+        .prepare("SELECT COUNT(*) AS n FROM chunks WHERE source_id = ?")
+        .get(sourceId) as { n: number };
+      expect(stored.n).toBe(1);
+
+      const missing = await call("/api/v1/sources/unknown/chunks", {
+        method: "POST",
+        json,
+        cookie: fx.cookies.alice
+      });
+      expect(missing.status).toBe(404);
+      expect(((await missing.json()) as { code: string }).code).toBe("SOURCE_NOT_FOUND");
+
+      const sourcePath = `/api/v1/sources/${sourceId}`;
+      expect((await call(sourcePath, { method: "DELETE" })).status).toBe(401);
+      expect(
+        (await call(sourcePath, { method: "DELETE", cookie: fx.cookies.mallory })).status
+      ).toBe(404);
+      expect((await call(sourcePath, { method: "DELETE", cookie: fx.cookies.bob })).status).toBe(
+        403
+      );
+      const deleted = await call(sourcePath, { method: "DELETE", cookie: fx.cookies.carol });
+      expect(deleted.status).toBe(200);
+      expect(await deleted.json()).toMatchObject({ deletedSourceId: sourceId, notebookId: "nb_a" });
+      expect(await fx.ragRepo.getSourceById(sourceId)).toBeNull();
+    });
+
     it("url import: 401 anonymous, 403 viewer, editor reaches validation", async () => {
       const path = "/api/v1/notebooks/nb_a/sources/url";
       const json = { url: "not-a-url" };

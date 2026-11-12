@@ -478,6 +478,63 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       await serverInstance.close();
     });
 
+    it("reaches every API router over HTTP on the Node path (wiring, not 404)", async () => {
+      clearRateLimitMemory();
+      const serverInstance = await startNodeServer({
+        port: 0,
+        dataDir: join(TEST_DATA_DIR, "srv-data-routers"),
+        staticDir: join(TEST_DATA_DIR, "no-static"),
+        appOrigin: "http://localhost:8787"
+      });
+      const base = `http://localhost:${serverInstance.port}`;
+      const json = { "content-type": "application/json" };
+      const probe = async (method: string, path: string, body?: unknown) => {
+        const init: RequestInit = { method, headers: json };
+        if (body !== undefined) init.body = JSON.stringify(body);
+        const res = await fetch(`${base}${path}`, init);
+        const payload = (await res.json()) as { code?: string };
+        return { status: res.status, code: payload.code };
+      };
+
+      try {
+        // Protected routers answer from their guard (401), proving the route exists.
+        const protectedRoutes: Array<[string, string, unknown?]> = [
+          ["POST", "/api/v1/notebooks/nb_x/chat", { message: "Hallo" }],
+          ["GET", "/api/v1/chats/c_x/messages"],
+          ["POST", "/api/v1/notebooks/nb_x/search", { query: "x" }],
+          ["POST", "/api/v1/notebooks/nb_x/audio-interject", { question: "x" }],
+          ["POST", "/api/v1/notebooks/nb_x/sources", { filename: "a.pdf" }],
+          ["POST", "/api/v1/notebooks/nb_x/sources/url", { url: "https://example.org" }],
+          ["PUT", "/api/v1/sources/s_x/upload", "x"],
+          ["POST", "/api/v1/sources/s_x/chunks", { chunks: [] }],
+          ["DELETE", "/api/v1/sources/s_x"],
+          ["POST", "/api/v1/jobs/enqueue", { type: "briefing" }],
+          ["GET", "/api/v1/keys"],
+          ["GET", "/api/v1/providers/ollama/probe"],
+          ["POST", "/api/v1/auth/passkey/register/options", {}]
+        ];
+        for (const [method, path, body] of protectedRoutes) {
+          const res = await probe(method, path, body);
+          expect({ method, path, ...res }).toMatchObject({ status: 401, code: "UNAUTHORIZED" });
+        }
+
+        // Public routers answer with their own result.
+        expect((await probe("GET", "/api/v1/providers")).status).toBe(200);
+        expect((await probe("POST", "/api/v1/auth/passkey/login/options", {})).status).toBe(200);
+        // Guest login fails closed without TURNSTILE_SECRET_KEY (route reached, not 404).
+        expect((await probe("POST", "/api/v1/auth/guest", {})).status).toBe(503);
+        expect((await probe("GET", "/api/v1/demo/info")).status).toBe(200);
+
+        // Unknown API paths stay 404, so the 401s above are real routes.
+        expect(await probe("GET", "/api/v1/does-not-exist")).toEqual({
+          status: 404,
+          code: "NOT_FOUND"
+        });
+      } finally {
+        await serverInstance.close();
+      }
+    }, 15000);
+
     it("rate-limits by socket address and ignores spoofed IP headers (#334)", async () => {
       clearRateLimitMemory();
       const serverInstance = await startNodeServer({
