@@ -116,6 +116,9 @@ describe("StudioPanel & DeepDiveStage (Sub-Issue #133)", () => {
 
     expect(html).toContain("btn-back-to-studio-overview");
     expect(html).toContain("Cloud Architecture");
+    // Notebook-Titel nicht zusätzlich im Panelkopf
+    expect(html.match(/>Test Studio Notebook</g)?.length).toBe(1);
+    expect(html).not.toContain("rn-panel-sub");
   });
 
   it("renders active Flashcards tool view", () => {

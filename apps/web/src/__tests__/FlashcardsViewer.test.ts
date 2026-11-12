@@ -2,7 +2,7 @@ import type { FlashcardItem } from "@notebook-lm/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { FlashcardsViewer } from "../FlashcardsViewer.js";
+import { FlashcardsViewer, describeNextReview, describeRepetitions } from "../FlashcardsViewer.js";
 
 const sampleCards: FlashcardItem[] = [
   {
@@ -71,6 +71,25 @@ describe("FlashcardsViewer Component (Sub-Issue #123)", () => {
       })
     );
 
-    expect(html).toContain("Intervall: 15d | Reps: 3");
+    expect(html).toContain("Nächste Wiederholung: in 15 Tagen");
+    expect(html).toContain("3 Wiederholungen");
+    expect(html).not.toContain("Reps");
+  });
+
+  it("shows Klartext meta and no own aria-label on flip and source buttons (WCAG 2.5.3)", () => {
+    const html = renderToStaticMarkup(createElement(FlashcardsViewer, { cards: sampleCards }));
+    expect(html).toContain("Nächste Wiederholung: heute");
+    expect(html).toContain("0 Wiederholungen");
+    expect(html).not.toContain("Karte umdrehen");
+    expect(html).not.toContain("Quelle öffnen");
+  });
+
+  it("describes intervals and repetitions in plain language", () => {
+    expect(describeNextReview(0)).toBe("heute");
+    expect(describeNextReview(1)).toBe("morgen");
+    expect(describeNextReview(6)).toBe("in 6 Tagen");
+    expect(describeRepetitions(0)).toBe("0 Wiederholungen");
+    expect(describeRepetitions(1)).toBe("1 Wiederholung");
+    expect(describeRepetitions(4)).toBe("4 Wiederholungen");
   });
 });

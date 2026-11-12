@@ -2,7 +2,13 @@ import type { VideoStoryboard } from "@notebook-lm/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { VideoOverviewPlayer, drawSlideToCanvas } from "../VideoOverviewPlayer.js";
+import {
+  VideoOverviewPlayer,
+  backdropScrimAlpha,
+  drawSlideToCanvas,
+  formatTime,
+  isShortcutExemptTarget
+} from "../VideoOverviewPlayer.js";
 
 const mockStoryboard: VideoStoryboard = {
   id: "sb_test_1",
@@ -131,7 +137,7 @@ describe("VideoOverviewPlayer (Sub-Issue #120)", () => {
     expect(html).toContain('data-testid="player-audio-element"');
     expect(html).toContain('data-testid="a11y-live-region"');
     expect(html).toContain('aria-live="polite"');
-    expect(html).toContain('aria-label="Video Overview Player: Test Video Overview"');
+    expect(html).toContain('aria-label="Video-Übersicht: Test Video Overview"');
   });
 
   it("draws slide, bullet points, citations and charts to 2D canvas context", () => {
@@ -180,5 +186,107 @@ describe("VideoOverviewPlayer (Sub-Issue #120)", () => {
       expect(fillTextCalls).toContain("30%");
       expect(fillTextCalls).toContain("Q1");
     }
+  });
+
+  it("zeichnet im Bildschirm-Modus nur den Hintergrund, ohne Text", () => {
+    const fillText = vi.fn();
+    const fillRect = vi.fn();
+    const ctx = {
+      save: vi.fn(),
+      restore: vi.fn(),
+      clearRect: vi.fn(),
+      createLinearGradient: () => ({ addColorStop: vi.fn() }),
+      fillStyle: "",
+      fillRect,
+      fillText
+    } as unknown as CanvasRenderingContext2D;
+    const slide = mockStoryboard.slides[0];
+    if (!slide) throw new Error("Folie fehlt");
+    drawSlideToCanvas(ctx, slide, 1280, 720, 1, true, "backdrop");
+    expect(fillText).not.toHaveBeenCalled();
+    // dunkler Verlauf: keine Abdeckung, nur die Verlaufsfläche
+    expect(fillRect).toHaveBeenCalledTimes(1);
+
+    fillRect.mockClear();
+    const light = {
+      ...slide,
+      visualTheme: { ...slide.visualTheme, backgroundGradient: ["#ffffff", "#e2e8f0"] as const }
+    };
+    drawSlideToCanvas(ctx, light as typeof slide, 1280, 720, 1, true, "backdrop");
+    expect(fillRect).toHaveBeenCalledTimes(2);
+    expect(String(ctx.fillStyle)).toMatch(/^rgba\(0, 0, 0, 0\.\d+\)$/);
+  });
+
+  it("dunkelt helle Folienverläufe so weit ab, dass heller Text 7:1 hält", () => {
+    expect(backdropScrimAlpha(["#0f172a", "#1e293b"])).toBe(0);
+    expect(backdropScrimAlpha(["#022c22", "#064e3b"])).toBe(0);
+    const white = backdropScrimAlpha(["#fff", "#0f172a"]);
+    expect(white).toBeGreaterThan(0.5);
+    expect(white).toBeLessThanOrEqual(0.9);
+    // Weiß abgedunkelt: Luminanz ≤ 0,08 → Bühnentext (#F5F3FF) erreicht mindestens 7:1
+    expect((1 - white) ** 2.2).toBeLessThanOrEqual(0.08 + 1e-9);
+    expect(backdropScrimAlpha(["rgb(10, 10, 10)"])).toBe(0.6);
+  });
+
+  it("formatiert Zeiten als m:ss bzw. h:mm:ss", () => {
+    expect(formatTime(0)).toBe("0:00");
+    expect(formatTime(65_000)).toBe("1:05");
+    expect(formatTime(200_999)).toBe("3:20");
+    expect(formatTime(3_725_000)).toBe("1:02:05");
+    expect(formatTime(-5)).toBe("0:00");
+  });
+
+  it("lässt Tasten auf Knöpfen, Reglern und Eingaben in Ruhe", () => {
+    const fakeTarget = (match: boolean) => ({
+      closest: (selector: string) => {
+        expect(selector).toContain("button");
+        expect(selector).toContain("[role='slider']");
+        expect(selector).toContain("textarea");
+        return match ? {} : null;
+      }
+    });
+    expect(isShortcutExemptTarget(fakeTarget(true) as unknown as EventTarget)).toBe(true);
+    expect(isShortcutExemptTarget(fakeTarget(false) as unknown as EventTarget)).toBe(false);
+    expect(isShortcutExemptTarget(null)).toBe(false);
+    expect(isShortcutExemptTarget({} as EventTarget)).toBe(false);
+  });
+
+  it("beschreibt Leinwand, Zeitregler und Umschalter zugänglich", () => {
+    const html = renderToStaticMarkup(
+      createElement(VideoOverviewPlayer, { storyboard: mockStoryboard })
+    );
+    // Leinwand als Bild mit Folientitel und Verweis auf den Folientext
+    expect(html).toMatch(/<canvas[^>]*role="img"/);
+    expect(html).toContain('aria-label="Folie 1 von 2: Einleitung"');
+    const describedBy = /<canvas[^>]*aria-describedby="([^"]+)"/.exec(html)?.[1];
+    expect(describedBy).toBeTruthy();
+    expect(html).toContain(`id="${describedBy}"`);
+    // Folientext als HTML
+    expect(html).toContain('<h3 class="rn-video-title">Einleitung</h3>');
+    expect(html).toContain("<li>Punkt A</li>");
+    expect(html).toContain("Quelle: „Quellenstudie“ – „Wichtige Erkenntnis.“");
+    // Zeitregler: Sekunden, Schrittweite 1 s, Zeit als Text
+    expect(html).toMatch(/<input[^>]*type="range"[^>]*max="16"[^>]*step="1"/);
+    expect(html).toContain('aria-valuetext="0:00 von 0:16"');
+    expect(html).toContain('<span data-testid="video-time">0:00 / 0:16</span>');
+    // Sichtbare Beschriftung = zugänglicher Name, keine Ersatzschreibung
+    expect(html).not.toMatch(/fuer|Fuer|ueber|aendern/);
+    expect(html).not.toContain('aria-label="Video abspielen"');
+    expect(html).toMatch(/aria-pressed="true"[^>]*>.*?Untertitel<\/button>/);
+    expect(html).toMatch(/aria-pressed="false"[^>]*>.*?Audiodeskription<\/button>/);
+    expect(html).toContain("rn-video-toggle-check");
+    // Kapitel: Name beginnt mit dem sichtbaren Titel
+    expect(html).toMatch(/data-testid="chapter-btn-ch_1"[^>]*>Einleitung<span class="sr-only">/);
+  });
+
+  it("zeigt Diagrammdaten als lesbare Balkenliste", () => {
+    const html = renderToStaticMarkup(
+      createElement(VideoOverviewPlayer, {
+        storyboard: { ...mockStoryboard, slides: [mockStoryboard.slides[1] as never] }
+      })
+    );
+    expect(html).toContain('<figcaption class="rn-video-chart-title">Wachstum 2026</figcaption>');
+    expect(html).toContain('<rect width="100" height="10" rx="2" fill="currentColor">');
+    expect(html).toContain('<span class="rn-video-bar-value">30%</span>');
   });
 });

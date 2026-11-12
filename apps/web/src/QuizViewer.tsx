@@ -9,7 +9,7 @@
  */
 
 import { type QuizEvaluationResult, type QuizQuestion, evaluateQuiz } from "@notebook-lm/shared";
-import { useCallback, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 export interface QuizViewerProps {
   readonly questions: readonly QuizQuestion[];
@@ -24,6 +24,24 @@ export interface QuizViewerProps {
   readonly onComplete?: ((result: QuizEvaluationResult) => void) | undefined;
 }
 
+function FlagIcon({ correct }: { readonly correct: boolean }) {
+  return (
+    <svg
+      className="rn-quiz-flag-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d={correct ? "M5 12.5l4.5 4.5L19 7.5" : "M6 6l12 12M18 6L6 18"} />
+    </svg>
+  );
+}
+
 export function QuizViewer({
   questions,
   title = "Wissens-Quiz",
@@ -34,6 +52,9 @@ export function QuizViewer({
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
   const [liveMessage, setLiveMessage] = useState<string>("");
+  const fieldsetRef = useRef<HTMLFieldSetElement>(null);
+  // Zählt Fragewechsel per Knopf; der Fokus springt erst danach auf die neue Frage (nicht beim Start)
+  const [focusRequest, setFocusRequest] = useState(0);
 
   const totalQuestions = questions.length;
   const currentQuestion = questions[activeQuestionIndex];
@@ -60,6 +81,19 @@ export function QuizViewer({
     },
     [questions]
   );
+
+  const goToQuestion = useCallback(
+    (index: number) => {
+      setActiveQuestionIndex(index);
+      setLiveMessage(`Frage ${index + 1} von ${questions.length}`);
+      setFocusRequest((n) => n + 1);
+    },
+    [questions.length]
+  );
+
+  useEffect(() => {
+    if (focusRequest > 0) fieldsetRef.current?.focus();
+  }, [focusRequest]);
 
   const handleFinishQuiz = useCallback(() => {
     setShowSummary(true);
@@ -136,7 +170,7 @@ export function QuizViewer({
       ) : (
         currentQuestion && (
           <div data-testid={`quiz-question-${currentQuestion.id}`} className="rn-quiz-card">
-            <fieldset className="rn-quiz-fieldset">
+            <fieldset ref={fieldsetRef} tabIndex={-1} className="rn-quiz-fieldset">
               <legend className="rn-quiz-question">{currentQuestion.question}</legend>
 
               <div
@@ -177,8 +211,18 @@ export function QuizViewer({
                         {String.fromCharCode(65 + optIdx)}
                       </span>
                       <span className="rn-quiz-option-text">{optionText}</span>
-                      {state === "correct" && <span className="rn-quiz-flag">Richtig</span>}
-                      {state === "wrong" && <span className="rn-quiz-flag">Falsch</span>}
+                      {state === "correct" && (
+                        <span className="rn-quiz-flag">
+                          <FlagIcon correct />
+                          Richtig
+                        </span>
+                      )}
+                      {state === "wrong" && (
+                        <span className="rn-quiz-flag">
+                          <FlagIcon correct={false} />
+                          Falsch
+                        </span>
+                      )}
                     </label>
                   );
                 })}
@@ -194,7 +238,6 @@ export function QuizViewer({
                 {(currentQuestion.sourceCitation || currentQuestion.sourceId) && (
                   <button
                     type="button"
-                    aria-label="Quelle für diese Begründung öffnen"
                     onClick={() => {
                       onSourceJump?.({
                         sourceId: currentQuestion.sourceId,
@@ -215,7 +258,7 @@ export function QuizViewer({
               <button
                 type="button"
                 disabled={activeQuestionIndex === 0}
-                onClick={() => setActiveQuestionIndex((i) => i - 1)}
+                onClick={() => goToQuestion(activeQuestionIndex - 1)}
                 className="rn-btn rn-btn--ghost"
               >
                 Zurück
@@ -224,7 +267,7 @@ export function QuizViewer({
               {activeQuestionIndex < totalQuestions - 1 ? (
                 <button
                   type="button"
-                  onClick={() => setActiveQuestionIndex((i) => i + 1)}
+                  onClick={() => goToQuestion(activeQuestionIndex + 1)}
                   className="rn-btn rn-btn--secondary"
                 >
                   Weiter
