@@ -26,6 +26,7 @@ Dieser Leitfaden ist exakt auf eine **10-minütige Loom-Präsentation** zugeschn
   <source media="(prefers-color-scheme: light)" srcset="./assets/architecture-overview-light.svg">
   <img alt="Single-Worker Edge-Architektur" src="./assets/architecture-overview-light.svg" width="100%">
 </picture>
+<sub>Grafik in <a href="./assets/architecture-overview-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="./assets/architecture-overview-en.svg" hreflang="en" lang="en">English</a></sub>
 
 **Sprechpunkte dazu:**
 - *„Anstatt fünf separate Cloud-Dienste zu mieten, läuft die gesamte Anwendung in **einem einzigen Cloudflare Worker** mit **einer D1-SQLite-Datenbank** und **einem R2-Bucket**.“*
@@ -40,6 +41,7 @@ Dieser Leitfaden ist exakt auf eine **10-minütige Loom-Präsentation** zugeschn
   <source media="(prefers-color-scheme: light)" srcset="./assets/rag-pipeline-light.svg">
   <img alt="Hybrid-RAG-Pipeline" src="./assets/rag-pipeline-light.svg" width="100%">
 </picture>
+<sub>Grafik in <a href="./assets/rag-pipeline-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="./assets/rag-pipeline-en.svg" hreflang="en" lang="en">English</a></sub>
 
 **Sprechpunkte dazu:**
 - *„Wir speichern 768-dimensionale Embeddings symmetrisch `int8`-quantisiert in D1. Das spart **75 % Speicherplatz** (768 Bytes statt 3 KB pro Chunk).“*
@@ -54,6 +56,7 @@ Dieser Leitfaden ist exakt auf eine **10-minütige Loom-Präsentation** zugeschn
   <source media="(prefers-color-scheme: light)" srcset="./assets/relationflow-bridge-light.svg">
   <img alt="RelationFlow Bridge-Architektur" src="./assets/relationflow-bridge-light.svg" width="100%">
 </picture>
+<sub>Grafik in <a href="./assets/relationflow-bridge-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="./assets/relationflow-bridge-en.svg" hreflang="en" lang="en">English</a></sub>
 
 **Sprechpunkte dazu:**
 - *„Ich habe mir RelationFlow genau angesehen: Team-Workspaces mit Rollen, Multi-Modell-Auswahl inklusive Auto-Routing und DSGVO-konformes EU-Hosting.“*
@@ -68,6 +71,7 @@ Dieser Leitfaden ist exakt auf eine **10-minütige Loom-Präsentation** zugeschn
   <source media="(prefers-color-scheme: light)" srcset="./assets/security-layers-light.svg">
   <img alt="Defense-in-Depth Sicherheits- & Compliance-Schichten" src="./assets/security-layers-light.svg" width="100%">
 </picture>
+<sub>Grafik in <a href="./assets/security-layers-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="./assets/security-layers-en.svg" hreflang="en" lang="en">English</a></sub>
 
 **Sprechpunkte dazu:**
 - *„Nutzer-API-Keys werden per `AES-256-GCM` mit zusätzlichem Kontext-Binding (`AAD`) verschlüsselt; Passkeys schützen vor Phishing und erfüllen gleichzeitig WCAG 2.2 Accessible Authentication.“*

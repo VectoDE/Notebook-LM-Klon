@@ -7,6 +7,7 @@ Stand: 2026-11-09 · Verifiziert durch automatisierte Tests (`fts5-probe.test.ts
   <source media="(prefers-color-scheme: light)" srcset="./assets/architecture-overview-light.svg">
   <img alt="Single-Worker Edge-Architektur" src="./assets/architecture-overview-light.svg" width="100%">
 </picture>
+<sub>Grafik in <a href="./assets/architecture-overview-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="./assets/architecture-overview-en.svg" hreflang="en" lang="en">English</a></sub>
 
 ## 1. Übersicht der harten Plattform-Grenzen (Cloudflare Free vs. Paid)
 

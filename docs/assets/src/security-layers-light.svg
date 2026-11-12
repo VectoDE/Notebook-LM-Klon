@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" width="1200" height="520" role="img" aria-labelledby="sec-title sec-desc">
+  <title id="sec-title">Defense-in-Depth Sicherheits-, Datenschutz- und Compliance-Schichten</title>
+  <desc id="sec-desc">Vier Sicherheits- und Rechts-Säulen: 1. Edge- &amp; Transport-Sicherheit (Turnstile, CSP, Trusted Types, HSTS), 2. Authentifizierung &amp; Kryptografie (WebAuthn Passkeys, AES-256-GCM BYOK Envelope Encryption, SSRF-Guard), 3. EU-Recht &amp; Datenschutz (DSGVO Art. 15/17/20, EU AI Act Art. 50, TDDDG, DDG), 4. Barrierefreiheit &amp; Supply-Chain (WCAG 2.2 AAA, OpenSSF Scorecard, CodeQL, osv-scanner).</desc>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg-primary: #FAF8F5;
+      --bg-card: #FFFFFF;
+      --text-primary: #141413;
+      --text-secondary: #3D3935;
+      --border-subtle: #334155;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #FAF8F5;
+        --bg-card: #F8FAFC;
+        --text-primary: #141413;
+        --text-secondary: #475569;
+        --border-subtle: #CBD5E1;
+      }
+    }
+  </style>
+  <defs>
+    <linearGradient id="secBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FAF8F5" />
+      <stop offset="100%" stop-color="#FFFFFF" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="520" rx="20" fill="url(#secBg)" />
+
+  <text x="48" y="52" fill="#141413" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="24" font-weight="700">Defense-in-Depth: Security, DSGVO, EU AI Act Art. 50 &amp; WCAG 2.2 AAA</text>
+  <text x="48" y="78" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14">Security by Design &amp; Privacy by Default · Null unverschlüsselte API-Keys · Null Tracking-Cookies · Vollständige Supply-Chain-Prüfung</text>
+
+  <!-- Pillar 1 -->
+  <rect x="44" y="110" width="265" height="365" rx="14" fill="#F8FAFC" stroke="#0284C7" stroke-width="1.5" />
+  <text x="64" y="146" fill="#075985" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="700">1. Edge &amp; Browser Hardening</text>
+  <text x="64" y="178" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• Strikte Content-Security-Policy</text>
+  <text x="64" y="198" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  object-src 'none', base-uri 'none'</text>
+  <text x="64" y="216" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  frame-ancestors 'none'</text>
+  <text x="64" y="244" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• Trusted Types für DOM-Skripte</text>
+  <text x="64" y="272" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• Cloudflare Turnstile Siteverify</text>
+  <text x="64" y="300" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• HSTS, COOP, CORP, Permissions</text>
+  <text x="64" y="328" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• Token-Bucket Rate-Limiting</text>
+  <text x="64" y="348" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  429 Too Many Requests + Retry-After</text>
+
+  <!-- Pillar 2 -->
+  <rect x="326" y="110" width="265" height="365" rx="14" fill="#F8FAFC" stroke="#047857" stroke-width="1.5" />
+  <text x="346" y="146" fill="#065F46" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="700">2. Auth &amp; Kryptografie</text>
+  <text x="346" y="178" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• WebAuthn Passkeys (ES256/RS256)</text>
+  <text x="346" y="198" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  sign_count Klon-Erkennung</text>
+  <text x="346" y="226" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• __Host-sid Session-Cookie</text>
+  <text x="346" y="246" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  Nur SHA-256-Hash in D1 gespeichert</text>
+  <text x="346" y="274" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• AES-256-GCM BYOK Envelope</text>
+  <text x="346" y="294" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  AAD = user_id|provider|key_version</text>
+  <text x="346" y="322" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• Strenger SSRF- &amp; Magic-Byte-Guard</text>
+  <text x="346" y="350" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• RBAC Middleware (Kein IDOR)</text>
+
+  <!-- Pillar 3 -->
+  <rect x="608" y="110" width="265" height="365" rx="14" fill="#F8FAFC" stroke="#B45309" stroke-width="1.5" />
+  <text x="628" y="146" fill="#78350F" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="700">3. DSGVO, AI Act &amp; TDDDG</text>
+  <text x="628" y="178" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• DSGVO Self-Service-Portal:</text>
+  <text x="628" y="198" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  Art. 20 ZIP-Export &amp; Art. 17 Löschung</text>
+  <text x="628" y="226" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• Automatische TTL-Bereinigung:</text>
+  <text x="628" y="246" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  Gäste nach 24 h, Demo nach 30 Tagen</text>
+  <text x="628" y="274" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• EU AI Act Art. 50 Transparenz:</text>
+  <text x="628" y="294" fill="#334155" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  Sichtbare + maschinenlesbare Flags</text>
+  <text x="628" y="322" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• TDDDG: Kein Cookie-Banner nötig</text>
+  <text x="628" y="350" fill="#1E293B" fill-opacity="0.95" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• Impressum-Schutz via Worker-Env</text>
+
+  <!-- Pillar 4 -->
+  <rect x="890" y="110" width="265" height="365" rx="14" fill="#F8FAFC" stroke="#BE185D" stroke-width="1.5" />
+  <text x="910" y="146" fill="#9D174D" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="700">4. WCAG 2.2 AAA &amp; OpenSSF</text>
+  <text x="910" y="178" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• Kontrast ≥ 7:1 (AAA-Modus)</text>
+  <text x="910" y="206" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• Klickflächen ≥ 44×44 px (2.5.5)</text>
+  <text x="910" y="234" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• Mindmap als WAI-ARIA role="tree"</text>
+  <text x="910" y="262" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• Synchrones WebVTT &amp; Transkripte</text>
+  <text x="910" y="290" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• SHA-gepinnte GitHub Actions</text>
+  <text x="910" y="318" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• CodeQL, gitleaks, osv-scanner</text>
+  <text x="910" y="346" fill="#1E293B" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12.5">• SLSA Build Provenance &amp; SBOM</text>
+</svg>

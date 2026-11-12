@@ -7,6 +7,7 @@ Stand: 2026-11-09 · Referenzen: Entscheidungen #37, #40, #61, #63, #87, #88
   <source media="(prefers-color-scheme: light)" srcset="./assets/relationflow-bridge-light.svg">
   <img alt="RelationFlow Bridge-Architektur" src="./assets/relationflow-bridge-light.svg" width="100%">
 </picture>
+<sub>Grafik in <a href="./assets/relationflow-bridge-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="./assets/relationflow-bridge-en.svg" hreflang="en" lang="en">English</a></sub>
 
 ## 1. Hintergrund & Strategische Passung
 
