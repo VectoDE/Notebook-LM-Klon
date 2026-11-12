@@ -73,4 +73,12 @@ describe("LiveLyrics Component (Sub-Issue #130)", () => {
     );
     expect(html).not.toContain('aria-current="location"');
   });
+
+  it("wählt an der Grenze zweier Zeilen die spätere (Sprung auf startMs)", () => {
+    const html = renderToStaticMarkup(
+      createElement(LiveLyrics, { lines: sampleLines, currentTimeMs: 7000 })
+    );
+    expect(html).toMatch(/aria-current="location"[^>]*data-testid="lyrics-line-l3"/);
+    expect(html).not.toMatch(/aria-current="location"[^>]*data-testid="lyrics-line-l2"/);
+  });
 });

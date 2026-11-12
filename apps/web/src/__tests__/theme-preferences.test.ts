@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  COLOR_MODE_PREFERENCES,
   LANGUAGES,
   STORAGE_KEYS,
+  SYSTEM_COLOR_QUERIES,
   applyThemeToDocument,
+  resolveColorMode,
   resolveInitialPreferences,
   systemColorMode
 } from "../theme-preferences.js";
@@ -33,16 +36,38 @@ describe("systemColorMode", () => {
   });
 });
 
+describe("resolveColorMode", () => {
+  it("löst Automatisch über den Gerätemodus auf und lässt feste Wahl unverändert", () => {
+    expect(COLOR_MODE_PREFERENCES).toEqual(["system", "light", "dark", "aaa-contrast"]);
+    expect(SYSTEM_COLOR_QUERIES).toEqual([
+      "(prefers-contrast: more)",
+      "(prefers-color-scheme: dark)"
+    ]);
+    expect(resolveColorMode("system", "dark")).toBe("dark");
+    expect(resolveColorMode("system", "aaa-contrast")).toBe("aaa-contrast");
+    expect(resolveColorMode("light", "dark")).toBe("light");
+    expect(resolveColorMode("aaa-contrast", "light")).toBe("aaa-contrast");
+  });
+});
+
 describe("resolveInitialPreferences", () => {
-  it("nutzt ohne Speicher Fusion, Systemfarbe und Deutsch", () => {
+  it("nutzt ohne Speicher Fusion, Automatisch (wie Gerät) und Deutsch", () => {
     expect(resolveInitialPreferences({})).toEqual({
       theme: "fusion",
-      colorMode: "light",
+      colorMode: "system",
       language: "de"
     });
     expect(
       resolveInitialPreferences({ matchMedia: media({ "(prefers-color-scheme: dark)": true }) })
-    ).toMatchObject({ colorMode: "dark" });
+    ).toMatchObject({ colorMode: "system" });
+  });
+
+  it("liest die gespeicherte Wahl Automatisch", () => {
+    const prefs = resolveInitialPreferences(
+      { storage: storage({ [STORAGE_KEYS.colorMode]: "system" }) },
+      { colorMode: "dark" }
+    );
+    expect(prefs.colorMode).toBe("system");
   });
 
   it("bevorzugt gespeicherte Werte vor Standardwerten", () => {
@@ -82,7 +107,7 @@ describe("resolveInitialPreferences", () => {
     };
     expect(resolveInitialPreferences({ storage: throwing })).toEqual({
       theme: "fusion",
-      colorMode: "light",
+      colorMode: "system",
       language: "de"
     });
   });
@@ -107,6 +132,17 @@ describe("applyThemeToDocument", () => {
     expect(store.setItem).toHaveBeenCalledWith(STORAGE_KEYS.theme, "fusion");
     expect(store.setItem).toHaveBeenCalledWith(STORAGE_KEYS.colorMode, "dark");
     expect(store.setItem).toHaveBeenCalledWith(STORAGE_KEYS.language, "en");
+  });
+
+  it("setzt bei Automatisch den Gerätemodus und speichert die Wahl", () => {
+    const root = { setAttribute: vi.fn(), removeAttribute: vi.fn() };
+    const store = { setItem: vi.fn() };
+    applyThemeToDocument(root, { ...prefs, colorMode: "system" }, store, "aaa-contrast");
+    expect(root.setAttribute).toHaveBeenCalledWith("data-color-mode", "aaa-contrast");
+    expect(store.setItem).toHaveBeenCalledWith(STORAGE_KEYS.colorMode, "system");
+    applyThemeToDocument(root, { ...prefs, colorMode: "system" });
+    expect(root.setAttribute).toHaveBeenLastCalledWith("lang", "en");
+    expect(root.setAttribute).toHaveBeenCalledWith("data-color-mode", "light");
   });
 
   it("arbeitet ohne Speicher und bei Speicherfehlern weiter", () => {

@@ -70,6 +70,37 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   display: block;
 }
 
+/* Sprunglink: außerhalb des Bildes, bis er den Fokus bekommt */
+.rn-skip-link {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  min-height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-base);
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 0 0 2px var(--rn-color-border);
+  transform: translateY(calc(-100% - 16px));
+}
+
+.rn-skip-link:focus {
+  transform: none;
+}
+
+/* Sprungziel: wird per Skript fokussiert, braucht keinen eigenen Ring */
+.workspace-main:focus {
+  outline: none;
+}
+
 /* Sichtbar nur für Screenreader */
 .rn-visually-hidden {
   position: absolute;
@@ -158,13 +189,13 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   color: var(--rn-color-text-primary);
 }
 
-.rn-topnav-item[aria-current="page"] {
+.rn-topnav-item[aria-current="true"] {
   background: var(--rn-color-surface-variant);
   color: var(--rn-color-text-primary);
   font-weight: 600;
 }
 
-.rn-topnav-item[aria-current="page"] .rn-icon {
+.rn-topnav-item[aria-current="true"] .rn-icon {
   color: var(--rn-color-primary);
 }
 
@@ -191,7 +222,7 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   background: var(--rn-color-panel-border);
 }
 
-html[data-color-mode="aaa-contrast"] .rn-topnav-item[aria-current="page"] {
+html[data-color-mode="aaa-contrast"] .rn-topnav-item[aria-current="true"] {
   box-shadow: inset 0 0 0 2px var(--rn-color-border);
 }
 
@@ -335,7 +366,9 @@ html[data-color-mode="aaa-contrast"] .workspace-header .rn-control:hover {
   left: auto;
   margin: 0;
   color: var(--rn-color-text-primary);
-  width: 320px;
+  /* Breit genug für "Automatisch (wie Gerät)" in einer Zeile */
+  width: 360px;
+  max-width: calc(100vw - 32px);
   box-sizing: border-box;
   padding: var(--rn-space-4);
   border-radius: var(--rn-radius-lg);
@@ -478,6 +511,17 @@ html[data-color-mode="aaa-contrast"] .rn-popover {
   background: var(--rn-color-surface-variant);
 }
 
+.rn-segmented--grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rn-segmented--grid .rn-segment {
+  box-sizing: border-box;
+  padding: 4px 8px;
+  line-height: 1.3;
+  text-align: center;
+}
+
 .rn-segment {
   position: relative;
   display: flex;
@@ -564,13 +608,52 @@ html[data-color-mode="aaa-contrast"] .rn-popover {
   padding: var(--rn-space-4) 16px calc(var(--rn-space-6) + env(safe-area-inset-bottom, 0px));
 }
 
+/* Abschnittstitel in Sheet und Einstellungen: Satzschreibung, gleiche Größe und Stärke */
+.rn-sheet-section,
+.rn-drawer-section-title {
+  margin: 0;
+  padding: 0;
+  color: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-base);
+  font-weight: 700;
+  line-height: 24px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .rn-sheet-section {
-  margin: 0 0 var(--rn-space-2);
+  margin-bottom: var(--rn-space-3);
+}
+
+/* Kurzer Hinweis, wann eine Einstellung greift und wo sie gespeichert ist */
+.rn-setting-hint {
+  margin: 0;
   color: var(--rn-color-text-secondary);
   font-family: var(--rn-font-family-ui);
   font-size: var(--rn-text-small);
+  line-height: 1.5;
+}
+
+/* Schließen-Knopf in Dialogen und Sheets: gleiches Symbol, gleiche Größe, rechts oben */
+.rn-dialog-close {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin-right: -6px;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-status-badge {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-panel);
+  box-shadow: inset 0 0 0 1px var(--rn-color-panel-border);
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
   font-weight: 600;
-  line-height: 20px;
+  line-height: 24px;
 }
 
 .rn-sheet-nav {
@@ -602,17 +685,8 @@ html[data-color-mode="aaa-contrast"] .rn-popover {
   color: var(--rn-color-text-secondary);
 }
 
-.rn-sheet-item:hover,
-.rn-sheet-item[aria-current="page"] {
+.rn-sheet-item:hover {
   background: var(--rn-color-surface-variant);
-}
-
-.rn-sheet-item[aria-current="page"] > .rn-icon {
-  color: var(--rn-color-primary);
-}
-
-html[data-color-mode="aaa-contrast"] .rn-sheet-item[aria-current="page"] {
-  box-shadow: inset 0 0 0 2px var(--rn-color-border);
 }
 
 .rn-sheet-item-text {
@@ -758,12 +832,12 @@ html[data-color-mode="aaa-contrast"] .rn-sheet-item[aria-current="page"] {
   transition: background-color var(--rn-transition-base), color var(--rn-transition-base);
 }
 
-.rn-tab[aria-current="page"] {
+.rn-tab[aria-current="true"] {
   color: var(--rn-color-primary);
   font-weight: 700;
 }
 
-.rn-tab[aria-current="page"] .rn-tab-indicator {
+.rn-tab[aria-current="true"] .rn-tab-indicator {
   background: var(--rn-color-surface-variant);
 }
 
@@ -785,7 +859,7 @@ html[data-color-mode="aaa-contrast"] .rn-sheet-item[aria-current="page"] {
   box-shadow: 0 0 0 2px var(--rn-color-panel);
 }
 
-html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="page"] .rn-tab-indicator {
+html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indicator {
   outline: 2px solid var(--rn-color-border);
 }
 
@@ -3313,23 +3387,20 @@ html[data-color-mode="aaa-contrast"] .rn-stage-btn.rn-video-toggle[aria-pressed=
 
 .rn-drawer-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--rn-space-3);
-  padding: var(--rn-space-5) var(--rn-space-5) var(--rn-space-4);
+  /* rechts 16 px wie im Menü-Sheet: Schließen-Knöpfe stehen an derselben Stelle */
+  padding: var(--rn-space-5) 16px var(--rn-space-4) var(--rn-space-5);
   border-bottom: 1px solid var(--rn-color-panel-border);
 }
 
 .rn-drawer-title {
-  margin: var(--rn-space-1) 0 0;
+  margin: 0;
   font-family: var(--rn-font-family-headings);
   font-size: var(--rn-text-h3);
   font-weight: var(--rn-weight-heading);
   line-height: 1.25;
-}
-
-.rn-drawer-close {
-  margin: -4px -8px 0 0;
 }
 
 .rn-drawer-body {
@@ -3353,24 +3424,19 @@ html[data-color-mode="aaa-contrast"] .rn-stage-btn.rn-video-toggle[aria-pressed=
   border-top: 1px solid var(--rn-color-panel-border);
 }
 
-.rn-drawer-section-title {
-  margin: 0;
-  padding: 0;
-  font-size: var(--rn-text-small);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--rn-color-text-secondary);
+.rn-drawer-section-title--status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2);
 }
 
-/* Die Abschnittsüberschrift benennt die erste Gruppe bereits sichtbar */
-.rn-drawer-section .rn-appearance > .rn-appearance-group:first-child > legend {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+.rn-drawer-section legend.rn-drawer-section-title {
+  margin-bottom: var(--rn-space-3);
+}
+
+.rn-drawer-section fieldset > .rn-setting-hint {
+  margin-top: var(--rn-space-2);
 }
 
 .rn-drawer-section .rn-appearance-group {
@@ -3658,7 +3724,7 @@ html[data-design="immersive-cinema"] .rn-composer:focus-within {
     var(--rn-color-panel-shadow);
 }
 
-html[data-design="immersive-cinema"] .rn-tab[aria-current="page"] .rn-tab-indicator {
+html[data-design="immersive-cinema"] .rn-tab[aria-current="true"] .rn-tab-indicator {
   background: color-mix(in srgb, var(--rn-color-brand) 22%, var(--rn-color-panel));
   box-shadow: 0 0 18px -4px color-mix(in srgb, var(--rn-color-brand) 70%, transparent);
 }
@@ -3708,7 +3774,7 @@ html[data-design="fusion"] .rn-chip:hover {
   border-color: var(--rn-color-brand);
 }
 
-html[data-design="fusion"] .rn-tab[aria-current="page"] .rn-tab-indicator {
+html[data-design="fusion"] .rn-tab[aria-current="true"] .rn-tab-indicator {
   background: color-mix(in srgb, var(--rn-color-stage-accent) 30%, var(--rn-color-panel));
 }
 
@@ -3737,7 +3803,7 @@ html[data-color-mode="aaa-contrast"] .rn-summary::before {
   display: none;
 }
 
-html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="page"] .rn-tab-indicator {
+html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indicator {
   background: var(--rn-color-surface-variant);
   box-shadow: none;
 }

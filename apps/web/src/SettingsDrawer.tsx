@@ -1,5 +1,5 @@
 /**
- * Settings & Compliance Drawer Component.
+ * Einstellungen (Settings Drawer).
  *
  * Implements Sub-Issue #129 (Decisions #78, #80):
  * - Keeps the main relation workspace uncluttered by housing technical configurations:
@@ -79,27 +79,24 @@ export function SettingsDrawer({
     >
       <div className="rn-drawer-panel">
         <header className="rn-drawer-head">
-          <div>
-            <p className="rn-eyebrow">Arbeitsbereich</p>
-            <h2 id="settings-drawer-title" className="rn-drawer-title">
-              {t("settingsTitle")}
-            </h2>
-          </div>
+          <h2 id="settings-drawer-title" className="rn-drawer-title">
+            {t("settingsTitle")}
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rn-icon-btn rn-drawer-close"
+            className="rn-icon-btn rn-dialog-close"
             aria-label={t("settingsClose")}
             data-testid="close-settings-btn"
           >
-            <Icon name="close" size={20} />
+            <Icon name="close" size={22} />
           </button>
         </header>
 
         <div className="rn-drawer-body">
           <section className="rn-drawer-section" aria-labelledby="theme-section-title">
             <h3 id="theme-section-title" className="rn-drawer-section-title">
-              {t("themeLabel")}
+              {t("appearanceTitle")}
             </h3>
             <AppearanceControls
               idPrefix="settings"
@@ -115,7 +112,7 @@ export function SettingsDrawer({
               <legend id="lang-section-title" className="rn-drawer-section-title">
                 {t("languageLabel")}
               </legend>
-              <div className="rn-segmented">
+              <div className="rn-segmented rn-segmented--grid">
                 {LANGUAGES.map((lang) => (
                   <label key={lang} className="rn-segment">
                     <input
@@ -127,10 +124,11 @@ export function SettingsDrawer({
                       data-testid={`lang-option-${lang}`}
                       className="rn-segment-input"
                     />
-                    <span>{lang === "de" ? "Deutsch" : "English"}</span>
+                    <span lang={lang}>{lang === "de" ? "Deutsch" : "English"}</span>
                   </label>
                 ))}
               </div>
+              <p className="rn-setting-hint">{t("languageHint")}</p>
             </fieldset>
           </section>
 
@@ -154,16 +152,20 @@ export function SettingsDrawer({
               </select>
               <Icon name="chevron" size={16} className="rn-control-chevron" />
             </div>
+            <p className="rn-setting-hint">{t("modelHint")}</p>
           </section>
 
           <section className="rn-drawer-section" aria-labelledby="byok-section-title">
-            <h3 id="byok-section-title" className="rn-drawer-section-title">
+            <h3
+              id="byok-section-title"
+              className="rn-drawer-section-title rn-drawer-section-title--status"
+            >
               {t("byokTitle")}
+              <span className="rn-status-badge" data-testid="byok-status">
+                {t("byokStatus")}
+              </span>
             </h3>
-            <p className="rn-drawer-text">
-              Eigene API-Keys werden mit AES-256-GCM und versionsgeführtem KEK im Cloudflare Worker
-              KeyVault verschlüsselt gespeichert.
-            </p>
+            <p className="rn-drawer-text">{t("byokText")}</p>
           </section>
 
           <section className="rn-drawer-notice" aria-labelledby="compliance-section-title">
