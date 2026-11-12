@@ -24,6 +24,7 @@ import { NotebookTitle } from "./NotebookTitle.js";
 import { PanelRail, PanelToggle, RailButton } from "./PanelRail.js";
 import { SettingsDrawer } from "./SettingsDrawer.js";
 import { ShareDialog } from "./ShareDialog.js";
+import { SignInDialog } from "./SignInDialog.js";
 import { SOURCE_FILE_ACCEPT, SourcesPanel } from "./SourcesPanel.js";
 import { StudioPanel, type StudioTool } from "./StudioPanel.js";
 import { Toast, type ToastMessage } from "./Toast.js";
@@ -346,6 +347,7 @@ export function WorkspaceLayout({
   const [activeCitation, setActiveCitation] = useState<CitationLocation | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
   // Modellwahl übersteht das Neuladen (nur bekannte Werte, Issue #319)
   const [activeModel, setActiveModel] = useState<string>(() => readStoredModel(browserStorage()));
   // Eingeklappte Spalten und Titel bleiben auf dem Gerät gespeichert (Issue #325); ohne
@@ -861,6 +863,20 @@ export function WorkspaceLayout({
                   onClick={() => {
                     // Fokus zuerst auf den Konto-Knopf: der Dialog merkt ihn als Rückkehrziel
                     closePopover(true);
+                    setIsSignInOpen(true);
+                  }}
+                  aria-haspopup="dialog"
+                  data-testid="account-open-sign-in"
+                  className="rn-btn rn-btn--primary rn-btn--block"
+                >
+                  <Icon name="account" size={18} />
+                  {t("signInOpen")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Fokus zuerst auf den Konto-Knopf: der Dialog merkt ihn als Rückkehrziel
+                    closePopover(true);
                     settingsFromAccountRef.current = true;
                     setIsSettingsOpen(true);
                   }}
@@ -1189,6 +1205,18 @@ export function WorkspaceLayout({
                 {t("accountButton")}
               </h3>
               <AccountStatus />
+              <button
+                type="button"
+                onClick={() => {
+                  closeMenu(false);
+                  setIsSignInOpen(true);
+                }}
+                aria-haspopup="dialog"
+                data-testid="sheet-open-sign-in"
+                className="rn-btn rn-btn--primary rn-btn--block"
+              >
+                {t("signInOpen")}
+              </button>
             </section>
 
             <section aria-labelledby="nav-sheet-appearance">
@@ -1208,6 +1236,15 @@ export function WorkspaceLayout({
         notebookTitle={notebookTitle}
         returnFocusFallback={() =>
           isNarrowHeader ? menuButtonRef.current : shareButtonRef.current
+        }
+      />
+
+      {/* Anmelden: Gastzugang und Magic-Link mit Turnstile (Issue #233) */}
+      <SignInDialog
+        isOpen={isSignInOpen}
+        onClose={() => setIsSignInOpen(false)}
+        returnFocusFallback={() =>
+          isNarrowHeader ? menuButtonRef.current : accountButtonRef.current
         }
       />
 
@@ -1232,7 +1269,7 @@ export function WorkspaceLayout({
   );
 }
 
-/** Gast-Zustand des Kontos: keine Anmeldung, keine erfundenen Konten (Issue #325). */
+/** Gast-Zustand des Kontos, keine erfundenen Konten (Issue #325). Anmelden öffnet den Dialog (Issue #233). */
 export function AccountStatus() {
   const { t } = useTheme();
   return (

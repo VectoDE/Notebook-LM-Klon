@@ -181,17 +181,18 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   registerHealthAndDemoRoutes(app);
 
   // 3. Auth (public, rate-limit category "auth")
-  const guestOptions: Parameters<typeof createGuestAndMagicLinkRoutes>[0] = {
-    repo: coreRepo,
-    sessionManager,
-    mailAdapter: createMailAdapter(secrets),
-    appBaseUrl: config.origin,
-    isProduction
-  };
-  if (secrets.TURNSTILE_SECRET_KEY) {
-    guestOptions.turnstileSecretKey = secrets.TURNSTILE_SECRET_KEY;
-  }
-  app.route("/api/v1/auth", createGuestAndMagicLinkRoutes(guestOptions));
+  // Guest login and magic-link fail closed (503) when TURNSTILE_SECRET_KEY is missing.
+  app.route(
+    "/api/v1/auth",
+    createGuestAndMagicLinkRoutes({
+      repo: coreRepo,
+      sessionManager,
+      mailAdapter: createMailAdapter(secrets),
+      turnstileSecretKey: secrets.TURNSTILE_SECRET_KEY,
+      appBaseUrl: config.origin,
+      isProduction
+    })
+  );
   app.route(
     "/api/v1/auth/passkey",
     createPasskeyRoutes({

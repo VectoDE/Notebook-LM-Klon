@@ -23,7 +23,8 @@ export default defineConfig({
         "apps/web/src/knowledge-graph.ts",
         "apps/web/src/view-preferences.ts",
         "apps/web/src/toast-timer.ts",
-        "apps/web/src/EmptyState.tsx"
+        "apps/web/src/EmptyState.tsx",
+        "apps/web/src/turnstile-client.ts"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {
