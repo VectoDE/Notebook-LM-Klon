@@ -49,6 +49,19 @@ describe("InteractiveAudioHostPlayer (Sub-Issue #117)", () => {
     expect(html).toContain('aria-live="polite"');
   });
 
+  it("zeigt den Status auf Deutsch und ohne aria-label auf span (#294)", () => {
+    const html = renderToStaticMarkup(
+      createElement(InteractiveAudioHostPlayer, {
+        notebookId: "nb_123",
+        stateMachine: createMockStateMachine("paused")
+      })
+    );
+    expect(html).toContain("Status: Pausiert");
+    expect(html).not.toContain("Status: paused");
+    expect(html).not.toMatch(/<span[^>]*aria-label=/);
+    expect(html).toContain('data-testid="btn-audio-interject"');
+  });
+
   it("renders player in playing state with pause button", () => {
     const sm = createMockStateMachine("playing");
     const html = renderToStaticMarkup(

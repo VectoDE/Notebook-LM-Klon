@@ -319,6 +319,10 @@ export function StudioPanel({
           setIsDeepDiveOpen(false);
           selectTool("audio");
         }}
+        // Nach "Frage stellen" ist der Bühnen-Knopf weg; der Fokus geht an den Audio-Player
+        returnFocusFallback={() =>
+          document.querySelector<HTMLElement>('[data-testid="btn-audio-interject"]')
+        }
       />
     </section>
   );

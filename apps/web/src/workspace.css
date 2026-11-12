@@ -2488,15 +2488,11 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
 .rn-stage,
 .audio-player-container {
   --rn-stage-line: color-mix(in srgb, var(--rn-color-stage-muted) 28%, transparent);
+  /* Die globale Fokusregel (themes.css) liest diese Variable; auf der dunklen Bühne
+     trägt der Bühnenakzent den Ring (mind. 3:1 zu stage-bg in allen Designs). */
+  --rn-color-focus-ring: var(--rn-color-stage-accent);
   background: var(--rn-color-stage-bg);
   color: var(--rn-color-stage-text);
-}
-
-.rn-video :focus-visible,
-.rn-stage :focus-visible,
-.audio-player-container :focus-visible {
-  outline: 3px solid var(--rn-color-stage-accent);
-  outline-offset: 2px;
 }
 
 .rn-stage-btn {
@@ -2960,15 +2956,6 @@ html[data-color-mode="aaa-contrast"] .rn-stage-btn.rn-video-toggle[aria-pressed=
   display: grid;
   justify-items: center;
   gap: var(--rn-space-3);
-}
-
-.rn-stage-speaker {
-  margin: 0;
-  font-size: var(--rn-text-small);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--rn-color-stage-muted);
 }
 
 .rn-stage-lyrics {
