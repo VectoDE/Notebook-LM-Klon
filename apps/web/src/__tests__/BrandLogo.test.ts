@@ -42,6 +42,6 @@ describe("BrandLogo (Logo C)", () => {
   it("steht als Überschrift in der Kopfzeile des Arbeitsbereichs", () => {
     const html = renderToStaticMarkup(createElement(WorkspaceLayout));
     expect(html).toMatch(/<h1 id="app-title"[^>]*><svg[^>]*data-testid="brand-logo"/);
-    expect(html).toContain('data-testid="color-mode-selector-header"');
+    expect(html).toContain('data-testid="btn-open-appearance"');
   });
 });

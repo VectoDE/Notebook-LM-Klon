@@ -33,7 +33,8 @@ const PATHS = {
   file: "M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm7 0v5h5",
   palette:
     "M12 21a9 9 0 1 1 9-9c0 2.2-1.8 3.5-3.6 3.5H15a2 2 0 0 0-1.4 3.4A1.3 1.3 0 0 1 12 21ZM7.5 11.5h.01M10 7.5h.01M14.5 7.5h.01",
-  contrast: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-18v18"
+  contrast: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-18v18",
+  menu: "M4 7h16M4 12h16M4 17h16"
 } as const;
 
 export type IconName = keyof typeof PATHS;

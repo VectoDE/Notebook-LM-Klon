@@ -6,7 +6,15 @@ import {
   type VideoStoryboard,
   WORKSPACE_VERSION
 } from "@notebook-lm/shared";
-import { type FunctionComponent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type FunctionComponent,
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from "react";
+import { AppearanceControls, type UserRole } from "./AppearanceControls.js";
 import { BrandLogo } from "./BrandLogo.js";
 import { type ChatMessage, ChatPanel } from "./ChatPanel.js";
 import { Icon, type IconName } from "./Icon.js";
@@ -14,7 +22,8 @@ import { SettingsDrawer } from "./SettingsDrawer.js";
 import { SourcesPanel } from "./SourcesPanel.js";
 import { StudioPanel, type StudioTool } from "./StudioPanel.js";
 import { ChatApiError, mapCitations, streamChat } from "./chat-client.js";
-import { type ColorMode, type DesignTheme, useTheme } from "./useTheme.js";
+import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
+import { useTheme } from "./useTheme.js";
 import type { CitationLocation, WorkspaceSource } from "./workspace-types.js";
 
 export const DEFAULT_MINDMAP: MindmapNode = {
@@ -185,29 +194,40 @@ export interface WorkspaceLayoutProps {
   readonly chatFetch?: typeof fetch | undefined;
 }
 
-/** Unter 600 px steht die Kopfzeile in zwei Zeilen; dort gelten Kurzbezeichnungen. */
+/** Unter 600 px: Logo und Menü-Knopf oben, Reiterleiste unten. */
 const NARROW_HEADER_QUERY = "(max-width: 599.98px)";
-
-/** Kurze, sprachneutrale Namen, damit die Auswahlfelder mobil nichts abschneiden. */
-const SHORT_THEME_LABELS: Record<DesignTheme, string> = {
-  pure: "Pure",
-  "immersive-cinema": "Cinema",
-  "editorial-calm": "Editorial",
-  fusion: "Fusion"
-};
 
 type PanelTab = "sources" | "chat" | "studio";
 
-/** Reiter der unteren Leiste: kurze sichtbare Namen, vollständige Namen für Screenreader. */
-const MOBILE_TABS: readonly {
+/** Bereiche des Arbeitsbereichs: kurzer Name, Hinweis im Menü, voller Name für Screenreader. */
+const PANEL_TABS: readonly {
   readonly id: PanelTab;
   readonly label: string;
+  readonly hint: string;
   readonly ariaLabel: string;
   readonly icon: IconName;
 }[] = [
-  { id: "sources", label: "Quellen", ariaLabel: "Quellen", icon: "sources" },
-  { id: "chat", label: "Chat", ariaLabel: "Chat & Zitate", icon: "chat" },
-  { id: "studio", label: "Studio", ariaLabel: "Studio (6 Werkzeuge)", icon: "studio" }
+  {
+    id: "sources",
+    label: "Quellen",
+    hint: "Dokumente und Links",
+    ariaLabel: "Quellen",
+    icon: "sources"
+  },
+  {
+    id: "chat",
+    label: "Chat",
+    hint: "Fragen mit Belegen",
+    ariaLabel: "Chat & Zitate",
+    icon: "chat"
+  },
+  {
+    id: "studio",
+    label: "Studio",
+    hint: "Sechs Werkzeuge",
+    ariaLabel: "Studio (6 Werkzeuge)",
+    icon: "studio"
+  }
 ];
 
 /** Reagiert auf eine Media Query; ohne window (Server-Rendering) immer false. */
@@ -232,7 +252,7 @@ export function WorkspaceLayout({
   notebookId = "nb_active",
   chatFetch
 }: WorkspaceLayoutProps) {
-  const { theme, setTheme, colorMode, setColorMode, t } = useTheme();
+  const { theme, setTheme, colorMode, setColorMode } = useTheme();
   const isNarrowHeader = useMediaQuery(NARROW_HEADER_QUERY);
 
   // Panels & Navigation state
@@ -241,7 +261,83 @@ export function WorkspaceLayout({
   const [activeCitation, setActiveCitation] = useState<CitationLocation | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeModel, setActiveModel] = useState("gemini-2.5-flash");
-  const [userRole, setUserRole] = useState<"owner" | "editor" | "viewer">("owner");
+  const [userRole, setUserRole] = useState<UserRole>("owner");
+  const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const appearanceAnchorRef = useRef<HTMLDivElement>(null);
+  const appearanceButtonRef = useRef<HTMLButtonElement>(null);
+  const appearancePanelRef = useRef<HTMLDialogElement>(null);
+  const appearanceOpenedByKeyboard = useRef(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const sheetRef = useRef<HTMLDialogElement>(null);
+
+  const appearanceProps = {
+    role: userRole,
+    onRoleChange: setUserRole,
+    theme,
+    onThemeChange: setTheme,
+    colorMode,
+    onColorModeChange: setColorMode
+  };
+
+  // Bereich wählen; der Fokus springt in das Panel (Tastatur landet direkt im Inhalt)
+  const goToPanel = (tab: PanelTab) => {
+    setActiveMobileTab(tab);
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>(`[data-panel="${tab}"]`)?.focus({ preventScroll: true })
+    );
+  };
+
+  // Beim Wechsel zwischen Telefon- und Desktop-Kopf sind offene Menüs ungültig
+  const [menuLayoutNarrow, setMenuLayoutNarrow] = useState(isNarrowHeader);
+  if (menuLayoutNarrow !== isNarrowHeader) {
+    setMenuLayoutNarrow(isNarrowHeader);
+    setIsAppearanceOpen(false);
+    setIsMenuOpen(false);
+  }
+
+  // Darstellungsmenü: Fokus hinein, Klick außerhalb schließt
+  useEffect(() => {
+    if (!isAppearanceOpen) return;
+    // Tastatur: Fokus auf das erste Feld; Maus: auf das Menü selbst (kein Fokusring im Feld)
+    const panel = appearancePanelRef.current;
+    const first = panel?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+    (appearanceOpenedByKeyboard.current ? first : panel)?.focus();
+    const onPointerDown = (event: PointerEvent) => {
+      if (!appearanceAnchorRef.current?.contains(event.target as Node)) {
+        setIsAppearanceOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [isAppearanceOpen]);
+
+  const handleAppearanceKeyDown = (event: KeyboardEvent<HTMLDialogElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setIsAppearanceOpen(false);
+      appearanceButtonRef.current?.focus();
+      return;
+    }
+    trapTabKey(event, event.currentTarget, document.activeElement);
+  };
+
+  // Mobiles Sheet als modaler Dialog: Seite dahinter ist inert, Escape schließt
+  useEffect(() => {
+    const dialog = sheetRef.current;
+    if (!dialog) return;
+    if (isMenuOpen && !dialog.open) dialog.showModal();
+    if (!isMenuOpen && dialog.open) dialog.close();
+  }, [isMenuOpen]);
+
+  const closeMenu = (restoreFocus = true) => {
+    setIsMenuOpen(false);
+    if (restoreFocus) requestAnimationFrame(() => menuButtonRef.current?.focus());
+  };
+
+  const handleSheetKeyDown = (event: KeyboardEvent<HTMLDialogElement>) => {
+    trapTabKey(event, event.currentTarget, document.activeElement);
+  };
 
   // Audio State Machine
   const [audioStateMachine] = useState<PodcastStateMachine>(() => new PodcastStateMachine());
@@ -381,7 +477,7 @@ export function WorkspaceLayout({
 
   return (
     <div className="workspace-shell" data-testid="workspace-shell">
-      {/* Workspace Header: ein Bedienelement-System (gleiche Höhe, Schrift, Radius, Rand) */}
+      {/* Kopf: Logo links, Bereiche als Reiterleiste, Darstellung in einem Menü */}
       <header data-testid="workspace-header" className="workspace-header">
         <div className="workspace-brand">
           <h1 id="app-title" className="workspace-title">
@@ -390,84 +486,89 @@ export function WorkspaceLayout({
           <span className="workspace-version">v{WORKSPACE_VERSION}</span>
         </div>
 
-        {/* Rolle: sichtbare Beschriftung im Feld, gemeinsame Grundlinie mit dem Wert */}
-        <div className="workspace-role">
-          <div className="rn-control">
-            <label htmlFor="role-select" className="rn-control-lead workspace-role-label">
-              Rolle
-            </label>
-            <select
-              id="role-select"
-              value={userRole}
-              onChange={(e) => setUserRole(e.target.value as "owner" | "editor" | "viewer")}
-              data-testid="role-switcher-select"
-              className="rn-control-input"
-            >
-              <option value="owner">{isNarrowHeader ? "Inhaber" : "Inhaber (Owner)"}</option>
-              <option value="editor">
-                {isNarrowHeader ? "Bearbeiter" : "Bearbeiter (Editor)"}
-              </option>
-              <option value="viewer">
-                {isNarrowHeader ? "Betrachter" : "Betrachter (Viewer)"}
-              </option>
-            </select>
-            <Icon name="chevron" size={16} className="rn-control-chevron" />
-          </div>
-        </div>
-
-        {/* Design, Farbschema, Einstellungen */}
-        <div className="workspace-actions">
-          <div className="rn-control">
-            <Icon name="palette" size={18} className="rn-control-lead rn-control-icon" />
-            <select
-              value={theme}
-              onChange={(e) => setTheme(e.target.value as DesignTheme)}
-              data-testid="theme-selector-header"
-              aria-label={t("themeLabel")}
-              className="rn-control-input"
-            >
-              <option value="pure">
-                {isNarrowHeader ? SHORT_THEME_LABELS.pure : t("themePure")}
-              </option>
-              <option value="immersive-cinema">
-                {isNarrowHeader ? SHORT_THEME_LABELS["immersive-cinema"] : t("themeCinema")}
-              </option>
-              <option value="editorial-calm">
-                {isNarrowHeader ? SHORT_THEME_LABELS["editorial-calm"] : t("themeEditorial")}
-              </option>
-              <option value="fusion">
-                {isNarrowHeader ? SHORT_THEME_LABELS.fusion : t("themeFusion")}
-              </option>
-            </select>
-            <Icon name="chevron" size={16} className="rn-control-chevron" />
-          </div>
-
-          {/* Farbschema: Hell, Dunkel, AAA-Hochkontrast */}
-          <div className="rn-control">
-            <Icon name="contrast" size={18} className="rn-control-lead rn-control-icon" />
-            <select
-              value={colorMode}
-              onChange={(e) => setColorMode(e.target.value as ColorMode)}
-              data-testid="color-mode-selector-header"
-              aria-label={t("colorModeLabel")}
-              className="rn-control-input"
-            >
-              <option value="light">{t("modeLight")}</option>
-              <option value="dark">{t("modeDark")}</option>
-              <option value="aaa-contrast">{isNarrowHeader ? "AAA" : t("modeAAA")}</option>
-            </select>
-            <Icon name="chevron" size={16} className="rn-control-chevron" />
-          </div>
-
+        <nav aria-label="Bereiche" className="rn-topnav" data-testid="top-nav">
+          {PANEL_TABS.map((tab) => {
+            const isSources = tab.id === "sources";
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => goToPanel(tab.id)}
+                aria-current={activeMobileTab === tab.id ? "page" : undefined}
+                data-testid={`top-tab-${tab.id}`}
+                className="rn-topnav-item"
+              >
+                <Icon name={tab.icon} size={18} />
+                <span className="rn-topnav-label">{tab.label}</span>
+                {isSources && (
+                  <span className="rn-topnav-count">
+                    <span className="rn-visually-hidden">, </span>
+                    {sources.length}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          <span className="rn-topnav-divider" aria-hidden="true" />
           <button
             type="button"
             onClick={() => setIsSettingsOpen(true)}
             data-testid="btn-open-settings"
-            aria-label="Einstellungen & Compliance öffnen"
-            className="rn-control rn-control--button workspace-settings-button"
+            aria-haspopup="dialog"
+            className="rn-topnav-item"
           >
             <Icon name="settings" size={18} />
-            {!isNarrowHeader && <span>Einstellungen</span>}
+            <span className="rn-topnav-label">Einstellungen</span>
+          </button>
+        </nav>
+
+        <div className="rn-header-end">
+          <div className="rn-popover-anchor" ref={appearanceAnchorRef}>
+            <button
+              ref={appearanceButtonRef}
+              type="button"
+              onClick={(event) => {
+                // detail 0: per Enter oder Leertaste ausgelöst
+                appearanceOpenedByKeyboard.current = event.detail === 0;
+                setIsAppearanceOpen((open) => !open);
+              }}
+              aria-expanded={isAppearanceOpen}
+              aria-controls="appearance-menu"
+              aria-haspopup="dialog"
+              data-testid="btn-open-appearance"
+              className="rn-control rn-control--button rn-appearance-button"
+            >
+              <Icon name="palette" size={18} />
+              <span className="rn-appearance-button-label">Darstellung</span>
+              <Icon name="chevron" size={16} className="rn-icon rn-appearance-chevron" />
+            </button>
+            {isAppearanceOpen && !isNarrowHeader && (
+              <dialog
+                id="appearance-menu"
+                ref={appearancePanelRef}
+                open
+                tabIndex={-1}
+                aria-label="Darstellung"
+                data-testid="appearance-menu"
+                className="rn-popover"
+                onKeyDown={handleAppearanceKeyDown}
+              >
+                <AppearanceControls idPrefix="appearance" {...appearanceProps} />
+              </dialog>
+            )}
+          </div>
+          <button
+            ref={menuButtonRef}
+            type="button"
+            onClick={() => setIsMenuOpen(true)}
+            aria-expanded={isMenuOpen}
+            aria-controls="nav-sheet"
+            aria-haspopup="dialog"
+            aria-label="Menü öffnen"
+            data-testid="btn-open-menu"
+            className="rn-control rn-control--button rn-menu-button"
+          >
+            <Icon name="menu" size={22} />
           </button>
         </div>
       </header>
@@ -477,6 +578,8 @@ export function WorkspaceLayout({
         {/* Panel 1: Left Sources Panel */}
         <div
           data-testid="panel-left-wrapper"
+          data-panel="sources"
+          tabIndex={-1}
           className={`workspace-panel panel-left ${activeMobileTab === "sources" ? "panel-active" : ""}`}
         >
           <SourcesPanel
@@ -493,6 +596,8 @@ export function WorkspaceLayout({
         {/* Panel 2: Center Citation Chat Panel */}
         <div
           data-testid="panel-center-wrapper"
+          data-panel="chat"
+          tabIndex={-1}
           className={`workspace-panel panel-center ${activeMobileTab === "chat" ? "panel-active" : ""}`}
         >
           <ChatPanel
@@ -511,6 +616,8 @@ export function WorkspaceLayout({
         {/* Panel 3: Right Studio Panel */}
         <div
           data-testid="panel-right-wrapper"
+          data-panel="studio"
+          tabIndex={-1}
           className={`workspace-panel panel-right ${activeMobileTab === "studio" ? "panel-active" : ""}`}
         >
           <StudioPanel
@@ -526,13 +633,9 @@ export function WorkspaceLayout({
         </div>
       </div>
 
-      {/* Untere Reiterleiste (unter 900 px): im Daumenbereich, Symbol und Kurzname */}
-      <nav
-        aria-label="Mobile Arbeitsbereich Navigation"
-        data-testid="mobile-bottom-nav"
-        className="mobile-bottom-nav"
-      >
-        {MOBILE_TABS.map((tab) => {
+      {/* Untere Reiterleiste (unter 600 px): im Daumenbereich, Symbol und Kurzname */}
+      <nav aria-label="Bereiche" data-testid="mobile-bottom-nav" className="mobile-bottom-nav">
+        {PANEL_TABS.map((tab) => {
           const isActive = activeMobileTab === tab.id;
           const isSources = tab.id === "sources";
           return (
@@ -554,6 +657,93 @@ export function WorkspaceLayout({
           );
         })}
       </nav>
+
+      {/* Mobiles Menü (unter 600 px): Vollbild-Sheet mit Bereichen und Darstellung */}
+      {isNarrowHeader && (
+        <dialog
+          id="nav-sheet"
+          ref={sheetRef}
+          aria-labelledby="nav-sheet-title"
+          data-testid="nav-sheet"
+          className="rn-sheet"
+          onCancel={(e) => {
+            e.preventDefault();
+            closeMenu();
+          }}
+          onKeyDown={handleSheetKeyDown}
+        >
+          <div className="rn-sheet-head">
+            <h2 id="nav-sheet-title" className="rn-sheet-title">
+              Menü
+            </h2>
+            <button
+              type="button"
+              onClick={() => closeMenu()}
+              aria-label="Menü schließen"
+              data-testid="btn-close-menu"
+              className="rn-icon-btn rn-sheet-close"
+            >
+              <Icon name="close" size={22} />
+            </button>
+          </div>
+
+          <div className="rn-sheet-body">
+            <nav aria-label="Bereiche im Menü">
+              <h3 className="rn-sheet-section">Bereiche</h3>
+              <ul className="rn-sheet-nav">
+                {PANEL_TABS.map((tab) => (
+                  <li key={tab.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveMobileTab(tab.id);
+                        closeMenu();
+                      }}
+                      aria-current={activeMobileTab === tab.id ? "page" : undefined}
+                      data-testid={`sheet-tab-${tab.id}`}
+                      className="rn-sheet-item"
+                    >
+                      <Icon name={tab.icon} size={22} />
+                      <span className="rn-sheet-item-text">
+                        <span className="rn-sheet-item-title">{tab.label}</span>
+                        <span className="rn-sheet-item-hint">{tab.hint}</span>
+                      </span>
+                      {tab.id === "sources" && (
+                        <span className="rn-topnav-count">{sources.length}</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeMenu(false);
+                      setIsSettingsOpen(true);
+                    }}
+                    aria-haspopup="dialog"
+                    data-testid="sheet-open-settings"
+                    className="rn-sheet-item"
+                  >
+                    <Icon name="settings" size={22} />
+                    <span className="rn-sheet-item-text">
+                      <span className="rn-sheet-item-title">Einstellungen</span>
+                      <span className="rn-sheet-item-hint">Modell, Datenschutz, Sprache</span>
+                    </span>
+                  </button>
+                </li>
+              </ul>
+            </nav>
+
+            <section aria-labelledby="nav-sheet-appearance">
+              <h3 id="nav-sheet-appearance" className="rn-sheet-section">
+                Darstellung
+              </h3>
+              <AppearanceControls idPrefix="sheet" {...appearanceProps} />
+            </section>
+          </div>
+        </dialog>
+      )}
 
       {/* Settings & Compliance Drawer Modal */}
       <SettingsDrawer
