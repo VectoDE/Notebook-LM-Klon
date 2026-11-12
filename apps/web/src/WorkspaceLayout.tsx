@@ -269,6 +269,7 @@ export function WorkspaceLayout({
   const appearancePanelRef = useRef<HTMLDialogElement>(null);
   const appearanceOpenedByKeyboard = useRef(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLDialogElement>(null);
 
   const appearanceProps = {
@@ -511,6 +512,7 @@ export function WorkspaceLayout({
           })}
           <span className="rn-topnav-divider" aria-hidden="true" />
           <button
+            ref={settingsButtonRef}
             type="button"
             onClick={() => setIsSettingsOpen(true)}
             data-testid="btn-open-settings"
@@ -751,6 +753,10 @@ export function WorkspaceLayout({
         onClose={() => setIsSettingsOpen(false)}
         activeModel={activeModel}
         onModelChange={(model) => setActiveModel(model)}
+        // Aus dem Menü-Sheet geöffnet: das Sheet ist zu, der Fokus geht auf den Menüknopf
+        returnFocusFallback={() =>
+          isNarrowHeader ? menuButtonRef.current : settingsButtonRef.current
+        }
       />
     </div>
   );

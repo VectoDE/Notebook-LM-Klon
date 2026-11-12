@@ -1,7 +1,9 @@
 import type { PodcastStateMachine } from "@notebook-lm/shared";
 import { useEffect, useRef, useState } from "react";
 import { AuroraOrb } from "./AuroraOrb.js";
+import { Icon } from "./Icon.js";
 import { LiveLyrics, type TranscriptLine } from "./LiveLyrics.js";
+import { useReturnFocus } from "./useReturnFocus.js";
 
 export interface DeepDiveStageProps {
   readonly isOpen: boolean;
@@ -13,6 +15,8 @@ export interface DeepDiveStageProps {
   readonly stateMachine?: PodcastStateMachine | undefined;
   readonly onSeek?: ((targetMs: number) => void) | undefined;
   readonly onAskQuestion?: (() => void) | undefined;
+  /** Ziel für den Fokus nach dem Schließen, wenn der Auslöser ihn nicht mehr annimmt. */
+  readonly returnFocusFallback?: (() => HTMLElement | null | undefined) | undefined;
 }
 
 const DEFAULT_TRANSCRIPT: readonly TranscriptLine[] = [
@@ -42,6 +46,10 @@ const DEFAULT_TRANSCRIPT: readonly TranscriptLine[] = [
   }
 ];
 
+function orbSpeaker(speaker: string | undefined): "hostA" | "hostB" | null {
+  return speaker === "hostA" || speaker === "hostB" ? speaker : null;
+}
+
 export function DeepDiveStage({
   isOpen,
   onClose,
@@ -51,10 +59,14 @@ export function DeepDiveStage({
   isPlaying = false,
   stateMachine: _stateMachine,
   onSeek,
-  onAskQuestion
+  onAskQuestion,
+  returnFocusFallback
 }: DeepDiveStageProps) {
   const [internalTimeMs, setInternalTimeMs] = useState(currentTimeMs);
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+
+  // Vor showModal(): Auslöser merken, nach dem Schließen dorthin zurück
+  useReturnFocus(isOpen, returnFocusFallback);
 
   // Modal öffnen: Hintergrund wird inert, Escape löst "cancel" aus.
   useEffect(() => {
@@ -101,21 +113,23 @@ export function DeepDiveStage({
           type="button"
           onClick={onClose}
           data-testid="btn-close-deep-dive-stage"
-          aria-label="Deep-Dive-Bühne schließen"
+          aria-label="Bühne schließen"
           className="rn-stage-close"
         >
-          <span aria-hidden="true">×</span>
+          <Icon name="close" size={22} />
         </button>
       </header>
 
       <div className="rn-stage-body">
         <div className="rn-stage-orb">
-          <AuroraOrb isPlaying={isPlaying} audioLevel={0.6} width={240} height={240} />
-          {activeLine && (
-            <p className="rn-stage-speaker" aria-hidden="true">
-              {activeLine.speakerName}
-            </p>
-          )}
+          {/* Der Sprechername steht nur im Transkript; der Orb zeigt den Wechsel farblich */}
+          <AuroraOrb
+            isPlaying={isPlaying}
+            audioLevel={0.6}
+            activeSpeaker={orbSpeaker(activeLine?.speaker)}
+            width={240}
+            height={240}
+          />
         </div>
 
         <div className="rn-stage-lyrics">
