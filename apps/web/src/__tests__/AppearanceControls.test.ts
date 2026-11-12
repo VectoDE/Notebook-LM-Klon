@@ -57,6 +57,20 @@ describe("AppearanceControls", () => {
     expect(html.match(/name="t-theme"/g)?.length).toBe(4);
     expect(html.match(/name="t-mode"/g)?.length).toBe(4);
     expect(html.match(/type="radio"/g)?.length).toBe(8);
+    // Bewegung gehört zur Darstellung (Issue #319)
+    expect(html).toContain('data-testid="reduce-motion-toggle"');
+    expect(html).toContain('<label class="rn-check-row" for="t-reduce-motion">');
+    expect(html).toContain('aria-describedby="t-reduce-motion-hint"');
+  });
+
+  it("setzt die Rolle ans Ende, damit der Fokus beim Öffnen auf „Design“ landet", () => {
+    const html = render();
+    const design = html.indexOf('<legend class="rn-appearance-label">Design</legend>');
+    const motion = html.indexOf("reduce-motion-toggle");
+    const role = html.indexOf("role-switcher-select");
+    expect(design).toBeGreaterThan(-1);
+    expect(design).toBeLessThan(motion);
+    expect(motion).toBeLessThan(role);
   });
 
   it("lässt die Rolle weg, wenn keine übergeben wird", () => {

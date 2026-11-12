@@ -52,7 +52,18 @@ test.describe("Sprunglink und Landmarks", () => {
     ).toBe(true);
   });
 
-  test("Panel-Umschalter nutzen aria-current=true, nie page", async ({ page }) => {
+  test("ab 900 px: Bereiche sind Sprungziele ohne aria-current, nie page", async ({ page }) => {
+    await page.goto("/");
+    // Alle Bereiche sind sichtbar: eine „aktuell“-Markierung hätte keine Bedeutung (Issue #319)
+    await expect(page.locator("[data-testid^='top-tab-'][aria-current]")).toHaveCount(0);
+    await page.getByTestId("top-tab-studio").click();
+    await expect(page.locator("[data-panel='studio']")).toBeFocused();
+    await expect(page.locator("[data-testid^='top-tab-'][aria-current]")).toHaveCount(0);
+    await expect(page.locator("[aria-current='page']")).toHaveCount(0);
+  });
+
+  test("600 bis 899 px: ein Bereich sichtbar, Reiter mit aria-current=true", async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 900 });
     await page.goto("/");
     await expect(page.getByTestId("top-tab-chat")).toHaveAttribute("aria-current", "true");
     await page.getByTestId("top-tab-studio").click();

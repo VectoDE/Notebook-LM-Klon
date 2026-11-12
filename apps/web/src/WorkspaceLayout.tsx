@@ -30,6 +30,7 @@ import {
   technicalErrorDetail
 } from "./chat-client.js";
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
+import { browserStorage, readStoredModel, storeModel } from "./theme-preferences.js";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, WorkspaceSource } from "./workspace-types.js";
 
@@ -204,6 +205,12 @@ export interface WorkspaceLayoutProps {
 /** Unter 600 px: Logo und Menü-Knopf oben, Reiterleiste unten. */
 const NARROW_HEADER_QUERY = "(max-width: 599.98px)";
 
+/** Unter 900 px ist nur ein Bereich sichtbar: die Navigation schaltet um (Reiterlogik). */
+const SINGLE_PANEL_QUERY = "(max-width: 899.98px)";
+
+/** Dauer der kurzen Markierung eines angesprungenen Bereichs (ab 900 px). */
+const PANEL_FLASH_MS = 1200;
+
 type PanelTab = "sources" | "chat" | "studio";
 
 /**
@@ -245,13 +252,19 @@ export function WorkspaceLayout({
 }: WorkspaceLayoutProps) {
   const { theme, setTheme, colorMode, setColorMode, t } = useTheme();
   const isNarrowHeader = useMediaQuery(NARROW_HEADER_QUERY);
+  const isSinglePanel = useMediaQuery(SINGLE_PANEL_QUERY);
 
   // Panels & Navigation state
   const [activeMobileTab, setActiveMobileTab] = useState<PanelTab>(initialPanelTab);
   const [sources, setSources] = useState<WorkspaceSource[]>(DEFAULT_SOURCES);
   const [activeCitation, setActiveCitation] = useState<CitationLocation | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [activeModel, setActiveModel] = useState("gemini-2.5-flash");
+  // Modellwahl übersteht das Neuladen (nur bekannte Werte, Issue #319)
+  const [activeModel, setActiveModel] = useState<string>(() => readStoredModel(browserStorage()));
+  const [flashedPanel, setFlashedPanel] = useState<PanelTab | null>(null);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Kurzinfos der Kopfknöpfe: Escape blendet sie aus, bis Zeiger oder Fokus den Knopf verlassen
+  const [tipsHidden, setTipsHidden] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>("owner");
   const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -272,13 +285,34 @@ export function WorkspaceLayout({
     onColorModeChange: setColorMode
   };
 
-  // Bereich wählen; der Fokus springt in das Panel (Tastatur landet direkt im Inhalt)
+  /**
+   * Bereich wählen; der Fokus springt in das Panel (Tastatur landet direkt im Inhalt).
+   * Ab 900 px sind alle Bereiche sichtbar: dann ist der Klick ein Sprung, und der Bereich
+   * wird kurz markiert (Issue #319).
+   */
   const goToPanel = (tab: PanelTab) => {
     setActiveMobileTab(tab);
-    requestAnimationFrame(() =>
-      document.querySelector<HTMLElement>(`[data-panel="${tab}"]`)?.focus({ preventScroll: true })
-    );
+    requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>(`[data-panel="${tab}"]`)?.focus({ preventScroll: true });
+      if (isSinglePanel) return;
+      clearTimeout(flashTimerRef.current);
+      setFlashedPanel(null);
+      requestAnimationFrame(() => setFlashedPanel(tab));
+      flashTimerRef.current = setTimeout(() => setFlashedPanel(null), PANEL_FLASH_MS);
+    });
   };
+
+  useEffect(() => () => clearTimeout(flashTimerRef.current), []);
+
+  // WCAG 1.4.13: Kurzinfo per Escape schließen, ohne Zeiger oder Fokus zu bewegen
+  useEffect(() => {
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setTipsHidden(true);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+  const showTips = () => setTipsHidden(false);
 
   // Beim Wechsel zwischen Telefon- und Desktop-Kopf sind offene Menüs ungültig
   const [menuLayoutNarrow, setMenuLayoutNarrow] = useState(isNarrowHeader);
@@ -291,9 +325,11 @@ export function WorkspaceLayout({
   // Darstellungsmenü: Fokus hinein, Klick außerhalb schließt
   useEffect(() => {
     if (!isAppearanceOpen) return;
-    // Tastatur: Fokus auf das erste Feld; Maus: auf das Menü selbst (kein Fokusring im Feld)
+    // Tastatur: Fokus auf die gewählte Option unter „Design“; Maus: auf das Menü selbst
     const panel = appearancePanelRef.current;
-    const first = panel?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+    const first =
+      panel?.querySelector<HTMLElement>('input[type="radio"]:checked') ??
+      panel?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
     (appearanceOpenedByKeyboard.current ? first : panel)?.focus();
     const onPointerDown = (event: PointerEvent) => {
       if (!appearanceAnchorRef.current?.contains(event.target as Node)) {
@@ -487,7 +523,11 @@ export function WorkspaceLayout({
       </a>
 
       {/* Kopf: Logo links, Bereiche als Reiterleiste, Darstellung in einem Menü */}
-      <header data-testid="workspace-header" className="workspace-header">
+      <header
+        data-testid="workspace-header"
+        className="workspace-header"
+        data-tips-hidden={tipsHidden ? "true" : undefined}
+      >
         <div className="workspace-brand">
           <h1 id="app-title" className="workspace-title">
             <BrandLogo height={32} />
@@ -503,9 +543,12 @@ export function WorkspaceLayout({
                 key={tab.id}
                 type="button"
                 onClick={() => goToPanel(tab.id)}
-                aria-current={activeMobileTab === tab.id ? "true" : undefined}
+                // Nur wenn genau ein Bereich sichtbar ist, bedeutet „aktuell“ etwas
+                aria-current={isSinglePanel && activeMobileTab === tab.id ? "true" : undefined}
                 data-testid={`top-tab-${tab.id}`}
-                className="rn-topnav-item"
+                className="rn-topnav-item rn-tip-host"
+                onPointerLeave={showTips}
+                onBlur={showTips}
               >
                 <Icon name={tab.icon} size={18} />
                 <span className="rn-topnav-label">{t(tab.labelKey)}</span>
@@ -518,21 +561,23 @@ export function WorkspaceLayout({
               </button>
             );
           })}
-          <span className="rn-topnav-divider" aria-hidden="true" />
+        </nav>
+
+        {/* Einstellungen und Darstellung öffnen Dialoge, keine Bereiche: außerhalb der Navigation */}
+        <div className="rn-header-end">
           <button
             ref={settingsButtonRef}
             type="button"
             onClick={() => setIsSettingsOpen(true)}
             data-testid="btn-open-settings"
             aria-haspopup="dialog"
-            className="rn-topnav-item"
+            className="rn-control rn-control--button rn-settings-button rn-tip-host"
+            onPointerLeave={showTips}
+            onBlur={showTips}
           >
             <Icon name="settings" size={18} />
-            <span className="rn-topnav-label">{t("navSettings")}</span>
+            <span className="rn-settings-button-label">{t("navSettings")}</span>
           </button>
-        </nav>
-
-        <div className="rn-header-end">
           <div className="rn-popover-anchor" ref={appearanceAnchorRef}>
             <button
               ref={appearanceButtonRef}
@@ -546,7 +591,9 @@ export function WorkspaceLayout({
               aria-controls="appearance-menu"
               aria-haspopup="dialog"
               data-testid="btn-open-appearance"
-              className="rn-control rn-control--button rn-appearance-button"
+              className="rn-control rn-control--button rn-appearance-button rn-tip-host"
+              onPointerLeave={showTips}
+              onBlur={showTips}
             >
               <Icon name="palette" size={18} />
               <span className="rn-appearance-button-label">{t("appearanceTitle")}</span>
@@ -595,6 +642,7 @@ export function WorkspaceLayout({
         <div
           data-testid="panel-left-wrapper"
           data-panel="sources"
+          data-flash={flashedPanel === "sources" ? "true" : undefined}
           tabIndex={-1}
           className={`workspace-panel panel-left ${activeMobileTab === "sources" ? "panel-active" : ""}`}
         >
@@ -613,6 +661,7 @@ export function WorkspaceLayout({
         <div
           data-testid="panel-center-wrapper"
           data-panel="chat"
+          data-flash={flashedPanel === "chat" ? "true" : undefined}
           tabIndex={-1}
           className={`workspace-panel panel-center ${activeMobileTab === "chat" ? "panel-active" : ""}`}
         >
@@ -633,6 +682,7 @@ export function WorkspaceLayout({
         <div
           data-testid="panel-right-wrapper"
           data-panel="studio"
+          data-flash={flashedPanel === "studio" ? "true" : undefined}
           tabIndex={-1}
           className={`workspace-panel panel-right ${activeMobileTab === "studio" ? "panel-active" : ""}`}
         >
@@ -658,7 +708,7 @@ export function WorkspaceLayout({
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveMobileTab(tab.id)}
+              onClick={() => goToPanel(tab.id)}
               aria-current={isActive ? "true" : undefined}
               aria-label={isSources ? undefined : t(tab.ariaKey)}
               data-testid={`tab-btn-${tab.id}`}
@@ -742,7 +792,10 @@ export function WorkspaceLayout({
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         activeModel={activeModel}
-        onModelChange={(model) => setActiveModel(model)}
+        onModelChange={(model) => {
+          setActiveModel(model);
+          storeModel(browserStorage(), model);
+        }}
         // Aus dem Menü-Sheet geöffnet: das Sheet ist zu, der Fokus geht auf den Menüknopf
         returnFocusFallback={() =>
           isNarrowHeader ? menuButtonRef.current : settingsButtonRef.current

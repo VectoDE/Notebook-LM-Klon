@@ -6,16 +6,19 @@
  *   - Model Router & BYOK (OpenAI, Anthropic, Google, Groq, DeepSeek, Mistral, Ollama)
  *   - EU AI Act Article 50 transparency status
  *   - EU GDPR data processing guarantees (zero model training)
- *   - Live Theme, Color Mode and Language
+ *   - Language
+ *
+ * Reihenfolge (Issue #319): Sprache, KI-Modell, eigene Schlüssel, Rechtliches. Die Darstellung
+ * (Design, Farbschema, Bewegung, Rolle) steht nur noch an einem Ort: Kopfmenü bzw. Menü-Sheet.
  *
  * Modaler <dialog>: Desktop als Seitenblatt rechts, Telefon als Blatt von unten.
  * Fokusfalle, Escape schließt, Klick auf den Hintergrund schließt.
  */
 
 import { useEffect, useRef } from "react";
-import { AppearanceControls } from "./AppearanceControls.js";
 import { Icon } from "./Icon.js";
 import { trapTabKey } from "./focus-trap.js";
+import { DEFAULT_MODEL, MODEL_IDS, type ModelId } from "./theme-preferences.js";
 import { useReturnFocus } from "./useReturnFocus.js";
 import { LANGUAGES, useTheme } from "./useTheme.jsx";
 
@@ -28,33 +31,24 @@ export interface SettingsDrawerProps {
   readonly returnFocusFallback?: (() => HTMLElement | null | undefined) | undefined;
 }
 
-const MODELS: readonly { readonly id: string; readonly label: string }[] = [
-  { id: "gemini-2.5-flash", label: "Google Gemini 2.5 Flash (Standard)" },
-  { id: "gemini-2.5-pro", label: "Google Gemini 2.5 Pro" },
-  { id: "claude-3-7-sonnet", label: "Anthropic Claude 3.7 Sonnet" },
-  { id: "gpt-4o", label: "OpenAI GPT-4o" },
-  { id: "deepseek-r1", label: "DeepSeek R1 (Groq Fast Inference)" },
-  { id: "ollama-local", label: "Ollama Local (100% On-Device)" }
-];
+/** Anzeigenamen der Modelle; die Liste der erlaubten Werte steht in theme-preferences. */
+const MODEL_LABELS: Readonly<Record<ModelId, string>> = {
+  "gemini-2.5-flash": "Google Gemini 2.5 Flash (Standard)",
+  "gemini-2.5-pro": "Google Gemini 2.5 Pro",
+  "claude-3-7-sonnet": "Anthropic Claude 3.7 Sonnet",
+  "gpt-4o": "OpenAI GPT-4o",
+  "deepseek-r1": "DeepSeek R1 (Groq Fast Inference)",
+  "ollama-local": "Ollama Local (100% On-Device)"
+};
 
 export function SettingsDrawer({
   isOpen,
   onClose,
-  activeModel = "gemini-2.5-flash",
+  activeModel = DEFAULT_MODEL,
   onModelChange,
   returnFocusFallback
 }: SettingsDrawerProps) {
-  const {
-    theme,
-    colorMode,
-    language,
-    reduceMotion,
-    setTheme,
-    setColorMode,
-    setLanguage,
-    setReduceMotion,
-    t
-  } = useTheme();
+  const { language, setLanguage, t } = useTheme();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   // Vor showModal(): Auslöser merken, nach dem Schließen dorthin zurück
@@ -104,37 +98,6 @@ export function SettingsDrawer({
         </header>
 
         <div className="rn-drawer-body">
-          <section className="rn-drawer-section" aria-labelledby="theme-section-title">
-            <h3 id="theme-section-title" className="rn-drawer-section-title">
-              {t("appearanceTitle")}
-            </h3>
-            <AppearanceControls
-              idPrefix="settings"
-              theme={theme}
-              onThemeChange={setTheme}
-              colorMode={colorMode}
-              onColorModeChange={setColorMode}
-            />
-            <fieldset className="rn-appearance-group rn-motion-setting">
-              <legend className="rn-appearance-label">{t("motionLabel")}</legend>
-              <label className="rn-check-row" htmlFor="settings-reduce-motion">
-                <input
-                  id="settings-reduce-motion"
-                  type="checkbox"
-                  checked={reduceMotion}
-                  onChange={(e) => setReduceMotion(e.target.checked)}
-                  aria-describedby="settings-reduce-motion-hint"
-                  data-testid="reduce-motion-toggle"
-                  className="rn-checkbox"
-                />
-                <span>{t("motionToggle")}</span>
-              </label>
-              <p id="settings-reduce-motion-hint" className="rn-setting-hint">
-                {t("motionHint")}
-              </p>
-            </fieldset>
-          </section>
-
           <section className="rn-drawer-section" aria-labelledby="lang-section-title">
             <fieldset className="rn-appearance-group">
               <legend id="lang-section-title" className="rn-drawer-section-title">
@@ -172,9 +135,9 @@ export function SettingsDrawer({
                 className="rn-control-input"
                 data-testid="model-router-select"
               >
-                {MODELS.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
+                {MODEL_IDS.map((id) => (
+                  <option key={id} value={id}>
+                    {MODEL_LABELS[id]}
                   </option>
                 ))}
               </select>
@@ -206,6 +169,10 @@ export function SettingsDrawer({
               {t("gdprText")}
             </p>
           </section>
+
+          <p className="rn-setting-hint" data-testid="settings-appearance-hint">
+            {t("settingsAppearanceHint")}
+          </p>
         </div>
       </div>
     </dialog>

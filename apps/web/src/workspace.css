@@ -214,14 +214,6 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   text-align: center;
 }
 
-.rn-topnav-divider {
-  flex: none;
-  width: 1px;
-  height: 24px;
-  margin: 0 var(--rn-space-2);
-  background: var(--rn-color-panel-border);
-}
-
 html[data-color-mode="aaa-contrast"] .rn-topnav-item[aria-current="true"] {
   box-shadow: inset 0 0 0 2px var(--rn-color-border);
 }
@@ -369,6 +361,10 @@ html[data-color-mode="aaa-contrast"] .workspace-header .rn-control:hover {
   /* Breit genug für "Automatisch (wie Gerät)" in einer Zeile */
   width: 360px;
   max-width: calc(100vw - 32px);
+  /* Mit „Bewegung“ und „Rolle“ länger: im Menü scrollen statt aus dem Fenster ragen */
+  max-height: calc(100dvh - 88px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   box-sizing: border-box;
   padding: var(--rn-space-4);
   border-radius: var(--rn-radius-lg);
@@ -934,18 +930,26 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indica
   }
 }
 
-/* Mittlere Breiten: Beschriftungen von Version, Darstellung und Einstellungen weichen zuerst */
+/* Mittlere Breiten: zuerst weicht die Version */
 @media (max-width: 1099.98px) {
   .workspace-version {
     display: none;
   }
-  .rn-appearance-button {
+}
+
+/*
+ * Unter 1024 px: Einstellungen und Darstellung nur als Symbol. Die Beschriftung bleibt der
+ * Name für Screenreader und erscheint bei Zeiger und Tastaturfokus als Kurzinfo (Issue #319).
+ */
+@media (max-width: 1023.98px) {
+  .rn-appearance-button,
+  .rn-settings-button {
     width: var(--rn-control-h);
     padding: 0;
   }
   .rn-appearance-button-label,
   .rn-appearance-chevron,
-  .rn-topnav-item[data-testid="btn-open-settings"] .rn-topnav-label {
+  .rn-settings-button-label {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -953,11 +957,6 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indica
     overflow: hidden;
     clip: rect(0 0 0 0);
     white-space: nowrap;
-  }
-  .rn-topnav-item[data-testid="btn-open-settings"] {
-    width: var(--rn-control-h);
-    justify-content: center;
-    padding: 0;
   }
 }
 
@@ -995,11 +994,89 @@ html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indica
     padding: 8px 16px !important;
   }
   .rn-topnav,
-  .rn-header-end .rn-appearance-button {
+  .rn-header-end .rn-appearance-button,
+  .rn-header-end .rn-settings-button {
     display: none;
   }
   .rn-header-end .rn-menu-button {
     display: inline-flex;
+  }
+}
+
+/*
+ * Kurzinfo der Kopfknöpfe (WCAG 1.4.13): erscheint bei Zeiger und Tastaturfokus, bleibt,
+ * solange Zeiger oder Fokus da sind, lässt sich überfahren (Teil des Knopfs, ohne Lücke
+ * dank transparentem Rand) und mit Escape schließen (data-tips-hidden am Kopf).
+ */
+.rn-tip-host {
+  position: relative;
+}
+
+@media (min-width: 600px) and (max-width: 1023.98px) {
+  .workspace-header:not([data-tips-hidden="true"])
+    .rn-header-end
+    .rn-tip-host:is(:hover, :focus-visible):not([aria-expanded="true"])
+    :is(.rn-settings-button-label, .rn-appearance-button-label) {
+    top: 100%;
+    right: 0;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    z-index: 45;
+    padding: 6px 10px;
+    border-top: 6px solid transparent;
+    border-radius: var(--rn-radius-sm);
+    background: var(--rn-color-text-primary);
+    background-clip: padding-box;
+    color: var(--rn-color-panel);
+    font-size: var(--rn-text-small);
+    font-weight: 600;
+    line-height: 20px;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 767.98px) {
+  .workspace-header:not([data-tips-hidden="true"])
+    .rn-topnav
+    .rn-tip-host:is(:hover, :focus-visible)
+    .rn-topnav-label {
+    top: 100%;
+    left: 50%;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    z-index: 45;
+    padding: 6px 10px;
+    border-top: 6px solid transparent;
+    border-radius: var(--rn-radius-sm);
+    background: var(--rn-color-text-primary);
+    background-clip: padding-box;
+    color: var(--rn-color-panel);
+    font-size: var(--rn-text-small);
+    font-weight: 600;
+    line-height: 20px;
+    transform: translateX(-50%);
+  }
+}
+
+/*
+ * Angesprungener Bereich (ab 900 px): kurz umrandet. Ohne Animation, die Markierung
+ * verschwindet nach PANEL_FLASH_MS (WorkspaceLayout); gilt so auch bei reduzierter Bewegung.
+ */
+.workspace-panel[data-flash="true"] {
+  outline: 3px solid var(--rn-color-focus-ring);
+  outline-offset: -3px;
+}
+
+/* Telefon: Auswahlfelder mit 16 px, sonst vergrößert iOS beim Fokus die Seite */
+@media (max-width: 599.98px) {
+  select,
+  .rn-control-input {
+    font-size: max(16px, var(--rn-text-base));
   }
 }
 
@@ -3604,21 +3681,6 @@ html[data-color-mode="aaa-contrast"] .rn-stage-btn.rn-video-toggle[aria-pressed=
   }
   .rn-drawer-panel {
     max-height: 92dvh;
-  }
-  .rn-drawer-head::before {
-    content: "";
-    position: absolute;
-    top: 8px;
-    left: 50%;
-    width: 40px;
-    height: 4px;
-    margin-left: -20px;
-    border-radius: var(--rn-radius-pill);
-    background: var(--rn-color-border);
-  }
-  .rn-drawer-head {
-    position: relative;
-    padding-top: var(--rn-space-6);
   }
 }
 
