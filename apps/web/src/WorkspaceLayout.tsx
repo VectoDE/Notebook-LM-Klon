@@ -336,9 +336,13 @@ export function WorkspaceLayout({
   const [isShareOpen, setIsShareOpen] = useState(false);
   // Modellwahl übersteht das Neuladen (nur bekannte Werte, Issue #319)
   const [activeModel, setActiveModel] = useState<string>(() => readStoredModel(browserStorage()));
-  // Eingeklappte Spalten und Titel bleiben auf dem Gerät gespeichert (Issue #325)
+  // Eingeklappte Spalten und Titel bleiben auf dem Gerät gespeichert (Issue #325); ohne
+  // gespeicherte Wahl startet das Studio auf schmalem Desktop eingeklappt (Issue #335)
   const [collapsed, setCollapsed] = useState<CollapsedPanels>(() =>
-    readCollapsedPanels(browserStorage())
+    readCollapsedPanels(
+      browserStorage(),
+      typeof window === "undefined" ? undefined : window.innerWidth
+    )
   );
   const [notebookTitle, setNotebookTitle] = useState(() =>
     readNotebookTitle(browserStorage(), notebookId, DEFAULT_NOTEBOOK_TITLE)

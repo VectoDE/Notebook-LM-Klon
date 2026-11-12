@@ -39,13 +39,16 @@ test.describe("Typografie: Silbentrennung, Stufung, Schatten, Scroll-Verlauf", (
           title: px(".rn-panel-heading h2"),
           subtitle: px(".rn-tool-title"),
           text: px(".rn-tool-desc"),
-          meta: px(".rn-panel-sub")
+          // Kennzeichnung im Studio-Kopf; der Hilfesatz der Quellen ist Fließtext (Issue #335)
+          meta: px("[data-testid='studio-panel'] .rn-panel-sub"),
+          help: px(".rn-panel-sub--help")
         };
       });
       expect(sizes.title, design).toBeGreaterThan(sizes.subtitle);
       expect(sizes.subtitle, design).toBeGreaterThan(sizes.text);
       expect(sizes.text, design).toBeGreaterThan(sizes.meta);
       expect(sizes.meta, design).toBeGreaterThanOrEqual(14);
+      expect(sizes.help, design).toBe(sizes.text);
     }
   });
 

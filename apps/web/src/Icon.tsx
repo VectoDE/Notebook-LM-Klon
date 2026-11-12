@@ -3,8 +3,9 @@
  *
  * 24er-Raster, Farbe über currentColor. Jedes Symbol mit Fläche ist gefüllt (`fill`,
  * Füllregel evenodd; Aussparungen zeichnen Details wie Zeilen oder das Abspielzeichen).
- * Reine Linienzeichen ohne Fläche (Kreuz, Haken, Menü, Winkel, Kette, Pegel, Wellen)
- * stehen als kräftige Linie mit runden Enden (`line`, Strich 2).
+ * Reine Linienzeichen ohne Fläche (Kreuz, Haken, Menü, Winkel, Plus) stehen als kräftige
+ * Linie mit runden Enden (`line`, Strich 2). Kette, Pegel und Spalten sind seit Issue #335
+ * ebenfalls gefüllt.
  * Symbole sind Schmuck (aria-hidden); die Bedeutung trägt immer der sichtbare Text oder
  * ein aria-label am Bedienelement.
  */
@@ -23,7 +24,7 @@ const SHAPES = {
     fill: "M12 3 17.5 8.5h-4.25V15h-2.5V8.5H6.5L12 3ZM4 14h2.25v3.75h11.5V14H20v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4Z"
   },
   link: {
-    line: "M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"
+    fill: "M7 6.5h4.5V9H7a3 3 0 0 0 0 6h4.5v2.5H7a5.5 5.5 0 0 1 0-11Zm5.5 0H17a5.5 5.5 0 0 1 0 11h-4.5V15H17a3 3 0 0 0 0-6h-4.5V6.5ZM8 10.75h8v2.5H8v-2.5Z"
   },
   search: {
     fill: "M10.5 3a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15Zm0 2.75a4.75 4.75 0 1 1 0 9.5 4.75 4.75 0 0 1 0-9.5Z",
@@ -42,7 +43,9 @@ const SHAPES = {
   studio: {
     fill: "M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Zm6 12 .8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8L18 15Z"
   },
-  audio: { line: "M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2" },
+  audio: {
+    fill: "M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm.75 6.5v3h1.5v-3h-1.5Zm3-3v9h1.5v-9h-1.5Zm3 1.5v6h1.5V9h-1.5Zm3 2v2h1.5v-2h-1.5Z"
+  },
   video: {
     fill: "M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm4.5 5v6l5-3-5-3Z"
   },
@@ -82,11 +85,12 @@ const SHAPES = {
   contrast: { fill: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2a7 7 0 0 1 0 14V5Z" },
   menu: { line: "M4 7h16M4 12h16M4 17h16" },
   check: { line: "m5 12.5 4.5 4.5L19 7.5" },
+  /* Zwei gefüllte Spalten, die schmale zeigt die Seite der einklappbaren Spalte */
   panelLeft: {
-    fill: "M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm5 2v12h8.5a.5.5 0 0 0 .5-.5v-11a.5.5 0 0 0-.5-.5H10Z"
+    fill: "M5 4h3.5v16H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm5.5 0H19a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-8.5V4Z"
   },
   panelRight: {
-    fill: "M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm.5 2a.5.5 0 0 0-.5.5v11a.5.5 0 0 0 .5.5H14V6H5.5Z"
+    fill: "M5 4h8.5v16H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm10.5 0H19a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3.5V4Z"
   },
   share: {
     fill: "M9 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8ZM3 19a6 6 0 0 1 12 0v1H3v-1Z",

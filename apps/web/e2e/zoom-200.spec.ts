@@ -38,7 +38,8 @@ for (const screen of ZOOM_200) {
         views.push({
           label: "Studio Mindmap",
           open: async () => {
-            if (screen.width < 900) await openPanel(page, "studio");
+            // Ab 900 px führt der Sprunglink ins Studio und klappt es bei Bedarf aus
+            await openPanel(page, "studio");
             await page.getByTestId("btn-open-mindmap-tool").click();
           }
         });

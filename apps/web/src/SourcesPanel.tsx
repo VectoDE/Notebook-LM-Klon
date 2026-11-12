@@ -69,6 +69,7 @@ export function SourcesPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const highlightRef = useRef<HTMLElement>(null);
+  const inspectorRef = useRef<HTMLElement>(null);
   const urlDialogRef = useRef<HTMLDialogElement>(null);
   const urlButtonRef = useRef<HTMLButtonElement>(null);
   const urlAddressRef = useRef<HTMLInputElement>(null);
@@ -95,17 +96,19 @@ export function SourcesPanel({
     }
   }, [activeCitation]);
 
-  // Scroll to highlighted citation passage
+  // Zur markierten Zitatstelle scrollen; ohne Markierung die Vorschau ins Bild holen
+  // (die Liste scrollt mit dem Panel, die Vorschau steht darunter; Issue #335)
   useEffect(() => {
-    if (inspectedSourceId && highlightRef.current) {
-      // "Bewegung reduzieren" springt ohne Animation (WCAG 2.3.3, Issue #323)
-      highlightRef.current.scrollIntoView({
-        behavior: shouldReduceMotion(document.documentElement, window.matchMedia?.bind(window))
-          ? "auto"
-          : "smooth",
-        block: "center"
-      });
+    if (!inspectedSourceId) return;
+    // "Bewegung reduzieren" springt ohne Animation (WCAG 2.3.3, Issue #323)
+    const behavior = shouldReduceMotion(document.documentElement, window.matchMedia?.bind(window))
+      ? "auto"
+      : "smooth";
+    if (highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior, block: "center" });
       highlightRef.current.focus?.();
+    } else {
+      inspectorRef.current?.scrollIntoView?.({ behavior, block: "nearest" });
     }
   }, [inspectedSourceId]);
 
@@ -190,7 +193,7 @@ export function SourcesPanel({
               {tf(sources.length === 1 ? "srcCountOne" : "srcCountMany", { n: sources.length })}
             </span>
           </div>
-          <p className="rn-panel-sub">{t("srcSub")}</p>
+          <p className="rn-panel-sub rn-panel-sub--help">{t("srcSub")}</p>
         </div>
         {headerAction}
       </header>
@@ -365,7 +368,10 @@ export function SourcesPanel({
                       <span className="rn-source-type" aria-hidden="true">
                         {sourceTypeLabel(source.mimeType)}
                       </span>
-                      {source.originalName} · {Math.round(source.byteSize / 1024)} KB
+                      {source.originalName} ·{" "}
+                      <span className="rn-source-size">
+                        {Math.round(source.byteSize / 1024)} KB
+                      </span>
                     </small>
                   </div>
                 </div>
@@ -391,6 +397,7 @@ export function SourcesPanel({
       {/* Quell-Inspektor */}
       {inspectedSource && (
         <aside
+          ref={inspectorRef}
           aria-label={tf("srcInspectorLabel", { title: inspectedSource.title })}
           data-testid="source-inspector-drawer"
           className="rn-inspector"

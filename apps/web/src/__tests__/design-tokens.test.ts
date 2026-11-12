@@ -81,6 +81,30 @@ describe("Design-Tokens: Vollständigkeit", () => {
     }
   });
 
+  it("AAA-Kontrast: Pure und Editorial Calm haben unterscheidbare Akzente (Issue #335)", () => {
+    const hue = (hex: string): number => {
+      const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16) / 255) as [
+        number,
+        number,
+        number
+      ];
+      const max = Math.max(r, g, b);
+      const d = max - Math.min(r, g, b);
+      const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return (h * 60 + 360) % 360;
+    };
+    const pure = DESIGN_TOKENS.pure["aaa-contrast"];
+    const editorial = DESIGN_TOKENS["editorial-calm"]["aaa-contrast"];
+    for (const key of ["primary", "accent", "focusRing", "logoTile"] as const) {
+      // Mindestens 30 Grad Farbtonabstand: Indigo gegen Petrolblau
+      expect(Math.abs(hue(pure[key]) - hue(editorial[key])), key).toBeGreaterThanOrEqual(30);
+      // Der Akzent bleibt Textfarbe auf Weiß und Fläche unter weißem Text: 7:1
+      expect(contrastRatio(editorial[key], editorial.panel), key).toBeGreaterThanOrEqual(7);
+    }
+    expect(contrastRatio(editorial.accentText, editorial.accent)).toBeGreaterThanOrEqual(7);
+    expect(contrastRatio(editorial.primary, editorial.surfaceVariant)).toBeGreaterThanOrEqual(7);
+  });
+
   it("gibt jedem Design eine eigene Farbwelt (Zuordnung 2026-11-12)", () => {
     for (const mode of COLOR_MODES) {
       for (const key of ["primary", "brand", "logoTile"] as const) {

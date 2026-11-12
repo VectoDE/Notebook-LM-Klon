@@ -110,14 +110,18 @@ describe("Leerzustände (Issue #329)", () => {
     expect(plain).not.toContain("rn-empty--compact");
   });
 
-  it("Chat zeigt den Leerzustand bis zur ersten eigenen Frage", () => {
-    const empty = renderToStaticMarkup(
+  it("Chat zeigt den Leerzustand nur ohne Nachrichten (Issue #335)", () => {
+    const empty = renderToStaticMarkup(createElement(ChatPanel, { messages: [] }));
+    expect(empty).toContain('data-testid="chat-empty-state"');
+    expect(empty).toContain("Noch keine Fragen");
+
+    // Die Begrüßung ersetzt den Leerzustand: nie beides zugleich
+    const welcome = renderToStaticMarkup(
       createElement(ChatPanel, {
         messages: [{ id: "intro", role: "assistant", content: "Willkommen" }]
       })
     );
-    expect(empty).toContain('data-testid="chat-empty-state"');
-    expect(empty).toContain("Noch keine Fragen");
+    expect(welcome).not.toContain("chat-empty-state");
 
     const asked = renderToStaticMarkup(
       createElement(ChatPanel, {
