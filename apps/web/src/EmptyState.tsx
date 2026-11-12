@@ -46,14 +46,21 @@ export function EmptyState({
   );
 }
 
-/** Zeichnungen im 120 × 88-Raster: Fläche, Linie, ein Akzent. */
+/** Darstellungsbreite der Zeichnung in px (Issue #356: groß, 240 bis 320 px). */
+export const EMPTY_ART_WIDTH = 280;
+
+/**
+ * Zeichnungen im 120 × 88-Raster: Fläche, Linie, ein Akzent. Dargestellt in 280 px Breite
+ * (kompakt 240 px), auf schmalen Flächen schrumpft sie mit; Linien behalten per
+ * non-scaling-stroke ihre Stärke in Bildschirmpixeln.
+ */
 export function EmptyArt({ art }: { readonly art: EmptyStateArt }) {
   return (
     <svg
       className="rn-empty-art"
       viewBox="0 0 120 88"
-      width="120"
-      height="88"
+      width={EMPTY_ART_WIDTH}
+      height={Math.round((EMPTY_ART_WIDTH * 88) / 120)}
       aria-hidden="true"
       focusable="false"
     >

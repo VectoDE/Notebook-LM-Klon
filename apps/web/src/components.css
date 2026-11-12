@@ -465,15 +465,20 @@ html[data-color-mode="aaa-contrast"] .rn-result-card {
   padding: var(--rn-space-4) var(--rn-space-3);
 }
 
+/* Zeichnung groß (Issue #356): 280 px, kompakt 240 px, auf schmalen Flächen (400 % Zoom)
+   nie breiter als der Platz, daher kein waagerechtes Scrollen */
 .rn-empty-art {
-  width: 120px;
+  width: min(280px, 100%);
+  max-width: 100%;
   height: auto;
-  margin-bottom: var(--rn-space-1);
+  /* Bei sehr niedriger Fläche (400 % Zoom, Querformat) bleiben Überschrift und Satz sichtbar */
+  max-height: 40vh;
+  margin-bottom: var(--rn-space-2);
   overflow: visible;
 }
 
 .rn-empty--compact .rn-empty-art {
-  width: 96px;
+  width: min(240px, 100%);
 }
 
 .rn-empty-title {
@@ -512,20 +517,26 @@ html[data-color-mode="aaa-contrast"] .rn-result-card {
   fill: var(--rn-color-panel);
 }
 
+.rn-art-line,
+.rn-art-on-accent,
+.rn-art-accent-line {
+  vector-effect: non-scaling-stroke;
+}
+
 .rn-art-line {
   fill: none;
   stroke: var(--rn-color-primary);
-  stroke-width: 1.75;
+  stroke-width: 2.5px;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .rn-art-strong {
-  stroke-width: 2.5;
+  stroke-width: 3.5px;
 }
 
 .rn-art-dashed {
-  stroke-dasharray: 2 5;
+  stroke-dasharray: 4 10;
 }
 
 .rn-art-accent {
@@ -535,14 +546,14 @@ html[data-color-mode="aaa-contrast"] .rn-result-card {
 .rn-art-on-accent {
   fill: none;
   stroke: var(--rn-color-accent-text);
-  stroke-width: 2;
+  stroke-width: 3.5px;
   stroke-linecap: round;
 }
 
 .rn-art-accent-line {
   fill: none;
   stroke: var(--rn-color-accent);
-  stroke-width: 2.5;
+  stroke-width: 4px;
   stroke-linecap: round;
 }
 
