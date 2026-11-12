@@ -45,4 +45,12 @@ describe("QuizViewer Component (Sub-Issue #123)", () => {
     expect(html).toContain("HTTP/1.1 oder HTTP/2");
     expect(html).toContain("Weiter");
   });
+
+  it("makes the question fieldset focusable for the focus move after Weiter", () => {
+    const html = renderToStaticMarkup(
+      createElement(QuizViewer, { questions: sampleQuestions, title: "Fokus" })
+    );
+    expect(html).toContain('<fieldset tabindex="-1" class="rn-quiz-fieldset">');
+    expect(html).toContain('aria-live="polite"');
+  });
 });
