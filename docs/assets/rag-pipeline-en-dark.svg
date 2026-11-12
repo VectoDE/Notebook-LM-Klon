@@ -53,8 +53,8 @@
   <text x="288" y="196" fill="#CBD5E1" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="11.5">  or nomic-embed-text</text>
   <text x="288" y="222" fill="#E2E8F0" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• Symmetric quantization:</text>
   <rect x="288" y="236" width="179" height="58" rx="8" fill="#0F172A" stroke="#334155" />
-  <text x="298" y="258" fill="#7DD3FC" font-family="'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace" font-size="11">scale = max(|v_i|) / 127</text>
-  <text x="298" y="278" fill="#6EE7B7" font-family="'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace" font-size="11">q_i = round(v_i / scale)</text>
+  <text x="298" y="258" fill="#7DD3FC" font-family="'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace" font-size="10.5">scale = max(|v_i|) / 127</text>
+  <text x="298" y="278" fill="#6EE7B7" font-family="'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace" font-size="10.5">q_i = round(v_i / scale)</text>
   <text x="288" y="320" fill="#E2E8F0" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12">• Float32: 3,072 bytes</text>
   <text x="288" y="340" fill="#6EE7B7" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="600">• Int8 BLOB: 768 bytes (-75%)</text>
 
