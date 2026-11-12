@@ -9,7 +9,8 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { orbPalette } from "./stage-visuals.js";
+import { orbPalette, orbStyleFor } from "./stage-visuals.js";
+import { REDUCE_MOTION_ATTRIBUTE, shouldReduceMotion } from "./theme-preferences.js";
 
 /** Zeichnet neu, wenn Design oder Farbmodus am Wurzelelement wechseln. */
 function useDesignVersion(): number {
@@ -19,7 +20,7 @@ function useDesignVersion(): number {
     const observer = new MutationObserver(() => setVersion((v) => v + 1));
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["data-design", "data-color-mode"]
+      attributeFilter: ["data-design", "data-color-mode", REDUCE_MOTION_ATTRIBUTE]
     });
     return () => observer.disconnect();
   }, []);
@@ -61,11 +62,12 @@ export function AuroraOrb({
       activeSpeaker
     );
 
-    // Check system preference for reduced motion if not passed explicitly
+    // Gerät oder Schalter „Bewegung reduzieren“ in der App (Issue #315)
+    const root = document.documentElement;
     const systemReducedMotion =
-      reducedMotion ||
-      (typeof window !== "undefined" &&
-        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+      reducedMotion || shouldReduceMotion(root, window.matchMedia?.bind(window));
+    // Hochkontrast: flache Fläche mit 2-px-Rand, ohne Leuchten und ohne Bewegung
+    const flat = orbStyleFor(root.getAttribute("data-color-mode")) === "flat";
 
     let animationFrameId: number | null = null;
     let time = 0;
@@ -76,6 +78,17 @@ export function AuroraOrb({
       const centerX = width / 2;
       const centerY = height / 2;
       const baseRadius = Math.min(width, height) * 0.38;
+
+      if (flat) {
+        ctx.fillStyle = palette.fill;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, baseRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = palette.outline;
+        ctx.stroke();
+        return;
+      }
 
       if (systemReducedMotion || !isPlaying) {
         // Calm static gradient fallback for reduced-motion or idle state

@@ -26,7 +26,7 @@ async function openSettings(page: Page, width: number) {
 function modeNames(page: Page, container: string) {
   return page
     .getByTestId(container)
-    .locator(".rn-segment:has([data-testid^='mode-option-'])")
+    .locator(".rn-choice:has([data-testid^='mode-option-'])")
     .allInnerTexts();
 }
 

@@ -127,12 +127,16 @@ describe("Design-Tokens: Vollständigkeit", () => {
       expect(c.textSmall).toBeGreaterThanOrEqual(0.875);
       expect(c.textH3).toBeGreaterThan(c.textBase);
       expect(c.textH2).toBeGreaterThan(c.textH3);
+      // Zwischenstufe liegt echt zwischen h3 und h2 (Issue #315)
+      expect(c.textLead).toBeGreaterThan(c.textH3);
+      expect(c.textLead).toBeLessThan(c.textH2);
       for (const px of [c.gapWorkspace, c.padPanel, c.padHeaderY, c.padHeaderX]) {
         expect(px % 4).toBe(0);
       }
       expect(c.radiusSm).toBeLessThanOrEqual(c.radiusMd);
       expect(c.radiusMd).toBeLessThanOrEqual(c.radiusLg);
-      expect(c.enterMs).toBeLessThanOrEqual(700); // subtil bis mittel
+      expect(c.enterMs).toBeLessThanOrEqual(300); // UI-Übergänge höchstens 300 ms (Issue #315)
+      expect(c.transitionMs).toBeLessThanOrEqual(300);
     }
     // Die Designs unterscheiden sich wirklich (nicht nur Farbe)
     const fingerprints = THEMES.map((t) => {

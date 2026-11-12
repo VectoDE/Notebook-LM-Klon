@@ -11,6 +11,7 @@ import {
   type KeyboardEvent,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState
 } from "react";
@@ -21,7 +22,13 @@ import { Icon, type IconName } from "./Icon.js";
 import { SettingsDrawer } from "./SettingsDrawer.js";
 import { SourcesPanel } from "./SourcesPanel.js";
 import { StudioPanel, type StudioTool } from "./StudioPanel.js";
-import { ChatApiError, mapCitations, streamChat } from "./chat-client.js";
+import {
+  ChatApiError,
+  errorKeyForStatus,
+  mapCitations,
+  streamChat,
+  technicalErrorDetail
+} from "./chat-client.js";
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, WorkspaceSource } from "./workspace-types.js";
@@ -199,31 +206,19 @@ const NARROW_HEADER_QUERY = "(max-width: 599.98px)";
 
 type PanelTab = "sources" | "chat" | "studio";
 
-/** Bereiche des Arbeitsbereichs: kurzer Name und voller Name für Screenreader (beginnt mit dem Namen). */
+/**
+ * Bereiche des Arbeitsbereichs: Schlüssel im Sprachkatalog für den kurzen Namen und den
+ * vollen Namen für Screenreader (beginnt mit dem sichtbaren Namen).
+ */
 const PANEL_TABS: readonly {
   readonly id: PanelTab;
-  readonly label: string;
-  readonly ariaLabel: string;
+  readonly labelKey: string;
+  readonly ariaKey: string;
   readonly icon: IconName;
 }[] = [
-  {
-    id: "sources",
-    label: "Quellen",
-    ariaLabel: "Quellen",
-    icon: "sources"
-  },
-  {
-    id: "chat",
-    label: "Chat",
-    ariaLabel: "Chat & Zitate",
-    icon: "chat"
-  },
-  {
-    id: "studio",
-    label: "Studio",
-    ariaLabel: "Studio (6 Werkzeuge)",
-    icon: "studio"
-  }
+  { id: "sources", labelKey: "navSources", ariaKey: "navSources", icon: "sources" },
+  { id: "chat", labelKey: "navChat", ariaKey: "navChatAria", icon: "chat" },
+  { id: "studio", labelKey: "navStudio", ariaKey: "navStudioAria", icon: "studio" }
 ];
 
 /** Reagiert auf eine Media Query; ohne window (Server-Rendering) immer false. */
@@ -248,7 +243,7 @@ export function WorkspaceLayout({
   notebookId = "nb_active",
   chatFetch
 }: WorkspaceLayoutProps) {
-  const { theme, setTheme, colorMode, setColorMode } = useTheme();
+  const { theme, setTheme, colorMode, setColorMode, t } = useTheme();
   const isNarrowHeader = useMediaQuery(NARROW_HEADER_QUERY);
 
   // Panels & Navigation state
@@ -344,8 +339,8 @@ export function WorkspaceLayout({
     {
       id: "msg_intro",
       role: "assistant",
-      content:
-        "Willkommen in Ihrem RelationNotes Arbeitsbereich. Ihre Quellen sind geladen. Sie können Zwischenfragen stellen oder die Studio-Werkzeuge rechts nutzen [1]."
+      // Ortsneutral (mobil liegt Studio nicht rechts); Text aus dem Sprachkatalog, siehe chatMessages
+      content: t("chatWelcome")
     }
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -457,9 +452,15 @@ export function WorkspaceLayout({
       if (err instanceof DOMException && err.name === "AbortError") {
         updateMessage(assistantId, (m) => ({ ...m, aborted: true }));
       } else {
-        const message =
-          err instanceof ChatApiError ? err.message : "Unerwarteter Fehler beim Chat.";
-        updateMessage(assistantId, (m) => ({ ...m, error: message }));
+        // Klartext mit Handlungshinweis; Statuscode und Servertext nur als Detail (Issue #315)
+        const error = t(
+          err instanceof ChatApiError ? errorKeyForStatus(err.status) : "errorGeneric"
+        );
+        const errorDetail =
+          err instanceof ChatApiError
+            ? `${t("errorTechnical")}: ${technicalErrorDetail(err.status, err.message)}`
+            : undefined;
+        updateMessage(assistantId, (m) => ({ ...m, error, errorDetail }));
       }
     } finally {
       updateMessage(assistantId, (m) => ({ ...m, isStreaming: false }));
@@ -467,6 +468,12 @@ export function WorkspaceLayout({
       setIsGenerating(false);
     }
   };
+
+  // Begrüßung folgt der gewählten Sprache, auch nach einem Wechsel
+  const chatMessages = useMemo(
+    () => messages.map((m) => (m.id === "msg_intro" ? { ...m, content: t("chatWelcome") } : m)),
+    [messages, t]
+  );
 
   const handleRetryChat = () => {
     if (lastPromptRef.current) void handleSendMessage(lastPromptRef.current, { isRetry: true });
@@ -476,7 +483,7 @@ export function WorkspaceLayout({
     <div className="workspace-shell" data-testid="workspace-shell">
       {/* Sprunglink: erstes fokussierbares Element, nur bei Fokus sichtbar */}
       <a href="#workspace-main" className="rn-skip-link" data-testid="skip-link">
-        Zum Inhalt springen
+        {t("skipToContent")}
       </a>
 
       {/* Kopf: Logo links, Bereiche als Reiterleiste, Darstellung in einem Menü */}
@@ -488,7 +495,7 @@ export function WorkspaceLayout({
           <span className="workspace-version">v{WORKSPACE_VERSION}</span>
         </div>
 
-        <nav aria-label="Bereiche" className="rn-topnav" data-testid="top-nav">
+        <nav aria-label={t("navAreas")} className="rn-topnav" data-testid="top-nav">
           {PANEL_TABS.map((tab) => {
             const isSources = tab.id === "sources";
             return (
@@ -501,7 +508,7 @@ export function WorkspaceLayout({
                 className="rn-topnav-item"
               >
                 <Icon name={tab.icon} size={18} />
-                <span className="rn-topnav-label">{tab.label}</span>
+                <span className="rn-topnav-label">{t(tab.labelKey)}</span>
                 {isSources && (
                   <span className="rn-topnav-count">
                     <span className="rn-visually-hidden">, </span>
@@ -521,7 +528,7 @@ export function WorkspaceLayout({
             className="rn-topnav-item"
           >
             <Icon name="settings" size={18} />
-            <span className="rn-topnav-label">Einstellungen</span>
+            <span className="rn-topnav-label">{t("navSettings")}</span>
           </button>
         </nav>
 
@@ -542,7 +549,7 @@ export function WorkspaceLayout({
               className="rn-control rn-control--button rn-appearance-button"
             >
               <Icon name="palette" size={18} />
-              <span className="rn-appearance-button-label">Darstellung</span>
+              <span className="rn-appearance-button-label">{t("appearanceTitle")}</span>
               <Icon name="chevron" size={16} className="rn-icon rn-appearance-chevron" />
             </button>
             {isAppearanceOpen && !isNarrowHeader && (
@@ -551,7 +558,7 @@ export function WorkspaceLayout({
                 ref={appearancePanelRef}
                 open
                 tabIndex={-1}
-                aria-label="Darstellung"
+                aria-label={t("appearanceTitle")}
                 data-testid="appearance-menu"
                 className="rn-popover"
                 onKeyDown={handleAppearanceKeyDown}
@@ -567,7 +574,7 @@ export function WorkspaceLayout({
             aria-expanded={isMenuOpen}
             aria-controls="nav-sheet"
             aria-haspopup="dialog"
-            aria-label="Menü öffnen"
+            aria-label={t("menuOpen")}
             data-testid="btn-open-menu"
             className="rn-control rn-control--button rn-menu-button"
           >
@@ -612,7 +619,7 @@ export function WorkspaceLayout({
           <ChatPanel
             notebookTitle="Cloudflare Edge Stack Architecture"
             notebookSummary="Dieses Notebook dokumentiert die vollständige Cloudflare Single-Worker- und In-Memory-Vektor-Architektur für latenzfreie Inferenz."
-            messages={messages}
+            messages={chatMessages}
             activeModel={activeModel}
             onSendMessage={(text) => handleSendMessage(text)}
             onStop={handleStopChat}
@@ -643,7 +650,7 @@ export function WorkspaceLayout({
       </main>
 
       {/* Untere Reiterleiste (unter 600 px): im Daumenbereich, Symbol und Kurzname */}
-      <nav aria-label="Bereiche" data-testid="mobile-bottom-nav" className="mobile-bottom-nav">
+      <nav aria-label={t("navAreas")} data-testid="mobile-bottom-nav" className="mobile-bottom-nav">
         {PANEL_TABS.map((tab) => {
           const isActive = activeMobileTab === tab.id;
           const isSources = tab.id === "sources";
@@ -653,7 +660,7 @@ export function WorkspaceLayout({
               type="button"
               onClick={() => setActiveMobileTab(tab.id)}
               aria-current={isActive ? "true" : undefined}
-              aria-label={isSources ? undefined : tab.ariaLabel}
+              aria-label={isSources ? undefined : t(tab.ariaKey)}
               data-testid={`tab-btn-${tab.id}`}
               className="rn-tab"
             >
@@ -661,7 +668,7 @@ export function WorkspaceLayout({
                 <Icon name={tab.icon} size={22} />
                 {isSources && <span className="rn-tab-count">{sources.length}</span>}
               </span>
-              <span className="rn-tab-label">{tab.label}</span>
+              <span className="rn-tab-label">{t(tab.labelKey)}</span>
               {isSources && <span className="rn-visually-hidden"> ({sources.length})</span>}
             </button>
           );
@@ -684,12 +691,12 @@ export function WorkspaceLayout({
         >
           <div className="rn-sheet-head">
             <h2 id="nav-sheet-title" className="rn-sheet-title">
-              Menü
+              {t("menuTitle")}
             </h2>
             <button
               type="button"
               onClick={() => closeMenu()}
-              aria-label="Menü schließen"
+              aria-label={t("menuClose")}
               data-testid="btn-close-menu"
               className="rn-icon-btn rn-dialog-close"
             >
@@ -713,8 +720,8 @@ export function WorkspaceLayout({
                 >
                   <Icon name="settings" size={22} />
                   <span className="rn-sheet-item-text">
-                    <span className="rn-sheet-item-title">Einstellungen</span>
-                    <span className="rn-sheet-item-hint">Modell, Datenschutz, Sprache</span>
+                    <span className="rn-sheet-item-title">{t("navSettings")}</span>
+                    <span className="rn-sheet-item-hint">{t("navSettingsHint")}</span>
                   </span>
                 </button>
               </li>
@@ -722,7 +729,7 @@ export function WorkspaceLayout({
 
             <section aria-labelledby="nav-sheet-appearance">
               <h3 id="nav-sheet-appearance" className="rn-sheet-section">
-                Darstellung
+                {t("appearanceTitle")}
               </h3>
               <AppearanceControls idPrefix="sheet" {...appearanceProps} />
             </section>

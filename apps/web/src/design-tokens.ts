@@ -112,6 +112,8 @@ export interface ScaleTokens {
   readonly textH2: number;
   /** Kartentitel (h3) */
   readonly textH3: number;
+  /** Zwischenstufe zwischen h3 und h2, z. B. Titel der Zusammenfassung (Issue #315) */
+  readonly textLead: number;
   readonly lineBody: number;
   readonly lineHeading: number;
   /** Buchstabenabstand der Überschriften in em */
@@ -142,6 +144,7 @@ export const SCALE: Record<DesignTheme, ScaleTokens> = {
     textSmall: 0.875,
     textH2: 1.25,
     textH3: 1.0625,
+    textLead: 1.125,
     lineBody: 1.6,
     lineHeading: 1.25,
     trackingHeading: -0.012,
@@ -154,7 +157,7 @@ export const SCALE: Record<DesignTheme, ScaleTokens> = {
     radiusMd: 16,
     radiusLg: 24,
     radiusPanel: 28,
-    enterMs: 360,
+    enterMs: 240,
     enterDistance: 6,
     transitionMs: 180,
     ease: "cubic-bezier(0.25, 0.1, 0.25, 1)"
@@ -164,6 +167,7 @@ export const SCALE: Record<DesignTheme, ScaleTokens> = {
     textSmall: 0.875,
     textH2: 1.375,
     textH3: 1.125,
+    textLead: 1.25,
     lineBody: 1.55,
     lineHeading: 1.15,
     trackingHeading: -0.025,
@@ -176,7 +180,7 @@ export const SCALE: Record<DesignTheme, ScaleTokens> = {
     radiusMd: 14,
     radiusLg: 20,
     radiusPanel: 20,
-    enterMs: 640,
+    enterMs: 300,
     enterDistance: 18,
     transitionMs: 280,
     ease: "cubic-bezier(0.16, 1, 0.3, 1)"
@@ -186,6 +190,7 @@ export const SCALE: Record<DesignTheme, ScaleTokens> = {
     textSmall: 0.875,
     textH2: 1.5,
     textH3: 1.1875,
+    textLead: 1.3125,
     lineBody: 1.7,
     lineHeading: 1.2,
     trackingHeading: -0.005,
@@ -198,7 +203,7 @@ export const SCALE: Record<DesignTheme, ScaleTokens> = {
     radiusMd: 6,
     radiusLg: 8,
     radiusPanel: 0,
-    enterMs: 480,
+    enterMs: 280,
     enterDistance: 0,
     transitionMs: 240,
     ease: "cubic-bezier(0.4, 0, 0.2, 1)"
@@ -208,6 +213,7 @@ export const SCALE: Record<DesignTheme, ScaleTokens> = {
     textSmall: 0.875,
     textH2: 1.5,
     textH3: 1.125,
+    textLead: 1.3125,
     lineBody: 1.6,
     lineHeading: 1.1,
     trackingHeading: -0.03,
@@ -220,7 +226,7 @@ export const SCALE: Record<DesignTheme, ScaleTokens> = {
     radiusMd: 12,
     radiusLg: 16,
     radiusPanel: 18,
-    enterMs: 420,
+    enterMs: 260,
     enterDistance: 10,
     transitionMs: 200,
     ease: "cubic-bezier(0.2, 0.8, 0.2, 1)"
@@ -866,6 +872,7 @@ function typographyDeclarations(theme: DesignTheme): string[] {
     `--rn-text-small: ${c.textSmall}rem;`,
     `--rn-text-h2: ${c.textH2}rem;`,
     `--rn-text-h3: ${c.textH3}rem;`,
+    `--rn-text-lead: ${c.textLead}rem;`,
     `--rn-line-body: ${c.lineBody};`,
     `--rn-line-heading: ${c.lineHeading};`,
     `--rn-tracking-heading: ${c.trackingHeading}em;`,

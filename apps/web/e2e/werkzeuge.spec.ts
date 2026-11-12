@@ -53,7 +53,8 @@ for (const width of [360, 390, 430, 1440]) {
                 .filter(
                   (anim) => anim.effect?.getComputedTiming().iterations !== Number.POSITIVE_INFINITY
                 )
-                .map((anim) => anim.finished)
+                // Abgebrochene Einblendungen (z. B. durch Neuaufbau) zählen als beendet
+                .map((anim) => anim.finished.catch(() => undefined))
             )
           );
           expect(await inlineStyles(page), tool.id).toEqual([]);
@@ -204,6 +205,8 @@ test.describe("Mindmap einpassen", () => {
       await page.goto("/");
       await openPanel(page, "studio");
       await page.getByTestId("btn-open-mindmap-tool").click();
+      // Auf dem Telefon startet die Baumliste (Issue #315); die Grafik liegt im Reiter daneben
+      if (width < 600) await page.getByRole("tab", { name: "Grafik", exact: true }).click();
       const rootInside = () =>
         page.locator(".rn-mindmap-canvas").evaluate((canvas) => {
           const root = canvas.querySelector('.rn-mm-node[data-kind="root"] .rn-mm-box');

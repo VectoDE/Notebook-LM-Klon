@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon.js";
+import { shouldReduceMotion } from "./theme-preferences.js";
 import type { CitationLocation } from "./workspace-types.js";
 
 export interface ChatMessage {
@@ -10,6 +11,8 @@ export interface ChatMessage {
   readonly isStreaming?: boolean | undefined;
   /** Fehlertext, falls die Antwort fehlgeschlagen ist. */
   readonly error?: string | undefined;
+  /** Technische Angabe zum Fehler (z. B. HTTP-Status), klein unter dem Klartext. */
+  readonly errorDetail?: string | undefined;
   /** True, wenn der Nutzer die Antwort abgebrochen hat. */
   readonly aborted?: boolean | undefined;
   /** Modell, das die Antwort erzeugt hat (EU AI Act Art. 50). */
@@ -60,7 +63,12 @@ export function ChatPanel({
   useEffect(() => {
     if (seenKey.current === contentKey) return;
     seenKey.current = contentKey;
-    messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+    messagesEndRef.current?.scrollIntoView?.({
+      behavior: shouldReduceMotion(document.documentElement, window.matchMedia?.bind(window))
+        ? "auto"
+        : "smooth",
+      block: "nearest"
+    });
   }, [contentKey]);
 
   // Fokus zurueck ins Eingabefeld, sobald die Generierung endet (Tastaturbedienung)
@@ -205,27 +213,6 @@ export function ChatPanel({
             </article>
           )}
 
-          {/* Vorschlagsfragen */}
-          {promptChips.length > 0 && (
-            <div
-              aria-label="Vorschlags-Fragen"
-              data-testid="prompt-chips-container"
-              className="rn-chips"
-            >
-              {promptChips.map((chip) => (
-                <button
-                  key={`chip-${chip}`}
-                  type="button"
-                  onClick={() => handleChipClick(chip)}
-                  data-testid={`prompt-chip-${chip}`}
-                  className="rn-chip"
-                >
-                  {chip}
-                </button>
-              ))}
-            </div>
-          )}
-
           {/* Nachrichten */}
           {messages.map((msg) => {
             const isUser = msg.role === "user";
@@ -275,7 +262,17 @@ export function ChatPanel({
 
                 {msg.error && (
                   <div role="alert" data-testid={`chat-error-${msg.id}`} className="rn-msg-error">
-                    <span>{msg.error}</span>
+                    <span className="rn-msg-error-text">
+                      {msg.error}
+                      {msg.errorDetail && (
+                        <small
+                          data-testid={`chat-error-detail-${msg.id}`}
+                          className="rn-msg-error-detail"
+                        >
+                          {msg.errorDetail}
+                        </small>
+                      )}
+                    </span>
                     {onRetry && (
                       <button
                         type="button"
@@ -304,6 +301,28 @@ export function ChatPanel({
               </article>
             );
           })}
+
+          {/* Vorschlagsfragen unter dem Verlauf, direkt über der Eingabe: so steht die erste
+              Antwort auf dem Telefon sichtbar unter der Zusammenfassung (Issue #315) */}
+          {promptChips.length > 0 && (
+            <div
+              aria-label="Vorschlags-Fragen"
+              data-testid="prompt-chips-container"
+              className="rn-chips"
+            >
+              {promptChips.map((chip) => (
+                <button
+                  key={`chip-${chip}`}
+                  type="button"
+                  onClick={() => handleChipClick(chip)}
+                  data-testid={`prompt-chip-${chip}`}
+                  className="rn-chip"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div ref={messagesEndRef} />
         </div>

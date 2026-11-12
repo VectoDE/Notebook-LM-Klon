@@ -82,3 +82,13 @@ describe("LiveLyrics Component (Sub-Issue #130)", () => {
     expect(html).not.toMatch(/aria-current="location"[^>]*data-testid="lyrics-line-l2"/);
   });
 });
+
+describe("LiveLyrics Label-in-Name (#314)", () => {
+  it("Zeilen tragen kein eigenes aria-label, der Name ist der sichtbare Text", () => {
+    const html = renderToStaticMarkup(
+      createElement(LiveLyrics, { lines: sampleLines, currentTimeMs: 0 })
+    );
+    expect(html).not.toMatch(/<button[^>]*aria-label=/);
+    expect(html).toContain("Host A");
+  });
+});

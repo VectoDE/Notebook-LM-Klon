@@ -39,22 +39,28 @@ describe("FlashcardsViewer Component (Sub-Issue #123)", () => {
     expect(html).toContain("Was ist RRF?");
     expect(html).toContain("Antwort aufdecken");
     expect(html).toContain("Quelle: RAG Leitfaden S. 5");
-    expect(html).toContain('aria-label="Nochmal (Taste 1)');
     expect(html).toContain(
-      '<span class="rn-rating-label">Nochmal</span><kbd class="rn-rating-key">1</kbd>'
+      '<span class="rn-rating-label">Nochmal</span> <kbd class="rn-rating-key">1</kbd>'
     );
-    expect(html).toContain('aria-label="Schwer (Taste 2)');
+    expect(html).toContain('aria-keyshortcuts="1"');
     expect(html).toContain(
-      '<span class="rn-rating-label">Schwer</span><kbd class="rn-rating-key">2</kbd>'
+      '<span class="rn-rating-label">Schwer</span> <kbd class="rn-rating-key">2</kbd>'
     );
-    expect(html).toContain('aria-label="Gut (Taste 3)');
+    expect(html).toContain('aria-keyshortcuts="2"');
     expect(html).toContain(
-      '<span class="rn-rating-label">Gut</span><kbd class="rn-rating-key">3</kbd>'
+      '<span class="rn-rating-label">Gut</span> <kbd class="rn-rating-key">3</kbd>'
     );
-    expect(html).toContain('aria-label="Einfach (Taste 4)');
+    expect(html).toContain('aria-keyshortcuts="3"');
     expect(html).toContain(
-      '<span class="rn-rating-label">Einfach</span><kbd class="rn-rating-key">4</kbd>'
+      '<span class="rn-rating-label">Einfach</span> <kbd class="rn-rating-key">4</kbd>'
     );
+    expect(html).toContain('aria-keyshortcuts="4"');
+    // WCAG 2.5.3 (#314): kein eigenes aria-label, Zusatz als Beschreibung
+    expect(html).not.toMatch(/class="rn-rating"[^>]*aria-label=/);
+    expect(html).not.toMatch(/aria-label="[^"]*Taste/);
+    expect(html).toContain("Taste 1: Falsch erinnert");
+    expect(html).toContain("Taste 4: Sofort fehlerfrei gewusst");
+    expect(html).toMatch(/aria-describedby="[^"]+-again"/);
   });
 
   it("renders card with custom initial review states", () => {

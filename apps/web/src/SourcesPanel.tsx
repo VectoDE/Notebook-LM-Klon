@@ -1,13 +1,7 @@
-import {
-  type ChangeEvent,
-  type DragEvent,
-  type KeyboardEvent,
-  useEffect,
-  useId,
-  useRef,
-  useState
-} from "react";
+import { type ChangeEvent, type DragEvent, useEffect, useId, useRef, useState } from "react";
 import { Icon } from "./Icon.js";
+import { trapTabKey } from "./focus-trap.js";
+import { useReturnFocus } from "./useReturnFocus.js";
 import type { CitationLocation, WorkspaceSource } from "./workspace-types.js";
 
 export interface SourcesPanelProps {
@@ -42,8 +36,23 @@ export function SourcesPanel({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const highlightRef = useRef<HTMLElement>(null);
+  const urlDialogRef = useRef<HTMLDialogElement>(null);
+  const urlButtonRef = useRef<HTMLButtonElement>(null);
+  const urlAddressRef = useRef<HTMLInputElement>(null);
   const searchInputId = useId();
   const urlDialogTitleId = useId();
+
+  // Vor showModal(): Auslöser merken, nach dem Schließen dorthin zurück (#314)
+  useReturnFocus(isUrlModalOpen, () => urlButtonRef.current);
+
+  // Modal öffnen: Hintergrund wird inert, Escape löst "cancel" aus, Fokus ins URL-Feld.
+  useEffect(() => {
+    const dialog = urlDialogRef.current;
+    if (isUrlModalOpen && dialog && !dialog.open && typeof dialog.showModal === "function") {
+      dialog.showModal();
+      urlAddressRef.current?.focus();
+    }
+  }, [isUrlModalOpen]);
 
   // If activeCitation arrives or changes, open inspector for that source
   useEffect(() => {
@@ -137,6 +146,7 @@ export function SourcesPanel({
           Datei hochladen
         </button>
         <button
+          ref={urlButtonRef}
           type="button"
           onClick={() => setIsUrlModalOpen(true)}
           className="btn-import-url rn-btn rn-btn--secondary"
@@ -193,7 +203,8 @@ export function SourcesPanel({
       </div>
 
       {sources.length > 0 && (
-        <div className="rn-select-all">
+        // Ganze Zeile ist das Label: Trefferfläche 44 px hoch (WCAG 2.5.5, Issue #315)
+        <label className="rn-select-all" htmlFor="select-all-sources-checkbox">
           <input
             id="select-all-sources-checkbox"
             type="checkbox"
@@ -202,8 +213,8 @@ export function SourcesPanel({
             data-testid="select-all-sources-checkbox"
             className="rn-checkbox"
           />
-          <label htmlFor="select-all-sources-checkbox">Alle Quellen auswählen</label>
-        </div>
+          <span>Alle Quellen auswählen</span>
+        </label>
       )}
 
       {/* Liste */}
@@ -227,15 +238,22 @@ export function SourcesPanel({
                 className="rn-source"
               >
                 <div className="rn-source-main">
-                  <input
-                    type="checkbox"
-                    id={`source-checkbox-${source.id}`}
-                    checked={isSelected}
-                    onChange={() => onToggleSelect?.(source.id)}
-                    aria-label={`Quelle ${source.title} für Chat auswählen`}
-                    data-testid={`source-checkbox-${source.id}`}
-                    className="rn-checkbox"
-                  />
+                  {/* Label als 44-px-Trefferfläche um das 20-px-Kästchen (Issue #315) */}
+                  <label
+                    className="rn-check-hit"
+                    htmlFor={`source-checkbox-${source.id}`}
+                    data-testid={`source-check-hit-${source.id}`}
+                  >
+                    <input
+                      type="checkbox"
+                      id={`source-checkbox-${source.id}`}
+                      checked={isSelected}
+                      onChange={() => onToggleSelect?.(source.id)}
+                      aria-label={`Quelle ${source.title} für Chat auswählen`}
+                      data-testid={`source-checkbox-${source.id}`}
+                      className="rn-checkbox"
+                    />
+                  </label>
                   <div className="rn-source-text">
                     <span className="rn-source-title">{source.title}</span>
                     <small className="rn-source-meta">
@@ -326,14 +344,17 @@ export function SourcesPanel({
       {/* Link-Import */}
       {isUrlModalOpen && (
         <dialog
-          open
+          ref={urlDialogRef}
           aria-labelledby={urlDialogTitleId}
           data-testid="url-import-dialog"
           className="rn-dialog"
-          onKeyDown={(e: KeyboardEvent<HTMLDialogElement>) => {
-            if (e.key === "Escape") {
-              setIsUrlModalOpen(false);
-            }
+          onCancel={(e) => {
+            e.preventDefault();
+            setIsUrlModalOpen(false);
+          }}
+          // Tab läuft im Dialog um, statt in die Browserleiste zu springen
+          onKeyDown={(e) => {
+            if (urlDialogRef.current) trapTabKey(e, urlDialogRef.current, document.activeElement);
           }}
         >
           <div className="rn-dialog-card">
@@ -361,6 +382,7 @@ export function SourcesPanel({
                 <label htmlFor="url-address-input">URL</label>
                 <input
                   id="url-address-input"
+                  ref={urlAddressRef}
                   type="url"
                   required
                   value={urlInput}
