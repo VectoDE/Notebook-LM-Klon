@@ -219,24 +219,80 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
   });
 
   describe("auth routes (public)", () => {
+    /** Fixture with TURNSTILE_SECRET_KEY and a Siteverify stub that accepts every token. */
+    async function withTurnstile(): Promise<Fixture> {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (input: RequestInfo | URL) => {
+          if (String(input).includes("turnstile")) {
+            return Response.json({ success: true });
+          }
+          throw new Error("network disabled in tests");
+        })
+      );
+      return createFixture({ TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA" });
+    }
+
+    function disposeFixture(other: Fixture): void {
+      other.sqlite.close();
+      rmSync(other.dataDir, { recursive: true, force: true });
+    }
+
+    it("fails closed with 503 on guest and magic-link when TURNSTILE_SECRET_KEY is missing", async () => {
+      const guest = await call("/api/v1/auth/guest", {
+        method: "POST",
+        json: { turnstileToken: "tok" }
+      });
+      expect(guest.status).toBe(503);
+      expect(((await guest.json()) as { code: string }).code).toBe("TURNSTILE_NOT_CONFIGURED");
+
+      const magic = await call("/api/v1/auth/magic-link", {
+        method: "POST",
+        json: { email: "user@example.test", turnstileToken: "tok" }
+      });
+      expect(magic.status).toBe(503);
+      expect(((await magic.json()) as { code: string }).code).toBe("TURNSTILE_NOT_CONFIGURED");
+    });
+
     it("creates a guest session that unlocks protected routes", async () => {
-      const res = await call("/api/v1/auth/guest", { method: "POST", json: {} });
+      const turnstileFx = await withTurnstile();
+      const res = await call(
+        "/api/v1/auth/guest",
+        { method: "POST", json: { turnstileToken: "tok" } },
+        turnstileFx.env
+      );
       expect(res.status).toBe(201);
       const cookie = res.headers.get("set-cookie")?.split(";")[0] ?? "";
       expect(cookie).toMatch(/^sid=/);
       const body = (await res.json()) as { demoNotebookId: string };
 
-      const jobs = await call(`/api/v1/jobs?notebookId=${body.demoNotebookId}`, { cookie });
+      const jobs = await call(
+        `/api/v1/jobs?notebookId=${body.demoNotebookId}`,
+        { cookie },
+        turnstileFx.env
+      );
       expect(jobs.status).toBe(200);
+      disposeFixture(turnstileFx);
+    });
+
+    it("rejects a guest login without a Turnstile token", async () => {
+      const turnstileFx = await withTurnstile();
+      const res = await call("/api/v1/auth/guest", { method: "POST", json: {} }, turnstileFx.env);
+      expect(res.status).toBe(403);
+      expect(((await res.json()) as { code: string }).code).toBe("BOT_VERIFICATION_REQUIRED");
+      disposeFixture(turnstileFx);
     });
 
     it("reports a mail delivery error when no mail provider is configured", async () => {
-      const res = await call("/api/v1/auth/magic-link", {
-        method: "POST",
-        json: { email: "user@example.test" }
-      });
+      const turnstileFx = await withTurnstile();
+      const res = await call(
+        "/api/v1/auth/magic-link",
+        { method: "POST", json: { email: "user@example.test", turnstileToken: "tok" } },
+        turnstileFx.env
+      );
       expect(res.status).toBe(500);
       expect(((await res.json()) as { code: string }).code).toBe("EMAIL_DELIVERY_FAILED");
+      disposeFixture(turnstileFx);
     });
 
     it("sends the magic link via Resend and uses configured Turnstile/salt secrets", async () => {

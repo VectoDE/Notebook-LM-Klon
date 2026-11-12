@@ -1,5 +1,5 @@
 import { createProblemDetails } from "@notebook-lm/shared";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import type { CoreRepository } from "./core-repository.js";
 import { seedDemoNotebooks } from "./demo-seeder.js";
 import type { MailAdapter } from "./mail-adapter.js";
@@ -9,7 +9,7 @@ import {
   generateSessionToken,
   sha256Hex
 } from "./session.js";
-import { TURNSTILE_TEST_SECRET_ALWAYS_PASSES, verifyTurnstileToken } from "./turnstile.js";
+import { verifyTurnstileToken } from "./turnstile.js";
 
 export const GUEST_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const MAGIC_LINK_TTL_MS = 15 * 60 * 1000; // 15 minutes
@@ -21,7 +21,11 @@ export interface GuestAndMagicLinkRoutesOptions {
   repo: CoreRepository;
   sessionManager: SessionManager;
   mailAdapter: MailAdapter;
-  turnstileSecretKey?: string;
+  /**
+   * Turnstile secret (TURNSTILE_SECRET_KEY). Without it, guest login and magic-link
+   * requests are rejected with 503 (fail-closed). There is no fallback to a test key.
+   */
+  turnstileSecretKey?: string | undefined;
   appBaseUrl: string;
   isProduction?: boolean;
   customFetch?: typeof fetch;
@@ -40,6 +44,68 @@ export function createGuestAndMagicLinkRoutes(
   opts: GuestAndMagicLinkRoutesOptions
 ): Hono<{ Bindings: Env }> {
   const router = new Hono<{ Bindings: Env }>();
+
+  /**
+   * Fail-closed bot check: missing secret -> 503, missing or rejected token -> 403.
+   * Returns null only when Siteverify confirmed the token.
+   */
+  const checkTurnstile = async (c: Context, token: unknown): Promise<Response | null> => {
+    const problemHeaders = { "content-type": "application/problem+json; charset=utf-8" };
+    const secretKey = opts.turnstileSecretKey?.trim();
+    if (!secretKey) {
+      return c.json(
+        createProblemDetails({
+          status: 503,
+          title: "Service Unavailable",
+          detail:
+            "Bot-Schutz ist nicht konfiguriert (TURNSTILE_SECRET_KEY fehlt). Anmeldung ist deaktiviert.",
+          instance: c.req.path,
+          code: "TURNSTILE_NOT_CONFIGURED"
+        }),
+        503,
+        problemHeaders
+      );
+    }
+
+    if (typeof token !== "string" || token.trim() === "") {
+      return c.json(
+        createProblemDetails({
+          status: 403,
+          title: "Forbidden",
+          detail: "Turnstile-Token fehlt. Bitte die Bot-Prüfung abschließen.",
+          instance: c.req.path,
+          code: "BOT_VERIFICATION_REQUIRED"
+        }),
+        403,
+        problemHeaders
+      );
+    }
+
+    const verifyRes = await verifyTurnstileToken(
+      {
+        secretKey,
+        token,
+        remoteIp: c.req.header("cf-connecting-ip") || null
+      },
+      opts.customFetch
+    );
+
+    if (!verifyRes.success) {
+      return c.json(
+        createProblemDetails({
+          status: 403,
+          title: "Forbidden",
+          detail: "Turnstile Bot-Verifikation fehlgeschlagen.",
+          instance: c.req.path,
+          code: "BOT_VERIFICATION_FAILED"
+        }),
+        403,
+        problemHeaders
+      );
+    }
+
+    return null;
+  };
 
   // Helper to ensure demo workspace exists
   const ensureDemoWorkspace = async (now: number): Promise<void> => {
@@ -77,33 +143,11 @@ export function createGuestAndMagicLinkRoutes(
       body = {};
     }
 
-    const turnstileSecret = opts.turnstileSecretKey ?? TURNSTILE_TEST_SECRET_ALWAYS_PASSES;
-    const ip = c.req.header("cf-connecting-ip") || null;
-
-    if (body.turnstileToken) {
-      const verifyRes = await verifyTurnstileToken(
-        {
-          secretKey: turnstileSecret,
-          token: body.turnstileToken,
-          remoteIp: ip
-        },
-        opts.customFetch
-      );
-
-      if (!verifyRes.success) {
-        return c.json(
-          createProblemDetails({
-            status: 403,
-            title: "Forbidden",
-            detail: "Turnstile Bot-Verifikation fehlgeschlagen.",
-            instance: c.req.path,
-            code: "BOT_VERIFICATION_FAILED"
-          }),
-          403,
-          { "content-type": "application/problem+json; charset=utf-8" }
-        );
-      }
+    const botCheck = await checkTurnstile(c, body.turnstileToken);
+    if (botCheck) {
+      return botCheck;
     }
+    const ip = c.req.header("cf-connecting-ip") || null;
 
     const now = Date.now();
     const guestId = `usr_guest_${now.toString(36)}_${generateSecureSuffix()}`;
@@ -222,32 +266,9 @@ export function createGuestAndMagicLinkRoutes(
       );
     }
 
-    const turnstileSecret = opts.turnstileSecretKey ?? TURNSTILE_TEST_SECRET_ALWAYS_PASSES;
-    const ip = c.req.header("cf-connecting-ip") || null;
-
-    if (body.turnstileToken) {
-      const verifyRes = await verifyTurnstileToken(
-        {
-          secretKey: turnstileSecret,
-          token: body.turnstileToken,
-          remoteIp: ip
-        },
-        opts.customFetch
-      );
-
-      if (!verifyRes.success) {
-        return c.json(
-          createProblemDetails({
-            status: 403,
-            title: "Forbidden",
-            detail: "Turnstile Bot-Verifikation fehlgeschlagen.",
-            instance: c.req.path,
-            code: "BOT_VERIFICATION_FAILED"
-          }),
-          403,
-          { "content-type": "application/problem+json; charset=utf-8" }
-        );
-      }
+    const botCheck = await checkTurnstile(c, body.turnstileToken);
+    if (botCheck) {
+      return botCheck;
     }
 
     const rawToken = generateSessionToken();
