@@ -68,7 +68,11 @@ for (const design of DESIGNS) {
           inputs: radii(".rn-search-input"),
           body: getComputedStyle(document.body).fontSize,
           message: getComputedStyle(document.querySelector(".rn-msg-body") as Element).fontSize,
-          header: Math.round(header.getBoundingClientRect().height)
+          header: Math.round(header.getBoundingClientRect().height),
+          logoLeft: Math.round(
+            (header.querySelector("[data-testid='brand-logo']") as Element).getBoundingClientRect()
+              .left
+          )
         };
       }, BUTTONS);
       expect(report.notPill, "Pillenform").toEqual([]);
@@ -84,6 +88,8 @@ for (const design of DESIGNS) {
       expect(report.body).toBe("16px");
       expect(report.message).toBe("16px");
       expect(report.header).toBe(56);
+      // Logo links oben, vor allen anderen Elementen der Leiste
+      expect(report.logoLeft).toBeLessThan(48);
     });
 
     test("Überschriften dürfen Serifen tragen, Fließtext nie", async ({ page }) => {
