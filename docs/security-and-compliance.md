@@ -9,6 +9,7 @@ Stand: 2026-11-09 · Referenzen: Entscheidungen #5, #6, #8, #31, #32, #33, #49, 
   <source media="(prefers-color-scheme: light)" srcset="./assets/security-layers-light.svg">
   <img alt="Defense-in-Depth Sicherheits- & Compliance-Schichten" src="./assets/security-layers-light.svg" width="100%">
 </picture>
+<sub>Grafik in <a href="./assets/security-layers-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="./assets/security-layers-en.svg" hreflang="en" lang="en">English</a></sub>
 
 ## 1. Kryptografisches Konzept: BYOK Envelope Encryption (`AES-256-GCM`)
 
