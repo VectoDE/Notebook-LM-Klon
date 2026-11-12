@@ -171,9 +171,7 @@ export function SourcesPanel({
         <Icon name="file" size={22} />
         <div>
           <p className="rn-dropzone-title">Dateien hier ablegen</p>
-          <small className="rn-dropzone-hint">
-            PDF, TXT oder Markdown
-          </small>
+          <small className="rn-dropzone-hint">PDF, TXT oder Markdown</small>
         </div>
       </section>
 

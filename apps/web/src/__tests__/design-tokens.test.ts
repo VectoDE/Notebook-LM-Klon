@@ -6,14 +6,17 @@ import {
   CONTRAST_RULES,
   DESIGN_TOKENS,
   MIN_RATIO,
+  MIXED_SURFACES,
   SCALE,
   THEMES,
   TOKEN_CSS_NAMES,
   TYPOGRAPHY,
   auditContrast,
+  auditMixedSurfaces,
   buildThemeCss,
   colorSchemeFor,
   contrastRatio,
+  mixSrgb,
   parseHex,
   relativeLuminance,
   tokensToCssDeclarations
@@ -196,5 +199,37 @@ describe("themes.css ist synchron zu design-tokens.ts", () => {
 
   it("verwendet nur das Attribut data-design (nicht data-theme)", () => {
     expect(css).not.toContain("data-theme");
+  });
+});
+
+describe("Getönte Dekorflächen (workspace.css)", () => {
+  const workspaceCss = readFileSync(resolve(import.meta.dirname, "../workspace.css"), "utf8");
+
+  it("mischt wie CSS color-mix in sRGB", () => {
+    expect(mixSrgb("#000000", "#ffffff", 0.5)).toBe("#808080");
+    expect(mixSrgb("#ff0000", "#0000ff", 1)).toBe("#ff0000");
+    expect(mixSrgb("#ff0000", "#0000ff", 0)).toBe("#0000ff");
+  });
+
+  it("hält auf jeder Mischfläche Text 7:1 und Symbole 3:1 (Hell und Dunkel)", () => {
+    const results = auditMixedSurfaces();
+    expect(results.length).toBeGreaterThan(30);
+    const failures = results
+      .filter((r) => !r.passes)
+      .map((r) => `${r.theme}/${r.mode} ${r.surface} ${r.foreground}: ${r.ratio.toFixed(2)}`);
+    expect(failures).toEqual([]);
+    for (const r of results) expect(r.ratio).toBeGreaterThanOrEqual(MIN_RATIO[r.kind]);
+  });
+
+  it("prüft genau die Mischungen, die workspace.css verwendet", () => {
+    for (const surface of MIXED_SURFACES) {
+      const [a, b, share] = surface.mix;
+      if (a === b) {
+        expect(workspaceCss, surface.name).toContain(`var(${TOKEN_CSS_NAMES[a]})`);
+        continue;
+      }
+      const declaration = `color-mix(in srgb, var(${TOKEN_CSS_NAMES[a]}) ${Math.round(share * 100)}%, var(${TOKEN_CSS_NAMES[b]}))`;
+      expect(workspaceCss, surface.name).toContain(declaration);
+    }
   });
 });

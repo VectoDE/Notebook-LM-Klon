@@ -1250,3 +1250,280 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
     animation: none !important;
   }
 }
+
+/* ==========================================================================
+   Komposition je Design
+   Gleiche Bauteile, eigene Haltung: Hierarchie, Ränder, Material, Licht.
+   Verläufe liegen nur auf Dekorflächen (Kacheln, Linien, Avatar); Text bleibt
+   auf den geprüften Flächen. AAA-Hochkontrast setzt am Ende alles flach.
+   ========================================================================== */
+
+/* --- Pure: ruhige Klarheit. Schwebende Flächen, weiche Tiefe, keine Linien --- */
+html[data-design="pure"] .workspace-header {
+  border-bottom-color: transparent;
+  box-shadow: 0 1px 0 var(--rn-color-panel-border);
+}
+
+html[data-design="pure"] .rn-tool {
+  border-color: transparent;
+  background: var(--rn-color-canvas);
+  transition: background-color var(--rn-transition-base), box-shadow var(--rn-transition-base),
+    transform var(--rn-transition-base);
+}
+
+html[data-design="pure"] .rn-tool:hover,
+html[data-design="pure"] .rn-tool:focus-within {
+  background: var(--rn-color-panel);
+  border-color: var(--rn-color-panel-border);
+  box-shadow: var(--rn-color-panel-shadow);
+}
+
+html[data-design="pure"] .rn-tool-tile,
+html[data-design="pure"] .rn-source-type {
+  background: color-mix(in srgb, var(--rn-color-brand) 12%, var(--rn-color-panel));
+}
+
+html[data-design="pure"] .rn-summary {
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--rn-color-brand) 9%, var(--rn-color-panel)),
+    var(--rn-color-surface-variant)
+  );
+}
+
+/* --- Editorial Calm: Ruhe und Lesen. Spalten, Linien, Typografie trägt --- */
+html[data-design="editorial-calm"] .workspace-header {
+  min-height: 72px;
+}
+
+html[data-design="editorial-calm"] .rn-panel-head {
+  padding-bottom: var(--rn-space-4);
+  border-bottom: 1px solid var(--rn-color-panel-border);
+}
+
+html[data-design="editorial-calm"] .rn-eyebrow,
+html[data-design="editorial-calm"] .rn-msg-author {
+  font-family: var(--rn-font-family-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+html[data-design="editorial-calm"] .rn-msg--user .rn-msg-author {
+  letter-spacing: 0.04em;
+}
+
+/* Zusammenfassung als Vorspann: keine Box, Markenlinie links, große Serife */
+html[data-design="editorial-calm"] .rn-summary {
+  padding: 0 0 0 var(--rn-space-5);
+  border-radius: 0;
+  background: transparent;
+  border-left: 3px solid var(--rn-color-brand);
+}
+
+html[data-design="editorial-calm"] .rn-summary-title {
+  font-size: var(--rn-text-h2) !important;
+}
+
+html[data-design="editorial-calm"] .rn-summary-text {
+  font-size: var(--rn-text-base);
+  color: var(--rn-color-text-primary);
+}
+
+html[data-design="editorial-calm"] .chat-column,
+html[data-design="editorial-calm"] .rn-composer {
+  max-width: 66ch;
+}
+
+html[data-design="editorial-calm"] .rn-chip {
+  border-radius: var(--rn-radius-sm);
+}
+
+html[data-design="editorial-calm"] .rn-avatar {
+  border-radius: 2px;
+  background: var(--rn-color-brand);
+}
+
+/* Werkzeuge als Inhaltsverzeichnis: Linien statt Karten */
+html[data-design="editorial-calm"] .rn-tools {
+  gap: 0;
+}
+
+html[data-design="editorial-calm"] .rn-tools > li + li .rn-tool {
+  border-top: 1px solid var(--rn-color-panel-border);
+}
+
+html[data-design="editorial-calm"] .rn-tool {
+  padding: var(--rn-space-5) 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+html[data-design="editorial-calm"] .workspace-panel .rn-tool {
+  border-color: transparent !important;
+}
+
+html[data-design="editorial-calm"] .rn-tools > li + li .rn-tool {
+  border-top-color: var(--rn-color-panel-border) !important;
+}
+
+html[data-design="editorial-calm"] .rn-tool-tile,
+html[data-design="editorial-calm"] .rn-source-type {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--rn-color-panel-border);
+  border-radius: var(--rn-radius-sm);
+}
+
+html[data-design="editorial-calm"] .rn-source {
+  border-radius: 0;
+  border-width: 0 0 1px;
+  border-bottom-color: var(--rn-color-panel-border);
+}
+
+/* --- Immersive Cinema: Tiefe und Kino. Glas, Lichtkanten, leuchtende Kacheln --- */
+html[data-design="immersive-cinema"] .workspace-panel {
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--rn-color-text-primary) 8%, transparent),
+    var(--rn-color-panel-shadow);
+}
+
+html[data-design="immersive-cinema"] .rn-tool,
+html[data-design="immersive-cinema"] .rn-summary {
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--rn-color-brand) 7%, var(--rn-color-panel)),
+    var(--rn-color-panel) 70%
+  );
+}
+
+html[data-design="immersive-cinema"] .rn-summary {
+  border: 1px solid color-mix(in srgb, var(--rn-color-brand) 35%, var(--rn-color-panel-border));
+  box-shadow: 0 24px 48px -32px color-mix(in srgb, var(--rn-color-brand) 70%, transparent);
+}
+
+html[data-design="immersive-cinema"] .rn-tool-tile,
+html[data-design="immersive-cinema"] .rn-source-type {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--rn-color-brand) 32%, var(--rn-color-panel)),
+    color-mix(in srgb, var(--rn-color-stage-accent) 22%, var(--rn-color-panel))
+  );
+  color: var(--rn-color-text-primary);
+  box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--rn-color-brand) 80%, transparent);
+}
+
+html[data-design="immersive-cinema"] .rn-tool {
+  transition: transform var(--rn-transition-base), border-color var(--rn-transition-base),
+    box-shadow var(--rn-transition-base);
+}
+
+html[data-design="immersive-cinema"] .rn-tool:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px -24px color-mix(in srgb, var(--rn-color-brand) 75%, transparent);
+}
+
+html[data-design="immersive-cinema"] .rn-avatar {
+  box-shadow: 0 0 16px color-mix(in srgb, var(--rn-color-brand) 70%, transparent);
+}
+
+html[data-design="immersive-cinema"] .rn-composer:focus-within {
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--rn-color-brand) 18%, transparent),
+    var(--rn-color-panel-shadow);
+}
+
+html[data-design="immersive-cinema"] .rn-tab[aria-current="page"] .rn-tab-indicator {
+  background: color-mix(in srgb, var(--rn-color-brand) 22%, var(--rn-color-panel));
+  box-shadow: 0 0 18px -4px color-mix(in srgb, var(--rn-color-brand) 70%, transparent);
+}
+
+/* --- Fusion: Energie und Bewegung. Farbverläufe, Kanten, spürbare Reaktion --- */
+html[data-design="fusion"] .rn-tool-tile,
+html[data-design="fusion"] .rn-avatar {
+  background: linear-gradient(135deg, var(--rn-color-brand), var(--rn-color-stage-accent));
+  color: var(--rn-color-stage-bg);
+}
+
+html[data-design="fusion"] .rn-source-type {
+  background: color-mix(in srgb, var(--rn-color-stage-accent) 16%, var(--rn-color-panel));
+}
+
+html[data-design="fusion"] .rn-summary {
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-design="fusion"] .rn-summary::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(
+      90deg,
+      var(--rn-color-brand),
+      var(--rn-color-stage-accent),
+      var(--rn-color-brand)
+    )
+    0 0 / 200% 100%;
+  animation: rn-fusion-line 6s linear infinite;
+}
+
+html[data-design="fusion"] .rn-tool {
+  transition: transform var(--rn-transition-base), border-color var(--rn-transition-base),
+    box-shadow var(--rn-transition-base);
+}
+
+html[data-design="fusion"] .rn-tool:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--rn-color-panel-shadow);
+}
+
+html[data-design="fusion"] .rn-chip:hover {
+  border-color: var(--rn-color-brand);
+}
+
+html[data-design="fusion"] .rn-tab[aria-current="page"] .rn-tab-indicator {
+  background: color-mix(in srgb, var(--rn-color-stage-accent) 30%, var(--rn-color-panel));
+}
+
+html[data-design="fusion"] .rn-panel-heading h2 {
+  font-size: 1.625rem !important;
+}
+
+/* --- AAA-Hochkontrast: flach, klare Ränder, keine Verläufe und kein Leuchten --- */
+html[data-color-mode="aaa-contrast"] .rn-tool,
+html[data-color-mode="aaa-contrast"] .rn-summary {
+  background: var(--rn-color-panel) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html[data-color-mode="aaa-contrast"] .rn-summary {
+  border: 2px solid var(--rn-color-border);
+  padding: var(--rn-space-4);
+}
+
+html[data-color-mode="aaa-contrast"] .rn-tool-tile,
+html[data-color-mode="aaa-contrast"] .rn-source-type,
+html[data-color-mode="aaa-contrast"] .rn-avatar {
+  background: var(--rn-color-surface-variant) !important;
+  color: var(--rn-color-primary) !important;
+  box-shadow: inset 0 0 0 1px var(--rn-color-border) !important;
+}
+
+html[data-color-mode="aaa-contrast"] .rn-summary::before {
+  display: none;
+}
+
+html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="page"] .rn-tab-indicator {
+  background: var(--rn-color-surface-variant);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-design] .rn-summary::before {
+    animation: none !important;
+  }
+  html[data-design] .rn-tool:hover {
+    transform: none !important;
+  }
+}

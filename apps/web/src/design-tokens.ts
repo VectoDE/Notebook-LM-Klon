@@ -684,6 +684,137 @@ export function auditContrast(theme: DesignTheme, mode: ColorMode): ContrastResu
   );
 }
 
+/**
+ * Mischt zwei Farben wie CSS `color-mix(in srgb, a share%, b)`: lineare Mischung der
+ * sRGB-Kanäle, gerundet auf ganze Werte.
+ */
+export function mixSrgb(a: string, b: string, shareOfA: number): string {
+  const ca = parseHex(a);
+  const cb = parseHex(b);
+  const mixed = ca.map((v, i) => Math.round(v * shareOfA + (cb[i] as number) * (1 - shareOfA)));
+  return `#${mixed.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/**
+ * Getönte Flächen aus workspace.css (Kacheln, Kartenverläufe, Reitermarke). Jede Fläche
+ * ist eine Mischung aus zwei Tokens; darauf stehende Texte brauchen 7:1, Symbole 3:1.
+ * Gilt für Hell und Dunkel; im AAA-Modus sind diese Flächen abgeschaltet.
+ */
+export interface MixedSurface {
+  readonly theme: DesignTheme;
+  readonly name: string;
+  readonly mix: readonly [keyof ColorTokens, keyof ColorTokens, number];
+  readonly text: readonly (keyof ColorTokens)[];
+  readonly graphics: readonly (keyof ColorTokens)[];
+}
+
+export const MIXED_SURFACES: readonly MixedSurface[] = [
+  {
+    theme: "pure",
+    name: "Werkzeugkachel und Dateiart",
+    mix: ["brand", "panel", 0.12],
+    text: ["primary"],
+    graphics: ["primary"]
+  },
+  {
+    theme: "pure",
+    name: "Zusammenfassung, Verlaufsanfang",
+    mix: ["brand", "panel", 0.09],
+    text: ["textPrimary", "textSecondary", "primary"],
+    graphics: []
+  },
+  {
+    theme: "immersive-cinema",
+    name: "Karte und Zusammenfassung, Verlaufsanfang",
+    mix: ["brand", "panel", 0.07],
+    text: ["textPrimary", "textSecondary", "primary"],
+    graphics: ["accent"]
+  },
+  {
+    theme: "immersive-cinema",
+    name: "Kachel, Markenende",
+    mix: ["brand", "panel", 0.32],
+    text: ["textPrimary"],
+    graphics: ["textPrimary"]
+  },
+  {
+    theme: "immersive-cinema",
+    name: "Kachel, Akzentende",
+    mix: ["stageAccent", "panel", 0.22],
+    text: ["textPrimary"],
+    graphics: ["textPrimary"]
+  },
+  {
+    theme: "immersive-cinema",
+    name: "Reitermarke",
+    mix: ["brand", "panel", 0.22],
+    text: [],
+    graphics: ["primary"]
+  },
+  {
+    theme: "fusion",
+    name: "Werkzeugkachel, Markenende",
+    mix: ["brand", "brand", 1],
+    text: [],
+    graphics: ["stageBg"]
+  },
+  {
+    theme: "fusion",
+    name: "Werkzeugkachel, Akzentende",
+    mix: ["stageAccent", "stageAccent", 1],
+    text: [],
+    graphics: ["stageBg"]
+  },
+  {
+    theme: "fusion",
+    name: "Dateiart",
+    mix: ["stageAccent", "panel", 0.16],
+    text: ["primary"],
+    graphics: []
+  },
+  {
+    theme: "fusion",
+    name: "Reitermarke",
+    mix: ["stageAccent", "panel", 0.3],
+    text: [],
+    graphics: ["primary"]
+  }
+];
+
+export interface MixedSurfaceResult {
+  readonly theme: DesignTheme;
+  readonly mode: ColorMode;
+  readonly surface: string;
+  readonly foreground: keyof ColorTokens;
+  readonly kind: ContrastKind;
+  readonly ratio: number;
+  readonly passes: boolean;
+}
+
+/** Prüft alle getönten Flächen in Hell und Dunkel. */
+export function auditMixedSurfaces(): MixedSurfaceResult[] {
+  return MIXED_SURFACES.flatMap((surface) =>
+    (["light", "dark"] as const).flatMap((mode) => {
+      const tokens = DESIGN_TOKENS[surface.theme][mode];
+      const [a, b, share] = surface.mix;
+      const background = mixSrgb(tokens[a], tokens[b], share);
+      const check = (kind: ContrastKind) => (foreground: keyof ColorTokens) => {
+        const ratio = contrastRatio(tokens[foreground], background);
+        return {
+          theme: surface.theme,
+          mode,
+          surface: surface.name,
+          foreground,
+          kind,
+          ratio,
+          passes: ratio >= MIN_RATIO[kind]
+        };
+      };
+      return [...surface.text.map(check("text")), ...surface.graphics.map(check("ui"))];
+    })
+  );
+}
+
 /** CSS-Deklarationen (ohne Selektor) für eine Kombination, für themes.css und Tests. */
 export function tokensToCssDeclarations(theme: DesignTheme, mode: ColorMode): string[] {
   const tokens = DESIGN_TOKENS[theme][mode];
