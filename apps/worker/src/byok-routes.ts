@@ -115,9 +115,9 @@ async function auditKeyAction(
     c.req.header("cf-connecting-ip") ??
     c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
     "127.0.0.1";
-  const salt = deps.saltSecret ?? "byok-audit-salt";
-  const ipHash = await computeDailySaltedHash(clientIp, salt);
-  /* v8 ignore next */
+  // Without a secret salt the IP is not hashed at all: a fixed, public salt would make
+  // the hash reversible. The API app blocks these routes earlier (SESSION_SALT_NOT_CONFIGURED).
+  const ipHash = deps.saltSecret ? await computeDailySaltedHash(clientIp, deps.saltSecret) : null;
   const finalIpHash = ipHash ?? "unknown-ip";
 
   await deps.coreRepo.logAudit({

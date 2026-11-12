@@ -6,6 +6,9 @@
   "observability": {
     "enabled": true
   },
+  "triggers": {
+    "crons": ["0 * * * *"]
+  },
   "vars": {
     "APP_PROFILE": "demo",
     "APP_ORIGIN": "http://localhost:8787"

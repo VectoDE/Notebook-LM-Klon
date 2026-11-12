@@ -33,7 +33,70 @@ export interface RateLimitOptions {
 }
 
 /**
- * Extracts a client identifier from headers or CF context.
+ * Socket addresses registered by the Node server per request. Clients cannot write to this map,
+ * unlike request headers.
+ */
+const socketAddresses = new WeakMap<Request, string>();
+
+/** Records the TCP peer address of a request (called by the Node server only). */
+export function registerSocketAddress(request: Request, address: string | undefined): void {
+  const trimmed = address?.trim();
+  if (trimmed) {
+    socketAddresses.set(request, trimmed);
+  }
+}
+
+/** Identifier shared by all requests whose client address cannot be determined. */
+export const UNKNOWN_CLIENT_IDENTIFIER = "ip:unknown";
+
+/** True when running inside the Cloudflare Workers runtime. */
+export function isCloudflareRuntime(): boolean {
+  const nav = (globalThis as { navigator?: { userAgent?: string } }).navigator;
+  return nav?.userAgent === "Cloudflare-Workers";
+}
+
+/**
+ * Returns the header the operator trusts for the client IP (env TRUSTED_PROXY_HEADER),
+ * lowercased, or undefined when none is configured.
+ */
+export function resolveTrustedProxyHeader(env: unknown): string | undefined {
+  const raw = (env as { TRUSTED_PROXY_HEADER?: unknown } | undefined)?.TRUSTED_PROXY_HEADER;
+  if (typeof raw !== "string") return undefined;
+  const name = raw.trim().toLowerCase();
+  return name.length > 0 ? name : undefined;
+}
+
+/**
+ * Takes the last entry of a comma-separated header. A trusted proxy appends the address it saw,
+ * so earlier entries can come from the client and must not be used.
+ */
+function lastHeaderEntry(value: string | undefined): string | undefined {
+  const last = value?.split(",").pop()?.trim();
+  return last ? last : undefined;
+}
+
+/**
+ * Resolves the client IP from a source the operator trusts, in this order:
+ * 1. TRUSTED_PROXY_HEADER, if configured (e.g. "x-forwarded-for" behind a reverse proxy)
+ * 2. cf-connecting-ip, only inside the Cloudflare runtime (set by the Cloudflare edge)
+ * 3. The socket address recorded by the Node server
+ * Client-supplied headers are never read without one of these guarantees.
+ */
+export function resolveClientIp(c: Context): string | undefined {
+  const trustedHeader = resolveTrustedProxyHeader(c.env);
+  if (trustedHeader) {
+    return lastHeaderEntry(c.req.header(trustedHeader));
+  }
+
+  if (isCloudflareRuntime()) {
+    return c.req.header("cf-connecting-ip")?.trim() || undefined;
+  }
+
+  return socketAddresses.get(c.req.raw);
+}
+
+/**
+ * Extracts a client identifier: the session user if present, otherwise the trusted client IP.
  */
 export function extractClientIdentifier(c: Context): string {
   // 1. If authenticated session exists in context, use that
@@ -42,20 +105,9 @@ export function extractClientIdentifier(c: Context): string {
     return `usr:${user.id}`;
   }
 
-  // 2. CF Connecting IP or X-Forwarded-For
-  const cfIp = c.req.header("cf-connecting-ip");
-  if (cfIp) {
-    return `ip:${cfIp.trim()}`;
-  }
-
-  const xff = c.req.header("x-forwarded-for");
-  if (xff) {
-    const parts = xff.split(",");
-    const firstIp = parts[0]?.trim();
-    if (firstIp) return `ip:${firstIp}`;
-  }
-
-  return "ip:127.0.0.1";
+  // 2. Client IP from a trusted source only
+  const ip = resolveClientIp(c);
+  return ip ? `ip:${ip}` : UNKNOWN_CLIENT_IDENTIFIER;
 }
 
 /**

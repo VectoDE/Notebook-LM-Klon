@@ -11,10 +11,11 @@ import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
 import { RagRepository } from "../rag-repository.js";
 import { clearRateLimitMemory } from "../rate-limiter.js";
 import { recordQuotaUsage } from "../route-guards.js";
-import { SessionManager } from "../session.js";
+import { SessionManager, computeDailySaltedHash } from "../session.js";
 
 const ORIGIN = "http://localhost:8787";
 const KEK = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210";
+const TEST_SALT = "test-only-session-salt-api-wiring";
 
 interface Fixture {
   env: Env;
@@ -50,7 +51,8 @@ async function createFixture(extraEnv: Record<string, unknown> = {}): Promise<Fi
   const dataDir = mkdtempSync(join(tmpdir(), "api-wiring-"));
   const sqlite = new DatabaseSync(":memory:");
   runSqliteMigrations(sqlite, resolve(process.cwd(), "apps/worker/migrations"));
-  const { env: baseEnv } = createNodeEnv({ db: sqlite, dataDir });
+  // Explicit test salt: production has no fallback, a missing salt blocks login (503).
+  const { env: baseEnv } = createNodeEnv({ db: sqlite, dataDir, sessionSaltSecret: TEST_SALT });
   const env = Object.assign(baseEnv, { MEDIA: createStreamingR2Mock() }, extraEnv) as Env;
 
   const coreRepo = new CoreRepository(createD1DatabaseAdapter(env.DB));
@@ -91,7 +93,7 @@ async function createFixture(extraEnv: Record<string, unknown> = {}): Promise<Fi
     ["nb_a", "carol", now]
   );
 
-  const sessions = new SessionManager({ repo: coreRepo, saltSecret: "test-salt" });
+  const sessions = new SessionManager({ repo: coreRepo, saltSecret: TEST_SALT });
   const cookies = {} as Fixture["cookies"];
   for (const id of ["alice", "bob", "carol", "mallory"] as const) {
     const session = await sessions.createSession(id, null, null);
@@ -531,6 +533,61 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       expect(((await missing.json()) as { code: string }).code).toBe("SOURCE_NOT_FOUND");
     });
 
+    it("chunk ingestion and source deletion require the editor role on the source's notebook", async () => {
+      const init = await call("/api/v1/notebooks/nb_a/sources", {
+        method: "POST",
+        cookie: fx.cookies.alice,
+        json: pdfInit
+      });
+      const { sourceId } = (await init.json()) as { sourceId: string };
+      const chunksPath = `/api/v1/sources/${sourceId}/chunks`;
+      const json = {
+        chunks: [{ chunkIndex: 0, text: "Hallo Welt", vector: { float32: [0.5, -0.25] } }]
+      };
+
+      expect((await call(chunksPath, { method: "POST", json })).status).toBe(401);
+      expect(
+        (await call(chunksPath, { method: "POST", json, cookie: fx.cookies.mallory })).status
+      ).toBe(404);
+      const viewer = await call(chunksPath, { method: "POST", json, cookie: fx.cookies.bob });
+      expect(viewer.status).toBe(403);
+      expect(((await viewer.json()) as { code: string }).code).toBe("INSUFFICIENT_ROLE");
+      const editor = await call(chunksPath, { method: "POST", json, cookie: fx.cookies.carol });
+      expect(editor.status).toBe(200);
+      expect(await editor.json()).toMatchObject({
+        sourceId,
+        notebookId: "nb_a",
+        chunksIngested: 1,
+        vectorsIngested: 1,
+        status: "ready"
+      });
+      const stored = fx.sqlite
+        .prepare("SELECT COUNT(*) AS n FROM chunks WHERE source_id = ?")
+        .get(sourceId) as { n: number };
+      expect(stored.n).toBe(1);
+
+      const missing = await call("/api/v1/sources/unknown/chunks", {
+        method: "POST",
+        json,
+        cookie: fx.cookies.alice
+      });
+      expect(missing.status).toBe(404);
+      expect(((await missing.json()) as { code: string }).code).toBe("SOURCE_NOT_FOUND");
+
+      const sourcePath = `/api/v1/sources/${sourceId}`;
+      expect((await call(sourcePath, { method: "DELETE" })).status).toBe(401);
+      expect(
+        (await call(sourcePath, { method: "DELETE", cookie: fx.cookies.mallory })).status
+      ).toBe(404);
+      expect((await call(sourcePath, { method: "DELETE", cookie: fx.cookies.bob })).status).toBe(
+        403
+      );
+      const deleted = await call(sourcePath, { method: "DELETE", cookie: fx.cookies.carol });
+      expect(deleted.status).toBe(200);
+      expect(await deleted.json()).toMatchObject({ deletedSourceId: sourceId, notebookId: "nb_a" });
+      expect(await fx.ragRepo.getSourceById(sourceId)).toBeNull();
+    });
+
     it("url import: 401 anonymous, 403 viewer, editor reaches validation", async () => {
       const path = "/api/v1/notebooks/nb_a/sources/url";
       const json = { url: "not-a-url" };
@@ -610,6 +667,77 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       expect(((await res.json()) as { keys: unknown[] }).keys).toEqual([]);
       kekFx.sqlite.close();
       rmSync(kekFx.dataDir, { recursive: true, force: true });
+    });
+  });
+
+  describe("SESSION_SALT_SECRET (fail-closed, no fallback)", () => {
+    async function codeOf(res: Response): Promise<string> {
+      return ((await res.json()) as { code: string }).code;
+    }
+
+    it.each([undefined, "", "   "])(
+      "blocks every session-creating route with 503 when the salt is %j",
+      async (salt) => {
+        const noSaltFx = await createFixture({
+          SESSION_SALT_SECRET: salt,
+          TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA",
+          KEK_V1: KEK
+        });
+        const requests: Array<[string, { method?: string; json?: unknown; cookie?: string }]> = [
+          ["/api/v1/auth/guest", { method: "POST", json: { turnstileToken: "tok" } }],
+          [
+            "/api/v1/auth/magic-link",
+            { method: "POST", json: { email: "user@example.test", turnstileToken: "tok" } }
+          ],
+          ["/api/v1/auth/magic-link/callback?token=abc", {}],
+          ["/api/v1/auth/passkey/login/options", { method: "POST", json: {} }],
+          ["/api/v1/auth/passkey/login/verify", { method: "POST", json: {} }],
+          ["/api/v1/keys", { cookie: noSaltFx.cookies.alice }],
+          ["/api/v1/keys/google", { method: "DELETE", cookie: noSaltFx.cookies.alice }]
+        ];
+        for (const [path, init] of requests) {
+          const res = await call(path, init, noSaltFx.env);
+          expect(res.status, path).toBe(503);
+          expect(await codeOf(res), path).toBe("SESSION_SALT_NOT_CONFIGURED");
+        }
+        // Routes without session creation stay available.
+        expect((await call("/api/v1/health", {}, noSaltFx.env)).status).toBeLessThan(600);
+        expect((await call("/api/v1/demo/info", {}, noSaltFx.env)).status).toBeLessThan(500);
+        noSaltFx.sqlite.close();
+        rmSync(noSaltFx.dataDir, { recursive: true, force: true });
+      }
+    );
+
+    it("hashes the session IP with the configured secret, not with an origin-derived salt", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => Response.json({ success: true }))
+      );
+      const saltFx = await createFixture({
+        SESSION_SALT_SECRET: "configured-secret-salt",
+        TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA"
+      });
+      const res = await call(
+        "/api/v1/auth/guest",
+        {
+          method: "POST",
+          json: { turnstileToken: "tok" },
+          headers: { "cf-connecting-ip": "198.51.100.23" }
+        },
+        saltFx.env
+      );
+      expect(res.status).toBe(201);
+      const row = await saltFx.coreRepo.db.queryOne<{ ip_hash: string | null }>(
+        "SELECT s.ip_hash FROM sessions s JOIN users u ON u.id = s.user_id WHERE u.is_guest = 1"
+      );
+      expect(row?.ip_hash).toBe(
+        await computeDailySaltedHash("198.51.100.23", "configured-secret-salt")
+      );
+      expect(row?.ip_hash).not.toBe(
+        await computeDailySaltedHash("198.51.100.23", `relationnotes-session:${ORIGIN}`)
+      );
+      saltFx.sqlite.close();
+      rmSync(saltFx.dataDir, { recursive: true, force: true });
     });
   });
 

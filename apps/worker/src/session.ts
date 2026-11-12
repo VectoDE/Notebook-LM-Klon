@@ -109,7 +109,8 @@ export function extractSessionToken(cookieHeader: string | null | undefined): st
 
 export interface SessionManagerOptions {
   repo: CoreRepository;
-  saltSecret: string;
+  /** Secret salt for IP/User-Agent hashes. Undefined means: no session may be created. */
+  saltSecret: string | undefined;
 }
 
 export class SessionManager {
@@ -120,14 +121,19 @@ export class SessionManager {
     ip: string | null,
     userAgent: string | null
   ): Promise<{ rawToken: string; expiresAt: number; idHash: string }> {
+    const saltSecret = this.opts.saltSecret;
+    if (!saltSecret || saltSecret.trim().length === 0) {
+      // Defense in depth behind requireConfiguredSessionSalt(): never hash with a guessable salt.
+      throw new Error("SESSION_SALT_SECRET ist nicht konfiguriert. Keine Sitzung erstellt.");
+    }
     const rawToken = generateSessionToken();
     const idHash = await sha256Hex(rawToken);
     const now = Date.now();
     const expiresAt = now + SESSION_TTL_MS;
 
     const [ipHash, uaHash] = await Promise.all([
-      computeDailySaltedHash(ip, this.opts.saltSecret),
-      computeDailySaltedHash(userAgent, this.opts.saltSecret)
+      computeDailySaltedHash(ip, saltSecret),
+      computeDailySaltedHash(userAgent, saltSecret)
     ]);
 
     await this.opts.repo.createSession({

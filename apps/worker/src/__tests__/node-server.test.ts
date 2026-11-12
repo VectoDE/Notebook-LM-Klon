@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   MAX_OBJECT_BYTES,
   ObjectTooLargeError,
@@ -13,6 +13,7 @@ import {
   runSqliteMigrations,
   startNodeServer
 } from "../node-server.js";
+import { clearRateLimitMemory } from "../rate-limiter.js";
 
 let TEST_DATA_DIR = "";
 
@@ -392,6 +393,23 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       expect(env.APP_PROFILE).toBe("demo");
       customDb.close();
     });
+
+    it("takes SESSION_SALT_SECRET from options or process.env and never invents one", () => {
+      const customDb = new DatabaseSync(":memory:");
+      const read = (e: Env) => (e as unknown as Record<string, unknown>).SESSION_SALT_SECRET;
+      vi.stubEnv("SESSION_SALT_SECRET", "from-process-env");
+      try {
+        expect(read(createNodeEnv({ db: customDb }).env)).toBe("from-process-env");
+        expect(read(createNodeEnv({ db: customDb, sessionSaltSecret: "explicit" }).env)).toBe(
+          "explicit"
+        );
+        vi.stubEnv("SESSION_SALT_SECRET", undefined);
+        expect(read(createNodeEnv({ db: customDb }).env)).toBeUndefined();
+      } finally {
+        vi.unstubAllEnvs();
+        customDb.close();
+      }
+    });
   });
 
   describe("startNodeServer integration", () => {
@@ -476,5 +494,123 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
 
       await serverInstance.close();
     });
+
+    it("reaches every API router over HTTP on the Node path (wiring, not 404)", async () => {
+      clearRateLimitMemory();
+      // Explicit test salt: without SESSION_SALT_SECRET the login routes answer 503.
+      vi.stubEnv("SESSION_SALT_SECRET", "test-only-session-salt-node-wiring");
+      const serverInstance = await startNodeServer({
+        port: 0,
+        dataDir: join(TEST_DATA_DIR, "srv-data-routers"),
+        staticDir: join(TEST_DATA_DIR, "no-static"),
+        appOrigin: "http://localhost:8787"
+      });
+      const base = `http://localhost:${serverInstance.port}`;
+      const json = { "content-type": "application/json" };
+      const probe = async (method: string, path: string, body?: unknown) => {
+        const init: RequestInit = { method, headers: json };
+        if (body !== undefined) init.body = JSON.stringify(body);
+        const res = await fetch(`${base}${path}`, init);
+        const payload = (await res.json()) as { code?: string };
+        return { status: res.status, code: payload.code };
+      };
+
+      try {
+        // Protected routers answer from their guard (401), proving the route exists.
+        const protectedRoutes: Array<[string, string, unknown?]> = [
+          ["POST", "/api/v1/notebooks/nb_x/chat", { message: "Hallo" }],
+          ["GET", "/api/v1/chats/c_x/messages"],
+          ["POST", "/api/v1/notebooks/nb_x/search", { query: "x" }],
+          ["POST", "/api/v1/notebooks/nb_x/audio-interject", { question: "x" }],
+          ["POST", "/api/v1/notebooks/nb_x/sources", { filename: "a.pdf" }],
+          ["POST", "/api/v1/notebooks/nb_x/sources/url", { url: "https://example.org" }],
+          ["PUT", "/api/v1/sources/s_x/upload", "x"],
+          ["POST", "/api/v1/sources/s_x/chunks", { chunks: [] }],
+          ["DELETE", "/api/v1/sources/s_x"],
+          ["POST", "/api/v1/jobs/enqueue", { type: "briefing" }],
+          ["GET", "/api/v1/keys"],
+          ["GET", "/api/v1/providers/ollama/probe"],
+          ["POST", "/api/v1/auth/passkey/register/options", {}]
+        ];
+        for (const [method, path, body] of protectedRoutes) {
+          const res = await probe(method, path, body);
+          expect({ method, path, ...res }).toMatchObject({ status: 401, code: "UNAUTHORIZED" });
+        }
+
+        // Public routers answer with their own result.
+        expect((await probe("GET", "/api/v1/providers")).status).toBe(200);
+        expect((await probe("POST", "/api/v1/auth/passkey/login/options", {})).status).toBe(200);
+        // Guest login fails closed without TURNSTILE_SECRET_KEY (route reached, not 404).
+        expect(await probe("POST", "/api/v1/auth/guest", {})).toEqual({
+          status: 503,
+          code: "TURNSTILE_NOT_CONFIGURED"
+        });
+        expect((await probe("GET", "/api/v1/demo/info")).status).toBe(200);
+
+        // Unknown API paths stay 404, so the 401s above are real routes.
+        expect(await probe("GET", "/api/v1/does-not-exist")).toEqual({
+          status: 404,
+          code: "NOT_FOUND"
+        });
+      } finally {
+        await serverInstance.close();
+        vi.unstubAllEnvs();
+      }
+    }, 15000);
+
+    it("rate-limits by socket address and ignores spoofed IP headers (#334)", async () => {
+      clearRateLimitMemory();
+      const serverInstance = await startNodeServer({
+        port: 0,
+        dataDir: join(TEST_DATA_DIR, "srv-data-ratelimit"),
+        staticDir: join(TEST_DATA_DIR, "no-static")
+      });
+      const url = `http://localhost:${serverInstance.port}/api/v1/health`;
+
+      const first = await fetch(url, {
+        headers: { "cf-connecting-ip": "198.51.100.1", "x-forwarded-for": "198.51.100.1" }
+      });
+      const second = await fetch(url, {
+        headers: { "cf-connecting-ip": "198.51.100.2", "x-forwarded-for": "198.51.100.2" }
+      });
+
+      // Same socket, same bucket: rotating the spoofed headers does not reset the counter
+      expect(first.headers.get("X-RateLimit-Remaining")).toBe("119");
+      expect(second.headers.get("X-RateLimit-Remaining")).toBe("118");
+
+      await serverInstance.close();
+    });
+
+    it("uses the configured trusted proxy header when TRUSTED_PROXY_HEADER is set (#334)", async () => {
+      clearRateLimitMemory();
+      process.env.TRUSTED_PROXY_HEADER = "X-Forwarded-For";
+      const serverInstance = await startNodeServer({
+        port: 0,
+        dataDir: join(TEST_DATA_DIR, "srv-data-proxy"),
+        staticDir: join(TEST_DATA_DIR, "no-static")
+      });
+      Reflect.deleteProperty(process.env, "TRUSTED_PROXY_HEADER");
+      const url = `http://localhost:${serverInstance.port}/api/v1/health`;
+
+      const a1 = await fetch(url, { headers: { "x-forwarded-for": "6.6.6.6, 198.51.100.1" } });
+      const a2 = await fetch(url, { headers: { "x-forwarded-for": "7.7.7.7, 198.51.100.1" } });
+      const b1 = await fetch(url, { headers: { "x-forwarded-for": "198.51.100.2" } });
+
+      // The proxy-appended last entry identifies the client; client-prepended entries do not
+      expect(a1.headers.get("X-RateLimit-Remaining")).toBe("119");
+      expect(a2.headers.get("X-RateLimit-Remaining")).toBe("118");
+      expect(b1.headers.get("X-RateLimit-Remaining")).toBe("119");
+
+      await serverInstance.close();
+    });
+  });
+
+  it("passes trustedProxyHeader from options into the environment", () => {
+    const customDb = new DatabaseSync(":memory:");
+    const { env } = createNodeEnv({ db: customDb, trustedProxyHeader: "x-real-ip" });
+    expect((env as unknown as { TRUSTED_PROXY_HEADER?: string }).TRUSTED_PROXY_HEADER).toBe(
+      "x-real-ip"
+    );
+    customDb.close();
   });
 });

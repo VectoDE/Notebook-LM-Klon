@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveAppConfig } from "../config.js";
 import {
   type QuotaAction,
@@ -12,11 +12,16 @@ import {
   verifyQuotaAction
 } from "../quota-guard.js";
 import {
+  UNKNOWN_CLIENT_IDENTIFIER,
   checkRateLimit,
   clearRateLimitMemory,
   extractClientIdentifier,
+  isCloudflareRuntime,
   rateLimiterMiddleware,
-  resolveCategoryFromPath
+  registerSocketAddress,
+  resolveCategoryFromPath,
+  resolveClientIp,
+  resolveTrustedProxyHeader
 } from "../rate-limiter.js";
 import {
   COOP_HEADER_VALUE,
@@ -160,44 +165,108 @@ describe("Rate Limiting (Sub-Issue #78)", () => {
     expect(resolveCategoryFromPath("/api/v1/health")).toBe("general");
   });
 
-  it("extracts client identifiers accurately from headers or context", () => {
-    const c1 = {
-      get: () => ({ id: "user_42" }),
-      req: { header: () => undefined }
-    } as unknown as Parameters<typeof extractClientIdentifier>[0];
-    expect(extractClientIdentifier(c1)).toBe("usr:user_42");
+  type Ctx = Parameters<typeof extractClientIdentifier>[0];
 
-    const c2 = {
-      get: () => undefined,
+  function fakeContext(opts: {
+    headers?: Record<string, string>;
+    env?: unknown;
+    raw?: Request;
+    user?: { id?: string };
+  }): Ctx {
+    return {
+      get: () => opts.user,
+      env: opts.env,
       req: {
-        header: (name: string) => (name === "cf-connecting-ip" ? "1.2.3.4" : undefined)
+        raw: opts.raw ?? new Request("http://localhost/api/v1/health"),
+        header: (name: string) => opts.headers?.[name]
       }
-    } as unknown as Parameters<typeof extractClientIdentifier>[0];
-    expect(extractClientIdentifier(c2)).toBe("ip:1.2.3.4");
+    } as unknown as Ctx;
+  }
 
-    const c3 = {
-      get: () => undefined,
-      req: {
-        header: (name: string) => (name === "x-forwarded-for" ? "5.6.7.8, 9.10.11.12" : undefined)
-      }
-    } as unknown as Parameters<typeof extractClientIdentifier>[0];
-    expect(extractClientIdentifier(c3)).toBe("ip:5.6.7.8");
+  it("prefers the session user over any address", () => {
+    expect(extractClientIdentifier(fakeContext({ user: { id: "user_42" } }))).toBe("usr:user_42");
+  });
 
-    const cXffEmpty = {
-      get: () => undefined,
-      req: {
-        header: (name: string) => (name === "x-forwarded-for" ? "   " : undefined)
-      }
-    } as unknown as Parameters<typeof extractClientIdentifier>[0];
-    expect(extractClientIdentifier(cXffEmpty)).toBe("ip:127.0.0.1");
+  it("ignores spoofed cf-connecting-ip and x-forwarded-for outside Cloudflare without config (#334)", () => {
+    const spoofed = fakeContext({
+      headers: { "cf-connecting-ip": "1.2.3.4", "x-forwarded-for": "5.6.7.8" }
+    });
+    expect(resolveClientIp(spoofed)).toBeUndefined();
+    expect(extractClientIdentifier(spoofed)).toBe(UNKNOWN_CLIENT_IDENTIFIER);
+    expect(extractClientIdentifier(fakeContext({ user: {} }))).toBe(UNKNOWN_CLIENT_IDENTIFIER);
+  });
 
-    const c4 = {
-      get: () => undefined,
-      req: {
-        header: () => undefined
-      }
-    } as unknown as Parameters<typeof extractClientIdentifier>[0];
-    expect(extractClientIdentifier(c4)).toBe("ip:127.0.0.1");
+  it("uses the socket address registered by the Node server and ignores spoofed headers (#334)", () => {
+    const raw = new Request("http://localhost/api/v1/health");
+    registerSocketAddress(raw, " 203.0.113.9 ");
+    const c = fakeContext({ raw, headers: { "cf-connecting-ip": "1.2.3.4" } });
+    expect(extractClientIdentifier(c)).toBe("ip:203.0.113.9");
+
+    const blank = new Request("http://localhost/api/v1/health");
+    registerSocketAddress(blank, "   ");
+    registerSocketAddress(blank, undefined);
+    expect(extractClientIdentifier(fakeContext({ raw: blank }))).toBe(UNKNOWN_CLIENT_IDENTIFIER);
+  });
+
+  it("reads only the configured TRUSTED_PROXY_HEADER and takes its last entry (#334)", () => {
+    const env = { TRUSTED_PROXY_HEADER: " X-Forwarded-For " };
+    const c = fakeContext({
+      env,
+      headers: { "x-forwarded-for": "6.6.6.6, 198.51.100.7", "cf-connecting-ip": "1.2.3.4" }
+    });
+    expect(extractClientIdentifier(c)).toBe("ip:198.51.100.7");
+
+    // Configured header missing or empty: no fallback to other headers or the socket
+    const raw = new Request("http://localhost/api/v1/health");
+    registerSocketAddress(raw, "203.0.113.9");
+    expect(extractClientIdentifier(fakeContext({ env, raw }))).toBe(UNKNOWN_CLIENT_IDENTIFIER);
+    expect(
+      extractClientIdentifier(fakeContext({ env, headers: { "x-forwarded-for": "1.1.1.1, " } }))
+    ).toBe(UNKNOWN_CLIENT_IDENTIFIER);
+  });
+
+  it("normalises TRUSTED_PROXY_HEADER and treats blank or non-string values as unset", () => {
+    expect(resolveTrustedProxyHeader(undefined)).toBeUndefined();
+    expect(resolveTrustedProxyHeader({})).toBeUndefined();
+    expect(resolveTrustedProxyHeader({ TRUSTED_PROXY_HEADER: 42 })).toBeUndefined();
+    expect(resolveTrustedProxyHeader({ TRUSTED_PROXY_HEADER: "   " })).toBeUndefined();
+    expect(resolveTrustedProxyHeader({ TRUSTED_PROXY_HEADER: "X-Real-IP" })).toBe("x-real-ip");
+  });
+
+  describe("inside the Cloudflare runtime", () => {
+    beforeEach(() => {
+      vi.stubGlobal("navigator", { userAgent: "Cloudflare-Workers" });
+    });
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it("trusts cf-connecting-ip set by the edge, but not x-forwarded-for", () => {
+      expect(isCloudflareRuntime()).toBe(true);
+      expect(
+        extractClientIdentifier(fakeContext({ headers: { "cf-connecting-ip": " 1.2.3.4 " } }))
+      ).toBe("ip:1.2.3.4");
+      expect(
+        extractClientIdentifier(fakeContext({ headers: { "x-forwarded-for": "5.6.7.8" } }))
+      ).toBe(UNKNOWN_CLIENT_IDENTIFIER);
+    });
+
+    it("still lets an explicit TRUSTED_PROXY_HEADER win", () => {
+      const c = fakeContext({
+        env: { TRUSTED_PROXY_HEADER: "x-real-ip" },
+        headers: { "cf-connecting-ip": "1.2.3.4", "x-real-ip": "10.0.0.5" }
+      });
+      expect(extractClientIdentifier(c)).toBe("ip:10.0.0.5");
+    });
+  });
+
+  it("detects a non-Cloudflare runtime when navigator is absent", () => {
+    vi.stubGlobal("navigator", undefined);
+    try {
+      expect(isCloudflareRuntime()).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("enforces in-memory limits and blocks with 429 when limit is reached", async () => {
