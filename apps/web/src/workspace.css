@@ -70,6 +70,37 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   display: block;
 }
 
+/* Sprunglink: außerhalb des Bildes, bis er den Fokus bekommt */
+.rn-skip-link {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  min-height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-base);
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 0 0 2px var(--rn-color-border);
+  transform: translateY(calc(-100% - 16px));
+}
+
+.rn-skip-link:focus {
+  transform: none;
+}
+
+/* Sprungziel: wird per Skript fokussiert, braucht keinen eigenen Ring */
+.workspace-main:focus {
+  outline: none;
+}
+
 /* Sichtbar nur für Screenreader */
 .rn-visually-hidden {
   position: absolute;
@@ -158,13 +189,13 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   color: var(--rn-color-text-primary);
 }
 
-.rn-topnav-item[aria-current="page"] {
+.rn-topnav-item[aria-current="true"] {
   background: var(--rn-color-surface-variant);
   color: var(--rn-color-text-primary);
   font-weight: 600;
 }
 
-.rn-topnav-item[aria-current="page"] .rn-icon {
+.rn-topnav-item[aria-current="true"] .rn-icon {
   color: var(--rn-color-primary);
 }
 
@@ -191,7 +222,7 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   background: var(--rn-color-panel-border);
 }
 
-html[data-color-mode="aaa-contrast"] .rn-topnav-item[aria-current="page"] {
+html[data-color-mode="aaa-contrast"] .rn-topnav-item[aria-current="true"] {
   box-shadow: inset 0 0 0 2px var(--rn-color-border);
 }
 
@@ -602,17 +633,8 @@ html[data-color-mode="aaa-contrast"] .rn-popover {
   color: var(--rn-color-text-secondary);
 }
 
-.rn-sheet-item:hover,
-.rn-sheet-item[aria-current="page"] {
+.rn-sheet-item:hover {
   background: var(--rn-color-surface-variant);
-}
-
-.rn-sheet-item[aria-current="page"] > .rn-icon {
-  color: var(--rn-color-primary);
-}
-
-html[data-color-mode="aaa-contrast"] .rn-sheet-item[aria-current="page"] {
-  box-shadow: inset 0 0 0 2px var(--rn-color-border);
 }
 
 .rn-sheet-item-text {
@@ -758,12 +780,12 @@ html[data-color-mode="aaa-contrast"] .rn-sheet-item[aria-current="page"] {
   transition: background-color var(--rn-transition-base), color var(--rn-transition-base);
 }
 
-.rn-tab[aria-current="page"] {
+.rn-tab[aria-current="true"] {
   color: var(--rn-color-primary);
   font-weight: 700;
 }
 
-.rn-tab[aria-current="page"] .rn-tab-indicator {
+.rn-tab[aria-current="true"] .rn-tab-indicator {
   background: var(--rn-color-surface-variant);
 }
 
@@ -785,7 +807,7 @@ html[data-color-mode="aaa-contrast"] .rn-sheet-item[aria-current="page"] {
   box-shadow: 0 0 0 2px var(--rn-color-panel);
 }
 
-html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="page"] .rn-tab-indicator {
+html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indicator {
   outline: 2px solid var(--rn-color-border);
 }
 
@@ -3645,7 +3667,7 @@ html[data-design="immersive-cinema"] .rn-composer:focus-within {
     var(--rn-color-panel-shadow);
 }
 
-html[data-design="immersive-cinema"] .rn-tab[aria-current="page"] .rn-tab-indicator {
+html[data-design="immersive-cinema"] .rn-tab[aria-current="true"] .rn-tab-indicator {
   background: color-mix(in srgb, var(--rn-color-brand) 22%, var(--rn-color-panel));
   box-shadow: 0 0 18px -4px color-mix(in srgb, var(--rn-color-brand) 70%, transparent);
 }
@@ -3695,7 +3717,7 @@ html[data-design="fusion"] .rn-chip:hover {
   border-color: var(--rn-color-brand);
 }
 
-html[data-design="fusion"] .rn-tab[aria-current="page"] .rn-tab-indicator {
+html[data-design="fusion"] .rn-tab[aria-current="true"] .rn-tab-indicator {
   background: color-mix(in srgb, var(--rn-color-stage-accent) 30%, var(--rn-color-panel));
 }
 
@@ -3724,7 +3746,7 @@ html[data-color-mode="aaa-contrast"] .rn-summary::before {
   display: none;
 }
 
-html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="page"] .rn-tab-indicator {
+html[data-color-mode="aaa-contrast"] .rn-tab[aria-current="true"] .rn-tab-indicator {
   background: var(--rn-color-surface-variant);
   box-shadow: none;
 }
