@@ -285,108 +285,80 @@ export function MindmapViewer({
   const containerId = useId();
 
   return (
-    <section
-      aria-label={`Mindmap: ${title}`}
-      className="relationnotes-mindmap-viewer"
-      style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}
-    >
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "12px",
-          padding: "8px 16px",
-          borderBottom: "1px solid var(--rn-color-panel-border)"
-        }}
-      >
-        <h2 style={{ fontSize: "1.1rem", margin: 0 }}>{title}</h2>
+    <section aria-label={`Mindmap: ${title}`} className="rn-tool-view rn-mindmap">
+      <header className="rn-mindmap-head">
+        <div className="rn-tool-view-head">
+          <p className="rn-eyebrow">Mindmap</p>
+          <h2 className="rn-tool-view-title">{title}</h2>
+        </div>
 
-        <div
-          data-testid="mindmap-toolbar"
-          style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "12px" }}
-        >
-          {/* View Mode Toggle for Screenreader / Accessibility */}
-          <div role="tablist" aria-label="Ansichtsmodus" style={{ display: "flex", gap: "8px" }}>
+        <div data-testid="mindmap-toolbar" className="rn-mindmap-toolbar">
+          <div role="tablist" aria-label="Ansichtsmodus" className="rn-seg-tabs">
             <button
               type="button"
               role="tab"
+              className="rn-seg-tab"
               aria-selected={activeTab === "visual"}
               aria-controls={`${containerId}-visual-panel`}
               id={`${containerId}-visual-tab`}
               onClick={() => setActiveTab("visual")}
-              style={{
-                minHeight: "44px",
-                padding: "0 14px",
-                fontWeight: activeTab === "visual" ? "bold" : "normal",
-                cursor: "pointer"
-              }}
             >
               Grafik (SVG)
             </button>
             <button
               type="button"
               role="tab"
+              className="rn-seg-tab"
               aria-selected={activeTab === "tree"}
               aria-controls={`${containerId}-tree-panel`}
               id={`${containerId}-tree-tab`}
               onClick={() => setActiveTab("tree")}
-              style={{
-                minHeight: "44px",
-                padding: "0 14px",
-                fontWeight: activeTab === "tree" ? "bold" : "normal",
-                cursor: "pointer"
-              }}
             >
               Baumliste (WAI-ARIA)
             </button>
           </div>
 
-          {/* Zoom & Pan Controls */}
-          <button
-            type="button"
-            aria-label="Vergrößern (Zoom In)"
-            onClick={() => setZoom((z) => Math.min(3.0, Number((z + 0.2).toFixed(1))))}
-            style={{ minWidth: "44px", minHeight: "44px", cursor: "pointer" }}
-          >
-            +
-          </button>
-          <button
-            type="button"
-            aria-label="Verkleinern (Zoom Out)"
-            onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.2).toFixed(1))))}
-            style={{ minWidth: "44px", minHeight: "44px", cursor: "pointer" }}
-          >
-            -
-          </button>
-          <button
-            type="button"
-            aria-label="Ansicht zurücksetzen"
-            onClick={() => {
-              setZoom(1.0);
-              setPan({ x: 20, y: 20 });
-            }}
-            style={{ minWidth: "44px", minHeight: "44px", padding: "0 14px", cursor: "pointer" }}
-          >
-            Reset
-          </button>
+          <fieldset className="rn-zoom" aria-label="Zoom">
+            <button
+              type="button"
+              className="rn-icon-btn"
+              aria-label="Verkleinern (Zoom Out)"
+              onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.2).toFixed(1))))}
+            >
+              <span aria-hidden="true">−</span>
+            </button>
+            <output className="rn-zoom-value" aria-live="polite">
+              {Math.round(zoom * 100)} %
+            </output>
+            <button
+              type="button"
+              className="rn-icon-btn"
+              aria-label="Vergrößern (Zoom In)"
+              onClick={() => setZoom((z) => Math.min(3.0, Number((z + 0.2).toFixed(1))))}
+            >
+              <span aria-hidden="true">+</span>
+            </button>
+            <button
+              type="button"
+              className="rn-btn rn-btn--ghost rn-btn--compact"
+              aria-label="Ansicht zurücksetzen"
+              onClick={() => {
+                setZoom(1.0);
+                setPan({ x: 20, y: 20 });
+              }}
+            >
+              Reset
+            </button>
+          </fieldset>
         </div>
       </header>
 
-      {/* Visual SVG Panel */}
       <div
         id={`${containerId}-visual-panel`}
         role="tabpanel"
         aria-labelledby={`${containerId}-visual-tab`}
         hidden={activeTab !== "visual"}
-        style={{
-          flex: 1,
-          overflow: "auto",
-          background: "var(--rn-color-surface-variant)",
-          position: "relative",
-          minHeight: "400px"
-        }}
+        className="rn-mindmap-canvas"
       >
         <svg
           data-testid="mindmap-svg"
@@ -394,11 +366,10 @@ export function MindmapViewer({
           role="img"
           width="100%"
           height="100%"
-          style={{ minWidth: "800px", minHeight: "600px", display: "block" }}
+          className="rn-mindmap-svg"
         >
           <title>{`Mindmap: ${title}`}</title>
           <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-            {/* Draw connecting lines (Bezier curves) */}
             {layout.connections.map((conn, idx) => {
               const dx = (conn.toX - conn.fromX) / 2;
               const pathD = `M ${conn.fromX} ${conn.fromY} C ${conn.fromX + dx} ${conn.fromY}, ${conn.toX - dx} ${conn.toY}, ${conn.toX} ${conn.toY}`;
@@ -406,17 +377,15 @@ export function MindmapViewer({
                 <path
                   key={`conn-${idx}-${conn.fromX}-${conn.fromY}-${conn.toX}-${conn.toY}`}
                   d={pathD}
-                  fill="none"
-                  style={{ stroke: "var(--rn-color-border)" }}
-                  strokeWidth="2"
+                  className="rn-mm-link"
                 />
               );
             })}
 
-            {/* Draw nodes */}
             {flatVisibleNodes.map((node) => {
               const isRoot = node.depth === 0;
               const hasSource = Boolean(node.sourceId || node.chunkId || node.sourceCitation);
+              const kind = isRoot ? "root" : hasSource ? "source" : "plain";
 
               const handleNodeAction = () => {
                 if (hasSource) {
@@ -434,7 +403,8 @@ export function MindmapViewer({
                 <g
                   key={node.id}
                   transform={`translate(${node.x}, ${node.y})`}
-                  style={{ cursor: "pointer" }}
+                  className="rn-mm-node"
+                  data-kind={kind}
                   aria-label={`${node.label}${node.hasChildren ? (node.isCollapsed ? " (eingeklappt)" : " (ausgeklappt)") : ""}`}
                   onClick={handleNodeAction}
                   onKeyDown={(e) => {
@@ -447,42 +417,24 @@ export function MindmapViewer({
                   <rect
                     width={node.width}
                     height={node.height}
-                    rx="8"
-                    ry="8"
-                    style={{
-                      fill: isRoot
-                        ? "var(--rn-color-text-primary)"
-                        : hasSource
-                          ? "var(--rn-color-success-surface)"
-                          : "var(--rn-color-panel)",
-                      stroke: isRoot
-                        ? "var(--rn-color-text-primary)"
-                        : hasSource
-                          ? "var(--rn-color-success)"
-                          : "var(--rn-color-border)"
-                    }}
-                    strokeWidth={isRoot ? "2" : "1.5"}
+                    rx="10"
+                    ry="10"
+                    className="rn-mm-box"
                   />
                   <text
                     x={LABEL_PADDING_LEFT}
                     y={node.height / 2 + 5}
                     textAnchor="start"
                     fontSize={NODE_FONT_SIZE}
-                    fontWeight={isRoot ? 600 : 500}
-                    style={{
-                      fill: isRoot ? "var(--rn-color-panel)" : "var(--rn-color-text-primary)",
-                      fontFamily: "var(--rn-font-family-ui)",
-                      pointerEvents: "none",
-                      userSelect: "none"
-                    }}
+                    className="rn-mm-label"
                   >
                     {node.label}
                   </text>
 
-                  {/* Collapse / Expand toggle button if node has children */}
                   {node.hasChildren && (
                     <g
                       transform={`translate(${node.width - TOGGLE_RADIUS - 8}, ${node.height / 2})`}
+                      className="rn-mm-toggle"
                       aria-label={`${node.isCollapsed ? "Erweitern" : "Einklappen"}: ${node.label}`}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -495,15 +447,14 @@ export function MindmapViewer({
                         }
                       }}
                     >
-                      <circle r={TOGGLE_RADIUS} style={{ fill: "var(--rn-color-accent)" }} />
+                      <circle r={TOGGLE_RADIUS} className="rn-mm-toggle-dot" />
                       <text
                         textAnchor="middle"
                         y="5"
                         fontSize={NODE_FONT_SIZE}
-                        fontWeight="bold"
-                        style={{ fill: "var(--rn-color-accent-text)", pointerEvents: "none" }}
+                        className="rn-mm-toggle-sign"
                       >
-                        {node.isCollapsed ? "+" : "-"}
+                        {node.isCollapsed ? "+" : "−"}
                       </text>
                     </g>
                   )}
@@ -514,30 +465,19 @@ export function MindmapViewer({
         </svg>
       </div>
 
-      {/* WAI-ARIA Treeview Panel */}
       <div
         id={`${containerId}-tree-panel`}
         role="tabpanel"
         aria-labelledby={`${containerId}-tree-tab`}
         hidden={activeTab !== "tree"}
-        style={{ flex: 1, padding: "16px", overflow: "auto", background: "var(--rn-color-panel)" }}
+        className="rn-mindmap-tree"
       >
-        <p
-          style={{
-            fontSize: "0.9rem",
-            color: "var(--rn-color-text-secondary)",
-            marginBottom: "12px"
-          }}
-        >
+        <p className="rn-mindmap-hint">
           Tastaturnavigation: Pfeiltasten Hoch/Runter navigieren, Pfeil Rechts öffnet Zweig, Pfeil
           Links schließt Zweig, Enter/Leertaste springt zur Quelle.
         </p>
 
-        <ul
-          role="tree"
-          aria-label={`Baumstruktur der Mindmap ${title}`}
-          style={{ listStyle: "none", padding: 0, margin: 0 }}
-        >
+        <ul role="tree" aria-label={`Baumstruktur der Mindmap ${title}`} className="rn-tree">
           {flatVisibleNodes.map((node) => {
             const isFocused = node.id === focusedNodeId;
             const hasSource = Boolean(node.sourceId || node.chunkId || node.sourceCitation);
@@ -546,6 +486,7 @@ export function MindmapViewer({
               <li
                 key={node.id}
                 role="treeitem"
+                className="rn-tree-item"
                 aria-level={node.depth + 1}
                 aria-expanded={node.hasChildren ? !node.isCollapsed : undefined}
                 aria-selected={isFocused}
@@ -562,40 +503,32 @@ export function MindmapViewer({
                     });
                   }
                 }}
-                style={{
-                  padding: "8px 12px",
-                  marginLeft: `${node.depth * 20}px`,
-                  borderRadius: "var(--rn-radius-sm)",
-                  cursor: "pointer",
-                  background: isFocused ? "var(--rn-color-highlight)" : "transparent",
-                  outline: isFocused ? "2px solid var(--rn-color-focus-ring)" : "none",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between"
-                }}
+                style={{ marginInlineStart: `${node.depth * 20}px` }}
               >
-                <span>
-                  {node.hasChildren ? (node.isCollapsed ? "[+] " : "[-] ") : "• "}
+                <span className="rn-tree-label">
+                  <span
+                    className="rn-tree-marker"
+                    aria-hidden="true"
+                    data-state={node.hasChildren ? (node.isCollapsed ? "closed" : "open") : "leaf"}
+                  />
                   <strong>{node.label}</strong>
                   {node.sourceCitation && (
-                    <small style={{ marginLeft: "8px", color: "var(--rn-color-success)" }}>
-                      ({node.sourceCitation})
-                    </small>
+                    <small className="rn-tree-cite">({node.sourceCitation})</small>
                   )}
                 </span>
 
                 {node.hasChildren && (
                   <button
                     type="button"
+                    className="rn-icon-btn"
                     aria-label={`${node.isCollapsed ? "Erweitern" : "Einklappen"}: ${node.label}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleCollapse(node.id);
                       setFocusedNodeId(node.id);
                     }}
-                    style={{ minWidth: "44px", minHeight: "44px", cursor: "pointer" }}
                   >
-                    {node.isCollapsed ? "+" : "-"}
+                    <span aria-hidden="true">{node.isCollapsed ? "+" : "−"}</span>
                   </button>
                 )}
               </li>

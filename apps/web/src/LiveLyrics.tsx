@@ -63,21 +63,14 @@ export function LiveLyrics({
     <section
       ref={containerRef}
       aria-label="Live Transkript und Songtexte"
-      className="live-lyrics-container"
+      className="rn-lyrics"
       data-testid="live-lyrics-container"
-      style={{
-        overflowY: "auto",
-        maxHeight: "360px",
-        padding: "32px 16px",
-        scrollBehavior: reducedMotion ? "auto" : "smooth",
-        display: "flex",
-        flexDirection: "column",
-        gap: "20px"
-      }}
+      data-reduced-motion={reducedMotion ? "true" : undefined}
     >
       {lines.map((line, idx) => {
         const isActive = idx === activeIndex;
         const isPast = activeIndex !== -1 && idx < activeIndex;
+        const state = isActive ? "active" : isPast ? "past" : "next";
 
         return (
           <button
@@ -88,35 +81,12 @@ export function LiveLyrics({
             aria-label={`${line.speakerName}: ${line.text}`}
             onClick={() => onSeek?.(line.startMs)}
             data-testid={`lyrics-line-${line.id}`}
-            style={{
-              cursor: "pointer",
-              textAlign: "left",
-              border: "none",
-              transition: reducedMotion
-                ? "none"
-                : "opacity 300ms ease, transform 300ms ease, font-size 300ms ease",
-              opacity: isActive ? 1.0 : isPast ? 0.45 : 0.65,
-              transform: isActive && !reducedMotion ? "scale(1.03)" : "scale(1.0)",
-              fontSize: isActive ? "1.35rem" : "1.05rem",
-              fontWeight: isActive ? 600 : 400,
-              color: isActive ? "var(--rn-color-text-primary)" : "var(--rn-color-text-muted)",
-              padding: "8px 12px",
-              borderRadius: "var(--rn-radius-md)",
-              background: isActive ? "rgba(255, 255, 255, 0.08)" : "transparent"
-            }}
+            className="rn-lyrics-line"
+            data-state={state}
+            data-speaker={line.speaker}
           >
-            <div
-              style={{
-                fontSize: "0.875rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                marginBottom: "4px",
-                color: "var(--rn-color-accent)"
-              }}
-            >
-              {line.speakerName}
-            </div>
-            <div>{line.text}</div>
+            <span className="rn-lyrics-speaker">{line.speakerName}</span>
+            <span className="rn-lyrics-text">{line.text}</span>
           </button>
         );
       })}

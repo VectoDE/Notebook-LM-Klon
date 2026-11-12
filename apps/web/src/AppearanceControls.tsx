@@ -5,8 +5,9 @@ export type UserRole = "owner" | "editor" | "viewer";
 
 /** Darstellung: Rolle, Design und Farbschema. Wird im Desktop-Menü und im mobilen Sheet genutzt. */
 export interface AppearanceControlsProps {
-  readonly role: UserRole;
-  readonly onRoleChange: (role: UserRole) => void;
+  /** Ohne Rolle (z. B. in den Einstellungen) entfällt das Auswahlfeld. */
+  readonly role?: UserRole | undefined;
+  readonly onRoleChange?: ((role: UserRole) => void) | undefined;
   readonly theme: DesignTheme;
   readonly onThemeChange: (theme: DesignTheme) => void;
   readonly colorMode: ColorMode;
@@ -49,27 +50,29 @@ export function AppearanceControls({
 }: AppearanceControlsProps) {
   return (
     <div className="rn-appearance">
-      <div className="rn-appearance-group">
-        <label htmlFor={`${idPrefix}-role`} className="rn-appearance-label">
-          Rolle
-        </label>
-        <div className="rn-control rn-control--block">
-          <select
-            id={`${idPrefix}-role`}
-            value={role}
-            onChange={(e) => onRoleChange(e.target.value as UserRole)}
-            data-testid="role-switcher-select"
-            className="rn-control-input"
-          >
-            {ROLE_OPTIONS.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          <Icon name="chevron" size={16} className="rn-control-chevron" />
+      {role !== undefined && (
+        <div className="rn-appearance-group">
+          <label htmlFor={`${idPrefix}-role`} className="rn-appearance-label">
+            Rolle
+          </label>
+          <div className="rn-control rn-control--block">
+            <select
+              id={`${idPrefix}-role`}
+              value={role}
+              onChange={(e) => onRoleChange?.(e.target.value as UserRole)}
+              data-testid="role-switcher-select"
+              className="rn-control-input"
+            >
+              {ROLE_OPTIONS.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <Icon name="chevron" size={16} className="rn-control-chevron" />
+          </div>
         </div>
-      </div>
+      )}
 
       <fieldset className="rn-appearance-group">
         <legend className="rn-appearance-label">Design</legend>

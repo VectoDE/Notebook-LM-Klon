@@ -391,33 +391,26 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
 
   return (
     <section
-      className="video-overview-player flex flex-col gap-4 rounded-xl bg-slate-900 p-4 text-white shadow-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+      className="rn-video"
       aria-label={`Video Overview Player: ${storyboard.title}`}
       onKeyDown={handleKeyDown}
       data-testid="video-overview-player"
     >
-      {/* Visual Canvas Container */}
-      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black shadow-inner">
+      <div className="rn-video-screen">
         <canvas
           ref={canvasRef}
           width={storyboard.resolution.width}
           height={storyboard.resolution.height}
-          className="h-full w-full object-contain"
+          className="rn-video-canvas"
           data-testid="slide-canvas"
         />
 
-        {/* Subtitles Overlay */}
         {showSubtitles && currentSubtitle && (
-          <div
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded bg-black/85 px-4 py-1.5 text-center text-lg font-medium text-white shadow-md"
-            data-testid="subtitles-overlay"
-            aria-live="polite"
-          >
+          <div className="rn-video-subtitle" data-testid="subtitles-overlay" aria-live="polite">
             {currentSubtitle}
           </div>
         )}
 
-        {/* Audio Element (if audioUrl provided) */}
         {storyboard.audioUrl && (
           <audio ref={audioRef} src={storyboard.audioUrl} data-testid="player-audio-element">
             <track kind="captions" srcLang="de" label="Deutsch" />
@@ -425,14 +418,12 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
         )}
       </div>
 
-      {/* Screen reader live region for accessibility & audio description */}
       <output className="sr-only" aria-live="polite" data-testid="a11y-live-region">
         {liveAnnouncement}
       </output>
 
-      {/* Timeline Scrubber */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between text-xs text-slate-400">
+      <div className="rn-video-timeline">
+        <div className="rn-video-time">
           <span>
             {Math.floor(currentTimeMs / 1000)}s / {Math.floor(storyboard.durationMs / 1000)}s
           </span>
@@ -444,19 +435,18 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
           max={storyboard.durationMs}
           value={currentTimeMs}
           onChange={(e) => handleSeek(Number(e.target.value))}
-          className="w-full cursor-pointer accent-blue-500"
+          className="rn-range"
           aria-label="Video-Fortschrittsregler"
           data-testid="timeline-scrubber"
         />
       </div>
 
-      {/* Player Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-3">
-        <div className="flex items-center gap-2">
+      <div className="rn-video-controls">
+        <div className="rn-video-buttons">
           <button
             type="button"
             onClick={handlePlayPause}
-            className="flex items-center gap-2 rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="rn-stage-btn rn-stage-btn--primary"
             data-testid="play-pause-button"
             aria-label={isPlaying ? "Video pausieren" : "Video abspielen"}
           >
@@ -466,9 +456,7 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
           <button
             type="button"
             onClick={() => setShowSubtitles((prev) => !prev)}
-            className={`rounded px-3 py-2 text-sm font-medium transition-colors ${
-              showSubtitles ? "bg-slate-700 text-white" : "bg-slate-800 text-slate-400"
-            }`}
+            className="rn-stage-btn"
             data-testid="toggle-subtitles-button"
             aria-pressed={showSubtitles}
             aria-label="Untertitel an/aus (C)"
@@ -489,9 +477,7 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
                 return next;
               })
             }
-            className={`rounded px-3 py-2 text-sm font-medium transition-colors ${
-              audioDescriptionEnabled ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-400"
-            }`}
+            className="rn-stage-btn"
             data-testid="toggle-ad-button"
             aria-pressed={audioDescriptionEnabled}
             aria-label="Audiodeskription fuer Sehbehinderte an/aus (D)"
@@ -500,9 +486,8 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
           </button>
         </div>
 
-        {/* Chapter Quick Jumps */}
-        <nav className="flex items-center gap-1.5" aria-label="Kapitelauswahl">
-          <span className="text-xs text-slate-400 mr-1">Kapitel:</span>
+        <nav className="rn-video-chapters" aria-label="Kapitelauswahl">
+          <span className="rn-video-chapters-label">Kapitel:</span>
           {storyboard.chapters.map((ch) => {
             const isCurrent = activeChapter?.id === ch.id;
             return (
@@ -510,11 +495,7 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
                 key={ch.id}
                 type="button"
                 onClick={() => jumpToChapter(ch)}
-                className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
-                  isCurrent
-                    ? "bg-blue-500/30 text-blue-300 ring-1 ring-blue-500"
-                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-                }`}
+                className="rn-stage-chip"
                 data-testid={`chapter-btn-${ch.id}`}
                 aria-current={isCurrent ? "true" : undefined}
                 aria-label={`Kapitel ${ch.index + 1}: ${ch.title}`}

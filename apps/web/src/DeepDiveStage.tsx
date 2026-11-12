@@ -1,5 +1,5 @@
 import type { PodcastStateMachine } from "@notebook-lm/shared";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AuroraOrb } from "./AuroraOrb.js";
 import { LiveLyrics, type TranscriptLine } from "./LiveLyrics.js";
 
@@ -54,6 +54,15 @@ export function DeepDiveStage({
   onAskQuestion
 }: DeepDiveStageProps) {
   const [internalTimeMs, setInternalTimeMs] = useState(currentTimeMs);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+
+  // Modal öffnen: Hintergrund wird inert, Escape löst "cancel" aus.
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (isOpen && dialog && !dialog.open && typeof dialog.showModal === "function") {
+      dialog.showModal();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -62,51 +71,28 @@ export function DeepDiveStage({
     onSeek?.(targetMs);
   };
 
+  const activeLine = transcriptLines.find(
+    (line) => internalTimeMs >= line.startMs && internalTimeMs <= line.endMs
+  );
+
   return (
     <dialog
-      open
+      ref={dialogRef}
+      className="rn-stage"
       aria-labelledby="deep-dive-stage-title"
       data-testid="deep-dive-stage"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        background: "var(--rn-color-stage-bg)",
-        color: "var(--rn-color-stage-text)",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        padding: "24px",
-        overflow: "hidden",
-        width: "100%",
-        height: "100%",
-        border: "none",
-        boxSizing: "border-box"
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
       }}
     >
-      {/* Stage Header */}
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-          paddingBottom: "16px"
-        }}
-      >
-        <div>
-          <span
-            style={{
-              fontSize: "0.875rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              color: "var(--rn-color-stage-accent)",
-              fontWeight: 700
-            }}
-          >
-            Immersive Cinema Stage
-          </span>
-          <h2 id="deep-dive-stage-title" style={{ margin: "4px 0 0 0", fontSize: "1.4rem" }}>
+      <header className="rn-stage-head">
+        <div className="rn-stage-heading">
+          <p className="rn-stage-eyebrow">
+            <span className="rn-stage-live" aria-hidden="true" />
+            Deep Dive
+          </p>
+          <h2 id="deep-dive-stage-title" className="rn-stage-title">
             {notebookTitle}
           </h2>
         </div>
@@ -116,39 +102,23 @@ export function DeepDiveStage({
           onClick={onClose}
           data-testid="btn-close-deep-dive-stage"
           aria-label="Deep-Dive-Bühne schließen"
-          style={{
-            background: "rgba(255, 255, 255, 0.1)",
-            color: "var(--rn-color-stage-text)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            borderRadius: "50%",
-            width: "44px",
-            height: "44px",
-            fontSize: "1.2rem",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
-          }}
+          className="rn-stage-close"
         >
-          ×
+          <span aria-hidden="true">×</span>
         </button>
       </header>
 
-      {/* Stage Visuals: Aurora Orb & Synced Lyrics */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "24px",
-          padding: "20px 0"
-        }}
-      >
-        <AuroraOrb isPlaying={isPlaying} audioLevel={0.6} width={280} height={280} />
+      <div className="rn-stage-body">
+        <div className="rn-stage-orb">
+          <AuroraOrb isPlaying={isPlaying} audioLevel={0.6} width={240} height={240} />
+          {activeLine && (
+            <p className="rn-stage-speaker" aria-hidden="true">
+              {activeLine.speakerName}
+            </p>
+          )}
+        </div>
 
-        <div style={{ width: "100%", maxWidth: "640px" }}>
+        <div className="rn-stage-lyrics">
           <LiveLyrics
             lines={transcriptLines}
             currentTimeMs={internalTimeMs}
@@ -158,38 +128,17 @@ export function DeepDiveStage({
         </div>
       </div>
 
-      {/* Stage Controls & Join Action */}
-      <footer
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-          paddingTop: "16px"
-        }}
-      >
+      <footer className="rn-stage-foot">
         <button
           type="button"
           onClick={onAskQuestion}
           data-testid="btn-deep-dive-interject"
-          style={{
-            minHeight: "44px",
-            padding: "10px 24px",
-            borderRadius: "var(--rn-radius-lg)",
-            background: "var(--rn-color-stage-accent)",
-            color: "var(--rn-color-stage-bg)",
-            fontWeight: 700,
-            fontSize: "0.95rem",
-            border: "none",
-            cursor: "pointer"
-          }}
+          className="rn-stage-btn rn-stage-btn--primary rn-stage-btn--large"
         >
           Beitreten / Frage an die Hosts stellen
         </button>
 
-        <span style={{ fontSize: "0.875rem", color: "var(--rn-color-stage-muted)" }}>
-          Live-Audio-Synthese • Grounded Citations
-        </span>
+        <p className="rn-stage-note">Live-Audio-Synthese · Antworten mit Quellenangabe</p>
       </footer>
     </dialog>
   );

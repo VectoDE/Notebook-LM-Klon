@@ -44,6 +44,21 @@ describe("AppearanceControls", () => {
     expect(html.match(/type="radio"/g)?.length).toBe(7);
   });
 
+  it("lässt die Rolle weg, wenn keine übergeben wird", () => {
+    const html = renderToStaticMarkup(
+      createElement(AppearanceControls, {
+        theme: "pure",
+        onThemeChange: noop,
+        colorMode: "light",
+        onColorModeChange: noop,
+        idPrefix: "s"
+      })
+    );
+    expect(html).not.toContain("role-switcher-select");
+    expect(html).not.toContain("Rolle");
+    expect(html.match(/type="radio"/g)?.length).toBe(7);
+  });
+
   it("markiert die aktuelle Wahl", () => {
     const html = render();
     expect(html).toMatch(/data-testid="theme-option-fusion"[^>]*checked=""/);
