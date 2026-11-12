@@ -480,12 +480,13 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       textPrimary: "#000000",
       textSecondary: "#0F172A",
       textMuted: "#1E293B",
-      primary: "#1E3A8A",
-      accent: "#1E3A8A",
-      accentHover: "#0F172A",
+      /* Tiefes Petrolblau statt Indigo: im AAA-Modus von Pure unterscheidbar (Issue #335) */
+      primary: "#0C4A6E",
+      accent: "#0C4A6E",
+      accentHover: "#082F49",
       accentText: "#FFFFFF",
-      brand: "#1E40AF",
-      focusRing: "#1E3A8A",
+      brand: "#075985",
+      focusRing: "#0C4A6E",
       highlight: "#FEF08A",
       error: "#7F1D1D",
       errorSurface: "#FFFFFF",
@@ -494,9 +495,9 @@ export const DESIGN_TOKENS: Record<DesignTheme, Record<ColorMode, ColorTokens>> 
       stageBg: "#000000",
       stageText: "#FFFFFF",
       stageMuted: "#F1F5F9",
-      stageAccent: "#BFDBFE",
-      logoTile: "#1E3A8A",
-      logoAccent: "#1E3A8A"
+      stageAccent: "#BAE6FD",
+      logoTile: "#0C4A6E",
+      logoAccent: "#0C4A6E"
     }
   },
   fusion: {

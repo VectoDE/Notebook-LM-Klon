@@ -604,12 +604,12 @@ html[data-design="editorial-calm"][data-color-mode="aaa-contrast"] {
   --rn-color-text-primary: #000000;
   --rn-color-text-secondary: #0f172a;
   --rn-color-text-muted: #1e293b;
-  --rn-color-primary: #1e3a8a;
-  --rn-color-accent: #1e3a8a;
-  --rn-color-accent-hover: #0f172a;
+  --rn-color-primary: #0c4a6e;
+  --rn-color-accent: #0c4a6e;
+  --rn-color-accent-hover: #082f49;
   --rn-color-accent-text: #ffffff;
-  --rn-color-brand: #1e40af;
-  --rn-color-focus-ring: #1e3a8a;
+  --rn-color-brand: #075985;
+  --rn-color-focus-ring: #0c4a6e;
   --rn-color-highlight: #fef08a;
   --rn-color-error: #7f1d1d;
   --rn-color-error-surface: #ffffff;
@@ -618,9 +618,9 @@ html[data-design="editorial-calm"][data-color-mode="aaa-contrast"] {
   --rn-color-stage-bg: #000000;
   --rn-color-stage-text: #ffffff;
   --rn-color-stage-muted: #f1f5f9;
-  --rn-color-stage-accent: #bfdbfe;
-  --rn-color-logo-tile: #1e3a8a;
-  --rn-color-logo-accent: #1e3a8a;
+  --rn-color-stage-accent: #bae6fd;
+  --rn-color-logo-tile: #0c4a6e;
+  --rn-color-logo-accent: #0c4a6e;
 }
 
 html[data-design="fusion"] {

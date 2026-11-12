@@ -431,6 +431,7 @@ const ENTRIES: readonly Entry[] = [
   ["shareRoleEditor", "Bearbeiten", "Can edit"],
   ["shareRoleViewer", "Betrachten", "Can view"],
   ["shareSend", "Einladung senden", "Send invitation"],
+  ["shareSendSoon", "Bald verfügbar", "Coming soon"],
   [
     "shareSendUnavailable",
     "Nicht gesendet: Die Freigabe ist noch nicht verfügbar.",

@@ -171,9 +171,13 @@ export function ShareDialog({
               aria-disabled="true"
               aria-describedby={`${noticeId} ${statusId}`}
               data-testid="btn-share-send"
-              className="rn-btn rn-btn--secondary rn-btn--unavailable"
+              className="rn-btn rn-btn--unavailable"
             >
               {t("shareSend")}
+              {/* Sichtbarer Hinweis statt gestricheltem Rand (Issue #335) */}
+              <span className="rn-btn-hint" data-testid="share-send-hint">
+                {t("shareSendSoon")}
+              </span>
             </button>
           </div>
         </form>

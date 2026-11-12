@@ -191,8 +191,8 @@ export function ChatPanel({
   };
 
   const canSend = inputText.trim().length > 0 && !isGenerating;
-  // Leerzustand bis zur ersten eigenen Frage (Issue #329)
-  const hasQuestions = messages.some((m) => m.role === "user");
+  // Leerzustand nur ohne jede Nachricht: die Begrüßung ersetzt ihn (Issue #335)
+  const isEmpty = messages.length === 0;
 
   return (
     <section
@@ -318,7 +318,7 @@ export function ChatPanel({
             );
           })}
 
-          {!hasQuestions && !isGenerating && (
+          {isEmpty && !isGenerating && (
             <EmptyState
               art="chat"
               title={t("chatEmptyTitle")}
