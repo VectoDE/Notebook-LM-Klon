@@ -1555,7 +1555,8 @@ html[data-reduce-motion="true"] .rn-caret {
 .rn-tool-view {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  /* Nicht unter die Inhaltshöhe schrumpfen: das Panel scrollt, nichts wird gestaucht */
+  flex: 1 0 auto;
   min-height: 0;
 }
 
@@ -1793,10 +1794,11 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
 
 .rn-source {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--rn-space-3);
-  padding: var(--rn-space-2) var(--rn-space-2) var(--rn-space-2) var(--rn-space-3);
+  column-gap: var(--rn-space-2);
+  row-gap: 0;
+  padding: var(--rn-space-2) 0 var(--rn-space-2) var(--rn-space-3);
   border-radius: var(--rn-radius-md);
   border: 1px solid transparent;
   transition: background-color var(--rn-transition-base), border-color var(--rn-transition-base);
@@ -1817,11 +1819,9 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
 
 /* Dateiart als ruhige Marke; nur Dekoration, der Dateiname steht in der Metazeile */
 .rn-source-type {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
+  display: inline-block;
+  margin-inline-end: var(--rn-space-2);
+  padding: 0 var(--rn-space-2);
   border-radius: var(--rn-radius-sm);
   background: var(--rn-color-surface-variant);
   color: var(--rn-color-primary);
@@ -1829,6 +1829,11 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   font-size: var(--rn-text-small);
   font-weight: 700;
   letter-spacing: -0.02em;
+  line-height: 1.5;
+}
+
+html[data-design="immersive-cinema"] .rn-source-meta .rn-source-type {
+  box-shadow: none;
 }
 
 .rn-source:hover .rn-source-type,
@@ -1836,21 +1841,46 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   background: var(--rn-color-panel);
 }
 
+/* Titel läuft über die volle Breite, Metazeile und Augen-Knopf teilen sich die zweite Zeile */
 .rn-source-text {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-  overflow-wrap: anywhere;
+  display: contents;
 }
 
+.rn-source-main .rn-check-hit {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.rn-source-title {
+  grid-column: 2 / span 2;
+  grid-row: 1;
+  align-self: end;
+  min-width: 0;
+}
+
+.rn-source-meta {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+}
+
+.rn-source-inspect {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+/* Titel brechen an Wortgrenzen; nur ein einzelnes zu langes Wort darf umbrechen */
 .rn-source-title {
   font-size: var(--rn-text-body);
   font-weight: 600;
   line-height: 1.35;
+  overflow-wrap: break-word;
 }
 
 .rn-source-meta {
   color: var(--rn-color-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .rn-source-inspect[aria-label$="schließen"] {
@@ -2303,6 +2333,10 @@ html[data-reduce-motion="true"] .rn-dialog-card {
 /* ==========================================================================
    Lernkarten
    ========================================================================== */
+.rn-cards > .rn-flashcard {
+  flex-shrink: 0;
+}
+
 .rn-flashcard {
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -4007,7 +4041,10 @@ html[data-reduce-motion="true"][data-design] .rn-tool:hover {
     border-radius: var(--rn-radius-lg);
     border: 1px solid var(--rn-color-panel-border);
     background: var(--rn-color-panel);
-    overflow: hidden;
+    /* Rundung ohne Scroll-Container: clip schneidet nur, die Liste behält ihre volle Höhe */
+    overflow: clip;
+    overflow-clip-margin: 4px;
+    flex: none;
   }
   html[data-design] .rn-tools .rn-tool {
     grid-template-areas:
@@ -4028,12 +4065,6 @@ html[data-reduce-motion="true"][data-design] .rn-tool:hover {
   html[data-design] .rn-tools .rn-tool-tile {
     width: 40px;
     height: 40px;
-  }
-  html[data-design] .rn-tools .rn-tool-desc {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
   html[data-design] .rn-tools .rn-tool-primary {
     flex: 0 1 auto;
