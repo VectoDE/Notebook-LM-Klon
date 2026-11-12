@@ -9,10 +9,15 @@ import {
   MindmapViewer,
   NODE_FONT_SIZE,
   TOGGLE_RADIUS,
+  buildParentMap,
+  buildTreeMeta,
   computeMindmapLayout,
   fitMindmap,
   flattenLayoutNodes,
-  nodeWidthFor
+  nodeWidthFor,
+  resolveActiveId,
+  tabKeyTarget,
+  treeKeyAction
 } from "../MindmapViewer.js";
 
 const sampleTree: MindmapNode = {
@@ -76,8 +81,8 @@ describe("MindmapViewer Layout Engine & Component (Sub-Issue #122)", () => {
     expect(html).toContain("Test Edge Mindmap");
     expect(html).toContain('role="tablist"');
     expect(html).toContain('role="tab"');
-    expect(html).toContain("Grafik (SVG)");
-    expect(html).toContain("Baumliste (WAI-ARIA)");
+    expect(html).toMatch(/role="tab"[^>]*>Grafik<\/button>/);
+    expect(html).toMatch(/role="tab"[^>]*>Baumliste<\/button>/);
     expect(html).toContain('data-testid="mindmap-svg"');
     expect(html).toContain('role="tree"');
     expect(html).toContain('role="treeitem"');
@@ -141,6 +146,119 @@ describe("MindmapViewer Layout Engine & Component (Sub-Issue #122)", () => {
       expect(minHeight(selector), b).toBeGreaterThanOrEqual(44);
     }
     expect(html).toContain(`r="${TOGGLE_RADIUS}"`);
+  });
+
+  describe("Tastatur und Hilfstechnik (#296)", () => {
+    const layout = computeMindmapLayout(sampleTree, new Set());
+    const flat = flattenLayoutNodes(layout.layoutNode);
+    const meta = buildTreeMeta(layout.layoutNode);
+    const key = (id: string, k: string) => treeKeyAction(flat, meta, id, k);
+
+    it("liefert Ebene, Geschwisterzahl und Position je Knoten", () => {
+      expect(meta.get("root")).toEqual({ parentId: undefined, setSize: 1, posInSet: 1 });
+      expect(meta.get("compute")).toEqual({ parentId: "root", setSize: 2, posInSet: 1 });
+      expect(meta.get("storage")).toEqual({ parentId: "root", setSize: 2, posInSet: 2 });
+      expect(meta.get("do")).toEqual({ parentId: "compute", setSize: 2, posInSet: 2 });
+      expect(meta.get("d1")).toEqual({ parentId: "storage", setSize: 1, posInSet: 1 });
+    });
+
+    it("Pfeil hoch/runter bewegt den Fokus, an den Enden bleibt er stehen", () => {
+      expect(key("root", "ArrowDown")).toEqual({ focus: "compute" });
+      expect(key("worker", "ArrowUp")).toEqual({ focus: "compute" });
+      expect(key("d1", "ArrowDown")).toEqual({});
+      expect(key("root", "ArrowUp")).toEqual({});
+    });
+
+    it("Pfeil rechts klappt auf oder geht zum ersten Kind, Blatt bleibt", () => {
+      expect(key("compute", "ArrowRight")).toEqual({ focus: "worker" });
+      expect(key("worker", "ArrowRight")).toEqual({});
+      const collapsed = computeMindmapLayout(sampleTree, new Set(["compute"]));
+      const cFlat = flattenLayoutNodes(collapsed.layoutNode);
+      const cMeta = buildTreeMeta(collapsed.layoutNode);
+      expect(treeKeyAction(cFlat, cMeta, "compute", "ArrowRight")).toEqual({ toggle: "compute" });
+      // Eingeklappt: Pfeil links springt zum Elternknoten
+      expect(treeKeyAction(cFlat, cMeta, "compute", "ArrowLeft")).toEqual({ focus: "root" });
+    });
+
+    it("Pfeil links klappt zu, sonst Elternknoten; an der Wurzel ohne Kinder nichts", () => {
+      expect(key("compute", "ArrowLeft")).toEqual({ toggle: "compute" });
+      expect(key("do", "ArrowLeft")).toEqual({ focus: "compute" });
+      expect(key("d1", "ArrowLeft")).toEqual({ focus: "storage" });
+      const single = computeMindmapLayout({ id: "solo", label: "Solo" }, new Set());
+      const sFlat = flattenLayoutNodes(single.layoutNode);
+      expect(treeKeyAction(sFlat, buildTreeMeta(single.layoutNode), "solo", "ArrowLeft")).toEqual(
+        {}
+      );
+    });
+
+    it("Pos1/Ende springen zum ersten/letzten sichtbaren Knoten, Eingabe aktiviert", () => {
+      expect(key("do", "Home")).toEqual({ focus: "root" });
+      expect(key("compute", "End")).toEqual({ focus: "d1" });
+      expect(key("compute", "Enter")).toEqual({ activate: true });
+      expect(key("compute", " ")).toEqual({ activate: true });
+      expect(key("compute", "a")).toBeUndefined();
+      expect(key("unbekannt", "ArrowDown")).toBeUndefined();
+    });
+
+    it("weicht bei verborgenem aktiven Knoten auf den sichtbaren Vorfahren aus", () => {
+      const parents = buildParentMap(sampleTree);
+      expect(parents.get("do")).toBe("compute");
+      expect(parents.get("root")).toBeUndefined();
+      const visible = new Set(["root", "compute", "storage", "d1"]);
+      expect(resolveActiveId("do", visible, parents, "root")).toBe("compute");
+      expect(resolveActiveId("storage", visible, parents, "root")).toBe("storage");
+      expect(resolveActiveId("fremd", visible, parents, "root")).toBe("root");
+    });
+
+    it("Reiter: Pfeil links/rechts mit Umlauf, Pos1/Ende, andere Tasten nicht", () => {
+      expect(tabKeyTarget("visual", "ArrowRight")).toBe("tree");
+      expect(tabKeyTarget("tree", "ArrowRight")).toBe("visual");
+      expect(tabKeyTarget("visual", "ArrowLeft")).toBe("tree");
+      expect(tabKeyTarget("tree", "ArrowLeft")).toBe("visual");
+      expect(tabKeyTarget("tree", "Home")).toBe("visual");
+      expect(tabKeyTarget("visual", "End")).toBe("tree");
+      expect(tabKeyTarget("visual", "Enter")).toBeUndefined();
+    });
+
+    it("rendert Roving Tabindex, ARIA-Lage, ausgeblendete Grafik und klare Namen", () => {
+      const html = renderToStaticMarkup(createElement(MindmapViewer, { rootNode: sampleTree }));
+      const items = html.match(/<li[^>]*role="treeitem"[^>]*>/g) ?? [];
+      expect(items).toHaveLength(6);
+      expect(items.filter((i) => i.includes('tabindex="0"'))).toHaveLength(1);
+      expect(items[0]).toContain('tabindex="0"');
+      expect(items[0]).toContain('aria-level="1"');
+      expect(items[1]).toMatch(/aria-level="2"[^>]*aria-setsize="2"[^>]*aria-posinset="1"/);
+      expect(items[1]).toContain('aria-expanded="true"');
+      expect(items[2]).not.toContain("aria-expanded");
+      expect(items.some((i) => i.includes("aria-selected"))).toBe(false);
+      // Grafik: für Hilfstechnik ausgeblendet, nichts darin fokussierbar, Hinweis auf die Liste
+      const svg = /<svg[^>]*>/.exec(html)?.[0] ?? "";
+      expect(svg).toContain('aria-hidden="true"');
+      const svgBody = html.slice(html.indexOf("<svg"), html.indexOf("</svg>"));
+      expect(svgBody).not.toMatch(/tabindex|aria-label/);
+      expect(html).toMatch(/class="rn-visually-hidden">[^<]*Reiter Baumliste/);
+      // Reiter: nur der gewählte im Tab-Fluss
+      const tabs = html.match(/<button[^>]*role="tab"[^>]*>/g) ?? [];
+      expect(tabs[0]).toMatch(/aria-selected="true"[^>]*tabindex="0"/);
+      expect(tabs[1]).toMatch(/aria-selected="false"[^>]*tabindex="-1"/);
+      // Sichtbarer Text ist der Name (WCAG 2.5.3), kein Fachjargon
+      expect(html).toMatch(/<button type="button" class="rn-btn[^"]*">Einpassen<\/button>/);
+      expect(html).toContain('aria-label="Vergrößern"');
+      expect(html).toContain('aria-label="Verkleinern"');
+      expect(html).not.toMatch(/Zoom In|Zoom Out|WAI-ARIA\)|\(SVG\)/);
+      // Ein-/Ausklapp-Knöpfe der Liste liegen nicht im Tab-Fluss
+      const treeBody = html.slice(html.indexOf('role="tree"'));
+      for (const b of treeBody.match(/<button[^>]*>/g) ?? []) {
+        expect(b).toContain('tabindex="-1"');
+        expect(b).toContain('aria-hidden="true"');
+      }
+    });
+
+    it("Reiterbeschriftung bricht nicht um", () => {
+      const css = readFileSync(resolve(import.meta.dirname, "../workspace.css"), "utf8");
+      const start = css.indexOf("\n.rn-seg-tab {");
+      expect(css.slice(start, css.indexOf("}", start))).toContain("white-space: nowrap");
+    });
   });
 
   describe("fitMindmap", () => {

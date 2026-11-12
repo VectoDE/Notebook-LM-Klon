@@ -187,9 +187,9 @@ test.describe("Mindmap einpassen", () => {
           return r.left >= c.left && r.right <= c.right && r.top >= c.top && r.bottom <= c.bottom;
         });
       expect(await rootInside()).toBe(true);
-      await page.getByRole("button", { name: "Vergrößern (Zoom In)" }).click();
-      await page.getByRole("button", { name: "Vergrößern (Zoom In)" }).click();
-      await page.getByRole("button", { name: "Ansicht zurücksetzen" }).click();
+      await page.getByRole("button", { name: "Vergrößern" }).click();
+      await page.getByRole("button", { name: "Vergrößern" }).click();
+      await page.getByRole("button", { name: "Einpassen" }).click();
       expect(await rootInside()).toBe(true);
     });
   }
