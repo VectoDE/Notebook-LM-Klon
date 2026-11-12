@@ -26,7 +26,8 @@ const sampleQuestions: QuizQuestion[] = [
 describe("QuizViewer Component (Sub-Issue #123)", () => {
   it("renders empty state when questions array is empty", () => {
     const html = renderToStaticMarkup(createElement(QuizViewer, { questions: [] }));
-    expect(html).toContain("Keine Quizfragen vorhanden.");
+    expect(html).toContain("Noch kein Quiz");
+    expect(html).toContain('data-testid="quiz-empty-state"');
   });
 
   it("renders first question with options in accessible radiogroup", () => {

@@ -98,7 +98,18 @@ const SHAPES = {
   edit: {
     fill: "M4 16 14.5 5.5l4 4L8 20H4v-4ZM16 4l1-1a1.4 1.4 0 0 1 2 0l2 2a1.4 1.4 0 0 1 0 2l-1 1-4-4Z"
   },
-  plus: { line: "M12 5v14M5 12h14" }
+  plus: { line: "M12 5v14M5 12h14" },
+  list: {
+    fill: "M4.5 4.75a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Zm0 6a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Zm0 6a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Z",
+    line: "M9 6h11M9 12h11M9 18h11"
+  },
+  grid: {
+    fill: "M4 5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5Zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1V5ZM4 14a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-5Zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-5Z"
+  },
+  table: {
+    fill: "M5 4h14a1 1 0 0 1 1 1v4H4V5a1 1 0 0 1 1-1Z",
+    line: "M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm-1 11h16M10 9v11"
+  }
 } as const satisfies Record<string, IconShape>;
 
 export type IconName = keyof typeof SHAPES;

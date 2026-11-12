@@ -16,6 +16,7 @@ import {
   createInitialSM2State
 } from "@notebook-lm/shared";
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useId, useState } from "react";
+import { EmptyState } from "./EmptyState.js";
 import { type Language, fill, translate, useTheme } from "./useTheme.js";
 
 export interface FlashcardsViewerProps {
@@ -158,7 +159,12 @@ export function FlashcardsViewer({
   if (totalCards === 0) {
     return (
       <section aria-label={title} className="rn-tool-view rn-tool-view--empty">
-        <p className="rn-tool-empty">{t("cardsEmpty")}</p>
+        <EmptyState
+          art="studio"
+          title={t("cardsEmptyTitle")}
+          text={t("cardsEmpty")}
+          testId="cards-empty-state"
+        />
       </section>
     );
   }

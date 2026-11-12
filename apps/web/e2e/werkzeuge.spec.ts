@@ -76,7 +76,8 @@ test.describe("Studio auf dem Telefon", () => {
     const list = page.getByTestId("studio-tools-grid");
     await expect(list).toBeVisible();
     const look = await list.evaluate((ul) => {
-      const items = Array.from(ul.querySelectorAll(".rn-tool"));
+      // Gemischt (Issue #329): Audio als Karte darüber, hier nur die Listenzeilen
+      const items = Array.from(ul.querySelectorAll(".rn-tool-row"));
       const gap = getComputedStyle(ul).rowGap;
       return {
         gap,
@@ -84,7 +85,8 @@ test.describe("Studio auf dem Telefon", () => {
         dividers: items.slice(1).map((el) => getComputedStyle(el).borderTopWidth)
       };
     });
-    expect(look.gap).toBe("0px");
+    // Blockliste ohne Abstand zwischen den Zeilen (kein Flex/Grid-Gap)
+    expect(["0px", "normal"]).toContain(look.gap);
     expect(new Set(look.radii)).toEqual(new Set(["0px"]));
     expect(new Set(look.dividers)).toEqual(new Set(["1px"]));
   });
@@ -120,7 +122,9 @@ test.describe("Einstellungen", () => {
 
 test.describe("Deep-Dive-Bühne", () => {
   for (const width of [390, 1440]) {
-    test(`${width} px: Vollbild, nur Bühnenfarben, Escape schließt`, async ({ page }) => {
+    test(`${width} px: unter 600 px Vollbild, sonst zentriert; Escape schließt`, async ({
+      page
+    }) => {
       await page.setViewportSize({ width, height: 860 });
       await page.goto("/");
       await openPanel(page, "studio");
@@ -129,8 +133,17 @@ test.describe("Deep-Dive-Bühne", () => {
       await expect(stage).toBeVisible();
       await stage.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
       const box = await stage.boundingBox();
-      expect(box?.width).toBeCloseTo(width, 0);
-      expect(box?.height).toBeCloseTo(860, 0);
+      if (width < 600) {
+        expect(box?.width).toBeCloseTo(width, 0);
+        expect(box?.height).toBeCloseTo(860, 0);
+      } else {
+        // Zentriert mit Rand (Issue #329)
+        const left = box?.x ?? 0;
+        const right = width - left - (box?.width ?? 0);
+        expect(left).toBeGreaterThanOrEqual(23);
+        expect(Math.abs(left - right)).toBeLessThan(2);
+        expect(box?.height ?? 0).toBeLessThan(860);
+      }
       expect(await findLayoutProblems(page)).toEqual([]);
       expect(await smallButtons(page, "deep-dive-stage")).toEqual([]);
       // Fuß und Transkript überlappen sich nicht

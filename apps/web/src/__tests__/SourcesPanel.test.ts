@@ -61,7 +61,8 @@ describe("SourcesPanel Component (Sub-Issue #131)", () => {
         sources: []
       })
     );
-    expect(html).toContain("Noch keine Quellen vorhanden");
+    expect(html).toContain("Noch keine Quellen");
+    expect(html).toContain('data-art="sources"');
   });
 
   it("renders highlighted citation mark when active citation matches inspected source quote", () => {

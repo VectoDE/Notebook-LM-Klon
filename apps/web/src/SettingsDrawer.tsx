@@ -12,7 +12,7 @@
  * Design, Farbschema und Rolle stehen im Kopfmenü bzw. Menü-Sheet; der Schalter „Bewegung
  * reduzieren“ steht in beiden (Entscheidung des Inhabers, Issue #328), mit gleichem Zustand.
  *
- * Modaler <dialog>: Desktop als Seitenblatt rechts, Telefon als Blatt von unten.
+ * Modaler <dialog>: ab 600 px zentriertes Fenster, darunter Vollbild (Issue #329).
  * Fokusfalle, Escape schließt, Klick auf den Hintergrund schließt.
  */
 

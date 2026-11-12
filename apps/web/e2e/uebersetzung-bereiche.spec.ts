@@ -117,8 +117,8 @@ for (const width of [1440, 390]) {
     test("Quellen: Link-Dialog, Inspektor, Suche ohne Treffer", async ({ page }) => {
       await openPanel(page, "sources");
       await page.getByTestId("sources-filter-input").fill("zzz");
-      await expect(page.getByTestId("no-sources-message")).toHaveText(
-        "No sources match the filter."
+      await expect(page.getByTestId("no-sources-message")).toContainText(
+        "No source matches “zzz”. Check the spelling or clear the filter."
       );
       await page.getByTestId("sources-filter-input").fill("");
       await page.getByTestId("btn-open-url-dialog").click();
