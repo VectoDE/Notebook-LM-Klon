@@ -168,3 +168,27 @@ test.describe("Panelwechsel", () => {
     expect(count).toBe(0);
   });
 });
+
+test.describe("Mindmap einpassen", () => {
+  for (const width of [360, 390, 1440]) {
+    test(`${width} px: Wurzel beim Öffnen und nach Reset vollständig sichtbar`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 860 });
+      await page.goto("/");
+      await openPanel(page, "studio");
+      await page.getByTestId("btn-open-mindmap-tool").click();
+      const rootInside = () =>
+        page.locator(".rn-mindmap-canvas").evaluate((canvas) => {
+          const root = canvas.querySelector('.rn-mm-node[data-kind="root"] .rn-mm-box');
+          if (!root) return false;
+          const c = canvas.getBoundingClientRect();
+          const r = root.getBoundingClientRect();
+          return r.left >= c.left && r.right <= c.right && r.top >= c.top && r.bottom <= c.bottom;
+        });
+      expect(await rootInside()).toBe(true);
+      await page.getByRole("button", { name: "Vergrößern (Zoom In)" }).click();
+      await page.getByRole("button", { name: "Vergrößern (Zoom In)" }).click();
+      await page.getByRole("button", { name: "Ansicht zurücksetzen" }).click();
+      expect(await rootInside()).toBe(true);
+    });
+  }
+});
