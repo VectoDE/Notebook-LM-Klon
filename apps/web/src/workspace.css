@@ -2248,6 +2248,7 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   font: inherit;
   font-size: var(--rn-text-small);
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -2298,6 +2299,11 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   background-color: var(--rn-color-canvas);
   background-image: radial-gradient(var(--rn-color-panel-border) 1px, transparent 1px);
   background-size: 22px 22px;
+}
+
+.rn-mindmap-canvas:focus-visible {
+  outline: var(--rn-focus-outline-width) solid var(--rn-color-focus-ring);
+  outline-offset: 2px;
 }
 
 .rn-mindmap-canvas[hidden],
@@ -2417,7 +2423,7 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   background: var(--rn-color-surface-variant);
 }
 
-.rn-tree-item[aria-selected="true"] {
+.rn-tree-item[data-active="true"] {
   background: var(--rn-color-highlight);
   box-shadow: inset 3px 0 0 var(--rn-color-primary);
 }
@@ -2459,7 +2465,7 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   color: var(--rn-color-success);
 }
 
-.rn-tree-item[aria-selected="true"] .rn-tree-cite {
+.rn-tree-item[data-active="true"] .rn-tree-cite {
   color: var(--rn-color-text-primary);
 }
 
