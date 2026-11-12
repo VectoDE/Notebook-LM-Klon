@@ -52,14 +52,17 @@ test.describe("Sprunglink und Landmarks", () => {
     ).toBe(true);
   });
 
-  test("ab 900 px: Bereiche sind Sprungziele ohne aria-current, nie page", async ({ page }) => {
+  test("ab 900 px: keine Reiter, Sprunglinks führen in die Spalten, kein aria-current", async ({
+    page
+  }) => {
     await page.goto("/");
-    // Alle Bereiche sind sichtbar: eine „aktuell“-Markierung hätte keine Bedeutung (Issue #319)
-    await expect(page.locator("[data-testid^='top-tab-'][aria-current]")).toHaveCount(0);
-    await page.getByTestId("top-tab-studio").click();
+    // Alle Spalten sind sichtbar und selbst die Navigation (Issue #325)
+    await expect(page.getByTestId("top-nav")).toBeHidden();
+    await page.getByTestId("skip-link-studio").focus();
+    await page.keyboard.press("Enter");
     await expect(page.locator("[data-panel='studio']")).toBeFocused();
-    await expect(page.locator("[data-testid^='top-tab-'][aria-current]")).toHaveCount(0);
-    await expect(page.locator("[aria-current='page']")).toHaveCount(0);
+    await expect(page.locator("[aria-current]:visible")).toHaveCount(0);
+    await expect(page.locator("[data-flash]")).toHaveCount(0);
   });
 
   test("600 bis 899 px: ein Bereich sichtbar, Reiter mit aria-current=true", async ({ page }) => {

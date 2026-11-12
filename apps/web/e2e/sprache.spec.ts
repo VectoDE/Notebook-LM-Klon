@@ -82,12 +82,14 @@ for (const width of [390, 1440]) {
       await page.getByRole("button", { name: "Close menu" }).click();
       await expect(sheet).toBeHidden();
     } else {
-      const top = page.getByTestId("top-nav");
-      await expect(page.getByRole("navigation", { name: "Sections" }).first()).toBeVisible();
-      for (const label of ["Sources", "Chat", "Studio"]) {
-        await expect(top, label).toContainText(label);
-      }
-      await expect(top).not.toContainText("Quellen");
+      // Ab 900 px sind die Spalten die Navigation (Issue #325): keine Reiter, englische Leiste
+      await expect(page.getByTestId("top-nav")).toBeHidden();
+      await expect(page.getByTestId("btn-open-share")).toHaveText("Share");
+      await expect(page.getByTestId("btn-open-account")).toHaveAccessibleName("Account");
+      await expect(page.getByTestId("btn-collapse-sources")).toHaveAccessibleName(
+        "Collapse sources"
+      );
+      await expect(page.getByTestId("skip-link-studio")).toHaveText("Skip to Studio");
       await expect(page.getByTestId("btn-open-settings")).toHaveText("Settings");
       const appearance = page.getByTestId("btn-open-appearance");
       await expect(appearance).toHaveText("Appearance");

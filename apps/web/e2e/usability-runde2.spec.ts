@@ -130,7 +130,8 @@ test.describe("Kopfknöpfe", () => {
   });
 
   test("Einstellungen stehen nicht in der Navigation „Bereiche“", async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
+    // Reiter oben gibt es nur noch von 600 bis 899 px (Issue #325)
+    await page.setViewportSize({ width: 800, height: 900 });
     await page.goto("/");
     const nav = page.getByRole("navigation", { name: "Bereiche" });
     await expect(nav.getByRole("button")).toHaveCount(3);
@@ -177,41 +178,41 @@ test.describe("Kopfknöpfe", () => {
     expect((await labelBox(page, ".rn-appearance-button-label")).width).toBeLessThanOrEqual(1);
   });
 
-  test("640 px: Bereiche als Symbol mit Kurzinfo bei Fokus", async ({ page }) => {
+  test("640 px: Reiter unter dem Kopf mit sichtbarer Beschriftung", async ({ page }) => {
     await page.setViewportSize({ width: 640, height: 700 });
     await page.goto("/");
+    // Eigene Leiste unter dem Kopf (Issue #325): genug Platz, die Namen stehen sichtbar da
     const label = page.getByTestId("top-tab-studio").locator(".rn-topnav-label");
-    expect((await label.boundingBox())?.width ?? 0).toBeLessThanOrEqual(1);
-    await page.getByTestId("top-tab-studio").hover();
     expect((await label.boundingBox())?.width ?? 0).toBeGreaterThan(30);
+    await expect(page.getByTestId("top-tab-studio")).toHaveAccessibleName(/Studio/);
     expect(await findLayoutProblems(page)).toEqual([]);
   });
 });
 
-test.describe("Obere Navigation ab 900 px: Sprungziele", () => {
+test.describe("Ab 900 px: Spalten statt Sprungziele oben", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("Klick fokussiert den Bereich und markiert ihn kurz, ohne aria-current", async ({
+  test("Sprunglink fokussiert die Spalte ohne Markierung und ohne aria-current", async ({
     page
   }) => {
     await page.goto("/");
-    await page.getByTestId("top-tab-sources").click();
+    await expect(page.getByTestId("top-nav")).toBeHidden();
+    await page.getByTestId("skip-link-sources").focus();
+    await page.keyboard.press("Enter");
     const panel = page.locator("[data-panel='sources']");
     await expect(panel).toBeFocused();
-    await expect(panel).toHaveAttribute("data-flash", "true");
-    await expect(panel).toHaveCSS("outline-style", "solid");
-    await expect(page.locator("[data-testid^='top-tab-'][aria-current]")).toHaveCount(0);
-    // Die Markierung verschwindet wieder
-    await expect(panel).not.toHaveAttribute("data-flash", "true", { timeout: 3000 });
+    await expect(panel).not.toHaveAttribute("data-flash", /.*/);
+    await expect(page.locator("[aria-current]:visible")).toHaveCount(0);
   });
 
-  test("reduzierte Bewegung: Markierung ohne Animation", async ({ page }) => {
+  test("reduzierte Bewegung: Einklappen ohne Animation", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
-    await page.getByTestId("top-tab-studio").click();
-    const panel = page.locator("[data-panel='studio']");
-    await expect(panel).toHaveAttribute("data-flash", "true");
-    expect(await panel.evaluate((el) => el.getAnimations().length)).toBe(0);
+    await page.getByTestId("btn-collapse-studio").click();
+    await expect(page.getByTestId("rail-studio")).toBeVisible();
+    expect(
+      await page.getByTestId("panel-right-wrapper").evaluate((el) => el.getAnimations().length)
+    ).toBe(0);
   });
 });
 

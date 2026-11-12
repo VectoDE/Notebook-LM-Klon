@@ -34,7 +34,7 @@ export interface ChatPanelProps {
   readonly onStop?: (() => void) | undefined;
   readonly onRetry?: (() => void) | undefined;
   readonly isGenerating?: boolean | undefined;
-  /** Fokusziel für die Bereichsnavigation (data-panel, tabIndex, data-flash). */
+  /** Fokusziel für die Bereichsnavigation (data-panel, tabIndex). */
   readonly panelAttributes?: PanelFocusAttributes | undefined;
 }
 

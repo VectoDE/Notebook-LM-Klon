@@ -19,8 +19,11 @@ import { AppearanceControls, type UserRole } from "./AppearanceControls.js";
 import { BrandLogo } from "./BrandLogo.js";
 import { type ChatMessage, ChatPanel } from "./ChatPanel.js";
 import { Icon, type IconName } from "./Icon.js";
+import { NotebookTitle } from "./NotebookTitle.js";
+import { PanelRail, PanelToggle, RailButton } from "./PanelRail.js";
 import { SettingsDrawer } from "./SettingsDrawer.js";
-import { SourcesPanel } from "./SourcesPanel.js";
+import { ShareDialog } from "./ShareDialog.js";
+import { SOURCE_FILE_ACCEPT, SourcesPanel } from "./SourcesPanel.js";
 import { StudioPanel, type StudioTool } from "./StudioPanel.js";
 import {
   ChatApiError,
@@ -30,6 +33,15 @@ import {
   technicalErrorDetail
 } from "./chat-client.js";
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
+import {
+  type CollapsedPanels,
+  type CollapsiblePanel,
+  matchPanelShortcut,
+  readCollapsedPanels,
+  readNotebookTitle,
+  storeCollapsedPanels,
+  storeNotebookTitle
+} from "./layout-preferences.js";
 import { browserStorage, readStoredModel, storeModel } from "./theme-preferences.js";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, PanelFocusAttributes, WorkspaceSource } from "./workspace-types.js";
@@ -217,16 +229,20 @@ export interface WorkspaceLayoutProps {
   readonly chatFetch?: typeof fetch | undefined;
 }
 
-/** Unter 600 px: Logo und Menü-Knopf oben, Reiterleiste unten. */
+/** Standardtitel des Demo-Notebooks, bis er umbenannt wird. */
+export const DEFAULT_NOTEBOOK_TITLE = "Cloudflare Edge Stack Architecture";
+
+/** Unter 600 px: Logo, Titel und Menü-Knopf oben, Reiterleiste unten. */
 const NARROW_HEADER_QUERY = "(max-width: 599.98px)";
 
-/** Unter 900 px ist nur ein Bereich sichtbar: die Navigation schaltet um (Reiterlogik). */
+/**
+ * Unter 900 px ist nur ein Bereich sichtbar: die Reiter schalten um. Ab 900 px stehen alle
+ * Spalten nebeneinander und sind selbst die Navigation (Issue #325).
+ */
 const SINGLE_PANEL_QUERY = "(max-width: 899.98px)";
 
-/** Dauer der kurzen Markierung eines angesprungenen Bereichs (ab 900 px). */
-const PANEL_FLASH_MS = 1200;
-
 type PanelTab = "sources" | "chat" | "studio";
+type Popover = "appearance" | "account";
 
 /**
  * Bereiche des Arbeitsbereichs: Schlüssel im Sprachkatalog für den kurzen Namen und den
@@ -236,12 +252,45 @@ const PANEL_TABS: readonly {
   readonly id: PanelTab;
   readonly labelKey: string;
   readonly ariaKey: string;
+  readonly skipKey: string;
   readonly icon: IconName;
 }[] = [
-  { id: "sources", labelKey: "navSources", ariaKey: "navSources", icon: "sources" },
-  { id: "chat", labelKey: "navChat", ariaKey: "navChatAria", icon: "chat" },
-  { id: "studio", labelKey: "navStudio", ariaKey: "navStudioAria", icon: "studio" }
+  {
+    id: "sources",
+    labelKey: "navSources",
+    ariaKey: "navSources",
+    skipKey: "skipToSources",
+    icon: "sources"
+  },
+  { id: "chat", labelKey: "navChat", ariaKey: "navChatAria", skipKey: "skipToChat", icon: "chat" },
+  {
+    id: "studio",
+    labelKey: "navStudio",
+    ariaKey: "navStudioAria",
+    skipKey: "skipToStudio",
+    icon: "studio"
+  }
 ];
+
+/** Werkzeuge in der Symbolleiste der eingeklappten Studio-Spalte. */
+const RAIL_TOOLS: readonly {
+  readonly tool: Exclude<StudioTool, "overview" | "briefing">;
+  readonly icon: IconName;
+  readonly labelKey: string;
+}[] = [
+  { tool: "audio", icon: "audio", labelKey: "studioAudioCard" },
+  { tool: "video", icon: "video", labelKey: "studioVideoCard" },
+  { tool: "mindmap", icon: "mindmap", labelKey: "toolMindmapTitle" },
+  { tool: "flashcards", icon: "cards", labelKey: "toolCardsTitle" },
+  { tool: "quiz", icon: "quiz", labelKey: "toolQuizTitle" }
+];
+
+/** id der Spalteninhalte: Ziel von aria-controls und der Sprunglinks. */
+const COLUMN_IDS: Readonly<Record<PanelTab, string>> = {
+  sources: "sources-column",
+  chat: "chat-column",
+  studio: "studio-column"
+};
 
 /** Reagiert auf eine Media Query; ohne window (Server-Rendering) immer false. */
 export function useMediaQuery(query: string): boolean {
@@ -259,13 +308,22 @@ export function useMediaQuery(query: string): boolean {
   return matches;
 }
 
+/** Ist gerade ein modaler Dialog offen? Dann wirken die Spalten-Kürzel nicht. */
+function isModalOpen(): boolean {
+  try {
+    return document.querySelector("dialog:modal") !== null;
+  } catch {
+    return false;
+  }
+}
+
 export function WorkspaceLayout({
   initialTool = "overview",
   initialPanelTab = "chat",
   notebookId = "nb_active",
   chatFetch
 }: WorkspaceLayoutProps) {
-  const { theme, setTheme, colorMode, setColorMode, t } = useTheme();
+  const { theme, setTheme, colorMode, setColorMode, t, tf } = useTheme();
   const isNarrowHeader = useMediaQuery(NARROW_HEADER_QUERY);
   const isSinglePanel = useMediaQuery(SINGLE_PANEL_QUERY);
 
@@ -274,22 +332,39 @@ export function WorkspaceLayout({
   const [sources, setSources] = useState<WorkspaceSource[]>(DEFAULT_SOURCES);
   const [activeCitation, setActiveCitation] = useState<CitationLocation | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   // Modellwahl übersteht das Neuladen (nur bekannte Werte, Issue #319)
   const [activeModel, setActiveModel] = useState<string>(() => readStoredModel(browserStorage()));
-  const [flashedPanel, setFlashedPanel] = useState<PanelTab | null>(null);
-  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  // Kurzinfos der Kopfknöpfe: Escape blendet sie aus, bis Zeiger oder Fokus den Knopf verlassen
+  // Eingeklappte Spalten und Titel bleiben auf dem Gerät gespeichert (Issue #325)
+  const [collapsed, setCollapsed] = useState<CollapsedPanels>(() =>
+    readCollapsedPanels(browserStorage())
+  );
+  const [notebookTitle, setNotebookTitle] = useState(() =>
+    readNotebookTitle(browserStorage(), notebookId, DEFAULT_NOTEBOOK_TITLE)
+  );
+  const [studioToolRequest, setStudioToolRequest] = useState<{ readonly tool: StudioTool }>();
+  // Kurze Meldung für Screenreader (Spalte ein- oder ausgeklappt, Titel gespeichert)
+  const [announcement, setAnnouncement] = useState("");
+  // Kurzinfos der Symbolknöpfe: Escape blendet sie aus, bis Zeiger oder Fokus den Knopf verlassen
   const [tipsHidden, setTipsHidden] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>("owner");
-  const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
+  const [openPopover, setOpenPopover] = useState<Popover | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const appearanceAnchorRef = useRef<HTMLDivElement>(null);
+  const accountAnchorRef = useRef<HTMLDivElement>(null);
   const appearanceButtonRef = useRef<HTMLButtonElement>(null);
-  const appearancePanelRef = useRef<HTMLDialogElement>(null);
-  const appearanceOpenedByKeyboard = useRef(false);
+  const accountButtonRef = useRef<HTMLButtonElement>(null);
+  const popoverPanelRef = useRef<HTMLDialogElement>(null);
+  const popoverOpenedByKeyboard = useRef(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
+  const shareButtonRef = useRef<HTMLButtonElement>(null);
+  const railFileInputRef = useRef<HTMLInputElement>(null);
+  const settingsFromAccountRef = useRef(false);
   const sheetRef = useRef<HTMLDialogElement>(null);
+
+  // Einklappen gilt nur, wenn alle Spalten nebeneinander stehen (ab 900 px)
+  const isCollapsed = (panel: CollapsiblePanel) => !isSinglePanel && collapsed[panel];
 
   const appearanceProps = {
     role: userRole,
@@ -300,31 +375,87 @@ export function WorkspaceLayout({
     onColorModeChange: setColorMode
   };
 
+  const setPanelCollapsed = (panel: CollapsiblePanel, value: boolean) => {
+    setCollapsed((prev) => {
+      const next = { ...prev, [panel]: value };
+      storeCollapsedPanels(browserStorage(), next);
+      return next;
+    });
+    const key =
+      panel === "sources"
+        ? value
+          ? "panelSourcesCollapsed"
+          : "panelSourcesExpanded"
+        : value
+          ? "panelStudioCollapsed"
+          : "panelStudioExpanded";
+    setAnnouncement(t(key));
+  };
+
   /**
-   * Bereich wählen; der Fokus springt in das Panel (Tastatur landet direkt im Inhalt).
-   * Ab 900 px sind alle Bereiche sichtbar: dann ist der Klick ein Sprung, und der Bereich
-   * wird kurz markiert (Issue #319).
+   * Spalte ein- oder ausklappen. Ging der Fokus dabei verloren (er lag in der eingeklappten
+   * Spalte oder auf dem verschwundenen Knopf der Leiste), landet er auf dem Umschalter.
    */
-  const goToPanel = (tab: PanelTab) => {
-    setActiveMobileTab(tab);
+  const togglePanel = (panel: CollapsiblePanel) => {
+    const willCollapse = !collapsed[panel];
+    setPanelCollapsed(panel, willCollapse);
     requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>(`[data-panel="${tab}"]`)?.focus({ preventScroll: true });
-      if (isSinglePanel) return;
-      clearTimeout(flashTimerRef.current);
-      setFlashedPanel(null);
-      requestAnimationFrame(() => setFlashedPanel(tab));
-      flashTimerRef.current = setTimeout(() => setFlashedPanel(null), PANEL_FLASH_MS);
+      const active = document.activeElement;
+      const lost = !active || active === document.body || active.closest("[hidden]") !== null;
+      if (!lost) return;
+      document
+        .querySelector<HTMLElement>(
+          `[data-testid="btn-${willCollapse ? "expand" : "collapse"}-${panel}"]`
+        )
+        ?.focus();
     });
   };
 
-  useEffect(() => () => clearTimeout(flashTimerRef.current), []);
+  // Kürzel Alt+Umschalt+1 / +3 (nur ab 900 px und ohne offenen modalen Dialog)
+  const togglePanelRef = useRef(togglePanel);
+  togglePanelRef.current = togglePanel;
+  useEffect(() => {
+    if (isSinglePanel) return;
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      const panel = matchPanelShortcut(event);
+      if (!panel || event.defaultPrevented || isModalOpen()) return;
+      event.preventDefault();
+      togglePanelRef.current(panel);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isSinglePanel]);
+
+  /**
+   * Bereich wählen; der Fokus springt in das Panel (Tastatur landet direkt im Inhalt).
+   * Unter 900 px schaltet das den sichtbaren Bereich um; ab 900 px wird eine eingeklappte
+   * Spalte dabei ausgeklappt.
+   */
+  const goToPanel = (tab: PanelTab) => {
+    setActiveMobileTab(tab);
+    if (tab !== "chat" && isCollapsed(tab)) setPanelCollapsed(tab, false);
+    requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>(`[data-panel="${tab}"]`)?.focus({ preventScroll: true });
+    });
+  };
+
+  /** Werkzeug aus der eingeklappten Studio-Leiste: Spalte ausklappen, Werkzeug öffnen. */
+  const openStudioTool = (tool: StudioTool) => {
+    setStudioToolRequest({ tool });
+    goToPanel("studio");
+  };
 
   // Fokusziel ist die benannte Region im Bereich, nicht der Layout-Wrapper (Issue #323)
   const panelAttributes = (tab: PanelTab): PanelFocusAttributes => ({
     "data-panel": tab,
-    "data-flash": flashedPanel === tab ? "true" : undefined,
     tabIndex: -1
   });
+
+  const renameNotebook = (title: string) => {
+    setNotebookTitle(title);
+    storeNotebookTitle(browserStorage(), notebookId, title);
+    setAnnouncement(tf("titleSaved", { title }));
+  };
 
   // WCAG 1.4.13: Kurzinfo per Escape schließen, ohne Zeiger oder Fokus zu bewegen
   useEffect(() => {
@@ -335,38 +466,49 @@ export function WorkspaceLayout({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
   const showTips = () => setTipsHidden(false);
+  const tipHandlers = { onPointerLeave: showTips, onBlur: showTips };
 
   // Beim Wechsel zwischen Telefon- und Desktop-Kopf sind offene Menüs ungültig
   const [menuLayoutNarrow, setMenuLayoutNarrow] = useState(isNarrowHeader);
   if (menuLayoutNarrow !== isNarrowHeader) {
     setMenuLayoutNarrow(isNarrowHeader);
-    setIsAppearanceOpen(false);
+    setOpenPopover(null);
     setIsMenuOpen(false);
   }
 
-  // Darstellungsmenü: Fokus hinein, Klick außerhalb schließt
+  // Menüs im Kopf (Darstellung, Konto): Fokus hinein, Klick außerhalb schließt
   useEffect(() => {
-    if (!isAppearanceOpen) return;
-    // Tastatur: Fokus auf die gewählte Option unter „Design“; Maus: auf das Menü selbst
-    const panel = appearancePanelRef.current;
+    if (!openPopover) return;
+    // Tastatur: Fokus auf das erste Feld (bei Radiogruppen das gewählte); Maus: auf das Menü
+    const panel = popoverPanelRef.current;
     const first =
       panel?.querySelector<HTMLElement>('input[type="radio"]:checked') ??
       panel?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
-    (appearanceOpenedByKeyboard.current ? first : panel)?.focus();
+    (popoverOpenedByKeyboard.current ? first : panel)?.focus();
+    const anchor = (openPopover === "appearance" ? appearanceAnchorRef : accountAnchorRef).current;
     const onPointerDown = (event: PointerEvent) => {
-      if (!appearanceAnchorRef.current?.contains(event.target as Node)) {
-        setIsAppearanceOpen(false);
-      }
+      if (!anchor?.contains(event.target as Node)) setOpenPopover(null);
     };
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [isAppearanceOpen]);
+  }, [openPopover]);
 
-  const handleAppearanceKeyDown = (event: KeyboardEvent<HTMLDialogElement>) => {
+  const togglePopover = (popover: Popover, byKeyboard: boolean) => {
+    popoverOpenedByKeyboard.current = byKeyboard;
+    setOpenPopover((open) => (open === popover ? null : popover));
+  };
+
+  const closePopover = (restoreFocus: boolean) => {
+    const open = openPopover;
+    setOpenPopover(null);
+    if (!restoreFocus || !open) return;
+    (open === "appearance" ? appearanceButtonRef : accountButtonRef).current?.focus();
+  };
+
+  const handlePopoverKeyDown = (event: KeyboardEvent<HTMLDialogElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
-      setIsAppearanceOpen(false);
-      appearanceButtonRef.current?.focus();
+      closePopover(true);
       return;
     }
     trapTabKey(event, event.currentTarget, document.activeElement);
@@ -450,6 +592,8 @@ export function WorkspaceLayout({
   const handleCitationClick = (citation: CitationLocation) => {
     setActiveCitation(citation);
     setActiveMobileTab("sources");
+    // Eingeklappte Quellen klappen auf, damit die Fundstelle sichtbar wird
+    if (isCollapsed("sources")) setPanelCollapsed("sources", false);
   };
 
   const updateMessage = useCallback((id: string, patch: (m: ChatMessage) => ChatMessage) => {
@@ -537,65 +681,68 @@ export function WorkspaceLayout({
     if (lastPromptRef.current) void handleSendMessage(lastPromptRef.current, { isRetry: true });
   };
 
+  const sourcesCollapsed = isCollapsed("sources");
+  const studioCollapsed = isCollapsed("studio");
+
   return (
-    <div className="workspace-shell" data-testid="workspace-shell">
-      {/* Sprunglink: erstes fokussierbares Element, nur bei Fokus sichtbar */}
+    <div
+      className="workspace-shell"
+      data-testid="workspace-shell"
+      data-tips-hidden={tipsHidden ? "true" : undefined}
+    >
+      {/* Sprunglinks: zuerst zum Inhalt, dann zu jeder Spalte; nur bei Fokus sichtbar */}
       <a href="#workspace-main" className="rn-skip-link" data-testid="skip-link">
         {t("skipToContent")}
       </a>
+      {PANEL_TABS.map((tab) => (
+        <a
+          key={tab.id}
+          href={`#${COLUMN_IDS[tab.id]}`}
+          className="rn-skip-link"
+          data-testid={`skip-link-${tab.id}`}
+          onClick={(event) => {
+            event.preventDefault();
+            goToPanel(tab.id);
+          }}
+        >
+          {t(tab.skipKey)}
+        </a>
+      ))}
 
-      {/* Kopf: Logo links, Bereiche als Reiterleiste, Darstellung in einem Menü */}
-      <header
-        data-testid="workspace-header"
-        className="workspace-header"
-        data-tips-hidden={tipsHidden ? "true" : undefined}
-      >
+      {/* Anwendungsleiste: Logo, Notebook-Titel, Teilen, Einstellungen, Darstellung, Konto */}
+      <header data-testid="workspace-header" className="workspace-header">
         <div className="workspace-brand">
-          <h1 id="app-title" className="workspace-title">
-            <BrandLogo height={32} />
-          </h1>
+          <span className="workspace-logo">
+            <BrandLogo height={isNarrowHeader ? 26 : 32} />
+          </span>
           <span className="workspace-version">v{WORKSPACE_VERSION}</span>
+          <NotebookTitle id="notebook-title" title={notebookTitle} onRename={renameNotebook} />
         </div>
 
-        <nav aria-label={t("navAreas")} className="rn-topnav" data-testid="top-nav">
-          {PANEL_TABS.map((tab) => {
-            const isSources = tab.id === "sources";
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => goToPanel(tab.id)}
-                // Nur wenn genau ein Bereich sichtbar ist, bedeutet „aktuell“ etwas
-                aria-current={isSinglePanel && activeMobileTab === tab.id ? "true" : undefined}
-                data-testid={`top-tab-${tab.id}`}
-                className="rn-topnav-item rn-tip-host"
-                onPointerLeave={showTips}
-                onBlur={showTips}
-              >
-                <Icon name={tab.icon} size={18} />
-                <span className="rn-topnav-label">{t(tab.labelKey)}</span>
-                {isSources && (
-                  <span className="rn-topnav-count">
-                    <span className="rn-visually-hidden">, </span>
-                    {sources.length}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Einstellungen und Darstellung öffnen Dialoge, keine Bereiche: außerhalb der Navigation */}
         <div className="rn-header-end">
+          <button
+            ref={shareButtonRef}
+            type="button"
+            onClick={() => setIsShareOpen(true)}
+            data-testid="btn-open-share"
+            aria-haspopup="dialog"
+            className="rn-control rn-control--button rn-share-button rn-tip-host"
+            {...tipHandlers}
+          >
+            <Icon name="share" size={18} />
+            <span className="rn-share-button-label">{t("shareButton")}</span>
+          </button>
           <button
             ref={settingsButtonRef}
             type="button"
-            onClick={() => setIsSettingsOpen(true)}
+            onClick={() => {
+              settingsFromAccountRef.current = false;
+              setIsSettingsOpen(true);
+            }}
             data-testid="btn-open-settings"
             aria-haspopup="dialog"
             className="rn-control rn-control--button rn-settings-button rn-tip-host"
-            onPointerLeave={showTips}
-            onBlur={showTips}
+            {...tipHandlers}
           >
             <Icon name="settings" size={18} />
             <span className="rn-settings-button-label">{t("navSettings")}</span>
@@ -604,35 +751,78 @@ export function WorkspaceLayout({
             <button
               ref={appearanceButtonRef}
               type="button"
-              onClick={(event) => {
-                // detail 0: per Enter oder Leertaste ausgelöst
-                appearanceOpenedByKeyboard.current = event.detail === 0;
-                setIsAppearanceOpen((open) => !open);
-              }}
-              aria-expanded={isAppearanceOpen}
+              // detail 0: per Enter oder Leertaste ausgelöst
+              onClick={(event) => togglePopover("appearance", event.detail === 0)}
+              aria-expanded={openPopover === "appearance"}
               aria-controls="appearance-menu"
               aria-haspopup="dialog"
               data-testid="btn-open-appearance"
               className="rn-control rn-control--button rn-appearance-button rn-tip-host"
-              onPointerLeave={showTips}
-              onBlur={showTips}
+              {...tipHandlers}
             >
               <Icon name="palette" size={18} />
               <span className="rn-appearance-button-label">{t("appearanceTitle")}</span>
               <Icon name="chevron" size={16} className="rn-icon rn-appearance-chevron" />
             </button>
-            {isAppearanceOpen && !isNarrowHeader && (
+            {openPopover === "appearance" && !isNarrowHeader && (
               <dialog
                 id="appearance-menu"
-                ref={appearancePanelRef}
+                ref={popoverPanelRef}
                 open
                 tabIndex={-1}
                 aria-label={t("appearanceTitle")}
                 data-testid="appearance-menu"
                 className="rn-popover"
-                onKeyDown={handleAppearanceKeyDown}
+                onKeyDown={handlePopoverKeyDown}
               >
                 <AppearanceControls idPrefix="appearance" {...appearanceProps} />
+              </dialog>
+            )}
+          </div>
+          <div className="rn-popover-anchor" ref={accountAnchorRef}>
+            <button
+              ref={accountButtonRef}
+              type="button"
+              onClick={(event) => togglePopover("account", event.detail === 0)}
+              aria-expanded={openPopover === "account"}
+              aria-controls="account-menu"
+              aria-haspopup="dialog"
+              data-testid="btn-open-account"
+              className="rn-control rn-control--button rn-account-button rn-tip-host"
+              {...tipHandlers}
+            >
+              <Icon name="account" size={22} />
+              <span className="rn-tip rn-tip--below">
+                <span className="rn-tip-label">{t("accountButton")}</span>
+              </span>
+            </button>
+            {openPopover === "account" && !isNarrowHeader && (
+              <dialog
+                id="account-menu"
+                ref={popoverPanelRef}
+                open
+                tabIndex={-1}
+                aria-label={t("accountButton")}
+                data-testid="account-menu"
+                className="rn-popover rn-account"
+                onKeyDown={handlePopoverKeyDown}
+              >
+                <AccountStatus />
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Fokus zuerst auf den Konto-Knopf: der Dialog merkt ihn als Rückkehrziel
+                    closePopover(true);
+                    settingsFromAccountRef.current = true;
+                    setIsSettingsOpen(true);
+                  }}
+                  aria-haspopup="dialog"
+                  data-testid="account-open-settings"
+                  className="rn-btn rn-btn--secondary rn-btn--block"
+                >
+                  <Icon name="settings" size={18} />
+                  {t("accountOpenSettings")}
+                </button>
               </dialog>
             )}
           </div>
@@ -652,38 +842,112 @@ export function WorkspaceLayout({
         </div>
       </header>
 
+      {/* Reiter 600 bis 899 px: nur hier ist genau ein Bereich sichtbar. Ab 900 px sind die
+          Spalten die Navigation, unter 600 px liegt die Leiste unten (Issue #325). */}
+      <nav aria-label={t("navAreas")} className="rn-topnav" data-testid="top-nav">
+        {PANEL_TABS.map((tab) => {
+          const isSources = tab.id === "sources";
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => goToPanel(tab.id)}
+              aria-current={isSinglePanel && activeMobileTab === tab.id ? "true" : undefined}
+              data-testid={`top-tab-${tab.id}`}
+              className="rn-topnav-item"
+            >
+              <Icon name={tab.icon} size={18} />
+              <span className="rn-topnav-label">{t(tab.labelKey)}</span>
+              {isSources && (
+                <span className="rn-topnav-count">
+                  <span className="rn-visually-hidden">, </span>
+                  {sources.length}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
       {/* Main 3-Panel Workspace Container */}
       <main
         id="workspace-main"
         tabIndex={-1}
-        aria-labelledby="app-title"
+        aria-labelledby="notebook-title"
         data-testid="workspace-3panel-container"
         className="workspace-main"
       >
         {/* Panel 1: Left Sources Panel */}
         <div
           data-testid="panel-left-wrapper"
+          data-collapsed={sourcesCollapsed ? "true" : undefined}
           className={`workspace-panel panel-left ${activeMobileTab === "sources" ? "panel-active" : ""}`}
         >
-          <SourcesPanel
-            sources={sources}
-            activeCitation={activeCitation}
-            onToggleSelect={handleToggleSelectSource}
-            onToggleSelectAll={handleToggleSelectAllSources}
-            onUploadFiles={handleUploadFiles}
-            onImportUrl={handleImportUrl}
-            onClearActiveCitation={() => setActiveCitation(null)}
-            panelAttributes={panelAttributes("sources")}
-          />
+          {sourcesCollapsed && (
+            <PanelRail
+              panel="sources"
+              toggle={
+                <PanelToggle
+                  panel="sources"
+                  collapsed
+                  onToggle={() => togglePanel("sources")}
+                  controls={COLUMN_IDS.sources}
+                />
+              }
+            >
+              <RailButton
+                icon="plus"
+                label={t("sourcesAdd")}
+                onClick={() => railFileInputRef.current?.click()}
+                tipSide="right"
+                testId="rail-add-source"
+              />
+              <input
+                ref={railFileInputRef}
+                type="file"
+                multiple
+                accept={SOURCE_FILE_ACCEPT}
+                hidden
+                data-testid="rail-file-input"
+                onChange={(event) => {
+                  const files = Array.from(event.target.files ?? []);
+                  if (files.length > 0) handleUploadFiles(files);
+                  event.target.value = "";
+                }}
+                aria-label={t("srcFileInputAria")}
+              />
+            </PanelRail>
+          )}
+          <div id={COLUMN_IDS.sources} className="rn-panel-slot" hidden={sourcesCollapsed}>
+            <SourcesPanel
+              sources={sources}
+              activeCitation={activeCitation}
+              onToggleSelect={handleToggleSelectSource}
+              onToggleSelectAll={handleToggleSelectAllSources}
+              onUploadFiles={handleUploadFiles}
+              onImportUrl={handleImportUrl}
+              onClearActiveCitation={() => setActiveCitation(null)}
+              panelAttributes={panelAttributes("sources")}
+              headerAction={
+                <PanelToggle
+                  panel="sources"
+                  collapsed={false}
+                  onToggle={() => togglePanel("sources")}
+                  controls={COLUMN_IDS.sources}
+                />
+              }
+            />
+          </div>
         </div>
 
         {/* Panel 2: Center Citation Chat Panel */}
         <div
+          id={COLUMN_IDS.chat}
           data-testid="panel-center-wrapper"
           className={`workspace-panel panel-center ${activeMobileTab === "chat" ? "panel-active" : ""}`}
         >
           <ChatPanel
-            notebookTitle="Cloudflare Edge Stack Architecture"
+            notebookTitle={notebookTitle}
             notebookSummary="Dieses Notebook dokumentiert die vollständige Cloudflare Single-Worker- und In-Memory-Vektor-Architektur für latenzfreie Inferenz."
             notebookSummaryLang={DEFAULT_CONTENT_LANGS.summary}
             messages={chatMessages}
@@ -700,20 +964,56 @@ export function WorkspaceLayout({
         {/* Panel 3: Right Studio Panel */}
         <div
           data-testid="panel-right-wrapper"
+          data-collapsed={studioCollapsed ? "true" : undefined}
           className={`workspace-panel panel-right ${activeMobileTab === "studio" ? "panel-active" : ""}`}
         >
-          <StudioPanel
-            notebookTitle="Cloudflare Edge Stack Architecture"
-            activeTool={initialTool}
-            mindmapData={DEFAULT_MINDMAP}
-            flashcardsData={DEFAULT_FLASHCARDS}
-            quizData={DEFAULT_QUIZ}
-            videoStoryboard={DEFAULT_VIDEO_STORYBOARD}
-            audioStateMachine={audioStateMachine}
-            onSourceJump={handleCitationClick}
-            contentLangs={DEFAULT_CONTENT_LANGS}
-            panelAttributes={panelAttributes("studio")}
-          />
+          {studioCollapsed && (
+            <PanelRail
+              panel="studio"
+              toggle={
+                <PanelToggle
+                  panel="studio"
+                  collapsed
+                  onToggle={() => togglePanel("studio")}
+                  controls={COLUMN_IDS.studio}
+                />
+              }
+            >
+              {RAIL_TOOLS.map((item) => (
+                <RailButton
+                  key={item.tool}
+                  icon={item.icon}
+                  label={t(item.labelKey)}
+                  onClick={() => openStudioTool(item.tool)}
+                  tipSide="left"
+                  testId={`rail-tool-${item.tool}`}
+                />
+              ))}
+            </PanelRail>
+          )}
+          <div id={COLUMN_IDS.studio} className="rn-panel-slot" hidden={studioCollapsed}>
+            <StudioPanel
+              notebookTitle={notebookTitle}
+              activeTool={initialTool}
+              toolRequest={studioToolRequest}
+              mindmapData={DEFAULT_MINDMAP}
+              flashcardsData={DEFAULT_FLASHCARDS}
+              quizData={DEFAULT_QUIZ}
+              videoStoryboard={DEFAULT_VIDEO_STORYBOARD}
+              audioStateMachine={audioStateMachine}
+              onSourceJump={handleCitationClick}
+              contentLangs={DEFAULT_CONTENT_LANGS}
+              panelAttributes={panelAttributes("studio")}
+              headerAction={
+                <PanelToggle
+                  panel="studio"
+                  collapsed={false}
+                  onToggle={() => togglePanel("studio")}
+                  controls={COLUMN_IDS.studio}
+                />
+              }
+            />
+          </div>
         </div>
       </main>
 
@@ -743,7 +1043,12 @@ export function WorkspaceLayout({
         })}
       </nav>
 
-      {/* Mobiles Menü (unter 600 px): Vollbild-Sheet mit Bereichen und Darstellung */}
+      {/* Meldungen für Screenreader: Spalte ein- oder ausgeklappt, Titel gespeichert */}
+      <output aria-live="polite" className="rn-visually-hidden" data-testid="layout-status">
+        {announcement}
+      </output>
+
+      {/* Mobiles Menü (unter 600 px): Vollbild-Sheet mit Teilen, Einstellungen, Konto, Darstellung */}
       {isNarrowHeader && (
         <dialog
           id="nav-sheet"
@@ -780,6 +1085,24 @@ export function WorkspaceLayout({
                   type="button"
                   onClick={() => {
                     closeMenu(false);
+                    setIsShareOpen(true);
+                  }}
+                  aria-haspopup="dialog"
+                  data-testid="sheet-open-share"
+                  className="rn-sheet-item"
+                >
+                  <Icon name="share" size={22} />
+                  <span className="rn-sheet-item-text">
+                    <span className="rn-sheet-item-title">{t("shareButton")}</span>
+                    <span className="rn-sheet-item-hint">{t("shareMenuHint")}</span>
+                  </span>
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMenu(false);
                     setIsSettingsOpen(true);
                   }}
                   aria-haspopup="dialog"
@@ -795,6 +1118,13 @@ export function WorkspaceLayout({
               </li>
             </ul>
 
+            <section aria-labelledby="nav-sheet-account" data-testid="sheet-account">
+              <h3 id="nav-sheet-account" className="rn-sheet-section">
+                {t("accountButton")}
+              </h3>
+              <AccountStatus />
+            </section>
+
             <section aria-labelledby="nav-sheet-appearance">
               <h3 id="nav-sheet-appearance" className="rn-sheet-section">
                 {t("appearanceTitle")}
@@ -805,6 +1135,16 @@ export function WorkspaceLayout({
         </dialog>
       )}
 
+      {/* Teilen: nur Oberfläche, ohne Freigabe (Issue #325) */}
+      <ShareDialog
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        notebookTitle={notebookTitle}
+        returnFocusFallback={() =>
+          isNarrowHeader ? menuButtonRef.current : shareButtonRef.current
+        }
+      />
+
       {/* Settings & Compliance Drawer Modal */}
       <SettingsDrawer
         isOpen={isSettingsOpen}
@@ -814,11 +1154,31 @@ export function WorkspaceLayout({
           setActiveModel(model);
           storeModel(browserStorage(), model);
         }}
-        // Aus dem Menü-Sheet geöffnet: das Sheet ist zu, der Fokus geht auf den Menüknopf
-        returnFocusFallback={() =>
-          isNarrowHeader ? menuButtonRef.current : settingsButtonRef.current
-        }
+        // Aus Menü-Sheet oder Kontomenü geöffnet: dann geht der Fokus auf deren Knopf
+        returnFocusFallback={() => {
+          if (isNarrowHeader) return menuButtonRef.current;
+          return settingsFromAccountRef.current
+            ? accountButtonRef.current
+            : settingsButtonRef.current;
+        }}
       />
+    </div>
+  );
+}
+
+/** Gast-Zustand des Kontos: keine Anmeldung, keine erfundenen Konten (Issue #325). */
+export function AccountStatus() {
+  const { t } = useTheme();
+  return (
+    <div className="rn-account-status" data-testid="account-status">
+      <span className="rn-account-avatar" aria-hidden="true">
+        <Icon name="account" size={28} />
+      </span>
+      <div className="rn-account-text">
+        <p className="rn-account-name">{t("accountGuest")}</p>
+        <p className="rn-account-state">{t("accountSignedOut")}</p>
+      </div>
+      <p className="rn-account-hint">{t("accountText")}</p>
     </div>
   );
 }

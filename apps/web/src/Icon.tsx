@@ -35,7 +35,14 @@ const PATHS = {
     "M12 21a9 9 0 1 1 9-9c0 2.2-1.8 3.5-3.6 3.5H15a2 2 0 0 0-1.4 3.4A1.3 1.3 0 0 1 12 21ZM7.5 11.5h.01M10 7.5h.01M14.5 7.5h.01",
   contrast: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-18v18",
   menu: "M4 7h16M4 12h16M4 17h16",
-  check: "m5 12.5 4.5 4.5L19 7.5"
+  check: "m5 12.5 4.5 4.5L19 7.5",
+  panelLeft: "M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm4 0v16",
+  panelRight: "M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm10 0v16",
+  share: "M15 19a6 6 0 0 0-12 0M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm10-3v6m3-3h-6",
+  account:
+    "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5.6 6.5a6 6 0 0 1 11.2 0",
+  edit: "M4 20h4L19 9l-4-4L4 16v4Zm9-13 4 4",
+  plus: "M12 5v14M5 12h14"
 } as const;
 
 export type IconName = keyof typeof PATHS;

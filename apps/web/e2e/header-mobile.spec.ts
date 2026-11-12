@@ -137,16 +137,19 @@ for (const width of [600, 768, 1024, 1440]) {
       expect(await smallTargets(page)).toEqual([]);
       expect(await findLayoutProblems(page)).toEqual([]);
 
-      // Unter 900 px schalten die Reiter um (aria-current), ab 900 px springen sie (Issue #319)
+      // Unter 900 px schalten die Reiter unter dem Kopf um (aria-current); ab 900 px gibt es
+      // keine Reiter, die Spalten sind die Navigation und Sprunglinks führen hinein (Issue #325)
       if (width < 900) {
+        await expect(page.getByTestId("top-nav")).toBeVisible();
         await expect(page.getByTestId("top-tab-chat")).toHaveAttribute("aria-current", "true");
-      }
-      await page.getByTestId("top-tab-studio").click();
-      if (width < 900) {
+        await page.getByTestId("top-tab-studio").click();
         await expect(page.getByTestId("top-tab-studio")).toHaveAttribute("aria-current", "true");
         await expect(page.getByTestId("top-tab-chat")).not.toHaveAttribute("aria-current", "true");
       } else {
-        await expect(page.locator("[data-testid^='top-tab-'][aria-current]")).toHaveCount(0);
+        await expect(page.getByTestId("top-nav")).toBeHidden();
+        await page.getByTestId("skip-link-studio").focus();
+        await page.keyboard.press("Enter");
+        await expect(page.locator("[aria-current]:visible")).toHaveCount(0);
       }
       await expect(page.locator("[data-panel='studio']")).toBeVisible();
       await expect(page.locator("[data-panel='studio']")).toBeFocused();
