@@ -9,6 +9,19 @@
 import { COLOR_MODES, type ColorMode, type DesignTheme, THEMES } from "./design-tokens.js";
 
 export type Language = "de" | "en";
+
+/** Gewählter Farbmodus: fest oder "system" (folgt dem Gerät, auch bei späteren Änderungen). */
+export type ColorModePreference = ColorMode | "system";
+export const COLOR_MODE_PREFERENCES: readonly ColorModePreference[] = [
+  "system",
+  ...COLOR_MODES
+] as const;
+
+/** Media Queries, auf die der Modus "system" reagiert. */
+export const SYSTEM_COLOR_QUERIES = [
+  "(prefers-contrast: more)",
+  "(prefers-color-scheme: dark)"
+] as const;
 export const LANGUAGES: readonly Language[] = ["de", "en"] as const;
 
 export const STORAGE_KEYS = {
@@ -26,7 +39,7 @@ const LEGACY_VALUES: Readonly<Record<string, string>> = {
 
 export interface ThemePreferences {
   readonly theme: DesignTheme;
-  readonly colorMode: ColorMode;
+  readonly colorMode: ColorModePreference;
   readonly language: Language;
 }
 
@@ -37,7 +50,7 @@ export interface PreferenceEnvironment {
 
 export interface PreferenceDefaults {
   readonly theme?: DesignTheme | undefined;
-  readonly colorMode?: ColorMode | undefined;
+  readonly colorMode?: ColorModePreference | undefined;
   readonly language?: Language | undefined;
 }
 
@@ -59,14 +72,19 @@ function pick<T extends string>(value: string | null, allowed: readonly T[]): T 
 export function systemColorMode(env: PreferenceEnvironment): ColorMode {
   const query = env.matchMedia;
   if (!query) return "light";
-  if (query("(prefers-contrast: more)").matches) return "aaa-contrast";
-  if (query("(prefers-color-scheme: dark)").matches) return "dark";
+  if (query(SYSTEM_COLOR_QUERIES[0]).matches) return "aaa-contrast";
+  if (query(SYSTEM_COLOR_QUERIES[1]).matches) return "dark";
   return "light";
 }
 
+/** Tatsächlich angewendeter Farbmodus: bei "system" der Modus des Geräts. */
+export function resolveColorMode(preference: ColorModePreference, system: ColorMode): ColorMode {
+  return preference === "system" ? system : preference;
+}
+
 /**
- * Startwerte: gespeicherte Wahl, sonst übergebener Standard, sonst Systemeinstellung
- * (Farbmodus) bzw. Fusion und Deutsch.
+ * Startwerte: gespeicherte Wahl, sonst übergebener Standard, sonst "system" (Farbmodus
+ * folgt dem Gerät) bzw. Fusion und Deutsch.
  */
 export function resolveInitialPreferences(
   env: PreferenceEnvironment,
@@ -75,23 +93,27 @@ export function resolveInitialPreferences(
   const storedTheme =
     pick(safeRead(env.storage, STORAGE_KEYS.theme), THEMES) ??
     pick(safeRead(env.storage, LEGACY_THEME_KEY), THEMES);
-  const storedMode = pick(safeRead(env.storage, STORAGE_KEYS.colorMode), COLOR_MODES);
+  const storedMode = pick(safeRead(env.storage, STORAGE_KEYS.colorMode), COLOR_MODE_PREFERENCES);
   const storedLanguage = pick(safeRead(env.storage, STORAGE_KEYS.language), LANGUAGES);
   return {
     theme: storedTheme ?? defaults.theme ?? "fusion",
-    colorMode: storedMode ?? defaults.colorMode ?? systemColorMode(env),
+    colorMode: storedMode ?? defaults.colorMode ?? "system",
     language: storedLanguage ?? defaults.language ?? "de"
   };
 }
 
-/** Schreibt die Wahl als Attribute auf <html> und speichert sie (Fehler beim Speichern werden ignoriert). */
+/**
+ * Schreibt die Wahl als Attribute auf <html> und speichert sie (Fehler beim Speichern werden
+ * ignoriert). data-color-mode trägt immer den angewendeten Modus, gespeichert wird die Wahl.
+ */
 export function applyThemeToDocument(
   root: Pick<Element, "setAttribute" | "removeAttribute">,
   prefs: ThemePreferences,
-  storage?: Pick<Storage, "setItem"> | undefined
+  storage?: Pick<Storage, "setItem"> | undefined,
+  systemMode: ColorMode = "light"
 ): void {
   root.setAttribute("data-design", prefs.theme);
-  root.setAttribute("data-color-mode", prefs.colorMode);
+  root.setAttribute("data-color-mode", resolveColorMode(prefs.colorMode, systemMode));
   root.setAttribute("lang", prefs.language);
   root.removeAttribute("data-theme");
   try {

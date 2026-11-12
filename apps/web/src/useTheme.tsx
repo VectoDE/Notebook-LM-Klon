@@ -3,7 +3,7 @@
  *
  * Implements Sub-Issue #128 & #129:
  * - 4 Design Systems: pure, immersive-cinema, editorial-calm, fusion
- * - 3 Color Modes: light, dark, aaa-contrast (Standard folgt der Systemeinstellung)
+ * - 3 Color Modes: light, dark, aaa-contrast, dazu "system" (Standard, folgt dem Gerät live)
  * - 2 Languages: de, en
  * - Persistence in localStorage and html attributes (data-design, data-color-mode, lang)
  */
@@ -20,14 +20,19 @@ import {
 
 import { COLOR_MODES, type ColorMode, type DesignTheme, THEMES } from "./design-tokens.js";
 import {
+  COLOR_MODE_PREFERENCES,
+  type ColorModePreference,
   LANGUAGES,
   type Language,
+  SYSTEM_COLOR_QUERIES,
   applyThemeToDocument,
-  resolveInitialPreferences
+  resolveColorMode,
+  resolveInitialPreferences,
+  systemColorMode
 } from "./theme-preferences.js";
 
-export { COLOR_MODES, LANGUAGES, THEMES };
-export type { ColorMode, DesignTheme, Language };
+export { COLOR_MODES, COLOR_MODE_PREFERENCES, LANGUAGES, THEMES };
+export type { ColorMode, ColorModePreference, DesignTheme, Language };
 
 export interface TranslationDictionary {
   readonly [key: string]: string;
@@ -54,25 +59,37 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     studioFlashcardsCard: "Lernkarten (SM-2)",
     studioQuizCard: "Interaktives Quiz",
     studioBriefingCard: "Briefing & Timeline",
-    settingsTitle: "Einstellungen & Compliance",
-    settingsClose: "Schließen",
-    themeLabel: "Design-System",
+    settingsTitle: "Einstellungen",
+    settingsClose: "Einstellungen schließen",
+    appearanceTitle: "Darstellung",
+    appearanceStored: "Design und Farbschema werden auf diesem Gerät gespeichert.",
+    themeLabel: "Design",
     colorModeLabel: "Farbschema",
     languageLabel: "Sprache",
-    modelRouter: "Modell-Router",
-    byokTitle: "BYOK (Bring Your Own Key)",
+    languageHint: "Gilt für die Oberfläche und wird auf diesem Gerät gespeichert.",
+    modelRouter: "KI-Modell",
+    modelHint: "Gilt für neue Antworten.",
+    byokTitle: "Eigene API-Schlüssel (BYOK)",
+    byokStatus: "In Vorbereitung",
+    byokText:
+      "Bald können Sie hier eigene Schlüssel für Modellanbieter hinterlegen. Sie werden verschlüsselt gespeichert.",
     gdprTitle: "DSGVO & Datenschutz",
     gdprText: "Alle Verarbeitungen erfolgen datensparsam und EU-DSGVO-konform ohne Training.",
-    aiActTitle: "EU AI Act Compliance",
+    aiActTitle: "EU AI Act",
     aiActBadge: "Transparenzpflicht Art. 50 erfüllt (Kennzeichnung KI-generierter Inhalte).",
     cinemaStageClose: "Bühne schließen",
     themePure: "Pure",
-    themeCinema: "Immersive Cinema",
-    themeEditorial: "Editorial Calm",
-    themeFusion: "Fusion (Standard)",
+    themePureHint: "Ruhige Klarheit",
+    themeEditorial: "Editorial",
+    themeEditorialHint: "Lesen mit Serife",
+    themeCinema: "Cinema",
+    themeCinemaHint: "Tiefe und Licht",
+    themeFusion: "Fusion",
+    themeFusionHint: "Energie und Farbe",
+    modeSystem: "Automatisch (wie Gerät)",
     modeLight: "Hell",
     modeDark: "Dunkel",
-    modeAAA: "Hochkontrast (AAA)",
+    modeAAA: "Hoher Kontrast (AAA)",
     motionLabel: "Reduzierte Bewegung",
     navOverview: "Übersicht",
     navMindmap: "Mindmap",
@@ -100,25 +117,37 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     studioFlashcardsCard: "Flashcards (SM-2)",
     studioQuizCard: "Interactive Quiz",
     studioBriefingCard: "Briefing & Timeline",
-    settingsTitle: "Settings & Compliance",
-    settingsClose: "Close",
-    themeLabel: "Design System",
-    colorModeLabel: "Color Mode",
+    settingsTitle: "Settings",
+    settingsClose: "Close settings",
+    appearanceTitle: "Appearance",
+    appearanceStored: "Design and color scheme are saved on this device.",
+    themeLabel: "Design",
+    colorModeLabel: "Color scheme",
     languageLabel: "Language",
-    modelRouter: "Model Router",
-    byokTitle: "BYOK (Bring Your Own Key)",
+    languageHint: "Applies to the interface and is saved on this device.",
+    modelRouter: "AI model",
+    modelHint: "Applies to new answers.",
+    byokTitle: "Your own API keys (BYOK)",
+    byokStatus: "Coming soon",
+    byokText:
+      "Soon you can add your own keys for model providers here. They will be stored encrypted.",
     gdprTitle: "GDPR & Privacy",
     gdprText: "All processing complies strictly with EU GDPR standards with zero model training.",
-    aiActTitle: "EU AI Act Compliance",
+    aiActTitle: "EU AI Act",
     aiActBadge: "Article 50 Transparency standard fulfilled (labeled AI-generated content).",
     cinemaStageClose: "Close Stage",
     themePure: "Pure",
-    themeCinema: "Immersive Cinema",
-    themeEditorial: "Editorial Calm",
-    themeFusion: "Fusion (Default)",
+    themePureHint: "Calm clarity",
+    themeEditorial: "Editorial",
+    themeEditorialHint: "Reading with serifs",
+    themeCinema: "Cinema",
+    themeCinemaHint: "Depth and light",
+    themeFusion: "Fusion",
+    themeFusionHint: "Energy and color",
+    modeSystem: "Automatic (match device)",
     modeLight: "Light",
     modeDark: "Dark",
-    modeAAA: "High Contrast (AAA)",
+    modeAAA: "High contrast (AAA)",
     motionLabel: "Reduced Motion",
     navOverview: "Overview",
     navMindmap: "Mindmap",
@@ -131,10 +160,13 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
 
 export interface ThemeContextValue {
   readonly theme: DesignTheme;
-  readonly colorMode: ColorMode;
+  /** Gewählter Farbmodus, ggf. "system". */
+  readonly colorMode: ColorModePreference;
+  /** Tatsächlich angewendeter Farbmodus (bei "system" der des Geräts). */
+  readonly resolvedColorMode: ColorMode;
   readonly language: Language;
   readonly setTheme: (theme: DesignTheme) => void;
-  readonly setColorMode: (mode: ColorMode) => void;
+  readonly setColorMode: (mode: ColorModePreference) => void;
   readonly setLanguage: (lang: Language) => void;
   readonly t: (key: string) => string;
 }
@@ -144,7 +176,7 @@ export const ThemeContext = createContext<ThemeContextValue | null>(null);
 export interface ThemeProviderProps {
   readonly children: ReactNode;
   readonly defaultTheme?: DesignTheme | undefined;
-  readonly defaultColorMode?: ColorMode | undefined;
+  readonly defaultColorMode?: ColorModePreference | undefined;
   readonly defaultLanguage?: Language | undefined;
 }
 
@@ -176,8 +208,25 @@ export function ThemeProvider({
     })
   );
   const [theme, setThemeState] = useState<DesignTheme>(initial.theme);
-  const [colorMode, setColorModeState] = useState<ColorMode>(initial.colorMode);
+  const [colorMode, setColorModeState] = useState<ColorModePreference>(initial.colorMode);
   const [language, setLanguageState] = useState<Language>(initial.language);
+  const [systemMode, setSystemMode] = useState<ColorMode>(() =>
+    systemColorMode(browserEnvironment())
+  );
+
+  // Modus "system": live auf Änderungen von Farbschema und Kontrast des Geräts reagieren
+  useEffect(() => {
+    if (colorMode !== "system" || typeof window === "undefined" || !window.matchMedia) return;
+    const lists = SYSTEM_COLOR_QUERIES.map((q) => window.matchMedia(q));
+    const update = () => setSystemMode(systemColorMode(browserEnvironment()));
+    update();
+    for (const list of lists) list.addEventListener("change", update);
+    return () => {
+      for (const list of lists) list.removeEventListener("change", update);
+    };
+  }, [colorMode]);
+
+  const resolvedColorMode = resolveColorMode(colorMode, systemMode);
 
   // Zustand in DOM-Attribute und localStorage spiegeln
   useEffect(() => {
@@ -185,15 +234,16 @@ export function ThemeProvider({
     applyThemeToDocument(
       document.documentElement,
       { theme, colorMode, language },
-      browserEnvironment().storage
+      browserEnvironment().storage,
+      systemMode
     );
-  }, [theme, colorMode, language]);
+  }, [theme, colorMode, language, systemMode]);
 
   const setTheme = useCallback((newTheme: DesignTheme) => {
     setThemeState(newTheme);
   }, []);
 
-  const setColorMode = useCallback((newMode: ColorMode) => {
+  const setColorMode = useCallback((newMode: ColorModePreference) => {
     setColorModeState(newMode);
   }, []);
 
@@ -213,13 +263,14 @@ export function ThemeProvider({
     () => ({
       theme,
       colorMode,
+      resolvedColorMode,
       language,
       setTheme,
       setColorMode,
       setLanguage,
       t
     }),
-    [theme, colorMode, language, setTheme, setColorMode, setLanguage, t]
+    [theme, colorMode, resolvedColorMode, language, setTheme, setColorMode, setLanguage, t]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -230,7 +281,8 @@ export function useTheme(): ThemeContextValue {
   if (!context) {
     return {
       theme: "fusion",
-      colorMode: "light",
+      colorMode: "system",
+      resolvedColorMode: "light",
       language: "de",
       setTheme: () => {},
       setColorMode: () => {},

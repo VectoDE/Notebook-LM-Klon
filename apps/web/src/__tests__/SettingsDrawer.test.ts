@@ -31,8 +31,12 @@ describe("SettingsDrawer Component (Sub-Issue #129)", () => {
 
     expect(html).toContain("<dialog");
     expect(html).toContain('aria-labelledby="settings-drawer-title"');
-    expect(html).toContain("Einstellungen &amp; Compliance");
+    expect(html).toContain(">Einstellungen</h2>");
+    expect(html).not.toContain("Compliance</h2>");
+    expect(html).not.toContain("Arbeitsbereich");
     expect(html).toContain('data-testid="close-settings-btn"');
+    expect(html).toContain('aria-label="Einstellungen schließen"');
+    expect(html).toMatch(/class="rn-icon-btn rn-dialog-close"/);
     expect(html).toContain('data-testid="theme-option-pure"');
     expect(html).toContain('data-testid="theme-option-immersive-cinema"');
     expect(html).toContain('data-testid="theme-option-editorial-calm"');
@@ -40,11 +44,22 @@ describe("SettingsDrawer Component (Sub-Issue #129)", () => {
     expect(html).toContain('data-testid="mode-option-light"');
     expect(html).toContain('data-testid="mode-option-dark"');
     expect(html).toContain('data-testid="mode-option-aaa-contrast"');
+    expect(html).toContain('data-testid="mode-option-system"');
     expect(html).toContain('data-testid="lang-option-de"');
     expect(html).toContain('data-testid="lang-option-en"');
     expect(html).toContain('data-testid="model-router-select"');
-    expect(html).toContain("BYOK (Bring Your Own Key)");
-    expect(html).toContain("EU AI Act Compliance");
+    expect(html).toContain("Eigene API-Schlüssel (BYOK)");
+    expect(html).toContain('data-testid="byok-status">In Vorbereitung</span>');
+    expect(html).not.toContain("AES-256-GCM");
+    expect(html).toContain("EU AI Act");
     expect(html).toContain("DSGVO &amp; Datenschutz");
+    // Abschnitte in Satzschreibung und Hinweise, wann und wo eine Einstellung gilt
+    expect(html).toContain(
+      'id="theme-section-title" class="rn-drawer-section-title">Darstellung</h3>'
+    );
+    expect(html).toContain("Gilt für neue Antworten.");
+    expect(html).toContain("Design und Farbschema werden auf diesem Gerät gespeichert.");
+    expect(html).toContain("Gilt für die Oberfläche und wird auf diesem Gerät gespeichert.");
+    expect(html).toContain('<span lang="en">English</span>');
   });
 });

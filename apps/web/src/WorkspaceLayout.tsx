@@ -681,7 +681,7 @@ export function WorkspaceLayout({
               onClick={() => closeMenu()}
               aria-label="Menü schließen"
               data-testid="btn-close-menu"
-              className="rn-icon-btn rn-sheet-close"
+              className="rn-icon-btn rn-dialog-close"
             >
               <Icon name="close" size={22} />
             </button>

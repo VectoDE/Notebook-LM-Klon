@@ -169,7 +169,12 @@ for (const width of [600, 768, 1024, 1440]) {
       await trigger.click();
       await expect(menu).toBeVisible();
       expect(await findLayoutProblems(page)).toEqual([]);
-      await page.mouse.click(width / 2, 600);
+      // Punkt sicher außerhalb des Menüs: links davon, auf halber Höhe
+      const menuBox = await menu.boundingBox();
+      await page.mouse.click(
+        Math.round((menuBox?.x ?? width) / 2),
+        Math.round((menuBox?.y ?? 0) + (menuBox?.height ?? 0) / 2)
+      );
       await expect(menu).toBeHidden();
 
       // Auswahl wirkt sofort
