@@ -48,4 +48,4 @@ Nicht sagen, solange es nicht geprüft ist: Zahlen zu Issues oder Pull Requests 
 
 ## Antwort-E-Mail
 
-Der Entwurf der Abgabe-Mail mit Belegliste steht in [`abgabe-mail-entwurf.md`](abgabe-mail-entwurf.md). Nicht versendet: Der Inhaber ersetzt `{{LIVE_URL}}` und `{{LOOM_URL}}` und schickt sie selbst ab.
+Die Abgabe-Mail wird nicht im Repository gepflegt. Der Inhaber schreibt sie selbst und schickt sie selbst ab.
