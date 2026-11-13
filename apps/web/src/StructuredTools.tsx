@@ -16,9 +16,15 @@ import {
   dataTableToCsv,
   renderInfographicSvg
 } from "@notebook-lm/shared";
-import { type ReactNode, useId } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { Icon } from "./Icon.js";
 import { triggerBrowserDownload } from "./artifact-exporters.js";
+import {
+  type FetchLike,
+  addSvgProvenanceMetadata,
+  provenanceNoteKey,
+  signExport
+} from "./provenance-client.js";
 // Beleg- und Prüfstile teilt sich das Werkzeug mit dem Beziehungsgraphen (nachgeladen)
 import "./entity-graph.css";
 import "./structured-tools.css";
@@ -37,7 +43,11 @@ export interface CommonProps {
   readonly onCitationJump?: ((citation: CitationLocation) => void) | undefined;
   readonly onStatus: (id: string, status: ReviewStatus) => void;
   readonly onNotify?: ((message: string) => void) | undefined;
+  /** Abruf für die C2PA-Signatur der Bildexporte (Issue #353); Standard ist fetch. */
+  readonly provenanceFetch?: FetchLike | undefined;
 }
+
+const browserFetch: FetchLike = (input, init) => fetch(input, init);
 
 const STATUS_KEY: Readonly<Record<ReviewStatus, string>> = {
   suggested: "egStatusSuggested",
@@ -340,16 +350,31 @@ export function InfographicViewer({
     facts: shown.map((f) => `${f.label}: ${f.value}`).join("; ") || t("stInfographicEmpty")
   });
   const notify = (filename: string) => common.onNotify?.(tf("toastDownload", { file: filename }));
-  const exportSvg = () => {
-    const filename = `${common.title}_infografik.svg`;
-    triggerBrowserDownload(filename, svg, "image/svg+xml");
+  // Sichtbarer Herkunftshinweis zum letzten Export (C2PA, Issue #353)
+  const [exportNote, setExportNote] = useState<{ key: string; signed: boolean } | null>(null);
+  const exportSigned = async (filename: string, blob: Blob, mimeType: string) => {
+    const outcome = await signExport(common.provenanceFetch ?? browserFetch, blob, {
+      mimeType,
+      title: `${common.title} – ${t("toolInfographicTitle")}`
+    });
+    triggerBrowserDownload(filename, outcome.blob, mimeType);
     notify(filename);
+    setExportNote({ key: provenanceNoteKey(outcome), signed: outcome.signed });
+  };
+  const exportSvg = async () => {
+    const marked = addSvgProvenanceMetadata(svg);
+    await exportSigned(
+      `${common.title}_infografik.svg`,
+      new Blob([marked], { type: "image/svg+xml" }),
+      "image/svg+xml"
+    );
   };
   const exportPng = async () => {
-    const blob = await svgStringToPngBlob(svg);
-    const filename = `${common.title}_infografik.png`;
-    triggerBrowserDownload(filename, blob, "image/png");
-    notify(filename);
+    await exportSigned(
+      `${common.title}_infografik.png`,
+      await svgStringToPngBlob(svg),
+      "image/png"
+    );
   };
   return (
     <div className="rn-st" data-testid="infographic-viewer">
@@ -366,7 +391,7 @@ export function InfographicViewer({
               className="rn-btn rn-btn--secondary rn-btn--compact"
               data-testid="btn-export-infographic-svg"
               aria-label={t("stExportSvgAria")}
-              onClick={exportSvg}
+              onClick={() => void exportSvg()}
             >
               <Icon name="download" size={18} />
               SVG
@@ -384,6 +409,15 @@ export function InfographicViewer({
           </>
         }
       />
+      {exportNote && (
+        <output
+          className="rn-export-note"
+          data-testid="infographic-provenance-note"
+          data-signed={String(exportNote.signed)}
+        >
+          {t(exportNote.key)}
+        </output>
+      )}
       <figure className="rn-st-figure">
         <img
           src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`}

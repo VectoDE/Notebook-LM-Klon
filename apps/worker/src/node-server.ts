@@ -8,6 +8,7 @@ import { Hono } from "hono";
 import { etag } from "hono/etag";
 import { JobDO, NotebookDO } from "./durable-objects.js";
 import { createApp } from "./index.js";
+import { c2paSignerFromVars } from "./node/c2pa-signer.js";
 import {
   type EnvSource,
   NodeConfigError,
@@ -121,6 +122,12 @@ export function createNodeEnv(options?: {
     env.SEND_EMAIL = createSmtpBinding(options.smtp);
   } else if (RESEND_API_KEY !== undefined) {
     env.RESEND_API_KEY = RESEND_API_KEY;
+  }
+
+  // C2PA signing of exports (Issue #353): only when tool, certificate and key are configured.
+  const provenanceSigner = c2paSignerFromVars(vars);
+  if (provenanceSigner) {
+    env.PROVENANCE_SIGNER = provenanceSigner;
   }
 
   // The real Durable Object classes, run in this process (see node/do-namespace.ts).
