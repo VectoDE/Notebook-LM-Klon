@@ -1,7 +1,7 @@
 import { fill } from "./i18n.js";
 import { LOCAL_MODEL_LABEL } from "./local-llm-config.js";
 import type { LocalChatMessage, LocalModelController, LocalModelState } from "./local-llm.js";
-import { offlineChatTexts } from "./translations-offline-chat.js";
+import { isEnglish, offlineChatTexts } from "./translations-offline-chat.js";
 import type { CitationLocation, WorkspaceSource } from "./workspace-types.js";
 
 /**
@@ -233,6 +233,8 @@ export interface OfflineAnswerRequest {
   readonly question: string;
   readonly sources: readonly WorkspaceSource[];
   readonly language: string;
+  /** Geladener Katalog der Sprache, etwa Leichte Sprache (siehe offlineChatTexts). */
+  readonly own?: Readonly<Record<string, string>> | undefined;
   readonly history?: readonly LocalChatMessage[] | undefined;
   readonly signal?: AbortSignal | undefined;
   readonly onStart: (info: OfflineAnswerInfo) => void;
@@ -253,8 +255,8 @@ export async function answerOffline(
 ): Promise<OfflineAnswerResult> {
   const route = localRouteFor(controller.getState());
   if (route !== "local") return route;
-  const texts = offlineChatTexts(request.language);
-  const language = texts === offlineChatTexts("en") ? "en" : "de";
+  const texts = offlineChatTexts(request.language, request.own);
+  const language = isEnglish(request.language) ? "en" : "de";
   const passages = retrieveLocalPassages(request.question, request.sources);
   request.onStart({
     modelLabel: LOCAL_MODEL_LABEL,
@@ -276,7 +278,8 @@ export async function answerOffline(
 /** Fehlertext zur Lage, in der Sprache der Oberfläche. */
 export function offlineErrorText(
   reason: Exclude<OfflineAnswerResult, "answered"> | "failed",
-  language: string
+  language: string,
+  own: Readonly<Record<string, string>> = {}
 ): string {
   const key =
     reason === "unsupported"
@@ -284,5 +287,5 @@ export function offlineErrorText(
       : reason === "needs-model"
         ? "errorOfflineNoModel"
         : "errorLocalFailed";
-  return offlineChatTexts(language)[key] as string;
+  return offlineChatTexts(language, own)[key] as string;
 }

@@ -128,7 +128,24 @@ function pick(index: 1 | 2): Readonly<Record<string, string>> {
 export const OFFLINE_CHAT_DE: Readonly<Record<string, string>> = pick(1);
 export const OFFLINE_CHAT_EN: Readonly<Record<string, string>> = pick(2);
 
-/** Katalog zur Sprache: Englisch für en und en-*, sonst Deutsch (wie translations-comments.ts). */
-export function offlineChatTexts(language: string): Readonly<Record<string, string>> {
-  return language === "en" || language.startsWith("en-") ? OFFLINE_CHAT_EN : OFFLINE_CHAT_DE;
+/**
+ * Katalog zur Sprache: Englisch für en und en-*, sonst Deutsch (wie translations-comments.ts).
+ * `own` ist der geladene Katalog der Sprache (etwa Leichte Sprache, de-x-ls); was er für
+ * einen Schlüssel enthält, ersetzt den deutschen Text.
+ */
+export function offlineChatTexts(
+  language: string,
+  own: Readonly<Record<string, string>> = {}
+): Readonly<Record<string, string>> {
+  if (isEnglish(language)) return OFFLINE_CHAT_EN;
+  const keys = Object.keys(OFFLINE_CHAT_DE).filter((key) => own[key] !== undefined);
+  if (keys.length === 0) return OFFLINE_CHAT_DE;
+  const merged: Record<string, string> = { ...OFFLINE_CHAT_DE };
+  for (const key of keys) merged[key] = own[key] as string;
+  return merged;
+}
+
+/** Englisch für en und en-*; alle anderen Sprachen nutzen den deutschen Katalog. */
+export function isEnglish(language: string): boolean {
+  return language === "en" || language.startsWith("en-");
 }

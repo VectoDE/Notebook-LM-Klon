@@ -26,7 +26,7 @@ import {
 import { browserStorage } from "./theme-preferences.js";
 import { offlineChatTexts } from "./translations-offline-chat.js";
 import { useReturnFocus } from "./useReturnFocus.js";
-import { useTheme } from "./useTheme.js";
+import { LOCALES, useTheme } from "./useTheme.js";
 
 /**
  * Nachgeladener Teil des Offline-Chats (Issue #346). Das Start-Bundle enthält nur einen
@@ -58,7 +58,7 @@ const ERROR_KEYS = {
 
 function useOfflineText() {
   const { language } = useTheme();
-  const texts = offlineChatTexts(language);
+  const texts = offlineChatTexts(language, LOCALES.texts(language));
   const t = (key: string): string => texts[key] ?? key;
   const tf = (key: string, vars: Readonly<Record<string, string | number>>) => fill(t(key), vars);
   return { t, tf, language };
@@ -253,9 +253,10 @@ export function createOfflineChat(loader: LocalRuntimeLoader = loadWebLlmRuntime
   return {
     controller,
     canAnswer: () => localRouteFor(controller.getState()) === "local",
-    answer: (request) => answerOffline(controller, request),
-    text: (key, language) => offlineChatTexts(language)[key] ?? key,
-    errorText: offlineErrorText,
+    answer: (request) =>
+      answerOffline(controller, { ...request, own: LOCALES.texts(request.language) }),
+    text: (key, language) => offlineChatTexts(language, LOCALES.texts(language))[key] ?? key,
+    errorText: (reason, language) => offlineErrorText(reason, language, LOCALES.texts(language)),
     Control
   };
 }
