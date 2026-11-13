@@ -25,6 +25,8 @@ import {
   type DesignTheme,
   THEMES
 } from "./design-tokens.js";
+import { type TranslationDictionary, fill } from "./i18n.js";
+import { LOCALE_FILES, buildI18n } from "./locale-registry.js";
 import {
   COLOR_MODE_PREFERENCES,
   type ColorModePreference,
@@ -46,9 +48,7 @@ import { ENTITY_GRAPH_DE, ENTITY_GRAPH_EN } from "./translations-entity-graph.js
 export { COLOR_MODES, COLOR_MODE_PREFERENCES, LANGUAGES, THEMES };
 export type { ColorMode, ColorModePreference, DesignTheme, Language };
 
-export interface TranslationDictionary {
-  readonly [key: string]: string;
-}
+export type { TranslationDictionary };
 
 export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   de: {
@@ -255,17 +255,15 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   }
 };
 
-/** Text zum Schlüssel in der Sprache; fehlt er, Deutsch, sonst der Schlüssel selbst. */
-export function translate(language: Language, key: string): string {
-  return TRANSLATIONS[language][key] ?? TRANSLATIONS.de[key] ?? key;
+/** Alle Kataloge (Deutsch, Englisch und weitere aus locales/*.json) mit Rückfall pro Schlüssel. */
+export const I18N = buildI18n(TRANSLATIONS, LOCALE_FILES);
+
+/** Text zum Schlüssel in der Sprache; fehlt er, folgt die Rückfallkette, zuletzt der Schlüssel selbst. */
+export function translate(language: string, key: string): string {
+  return I18N.translate(language, key);
 }
 
-/** Setzt Werte für Platzhalter wie {n} ein; unbekannte Platzhalter bleiben stehen. */
-export function fill(text: string, vars: Readonly<Record<string, string | number>>): string {
-  return text.replace(/\{(\w+)\}/g, (whole, name: string) =>
-    name in vars ? String(vars[name]) : whole
-  );
-}
+export { fill };
 
 export interface ThemeContextValue {
   readonly theme: DesignTheme;

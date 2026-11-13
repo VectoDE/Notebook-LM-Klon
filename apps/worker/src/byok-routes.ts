@@ -9,7 +9,7 @@ import {
   extractLast4,
   maskApiKey
 } from "@notebook-lm/shared";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { csrfProtection } from "./auth-middleware.js";
 import type { CoreRepository } from "./core-repository.js";
 import {
@@ -19,6 +19,7 @@ import {
   serializeEncryptedPayload
 } from "./key-vault.js";
 import type { RagRepository } from "./rag-repository.js";
+import { resolveClientIp } from "./rate-limiter.js";
 import { computeDailySaltedHash } from "./session.js";
 
 export interface BYOKRoutesDependencies {
@@ -104,20 +105,21 @@ export async function defaultTestProviderKey(
  */
 async function auditKeyAction(
   deps: BYOKRoutesDependencies,
-  c: { req: { header: (name: string) => string | undefined } },
+  c: Context,
   userId: string,
   action: string,
   target: string
 ): Promise<void> {
   if (!deps.coreRepo) return;
 
-  const clientIp =
-    c.req.header("cf-connecting-ip") ??
-    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "127.0.0.1";
+  // Client IP only from a trusted source (#342): client-supplied proxy headers are ignored
+  // unless the runtime or the operator (TRUSTED_PROXY_HEADER) vouches for them.
+  const clientIp = resolveClientIp(c);
   // Without a secret salt the IP is not hashed at all: a fixed, public salt would make
   // the hash reversible. The API app blocks these routes earlier (SESSION_SALT_NOT_CONFIGURED).
-  const ipHash = deps.saltSecret ? await computeDailySaltedHash(clientIp, deps.saltSecret) : null;
+  // Without a trusted IP there is nothing meaningful to hash.
+  const ipHash =
+    deps.saltSecret && clientIp ? await computeDailySaltedHash(clientIp, deps.saltSecret) : null;
   const finalIpHash = ipHash ?? "unknown-ip";
 
   await deps.coreRepo.logAudit({

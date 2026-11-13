@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lasttest-Report local</title>
+<style>
+:root { color-scheme: light dark; --bg: #fbfaf7; --fg: #1d1b16; --muted: #5c5648; --line: #d9d4c7; }
+@media (prefers-color-scheme: dark) { :root { --bg: #14130f; --fg: #f2efe6; --muted: #b9b3a2; --line: #3a372e; } }
+body { margin: 0 auto; max-width: 52rem; padding: 2rem 1rem; background: var(--bg); color: var(--fg); font: 1rem/1.5 system-ui, sans-serif; }
+h1 { font-size: 1.5rem; } h2 { font-size: 1.15rem; margin-top: 2rem; }
+table { border-collapse: collapse; width: 100%; } th, td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 600; }
+p { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+<h1>Lasttest-Report (local)</h1>
+<p>Statischer Report aus den k6-Messwerten. Quelle: <code>summary-local.json</code>.</p>
+<h2>Kennzahlen</h2>
+<table><thead><tr><th scope="col">Kennzahl</th><th scope="col">Wert</th></tr></thead><tbody><tr><td>Profil</td><td>local</td></tr><tr><td>Erzeugt</td><td>2026-11-13T01:39:05.129Z</td></tr><tr><td>Werkzeug</td><td>k6 v1.8.2 (commit/682f083071, go1.26.9, linux/amd64)</td></tr><tr><td>Simulierte Nutzer (Spitze)</td><td>100</td></tr><tr><td>Anfragen</td><td>10642</td></tr><tr><td>Durchsatz</td><td>58.1 Anfragen/s</td></tr><tr><td>Fehlerquote</td><td>0.00 %</td></tr><tr><td>Unerwartete Status</td><td>0.00 %</td></tr><tr><td>Status 429 (Rate-Limit)</td><td>0</td></tr><tr><td>Erfolgreiche Prüfungen</td><td>100.00 %</td></tr><tr><td>Latenz p50</td><td>8.8 ms</td></tr><tr><td>Latenz p90</td><td>21.4 ms</td></tr><tr><td>Latenz p95</td><td>31.1 ms</td></tr><tr><td>Latenz p99</td><td>85.2 ms</td></tr><tr><td>Latenz Maximum</td><td>459.9 ms</td></tr><tr><td>Schwellenwerte</td><td>erfüllt</td></tr></tbody></table>
+<h2>Latenz p95 je Endpunkt</h2>
+<table><thead><tr><th scope="col">Endpunkt</th><th scope="col">p95</th></tr></thead><tbody><tr><td>spa_index</td><td>24.4 ms</td></tr><tr><td>demo_info</td><td>26.1 ms</td></tr><tr><td>health</td><td>27.3 ms</td></tr><tr><td>providers</td><td>28.9 ms</td></tr><tr><td>jobs</td><td>32.9 ms</td></tr><tr><td>search_fts</td><td>33.9 ms</td></tr><tr><td>guest_login</td><td>117.6 ms</td></tr></tbody></table>
+<h2>Prüfungen</h2>
+<table><thead><tr><th scope="col">Prüfung</th><th scope="col">Erfolgreich</th><th scope="col">Fehlgeschlagen</th></tr></thead><tbody><tr><td>health: 200</td><td>1852</td><td>0</td></tr><tr><td>health: status ok</td><td>1852</td><td>0</td></tr><tr><td>guest: 201</td><td>50</td><td>0</td></tr><tr><td>providers: 200</td><td>1662</td><td>0</td></tr><tr><td>providers: Katalog</td><td>1662</td><td>0</td></tr><tr><td>demo/info: 200</td><td>1852</td><td>0</td></tr><tr><td>demo/info: Notebooks vorhanden</td><td>1852</td><td>0</td></tr><tr><td>search(fts): 200</td><td>1662</td><td>0</td></tr><tr><td>SPA: 200 und HTML</td><td>1852</td><td>0</td></tr><tr><td>jobs: 200</td><td>1662</td><td>0</td></tr></tbody></table>
+</main>
+</body>
+</html>
