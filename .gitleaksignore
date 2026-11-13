@@ -1,0 +1,4 @@
+# Fehlalarme: Testplatzhalter "key123456789" in einem frühen Commit von PR #376 (kein echter Schlüssel),
+# im Folge-Commit durch einen entropiefreien Platzhalter ersetzt.
+3ac40c3201b35e531ebd34fd109c4464d0ff335b:apps/web/src/__tests__/custom-endpoint.test.ts:generic-api-key:61
+3ac40c3201b35e531ebd34fd109c4464d0ff335b:apps/web/src/__tests__/custom-endpoint.test.ts:generic-api-key:71
