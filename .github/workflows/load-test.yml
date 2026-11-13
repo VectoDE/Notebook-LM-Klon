@@ -10,7 +10,7 @@ on:
     inputs:
       peak_vus:
         description: "Gleichzeitige simulierte Nutzer in der Spitze (lokal)"
-        default: "100"
+        default: "200"
         required: false
       live_url:
         description: "Optional: Live-URL für den Rauchtest (leer = überspringen)"
@@ -77,7 +77,7 @@ jobs:
 
       - name: Lasttest lokal (wrangler dev, viele simulierte Nutzer)
         env:
-          PEAK_VUS: ${{ inputs.peak_vus || '100' }}
+          PEAK_VUS: ${{ inputs.peak_vus || '200' }}
         run: node load-test/run-local.mjs --out load-test/results --peak "$PEAK_VUS" --hold 90s
 
       - name: Live-Rauchtest (nur wenn live_url gesetzt)
