@@ -140,7 +140,9 @@ test.describe("Einwilligungsbanner", () => {
     expect(google).toEqual([]);
     expect(await page.evaluate(() => "dataLayer" in window)).toBe(false);
 
-    const gtmRequest = page.waitForRequest(/googletagmanager\.com\/gtm\.js\?id=GTM-TEST0001/);
+    const gtmRequest = page.waitForRequest(
+      "https://www.googletagmanager.com/gtm.js?id=GTM-TEST0001"
+    );
     await page.getByTestId("consent-accept-all").click();
     await gtmRequest;
     const consent = await page.evaluate(() =>
@@ -156,7 +158,7 @@ test.describe("Einwilligungsbanner", () => {
     expect(consent[1]).toEqual(["consent", "update", { analytics_storage: "granted" }]);
 
     // Nach dem Reload mit gespeicherter Einwilligung lädt der Tag Manager wieder
-    const again = page.waitForRequest(/googletagmanager\.com\/gtm\.js/);
+    const again = page.waitForRequest("https://www.googletagmanager.com/gtm.js?id=GTM-TEST0001");
     await page.reload();
     await again;
   });
