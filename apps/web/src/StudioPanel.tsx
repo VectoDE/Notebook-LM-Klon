@@ -30,7 +30,8 @@ import {
   LazyMindmapViewer as MindmapViewer,
   LazyQuizViewer as QuizViewer,
   LazyTimelineViewer as TimelineViewer,
-  LazyVideoOverviewPlayer as VideoOverviewPlayer
+  LazyVideoOverviewPlayer as VideoOverviewPlayer,
+  preloadMediaPlayers
 } from "./lazy-viewers.js";
 import {
   type FetchLike,
@@ -181,6 +182,10 @@ export function StudioPanel({
   useEffect(() => {
     if (toolRequest) setCurrentTool(toolRequest.tool);
   }, [toolRequest]);
+
+  const warmMediaPlayers = () => {
+    void preloadMediaPlayers();
+  };
 
   const selectTool = (tool: StudioTool) => {
     setCurrentTool(tool);
@@ -435,7 +440,13 @@ export function StudioPanel({
         className="rn-cinema-enter rn-tool-view"
       >
         {currentTool === "overview" && (
-          <div className="rn-studio-overview" data-testid="studio-overview">
+          // Medien-Player erst laden, wenn jemand die Werkzeuge ansteuert (Issue #350)
+          <div
+            className="rn-studio-overview"
+            data-testid="studio-overview"
+            onPointerEnter={warmMediaPlayers}
+            onFocus={warmMediaPlayers}
+          >
             {selectedSourceCount === 0 && (
               <EmptyState
                 art="studio"

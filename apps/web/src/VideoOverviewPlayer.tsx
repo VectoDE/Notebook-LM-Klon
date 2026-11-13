@@ -8,11 +8,12 @@ import {
   buildWebVtt,
   storyboardCaptionCues,
   storyboardDescriptionCues,
-  storyboardTranscript,
-  videoTranscriptToText
+  storyboardTranscript
 } from "@notebook-lm/shared";
 import {
   type KeyboardEvent,
+  Suspense,
+  lazy,
   useCallback,
   useEffect,
   useId,
@@ -21,9 +22,14 @@ import {
   useState
 } from "react";
 import { Icon } from "./Icon.js";
-import { MediaTranscript, type TranscriptItem } from "./MediaTranscript.js";
+import type { TranscriptItem } from "./MediaTranscript.js";
 import { triggerBrowserDownload } from "./artifact-exporters.js";
 import { useTheme } from "./useTheme.js";
+
+// Erst beim Aufklappen laden: hält das Startpaket unter dem Skript-Budget (Issue #350)
+const MediaTranscript = lazy(() =>
+  import("./MediaTranscript.js").then((m) => ({ default: m.MediaTranscript }))
+);
 
 export interface VideoOverviewPlayerProps {
   readonly storyboard: VideoStoryboard;
@@ -655,10 +661,12 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
       id: "txt",
       label: t("mediaDownloadText"),
       run: () =>
-        download(
-          `${storyboard.title}_transkript.txt`,
-          videoTranscriptToText(storyboard.title, transcript, contentLang),
-          "text/plain;charset=utf-8"
+        void import("./media-downloads.js").then((m) =>
+          download(
+            `${storyboard.title}_transkript.txt`,
+            m.videoTranscriptText(storyboard.title, transcript, contentLang),
+            "text/plain;charset=utf-8"
+          )
         )
     },
     {
@@ -949,14 +957,16 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
 
       <div id={transcriptId} hidden={!showTranscript}>
         {showTranscript && (
-          <MediaTranscript
-            items={transcriptItems}
-            currentTimeMs={currentTimeMs}
-            onSeek={handleSeek}
-            contentLang={contentLang}
-            downloads={transcriptDownloads}
-            testId="video-transcript"
-          />
+          <Suspense fallback={null}>
+            <MediaTranscript
+              items={transcriptItems}
+              currentTimeMs={currentTimeMs}
+              onSeek={handleSeek}
+              contentLang={contentLang}
+              downloads={transcriptDownloads}
+              testId="video-transcript"
+            />
+          </Suspense>
         )}
       </div>
     </section>

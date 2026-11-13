@@ -61,7 +61,7 @@ describe("WebVTT", () => {
 
   it("maskiert Sonderzeichen und bricht --> im Cue-Text", () => {
     expect(escapeVttText("a < b && c > d")).toBe("a &lt; b &amp;&amp; c &gt; d");
-    expect(escapeVttText("x --> y")).toBe("x - -&gt; y");
+    expect(escapeVttText("x --> y")).toBe("x --&gt; y");
     expect(escapeVttText("zwei\n\nZeilen  hier")).toBe("zwei Zeilen hier");
   });
 

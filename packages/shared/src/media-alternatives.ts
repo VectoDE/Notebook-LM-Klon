@@ -74,18 +74,17 @@ function oneLine(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
-/** Cue-Text für WebVTT: &, < und > maskieren, "-->" brechen, eine Zeile. */
+/**
+ * Cue-Text für WebVTT: &, < und > maskieren, eine Zeile. Mit maskiertem > kann der
+ * Zeitpfeil im Text nicht mehr vorkommen.
+ */
 export function escapeVttText(text: string): string {
-  return oneLine(text)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/--&gt;/g, "- -&gt;");
+  return oneLine(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /** Cue-Kennung und Kopfzeile dürfen weder "-->" noch Zeilenumbrüche enthalten. */
 function vttSafeLine(text: string): string {
-  return oneLine(text).replace(/-->/g, "->");
+  return oneLine(text).split("-->").join("->");
 }
 
 /** WebVTT-Zeitstempel hh:mm:ss.mmm. */

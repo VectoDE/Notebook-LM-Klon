@@ -1,28 +1,32 @@
-import {
-  type AudioInterjectResponse,
-  type PodcastStateMachine,
-  type PodcastStateMachineContext,
-  type SpokenTranscriptLine,
-  buildWebVtt,
-  spokenLinesToCues,
-  spokenTranscriptToText
+import type {
+  AudioInterjectResponse,
+  PodcastStateMachine,
+  PodcastStateMachineContext,
+  SpokenTranscriptLine
 } from "@notebook-lm/shared";
 import {
   type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
+  Suspense,
+  lazy,
   useEffect,
   useId,
   useRef,
   useState
 } from "react";
-import { MediaTranscript } from "./MediaTranscript.js";
 import { triggerBrowserDownload } from "./artifact-exporters.js";
 import { ChatApiError, errorKeyForStatus, technicalErrorDetail } from "./chat-client.js";
 import { focusFirstAvailable } from "./focus-return.js";
 import { trapTabKey } from "./focus-trap.js";
+import type { SpokenTranscriptFormat } from "./media-downloads.js";
 import { podcastStateKey } from "./stage-visuals.js";
 import { useTheme } from "./useTheme.js";
+
+// Erst beim Aufklappen laden: hält das Startpaket unter dem Skript-Budget (Issue #350)
+const MediaTranscript = lazy(() =>
+  import("./MediaTranscript.js").then((m) => ({ default: m.MediaTranscript }))
+);
 
 export interface SpeechRecognitionResultLike {
   readonly [index: number]: { readonly transcript: string };
@@ -359,9 +363,17 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
     }
   };
 
-  const downloadTranscript = (filename: string, content: string, mimeType: string) => {
-    triggerBrowserDownload(filename, content, mimeType);
-    onNotify?.(tf("toastDownload", { file: filename }));
+  const downloadTranscript = (format: SpokenTranscriptFormat) => {
+    void import("./media-downloads.js").then((m) => {
+      const file = m.spokenTranscriptFile(
+        format,
+        currentTrackTitle,
+        transcriptLines,
+        transcriptLang
+      );
+      triggerBrowserDownload(file.filename, file.content, file.mimeType);
+      onNotify?.(tf("toastDownload", { file: file.filename }));
+    });
   };
 
   const formattedTime = (ms: number) => {
@@ -471,40 +483,32 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
           </button>
           <div id={transcriptId} hidden={!showTranscript}>
             {showTranscript && (
-              <MediaTranscript
-                items={transcriptLines.map((line) => ({
-                  id: line.id,
-                  startMs: line.startMs,
-                  endMs: line.endMs,
-                  speaker: line.speakerName,
-                  text: line.text
-                }))}
-                currentTimeMs={machineCtx.currentTimeMs}
-                contentLang={transcriptLang}
-                testId="audio-transcript"
-                downloads={[
-                  {
-                    id: "txt",
-                    label: t("mediaDownloadText"),
-                    run: () =>
-                      downloadTranscript(
-                        `${currentTrackTitle}_transkript.txt`,
-                        spokenTranscriptToText(currentTrackTitle, transcriptLines, transcriptLang),
-                        "text/plain;charset=utf-8"
-                      )
-                  },
-                  {
-                    id: "captions",
-                    label: t("mediaDownloadCaptions"),
-                    run: () =>
-                      downloadTranscript(
-                        `${currentTrackTitle}_untertitel.vtt`,
-                        buildWebVtt(spokenLinesToCues(transcriptLines), currentTrackTitle),
-                        "text/vtt"
-                      )
-                  }
-                ]}
-              />
+              <Suspense fallback={null}>
+                <MediaTranscript
+                  items={transcriptLines.map((line) => ({
+                    id: line.id,
+                    startMs: line.startMs,
+                    endMs: line.endMs,
+                    speaker: line.speakerName,
+                    text: line.text
+                  }))}
+                  currentTimeMs={machineCtx.currentTimeMs}
+                  contentLang={transcriptLang}
+                  testId="audio-transcript"
+                  downloads={[
+                    {
+                      id: "txt",
+                      label: t("mediaDownloadText"),
+                      run: () => downloadTranscript("txt")
+                    },
+                    {
+                      id: "captions",
+                      label: t("mediaDownloadCaptions"),
+                      run: () => downloadTranscript("vtt")
+                    }
+                  ]}
+                />
+              </Suspense>
             )}
           </div>
         </div>

@@ -1,14 +1,9 @@
-import {
-  type PodcastStateMachine,
-  buildWebVtt,
-  spokenLinesToCues,
-  spokenTranscriptToText
-} from "@notebook-lm/shared";
+import type { PodcastStateMachine } from "@notebook-lm/shared";
 import { useEffect, useRef, useState } from "react";
 import { AuroraOrb } from "./AuroraOrb.js";
 import { Icon } from "./Icon.js";
 import { LiveLyrics, type TranscriptLine } from "./LiveLyrics.js";
-import { triggerBrowserDownload } from "./artifact-exporters.js";
+import type { SpokenTranscriptFormat } from "./media-downloads.js";
 import { useReturnFocus } from "./useReturnFocus.js";
 import { useTheme } from "./useTheme.js";
 
@@ -89,6 +84,13 @@ export function DeepDiveStage({
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  // Erst beim Klick nachladen: hält das Startpaket unter dem Skript-Budget
+  const downloadTranscript = (format: SpokenTranscriptFormat) => {
+    void import("./media-downloads.js").then((m) =>
+      m.downloadSpokenTranscript(format, notebookTitle, transcriptLines, transcriptLang)
+    );
+  };
 
   const handleSeek = (targetMs: number) => {
     setInternalTimeMs(targetMs);
@@ -173,13 +175,7 @@ export function DeepDiveStage({
             type="button"
             className="rn-stage-btn"
             data-testid="btn-stage-transcript-txt"
-            onClick={() =>
-              triggerBrowserDownload(
-                `${notebookTitle}_transkript.txt`,
-                spokenTranscriptToText(notebookTitle, transcriptLines, transcriptLang),
-                "text/plain;charset=utf-8"
-              )
-            }
+            onClick={() => downloadTranscript("txt")}
           >
             <Icon name="download" size={16} />
             {t("mediaDownloadText")}
@@ -188,13 +184,7 @@ export function DeepDiveStage({
             type="button"
             className="rn-stage-btn"
             data-testid="btn-stage-transcript-vtt"
-            onClick={() =>
-              triggerBrowserDownload(
-                `${notebookTitle}_untertitel.vtt`,
-                buildWebVtt(spokenLinesToCues(transcriptLines), notebookTitle),
-                "text/vtt"
-              )
-            }
+            onClick={() => downloadTranscript("vtt")}
           >
             <Icon name="download" size={16} />
             {t("mediaDownloadCaptions")}
