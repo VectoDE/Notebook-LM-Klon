@@ -127,12 +127,14 @@ describe("CSP für Tag Manager nach Einwilligung (Issue #260)", () => {
     expect(directive("script-src").some((source) => source.includes("*"))).toBe(false);
     expect(directive("script-src")).not.toContain("'unsafe-inline'");
     for (const origin of [
-      "https://*.google-analytics.com",
-      "https://*.analytics.google.com",
-      "https://*.googletagmanager.com"
+      "https://www.google-analytics.com",
+      "https://region1.google-analytics.com",
+      "https://analytics.google.com",
+      "https://www.googletagmanager.com"
     ]) {
       expect(directive("connect-src")).toContain(origin);
     }
+    expect(directive("connect-src").some((source) => source.includes("*"))).toBe(false);
     expect(directive("default-src")).toEqual(["'self'"]);
   });
 });
