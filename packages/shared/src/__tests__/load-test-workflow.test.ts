@@ -56,6 +56,9 @@ describe("k6-Lasttest mit 200 gleichzeitigen Nutzern (#256)", () => {
     expect(runner).toContain("const BASE_URL = `http://127.0.0.1:${PORT}`");
     expect(runner).toContain('"--local"');
     expect(runner).toContain("startFakeOllama");
+    // k6 darf die Event-Loop nicht blockieren, sonst antwortet das Test-LLM nicht.
+    expect(runner).toContain('await runAsync(k6Bin, ["run", "load-test/k6/scenarios.js"]');
+    expect(runner).toContain("await preflightChat()");
     expect(fakeLlm).toContain('listen(port, "127.0.0.1")');
     expect(fakeLlm).not.toMatch(/listen\(port, "0\.0\.0\.0"\)/);
     expect(script).toContain('model: "llama3"');

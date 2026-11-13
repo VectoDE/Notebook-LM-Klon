@@ -42,6 +42,19 @@ function run(command, args, options = {}) {
   }
 }
 
+// Asynchron, damit das Test-LLM in diesem Prozess während des Lasttests weiter antwortet
+// (spawnSync würde die Event-Loop blockieren).
+function runAsync(command, args, options = {}) {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(command, args, { stdio: "inherit", ...options });
+    child.once("error", reject);
+    child.once("exit", (status) => {
+      if (status === 0) resolvePromise();
+      else reject(new Error(`${command} ${args.join(" ")} endete mit Status ${status}`));
+    });
+  });
+}
+
 async function waitForHealth(timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -118,31 +131,6 @@ async function preflightChat() {
   if (chat.status !== 200 || !chat.body.includes("event: token")) {
     throw new Error("Vorprüfung Chat fehlgeschlagen");
   }
-  // Wie im Lastprofil: eigene Client-Adresse, Suche vor dem Chat.
-  const xff = { "x-forwarded-for": "10.9.9.7" };
-  const diagnose = async (label, path, init) => {
-    try {
-      await step(label, path, init);
-    } catch (error) {
-      console.log(String(error));
-    }
-  };
-  await diagnose("Suche (XFF)", `/api/v1/notebooks/${demoNotebookId}/search`, {
-    method: "POST",
-    headers: xff,
-    body: JSON.stringify({ query: "Volltext Vektoren", mode: "fts", limit: 5 })
-  });
-  await diagnose("Chat nach Suche (XFF)", `/api/v1/notebooks/${demoNotebookId}/chat`, {
-    method: "POST",
-    headers: { ...xff, accept: "text/event-stream" },
-    body: JSON.stringify({ message: "Wie arbeitet die Suche?", model: "llama3", maxChunks: 5 })
-  });
-  await diagnose("Chat nach Suche (ohne XFF)", `/api/v1/notebooks/${demoNotebookId}/chat`, {
-    method: "POST",
-    headers: { accept: "text/event-stream" },
-    body: JSON.stringify({ message: "Wie arbeitet die Suche?", model: "llama3", maxChunks: 5 })
-  });
-  console.log(`Test-LLM-Aufrufe nach Diagnose: ${fakeLlm.requests()}`);
 }
 
 let worker;
@@ -193,7 +181,7 @@ try {
   const k6Version =
     spawnSync(k6Bin, ["version"], { encoding: "utf8" }).stdout?.trim() ?? "unbekannt";
 
-  run(k6Bin, ["run", "load-test/k6/scenarios.js"], {
+  await runAsync(k6Bin, ["run", "load-test/k6/scenarios.js"], {
     cwd: root,
     env: {
       ...process.env,
