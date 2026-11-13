@@ -1,42 +1,37 @@
-import {
-  createWriteStream,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  statSync,
-  unlinkSync,
-  writeFileSync
-} from "node:fs";
-import { dirname, join, resolve, sep } from "node:path";
-import { DatabaseSync } from "node:sqlite";
-import { Readable, Transform } from "node:stream";
-import { pipeline } from "node:stream/promises";
-import type { ReadableStream as NodeWebReadableStream } from "node:stream/web";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import type { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
+import { JobDO, NotebookDO } from "./durable-objects.js";
 import { createApp } from "./index.js";
+import {
+  type EnvSource,
+  NodeConfigError,
+  PASSTHROUGH_VARS,
+  loadNodeConfig
+} from "./node/config.js";
+import { type InProcessNamespace, createInProcessNamespace } from "./node/do-namespace.js";
+import { createLocalR2Adapter } from "./node/fs-r2.js";
+import { type CleanupScheduler, runCleanupOnce, startCleanupScheduler } from "./node/scheduler.js";
+import { type SmtpSettings, createSmtpBinding } from "./node/smtp.js";
+import { createSqliteD1Adapter, openNodeDatabase, runSqliteMigrations } from "./node/sqlite-d1.js";
 import { registerSocketAddress } from "./rate-limiter.js";
-import { MAX_SOURCE_BYTE_SIZE_LIMIT } from "./sources-upload.js";
 
-/**
- * Upper bound for a single object written by the local R2 adapter. It matches the
- * per-file size limit (50 MB), so a
- * client that streams without or past its declared size cannot fill the disk.
- */
-export const MAX_OBJECT_BYTES = MAX_SOURCE_BYTE_SIZE_LIMIT;
-
-export class ObjectTooLargeError extends Error {
-  constructor(limit: number) {
-    super(`Objekt überschreitet die Obergrenze von ${limit} Bytes.`);
-    this.name = "ObjectTooLargeError";
-  }
-}
+export { MAX_OBJECT_BYTES, ObjectTooLargeError, createLocalR2Adapter } from "./node/fs-r2.js";
+export {
+  createSqliteD1Adapter,
+  openNodeDatabase,
+  runSqliteMigrations
+} from "./node/sqlite-d1.js";
+export { NodeConfigError, loadNodeConfig } from "./node/config.js";
+export { createInProcessNamespace } from "./node/do-namespace.js";
 
 export interface NodeServerOptions {
+  /** Environment to read the configuration from. Defaults to process.env. */
+  env?: EnvSource | undefined;
   port?: number | undefined;
   dataDir?: string | undefined;
   staticDir?: string | undefined;
@@ -47,6 +42,10 @@ export interface NodeServerOptions {
    * Defaults to env TRUSTED_PROXY_HEADER. Without it, rate limiting uses the socket address.
    */
   trustedProxyHeader?: string | undefined;
+  /** Receives startup warnings (missing optional features). Defaults to console.warn. */
+  onWarning?: ((message: string) => void) | undefined;
+  /** Overrides CLEANUP_INTERVAL_MINUTES (0 disables the in-process cleanup). */
+  cleanupIntervalMinutes?: number | undefined;
 }
 
 export interface NodeServerInstance {
@@ -54,327 +53,33 @@ export interface NodeServerInstance {
   port: number;
   db: DatabaseSync;
   dataDir: string;
+  warnings: readonly string[];
+  env: Env;
+  /** In-process cron replacement, undefined when CLEANUP_INTERVAL_MINUTES=0. */
+  scheduler: CleanupScheduler | undefined;
   close: () => Promise<void>;
 }
 
-export function createSqliteD1Adapter(db: DatabaseSync): D1Database {
-  return {
-    prepare: (query: string) => {
-      const stmt = db.prepare(query);
-      return {
-        bind: (...params: unknown[]) => ({
-          first: async <T = unknown>(colName?: string): Promise<T | null> => {
-            const row = stmt.get(...(params as (string | number | bigint | null | Uint8Array)[])) as
-              | Record<string, unknown>
-              | undefined;
-            if (!row) {
-              return null;
-            }
-            if (colName) {
-              return (row[colName] as T) ?? null;
-            }
-            return row as T;
-          },
-          all: async <T = unknown>() => {
-            const rows = stmt.all(...(params as (string | number | bigint | null | Uint8Array)[]));
-            return {
-              results: rows as T[],
-              success: true,
-              meta: {
-                changes: 0,
-                last_row_id: 0,
-                duration: 0,
-                rows_read: rows.length,
-                rows_written: 0
-              }
-            };
-          },
-          run: async () => {
-            const res = stmt.run(...(params as (string | number | bigint | null | Uint8Array)[]));
-            return {
-              results: [],
-              success: true,
-              meta: {
-                changes: Number(res.changes),
-                last_row_id: Number(res.lastInsertRowid),
-                duration: 0,
-                rows_read: 0,
-                rows_written: Number(res.changes)
-              }
-            };
-          }
-        }),
-        first: async <T = unknown>(colName?: string): Promise<T | null> => {
-          const row = stmt.get() as Record<string, unknown> | undefined;
-          if (!row) {
-            return null;
-          }
-          if (colName) {
-            return (row[colName] as T) ?? null;
-          }
-          return row as T;
-        },
-        all: async <T = unknown>() => {
-          const rows = stmt.all();
-          return {
-            results: rows as T[],
-            success: true,
-            meta: {
-              changes: 0,
-              last_row_id: 0,
-              duration: 0,
-              rows_read: rows.length,
-              rows_written: 0
-            }
-          };
-        },
-        run: async () => {
-          const res = stmt.run();
-          return {
-            results: [],
-            success: true,
-            meta: {
-              changes: Number(res.changes),
-              last_row_id: Number(res.lastInsertRowid),
-              duration: 0,
-              rows_read: 0,
-              rows_written: Number(res.changes)
-            }
-          };
-        }
-      } as unknown as D1PreparedStatement;
-    },
-    exec: async (sqlStr: string) => {
-      db.exec(sqlStr);
-      return { count: 1, duration: 0 };
-    },
-    batch: async (statements: D1PreparedStatement[]) => {
-      const results = [];
-      for (const st of statements) {
-        results.push(await st.all());
-      }
-      return results;
-    },
-    dump: async () => new ArrayBuffer(0)
-  } as unknown as D1Database;
-}
-
-export function createLocalR2Adapter(
-  mediaDir: string,
-  maxObjectBytes: number = MAX_OBJECT_BYTES
-): R2Bucket {
-  if (!existsSync(mediaDir)) {
-    mkdirSync(mediaDir, { recursive: true });
-  }
-  const rootDir = resolve(mediaDir);
-
-  // Keys come from callers (R2 keys are opaque strings). Resolve them against the
-  // media root and refuse anything that lands outside it (`../`, absolute paths,
-  // other drives) or on the root itself.
-  const getFilePath = (key: string): string => {
-    const safeKey = key.replace(/^[/\\]+/, "");
-    const target = resolve(rootDir, safeKey);
-    if (!target.startsWith(`${rootDir}${sep}`)) {
-      throw new RangeError(`Ungültiger Objektschlüssel: '${key}'.`);
+/** Picks the PASSTHROUGH_VARS from an environment source, dropping blank values. */
+export function pickPassthroughVars(source: EnvSource): Record<string, string> {
+  const vars: Record<string, string> = {};
+  for (const name of PASSTHROUGH_VARS) {
+    const value = source[name];
+    if (typeof value === "string" && value.trim().length > 0) {
+      vars[name] = value.trim();
     }
-    return target;
-  };
-
-  return {
-    get: async (key: string) => {
-      const filePath = getFilePath(key);
-      if (!existsSync(filePath)) {
-        return null;
-      }
-      const data = readFileSync(filePath);
-      return {
-        key,
-        size: data.byteLength,
-        etag: `"${data.byteLength}"`,
-        httpEtag: `"${data.byteLength}"`,
-        arrayBuffer: async () =>
-          data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
-        text: async () => data.toString("utf8"),
-        body: new ReadableStream({
-          start(controller) {
-            controller.enqueue(data);
-            controller.close();
-          }
-        })
-      } as unknown as R2ObjectBody;
-    },
-    put: async (
-      key: string,
-      value: ReadableStream | ArrayBuffer | ArrayBufferView | string | Blob
-    ) => {
-      const filePath = getFilePath(key);
-      const fileDir = dirname(filePath);
-      if (!existsSync(fileDir)) {
-        mkdirSync(fileDir, { recursive: true });
-      }
-
-      // Request bodies arrive as web ReadableStreams: stream the raw bytes to disk
-      // (no text decoding, no full buffering in memory). A counting transform aborts
-      // once the object exceeds the cap; the partial file is removed on any failure.
-      if (value instanceof ReadableStream) {
-        let received = 0;
-        const limiter = new Transform({
-          transform(chunk: Buffer, _encoding, callback) {
-            received += chunk.byteLength;
-            if (received > maxObjectBytes) {
-              callback(new ObjectTooLargeError(maxObjectBytes));
-              return;
-            }
-            callback(null, chunk);
-          }
-        });
-        try {
-          await pipeline(
-            Readable.fromWeb(value as unknown as NodeWebReadableStream<Uint8Array>),
-            limiter,
-            createWriteStream(filePath)
-          );
-        } catch (err) {
-          rmSync(filePath, { force: true, maxRetries: 5, retryDelay: 50 });
-          throw err;
-        }
-        const size = statSync(filePath).size;
-        return {
-          key,
-          size,
-          etag: `"${size}"`,
-          httpEtag: `"${size}"`
-        } as unknown as R2Object;
-      }
-
-      let buf: Buffer;
-      if (typeof value === "string") {
-        buf = Buffer.from(value, "utf8");
-      } else if (ArrayBuffer.isView(value)) {
-        buf = Buffer.from(value.buffer, value.byteOffset, value.byteLength);
-      } else if (value instanceof ArrayBuffer) {
-        buf = Buffer.from(value);
-      } else if (typeof (value as Blob).arrayBuffer === "function") {
-        const ab = await (value as Blob).arrayBuffer();
-        buf = Buffer.from(ab);
-      } else {
-        buf = Buffer.from(String(value), "utf8");
-      }
-
-      if (buf.byteLength > maxObjectBytes) {
-        throw new ObjectTooLargeError(maxObjectBytes);
-      }
-      writeFileSync(filePath, buf);
-      return {
-        key,
-        size: buf.byteLength,
-        etag: `"${buf.byteLength}"`,
-        httpEtag: `"${buf.byteLength}"`
-      } as unknown as R2Object;
-    },
-    delete: async (keys: string | string[]) => {
-      const keyList = Array.isArray(keys) ? keys : [keys];
-      for (const k of keyList) {
-        const filePath = getFilePath(k);
-        if (existsSync(filePath)) {
-          unlinkSync(filePath);
-        }
-      }
-    },
-    list: async (options?: {
-      prefix?: string | undefined;
-      cursor?: string | undefined;
-      limit?: number | undefined;
-    }) => {
-      const prefix = options?.prefix ?? "";
-      const matchedObjects: Array<{ key: string; size: number }> = [];
-
-      const walk = (currentDir: string, currentRel: string) => {
-        const entries = readdirSync(currentDir, { withFileTypes: true });
-        for (const entry of entries) {
-          const entryRel = currentRel ? `${currentRel}/${entry.name}` : entry.name;
-          const entryFull = join(currentDir, entry.name);
-          if (entry.isDirectory()) {
-            walk(entryFull, entryRel);
-          } else {
-            if (entryRel.startsWith(prefix)) {
-              const stat = statSync(entryFull);
-              matchedObjects.push({ key: entryRel, size: stat.size });
-            }
-          }
-        }
-      };
-
-      walk(mediaDir, "");
-      return {
-        objects: matchedObjects,
-        truncated: false,
-        cursor: undefined
-      };
-    },
-    head: async (key: string) => {
-      const filePath = getFilePath(key);
-      if (!existsSync(filePath)) {
-        return null;
-      }
-      const stat = statSync(filePath);
-      return {
-        key,
-        size: stat.size,
-        etag: `"${stat.size}"`,
-        httpEtag: `"${stat.size}"`
-      } as unknown as R2Object;
-    }
-  } as unknown as R2Bucket;
+  }
+  return vars;
 }
 
-export function createMockDurableObjectNamespace(namePrefix: string) {
-  return {
-    idFromName: (name: string) => ({
-      toString: () => `${namePrefix}-${name}`,
-      equals: () => false,
-      name
-    }),
-    newUniqueId: () => ({
-      toString: () => `${namePrefix}-${Date.now()}`,
-      equals: () => false
-    }),
-    idFromString: (idStr: string) => ({
-      toString: () => idStr,
-      equals: () => false
-    }),
-    get: (_id: unknown) => ({
-      fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
-        const req = input instanceof Request ? input : new Request(input, init);
-        const url = new URL(req.url);
-        if (url.pathname === "/health") {
-          return new Response(JSON.stringify({ ok: true, className: namePrefix }), {
-            status: 200,
-            headers: { "content-type": "application/json; charset=utf-8" }
-          });
-        }
-        return new Response(JSON.stringify({ ok: true }), {
-          status: 200,
-          headers: { "content-type": "application/json; charset=utf-8" }
-        });
-      }
-    })
-  } as unknown as DurableObjectNamespace;
-}
-
-export function runSqliteMigrations(db: DatabaseSync, migrationsDir: string): void {
-  if (!existsSync(migrationsDir)) {
-    return;
-  }
-  const files = readdirSync(migrationsDir)
-    .filter((f) => f.endsWith(".sql"))
-    .sort();
-
-  for (const file of files) {
-    const fullPath = join(migrationsDir, file);
-    const sql = readFileSync(fullPath, "utf8");
-    db.exec(sql);
-  }
+export interface NodeEnvHandle {
+  env: Env;
+  db: DatabaseSync;
+  dataDir: string;
+  notebookNamespace: InProcessNamespace;
+  jobNamespace: InProcessNamespace;
+  /** Stops alarm timers and closes the Durable Object databases (not `db`). */
+  close: () => void;
 }
 
 export function createNodeEnv(options?: {
@@ -382,82 +87,116 @@ export function createNodeEnv(options?: {
   dataDir?: string | undefined;
   appProfile?: "demo" | "full" | undefined;
   appOrigin?: string | undefined;
-  /** Defaults to process.env.SESSION_SALT_SECRET. No fallback: missing means login is blocked (503). */
+  /** Defaults to vars.SESSION_SALT_SECRET. No fallback: missing means login is blocked (503). */
   sessionSaltSecret?: string | undefined;
   trustedProxyHeader?: string | undefined;
-}): { env: Env; db: DatabaseSync; dataDir: string } {
+  /**
+   * Secrets and settings with their Cloudflare names (SESSION_SALT_SECRET, TURNSTILE_SECRET_KEY,
+   * KEK_V1 …). Defaults to the matching entries of process.env.
+   */
+  vars?: Readonly<Record<string, string>> | undefined;
+  /** SMTP delivery. When set it is used for all mail and Resend stays unused. */
+  smtp?: SmtpSettings | undefined;
+}): NodeEnvHandle {
   const dataDir = options?.dataDir ?? resolve(".data");
-  const mediaDir = join(dataDir, "media");
+  const db = options?.db ?? openNodeDatabase(join(dataDir, "local.sqlite"));
+  const { RESEND_API_KEY, ...vars } = options?.vars ?? pickPassthroughVars(process.env);
 
-  if (!existsSync(dataDir)) {
-    mkdirSync(dataDir, { recursive: true });
-  }
-
-  const db = options?.db ?? new DatabaseSync(join(dataDir, "local.sqlite"));
-  const d1 = createSqliteD1Adapter(db);
-  const r2 = createLocalR2Adapter(mediaDir);
-
-  const env = {
-    DB: d1,
-    MEDIA: r2,
-    APP_PROFILE: options?.appProfile ?? "demo",
-    APP_ORIGIN: options?.appOrigin ?? "http://localhost:8787",
-    SESSION_SALT_SECRET: options?.sessionSaltSecret ?? process.env.SESSION_SALT_SECRET,
-    TRUSTED_PROXY_HEADER: options?.trustedProxyHeader,
+  const env: Record<string, unknown> = {
+    ...vars,
+    DB: createSqliteD1Adapter(db),
+    MEDIA: createLocalR2Adapter(join(dataDir, "media")),
+    APP_PROFILE: options?.appProfile ?? vars.APP_PROFILE ?? "demo",
+    APP_ORIGIN: options?.appOrigin ?? vars.APP_ORIGIN ?? "http://localhost:8787",
+    SESSION_SALT_SECRET: options?.sessionSaltSecret ?? vars.SESSION_SALT_SECRET,
+    TRUSTED_PROXY_HEADER: options?.trustedProxyHeader ?? vars.TRUSTED_PROXY_HEADER,
     ASSETS: {
       fetch: async () => new Response("Not Found", { status: 404 })
-    } as unknown as Fetcher,
-    NOTEBOOK_DO: createMockDurableObjectNamespace("NotebookDO"),
-    JOB_DO: createMockDurableObjectNamespace("JobDO")
-  } as unknown as Env;
+    } as unknown as Fetcher
+  };
+  if (options?.smtp) {
+    // Handed over as the SEND_EMAIL binding: the app sends through it as on Cloudflare,
+    // and because RESEND_API_KEY is left out, SMTP is the only mail path.
+    env.SEND_EMAIL = createSmtpBinding(options.smtp);
+  } else if (RESEND_API_KEY !== undefined) {
+    env.RESEND_API_KEY = RESEND_API_KEY;
+  }
 
-  return { env, db, dataDir };
+  // The real Durable Object classes, run in this process (see node/do-namespace.ts).
+  const notebookNamespace = createInProcessNamespace(
+    "NotebookDO",
+    join(dataDir, "do", "NotebookDO"),
+    (ctx) => new NotebookDO(ctx, env as unknown as Env)
+  );
+  const jobNamespace = createInProcessNamespace(
+    "JobDO",
+    join(dataDir, "do", "JobDO"),
+    (ctx) => new JobDO(ctx, env as unknown as Env)
+  );
+  env.NOTEBOOK_DO = notebookNamespace;
+  env.JOB_DO = jobNamespace;
+
+  return {
+    env: env as unknown as Env,
+    db,
+    dataDir,
+    notebookNamespace,
+    jobNamespace,
+    close: () => {
+      notebookNamespace.close();
+      jobNamespace.close();
+    }
+  };
 }
 
+/**
+ * Starts the Node server. Reads and validates the configuration first and throws
+ * NodeConfigError (nothing is opened or bound) when a mandatory secret is missing.
+ */
 export function startNodeServer(options?: NodeServerOptions): Promise<NodeServerInstance> {
-  const port = options?.port !== undefined ? options.port : Number(process.env.PORT);
-  const dataDir = options?.dataDir !== undefined ? options.dataDir : resolve(".data");
-  const staticDir = options?.staticDir !== undefined ? options.staticDir : resolve("apps/web/dist");
-
-  const envOpts: {
-    dataDir: string;
-    appProfile?: "demo" | "full";
-    appOrigin?: string;
-    trustedProxyHeader?: string | undefined;
-  } = {
-    dataDir,
-    trustedProxyHeader: options?.trustedProxyHeader ?? process.env.TRUSTED_PROXY_HEADER
-  };
-  if (options?.appProfile !== undefined) {
-    envOpts.appProfile = options.appProfile;
-  }
-  if (options?.appOrigin !== undefined) {
-    envOpts.appOrigin = options.appOrigin;
+  const { config, warnings } = loadNodeConfig(options?.env ?? process.env);
+  const onWarning = options?.onWarning ?? ((message: string) => console.warn(message));
+  for (const warning of warnings) {
+    onWarning(`[node-server] Warnung: ${warning}`);
   }
 
-  const { env, db } = createNodeEnv(envOpts);
+  const port = options?.port ?? config.port;
+  const dataDir = options?.dataDir ?? config.dataDir;
+  const staticDir = options?.staticDir ?? config.staticDir;
 
+  const db = openNodeDatabase(join(dataDir, "local.sqlite"));
   const currentDir = dirname(fileURLToPath(import.meta.url));
-  const migrationsDir = resolve(currentDir, "../migrations");
-  runSqliteMigrations(db, migrationsDir);
+  runSqliteMigrations(db, resolve(currentDir, "../migrations"));
+
+  const handle = createNodeEnv({
+    db,
+    dataDir,
+    appProfile: options?.appProfile ?? config.appProfile,
+    appOrigin: options?.appOrigin ?? config.appOrigin,
+    trustedProxyHeader: options?.trustedProxyHeader ?? config.trustedProxyHeader,
+    vars: config.vars,
+    smtp: config.smtp
+  });
+  const { env } = handle;
+  // Jobs that were waiting for their alarm when the previous process stopped run again.
+  handle.jobNamespace.restoreAlarms();
+  handle.notebookNamespace.restoreAlarms();
+
+  const intervalMinutes = options?.cleanupIntervalMinutes ?? config.cleanupIntervalMinutes;
+  const scheduler =
+    intervalMinutes > 0
+      ? startCleanupScheduler({ env, intervalMs: intervalMinutes * 60_000 })
+      : undefined;
 
   const rootApp = new Hono();
-  const workerApp = createApp();
-
-  rootApp.use("*", async (c, next) => {
-    (c.env as unknown as { env: Env }).env = env;
-    await next();
-  });
-
-  rootApp.route("/", workerApp);
+  rootApp.route("/", createApp());
 
   if (existsSync(staticDir)) {
     rootApp.use("/*", serveStatic({ root: staticDir }));
     rootApp.get("*", (c) => {
       const indexHtmlPath = join(staticDir, "index.html");
       if (existsSync(indexHtmlPath)) {
-        const html = readFileSync(indexHtmlPath, "utf8");
-        return c.html(html);
+        return c.html(readFileSync(indexHtmlPath, "utf8"));
       }
       return c.text("Not Found", 404);
     });
@@ -474,27 +213,85 @@ export function startNodeServer(options?: NodeServerOptions): Promise<NodeServer
         port
       },
       (info) => {
-        const instance: NodeServerInstance = {
+        resolvePromise({
           server,
           port: info.port,
           db,
           dataDir,
+          warnings,
+          env,
+          scheduler,
           close: () =>
             new Promise<void>((res) => {
+              scheduler?.stop();
               server.close(() => {
-                try {
-                  db.close();
-                } catch {
-                  // already closed or in-memory
-                }
+                handle.close();
+                db.close();
                 res();
               });
             })
-        };
-        resolvePromise(instance);
+        });
       }
     );
   });
+}
+
+/**
+ * One cleanup run for an external cron (host cron, Kubernetes CronJob): the same
+ * runScheduledCleanup() as the Cloudflare cron trigger and the in-process scheduler.
+ */
+export async function runCleanupCommand(
+  options: { env?: EnvSource | undefined; dataDir?: string | undefined } = {},
+  log: Pick<Console, "info" | "error"> = console
+): Promise<void> {
+  const { config } = loadNodeConfig(options.env ?? process.env);
+  const dataDir = options.dataDir ?? config.dataDir;
+  const db = openNodeDatabase(join(dataDir, "local.sqlite"));
+  const handle = createNodeEnv({ db, dataDir, vars: config.vars });
+  try {
+    runSqliteMigrations(db, resolve(dirname(fileURLToPath(import.meta.url)), "../migrations"));
+    await runCleanupOnce(handle.env, undefined, log);
+  } finally {
+    handle.close();
+    db.close();
+  }
+}
+
+/**
+ * CLI entry: `node-server.js` starts the server, `node-server.js cleanup` runs one cleanup.
+ * Configuration problems are printed and give exit code 1. Returns the exit code, so it can
+ * be tested without exiting the process.
+ */
+export async function runNodeServerCli(
+  args: readonly string[] = process.argv.slice(2),
+  deps: {
+    start?: () => Promise<NodeServerInstance>;
+    cleanup?: () => Promise<void>;
+    log?: Pick<Console, "info" | "error">;
+  } = {}
+): Promise<number> {
+  const log = deps.log ?? console;
+  const command = args[0] ?? "serve";
+  try {
+    if (command === "cleanup") {
+      await (deps.cleanup ?? (() => runCleanupCommand({}, log)))();
+      return 0;
+    }
+    if (command !== "serve") {
+      log.error(`[node-server] Unbekannter Befehl "${command}". Erlaubt: serve, cleanup.`);
+      return 2;
+    }
+    const instance = await (deps.start ?? (() => startNodeServer()))();
+    log.info(`[node-server] RelationNotes läuft auf http://localhost:${instance.port}`);
+    return 0;
+  } catch (err) {
+    if (err instanceof NodeConfigError) {
+      log.error(err.message);
+    } else {
+      log.error("[node-server] Start fehlgeschlagen:", err);
+    }
+    return 1;
+  }
 }
 
 // Auto-run if executed directly as entrypoint
@@ -504,13 +301,10 @@ const isDirectRun =
   (process.argv[1].endsWith("node-server.ts") || process.argv[1].endsWith("node-server.js"));
 
 if (isDirectRun) {
-  startNodeServer()
-    .then((instance) => {
-      console.log(`[node-server] Server listening on http://localhost:${instance.port}`);
-    })
-    .catch((err) => {
-      console.error("[node-server] Failed to start:", err);
-      process.exit(1);
-    });
+  runNodeServerCli().then((code) => {
+    if (code !== 0 || process.argv[2] === "cleanup") {
+      process.exit(code);
+    }
+  });
 }
 /* v8 ignore stop */

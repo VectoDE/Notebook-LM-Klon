@@ -2,6 +2,7 @@ import { type SourceRow, type SourceType, createProblemDetails } from "@notebook
 import { AwsClient } from "aws4fetch";
 import type { Hono } from "hono";
 import type { CoreRepository } from "./core-repository.js";
+import { prefersEnglish } from "./quota-guard.js";
 import type { RagRepository } from "./rag-repository.js";
 
 /**
@@ -294,10 +295,14 @@ export function registerSourcesUploadRoutes(
     // Validate maximum file size
     const sizeNumber = typeof byteSize === "number" ? byteSize : 0;
     if (typeof byteSize !== "number" || sizeNumber > MAX_SOURCE_BYTE_SIZE_LIMIT) {
+      const sizeMb = Math.round(sizeNumber / 1024 / 1024);
+      const limitMb = Math.round(MAX_SOURCE_BYTE_SIZE_LIMIT / 1024 / 1024);
       const problem = createProblemDetails({
         status: 413,
         title: "Payload Too Large",
-        detail: `Dateigröße (${Math.round(sizeNumber / 1024 / 1024)} MB) überschreitet das Limit von ${Math.round(MAX_SOURCE_BYTE_SIZE_LIMIT / 1024 / 1024)} MB.`,
+        detail: prefersEnglish(c.req.header("accept-language"))
+          ? `The file is ${sizeMb} MB. Each file may be at most ${limitMb} MB.`
+          : `Dateigröße (${sizeMb} MB) überschreitet das Limit von ${limitMb} MB.`,
         instance: c.req.path,
         code: "FILE_TOO_LARGE"
       });

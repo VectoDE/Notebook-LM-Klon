@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  KEK_ENV_NAMES,
   KeyVault,
+  MIN_KEK_SECRET_LENGTH,
   buildBYOKAdditionalData,
   bytesToBase64,
   createKeyVaultFromEnv,
   deserializeEncryptedPayload,
   importKek,
+  isUsableKekSecret,
   serializeEncryptedPayload
 } from "../key-vault.js";
 
@@ -276,6 +279,55 @@ describe("KeyVault - WebCrypto AES-256-GCM Envelope Encryption (Sub-Issue #92, #
           APP_PROFILE: "full"
         })
       ).toThrow(/No KEK configured/);
+    });
+
+    it.each(["KEK_V1", "KEK_V2", "BYOK_MASTER_KEY"])(
+      "throws instead of stretching a too-short %s",
+      (name) => {
+        expect(() => createKeyVaultFromEnv({ [name]: "short-passphrase" })).toThrow(
+          new RegExp(`KEK ${name} is too short`)
+        );
+      }
+    );
+
+    it("rejects a 31-character KEK and accepts exactly 32 characters", () => {
+      expect(() => createKeyVaultFromEnv({ KEK_V1: "a".repeat(31) })).toThrow(/too short/);
+      expect(createKeyVaultFromEnv({ KEK_V1: "a".repeat(32) }).hasVersion(1)).toBe(true);
+    });
+
+    it("refuses the whole vault when one of several KEKs is too short", () => {
+      expect(() => createKeyVaultFromEnv({ KEK_V1, KEK_V2: "weak" })).toThrow(
+        /KEK KEK_V2 is too short/
+      );
+    });
+
+    it("treats a blank KEK_CURRENT_VERSION as unset (highest version wins)", () => {
+      const vault = createKeyVaultFromEnv({ KEK_V1, KEK_V2, KEK_CURRENT_VERSION: " " });
+      expect(vault.getCurrentVersion()).toBe(2);
+    });
+
+    it("accepts a base64-encoded 32-byte KEK", () => {
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
+      expect(base64).toHaveLength(44);
+      expect(createKeyVaultFromEnv({ KEK_V1: base64 }).getCurrentVersion()).toBe(1);
+    });
+  });
+
+  describe("isUsableKekSecret", () => {
+    it("accepts strings of at least MIN_KEK_SECRET_LENGTH characters after trimming", () => {
+      expect(MIN_KEK_SECRET_LENGTH).toBe(32);
+      expect(isUsableKekSecret(KEK_V1)).toBe(true);
+      expect(isUsableKekSecret(`  ${"x".repeat(32)}  `)).toBe(true);
+      expect(isUsableKekSecret(` ${"x".repeat(31)} `)).toBe(false);
+      expect(isUsableKekSecret(undefined)).toBe(false);
+      expect(isUsableKekSecret(42)).toBe(false);
+    });
+
+    it("lists KEK_V1 … KEK_V10 and BYOK_MASTER_KEY as KEK variables", () => {
+      expect(KEK_ENV_NAMES).toHaveLength(11);
+      expect(KEK_ENV_NAMES[0]).toBe("KEK_V1");
+      expect(KEK_ENV_NAMES[9]).toBe("KEK_V10");
+      expect(KEK_ENV_NAMES).toContain("BYOK_MASTER_KEY");
     });
   });
 

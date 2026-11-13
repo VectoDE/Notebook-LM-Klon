@@ -116,7 +116,30 @@ export function quotaDenialStatus(code: string): 403 | 413 {
 export interface QuotaCheckResult {
   readonly allowed: boolean;
   readonly code: string;
+  /** German message (default). */
   readonly reason: string;
+  /** English message, chosen when the client prefers English (Accept-Language). */
+  readonly reasonEn: string;
+}
+
+const ALLOWED: QuotaCheckResult = { allowed: true, code: "OK", reason: "", reasonEn: "" };
+
+/**
+ * True when the first language in an Accept-Language header is English.
+ * German stays the default for missing or other languages.
+ */
+export function prefersEnglish(acceptLanguage: string | undefined | null): boolean {
+  // split() always returns at least one element, so [0] is defined.
+  const first = ((acceptLanguage ?? "").split(",")[0] as string).trim().toLowerCase();
+  return first === "en" || first.startsWith("en-") || first.startsWith("en;");
+}
+
+/** Picks the German or English quota message for an Accept-Language header. */
+export function localizedQuotaReason(
+  check: QuotaCheckResult,
+  acceptLanguage: string | undefined | null
+): string {
+  return prefersEnglish(acceptLanguage) ? check.reasonEn : check.reason;
 }
 
 /**
@@ -136,10 +159,11 @@ export async function verifyQuotaAction(
       return {
         allowed: false,
         code: "QUOTA_MAX_NOTEBOOKS_EXCEEDED",
-        reason: `Maximale Anzahl an Notizbüchern (${limits.maxNotebooksPerUser}) erreicht.`
+        reason: `Maximale Anzahl an Notizbüchern (${limits.maxNotebooksPerUser}) erreicht.`,
+        reasonEn: `You have reached the maximum number of notebooks (${limits.maxNotebooksPerUser}).`
       };
     }
-    return { allowed: true, code: "OK", reason: "" };
+    return ALLOWED;
   }
 
   if (action.type === "add_source") {
@@ -148,7 +172,8 @@ export async function verifyQuotaAction(
       return {
         allowed: false,
         code: "QUOTA_MAX_SOURCE_BYTES_EXCEEDED",
-        reason: `Dateigröße (${Math.round(action.byteSize / 1024 / 1024)} MB) überschreitet das Limit von ${Math.round(limits.maxSourceBytes / 1024 / 1024)} MB pro Quelle.`
+        reason: `Die Datei ist ${formatMegabytes(action.byteSize)} MB groß. Erlaubt sind höchstens ${formatMegabytes(limits.maxSourceBytes)} MB pro Quelle.`,
+        reasonEn: `The file is ${formatMegabytes(action.byteSize)} MB. Each source may be at most ${formatMegabytes(limits.maxSourceBytes)} MB.`
       };
     }
 
@@ -168,7 +193,8 @@ export async function verifyQuotaAction(
       return {
         allowed: false,
         code: "QUOTA_MAX_SOURCES_PER_NOTEBOOK_EXCEEDED",
-        reason: `Maximale Quellenanzahl pro Notizbuch (${limits.maxSourcesPerNotebook}) erreicht.`
+        reason: `Dieses Notizbuch hat schon ${limits.maxSourcesPerNotebook} Quellen, mehr sind nicht möglich. Entfernen Sie eine Quelle oder legen Sie ein neues Notizbuch an.`,
+        reasonEn: `This notebook already has ${limits.maxSourcesPerNotebook} sources, the maximum. Remove a source or create a new notebook.`
       };
     }
 
@@ -177,11 +203,12 @@ export async function verifyQuotaAction(
       return {
         allowed: false,
         code: NOTEBOOK_SIZE_LIMIT_CODE,
-        reason: `Notizbuch-Limit von ${formatMegabytes(limits.maxNotebookBytes)} MB überschritten: aktuell ${formatMegabytes(totalBytes)} MB, die neue Quelle (${formatMegabytes(action.byteSize)} MB) würde das Limit sprengen.`
+        reason: `Notizbuch-Limit von ${formatMegabytes(limits.maxNotebookBytes)} MB überschritten: aktuell ${formatMegabytes(totalBytes)} MB, die neue Quelle (${formatMegabytes(action.byteSize)} MB) würde das Limit sprengen.`,
+        reasonEn: `Notebook limit of ${formatMegabytes(limits.maxNotebookBytes)} MB exceeded: the notebook holds ${formatMegabytes(totalBytes)} MB, the new source (${formatMegabytes(action.byteSize)} MB) does not fit.`
       };
     }
 
-    return { allowed: true, code: "OK", reason: "" };
+    return ALLOWED;
   }
 
   // action.type === "llm_call"
@@ -189,10 +216,11 @@ export async function verifyQuotaAction(
     return {
       allowed: false,
       code: "QUOTA_MAX_LLM_CALLS_EXCEEDED",
-      reason: `Tägliches Limit für KI-Aufrufe (${limits.maxLlmCallsPerDay}/Tag) erreicht. Reset erfolgt um 00:00 UTC.`
+      reason: `Tägliches Limit für KI-Aufrufe (${limits.maxLlmCallsPerDay}/Tag) erreicht. Reset erfolgt um 00:00 UTC.`,
+      reasonEn: `Daily limit for AI requests (${limits.maxLlmCallsPerDay}/day) reached. It resets at 00:00 UTC.`
     };
   }
-  return { allowed: true, code: "OK", reason: "" };
+  return ALLOWED;
 }
 
 /**
@@ -273,7 +301,7 @@ export function quotaGuardMiddleware(
       const problem = createProblemDetails({
         status,
         title: status === 413 ? "Payload Too Large" : "Quota Exceeded",
-        detail: check.reason,
+        detail: localizedQuotaReason(check, c.req.header("accept-language")),
         instance: c.req.path,
         code: check.code
       });

@@ -1,6 +1,7 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import type { Context, MiddlewareHandler } from "hono";
 import type { CoreRepository } from "./core-repository.js";
+import { KEK_ENV_NAMES, isUsableKekSecret } from "./key-vault.js";
 import { type QuotaAction, incrementUserQuota } from "./quota-guard.js";
 import type { RagRepository } from "./rag-repository.js";
 
@@ -16,7 +17,7 @@ const PROBLEM_HEADERS = { "content-type": "application/problem+json; charset=utf
 
 function problemResponse(
   c: Context,
-  status: 400 | 401 | 403 | 404 | 501 | 503,
+  status: 400 | 401 | 403 | 404 | 503,
   title: string,
   detail: string,
   code: string
@@ -191,21 +192,21 @@ export async function resolveAddSourceAction(c: Context): Promise<QuotaAction | 
 }
 
 /**
- * Returns true when at least one real key-encryption key is configured.
- * Without it, createKeyVaultFromEnv would fall back to a public default KEK.
+ * Returns true when at least one KEK is configured and every configured KEK is long
+ * enough (see MIN_KEK_SECRET_LENGTH). A missing or too-short KEK means BYOK stays off;
+ * there is no built-in default key.
  */
 export function hasConfiguredKek(env: Env): boolean {
   const record = env as unknown as Record<string, unknown>;
-  const names = ["BYOK_MASTER_KEY", ...Array.from({ length: 10 }, (_, i) => `KEK_V${i + 1}`)];
-  return names.some((name) => {
-    const value = record[name];
-    return typeof value === "string" && value.trim().length > 0;
-  });
+  const present = KEK_ENV_NAMES.map((name) => record[name]).filter(
+    (value) => typeof value === "string" && value.trim().length > 0
+  );
+  return present.length > 0 && present.every((value) => isUsableKekSecret(value));
 }
 
 /**
- * Blocks BYOK key management when no KEK is configured (503 instead of encrypting
- * user keys with the public default KEK).
+ * Blocks BYOK key management when no usable KEK is configured (503 instead of
+ * encrypting user keys with a missing or weak key).
  */
 export function requireConfiguredKek(): MiddlewareHandler {
   return async (c, next) => {
@@ -249,12 +250,4 @@ export function requireConfiguredSessionSalt(): MiddlewareHandler {
     }
     await next();
   };
-}
-
-/**
- * Placeholder for endpoints that exist as modules but are not exposed yet because
- * an access check is missing. Answers 501 instead of serving them unprotected.
- */
-export function notExposed(reason: string): MiddlewareHandler {
-  return async (c) => problemResponse(c, 501, "Not Implemented", reason, "ENDPOINT_NOT_EXPOSED");
 }
