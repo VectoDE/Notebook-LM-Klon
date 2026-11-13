@@ -24,7 +24,7 @@ const rows = [
   ["TBT (Labor-Ersatz für INP)", audit("total-blocking-time").displayValue, "< 200 ms"],
   ["CLS", audit("cumulative-layout-shift").displayValue, "< 0,1"],
   ["FCP", audit("first-contentful-paint").displayValue, "–"],
-  ["Script (Transfer)", `${(scripts.transferSize / 1024).toFixed(1)} KiB`, "< 547 KiB"],
+  ["Script (Transfer)", `${(scripts.transferSize / 1024).toFixed(1)} KiB`, "< 176 KiB"],
   ["Gesamt (Transfer)", `${(total.transferSize / 1024).toFixed(1)} KiB`, "Warnung > 1074 KiB"]
 ];
 
