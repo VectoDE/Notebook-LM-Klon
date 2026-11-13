@@ -133,4 +133,38 @@ describe("ChatPanel Component (Sub-Issue #132)", () => {
     expect(html).toContain("KI-generiert");
     expect(html).toContain("citation-pill-1");
   });
+
+  it("bietet den Markdown-Export erst an, wenn es eine Frage gibt (Issue #243)", () => {
+    const onExport = () => undefined;
+    const withoutQuestion = renderToStaticMarkup(
+      createElement(ChatPanel, {
+        messages: [{ id: "m_i", role: "assistant", content: "Willkommen" }],
+        onExport
+      })
+    );
+    expect(withoutQuestion).not.toContain("btn-export-chat-md");
+
+    const html = renderToStaticMarkup(
+      createElement(ChatPanel, {
+        messages: [
+          { id: "m_u", role: "user", content: "Frage" },
+          { id: "m_r", role: "assistant", content: "Antwort [1]" }
+        ],
+        onExport
+      })
+    );
+    expect(html).toContain('data-testid="btn-export-chat-md"');
+    // Label in Name (WCAG 2.5.3): der sichtbare Text steht am Anfang des Namens
+    expect(html).toContain('aria-label="Als Markdown sichern: Chatverlauf');
+    expect(html).toContain(">Als Markdown sichern</button>");
+
+    const busy = renderToStaticMarkup(
+      createElement(ChatPanel, {
+        messages: [{ id: "m_u", role: "user", content: "Frage" }],
+        onExport,
+        isGenerating: true
+      })
+    );
+    expect(busy).toMatch(/<button[^>]*disabled=""[^>]*data-testid="btn-export-chat-md"/);
+  });
 });

@@ -8,9 +8,16 @@ import type {
   LlmStreamChunk
 } from "@notebook-lm/shared";
 import { Hono } from "hono";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AutoRouter } from "../auto-router.js";
-import { registerChatRoutes } from "../chat-routes.js";
+import {
+  HISTORY_PAGE_DEFAULT,
+  HISTORY_PAGE_MAX,
+  NO_EVIDENCE_ANSWER,
+  decodeHistoryCursor,
+  encodeHistoryCursor,
+  registerChatRoutes
+} from "../chat-routes.js";
 import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
 import { KeyVault } from "../key-vault.js";
 import { RagRepository } from "../rag-repository.js";
@@ -682,7 +689,7 @@ describe("Chat Routes & SSE Streaming (POST /api/v1/notebooks/:id/chat & GET /ap
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: "Hallo" })
+        body: JSON.stringify({ message: "DSGVO" })
       }
     );
 
@@ -711,7 +718,7 @@ describe("Chat Routes & SSE Streaming (POST /api/v1/notebooks/:id/chat & GET /ap
     const res = await emptyApp.request(`http://localhost/api/v1/notebooks/${testNotebookId}/chat`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ message: "Hallo" })
+      body: JSON.stringify({ message: "DSGVO" })
     });
 
     expect(res.status).toBe(503);
@@ -853,5 +860,209 @@ describe("Chat Routes & SSE Streaming (POST /api/v1/notebooks/:id/chat & GET /ap
     expect(resCollab.status).toBe(200);
     const json = (await resCollab.json()) as { messages: unknown[] };
     expect(json.messages).toBeDefined();
+  });
+
+  describe("Issue #243: Abbruch, ehrliche Nichtantwort, paginierter Verlauf", () => {
+    /** Provider, der nach dem ersten Token wartet, bis der Client abbricht. */
+    function abortAwareRouter(mode: "keeps-yielding" | "throws-on-abort") {
+      const seen: { signal?: AbortSignal | undefined } = {};
+      const router = new AutoRouter();
+      router.registerProvider({
+        id: "google",
+        name: "Abbruch-Provider",
+        isLocal: false,
+        trainingPolicy: "free-tier-trained",
+        chat: async () => ({ text: "", model: "gemini-2.5-flash" }),
+        chatStream: async function* (_messages, options) {
+          seen.signal = options?.signal;
+          yield { deltaText: "Erster Teil", model: "gemini-2.5-flash", isDone: false };
+          await new Promise<void>((resolve) => {
+            if (options?.signal?.aborted) resolve();
+            options?.signal?.addEventListener("abort", () => resolve());
+          });
+          if (mode === "throws-on-abort") throw new DOMException("aborted", "AbortError");
+          yield { deltaText: " zweiter Teil", model: "gemini-2.5-flash", isDone: false };
+        },
+        embed: async () => [],
+        generateJson: async <T>() => ({}) as unknown as T
+      });
+      const abortApp = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
+      abortApp.use("*", async (c, next) => {
+        c.set("sessionUser", { id: testUserId });
+        await next();
+      });
+      registerChatRoutes(abortApp, { ragRepo, coreRepo, autoRouter: router });
+      return { abortApp, seen };
+    }
+
+    for (const mode of ["keeps-yielding", "throws-on-abort"] as const) {
+      it(`Abbruch durch den Client bricht auch die Modellanfrage ab (${mode})`, async () => {
+        const { abortApp, seen } = abortAwareRouter(mode);
+        const res = await abortApp.request(
+          `http://localhost/api/v1/notebooks/${testNotebookId}/chat`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ message: "DSGVO", chatId: `chat_abort_${mode}` })
+          }
+        );
+        expect(res.status).toBe(200);
+        const reader = (res.body as ReadableStream<Uint8Array>).getReader();
+        const first = await reader.read();
+        expect(new TextDecoder().decode(first.value)).toContain("Erster Teil");
+        await reader.cancel();
+
+        await vi.waitFor(() => expect(seen.signal?.aborted).toBe(true));
+        // Abgebrochene Antworten werden nicht gespeichert, die Frage bleibt im Verlauf
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        const stored = await ragRepo.getMessagesByChat(`chat_abort_${mode}`);
+        expect(stored.map((m) => m.role)).toEqual(["user"]);
+      });
+    }
+
+    it("antwortet ehrlich 'nicht in den Quellen', wenn kein Beleg passt, ohne Modellaufruf", async () => {
+      let called = false;
+      const spyRouter = new AutoRouter();
+      spyRouter.registerProvider({
+        id: "google",
+        name: "Spion",
+        isLocal: false,
+        trainingPolicy: "free-tier-trained",
+        chat: async () => ({ text: "", model: "m" }),
+        chatStream: async function* () {
+          called = true;
+          yield { deltaText: "erfunden", model: "m", isDone: false };
+        },
+        embed: async () => [],
+        generateJson: async <T>() => ({}) as unknown as T
+      });
+      const spyApp = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
+      spyApp.use("*", async (c, next) => {
+        c.set("sessionUser", { id: testUserId });
+        await next();
+      });
+      registerChatRoutes(spyApp, { ragRepo, coreRepo, autoRouter: spyRouter });
+
+      // Frage ohne Beleg in den Quellen (Deutsch, Standard)
+      const res = await spyApp.request(`http://localhost/api/v1/notebooks/${testNotebookId}/chat`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message: "Wie hoch ist der Mount Everest?", chatId: "chat_none" })
+      });
+      expect(res.status).toBe(200);
+      const text = await res.text();
+      expect(text).toContain(JSON.stringify(NO_EVIDENCE_ANSWER.de).slice(1, -1));
+      expect(text).toContain('"validIndices":[]');
+      expect(text).toContain('"noEvidence":true');
+      expect(text).not.toContain("event: metadata");
+      expect(called).toBe(false);
+      const stored = await ragRepo.getMessagesByChat("chat_none");
+      expect(stored[1]?.content).toBe(NO_EVIDENCE_ANSWER.de);
+      expect(stored[1]?.ai_generated).toBe(0);
+
+      // Englische Oberfläche: englische Antwort
+      const resEn = await spyApp.request(
+        `http://localhost/api/v1/notebooks/${testNotebookId}/chat`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ message: "Mount Everest height?", language: "en" })
+        }
+      );
+      const textEn = await resEn.text();
+      expect(textEn).toContain("I can't find anything about this in the selected sources.");
+      expect(called).toBe(false);
+    });
+
+    it("lädt den Verlauf seitenweise ohne Gesamtgrenze (Keyset-Cursor)", async () => {
+      const chatId = "chat_paged";
+      const now = Date.now();
+      await ragRepo.createChat({
+        id: chatId,
+        notebook_id: testNotebookId,
+        user_id: testUserId,
+        title: "Langer Verlauf",
+        model_used: "auto",
+        created_at: now,
+        updated_at: now
+      });
+      const total = 250;
+      for (let i = 0; i < total; i += 1) {
+        await ragRepo.createMessage({
+          id: `msg_${String(i).padStart(4, "0")}`,
+          chat_id: chatId,
+          role: i % 2 === 0 ? "user" : "assistant",
+          content: `Nachricht ${i}`,
+          citations_json: null,
+          latency_ms: null,
+          token_usage_json: null,
+          ai_generated: i % 2,
+          // Je zwei Nachrichten mit gleichem Zeitstempel: Cursor muss über die id trennen
+          created_at: now + Math.floor(i / 2)
+        });
+      }
+
+      const collected: string[] = [];
+      let cursor: string | null | undefined;
+      let pages = 0;
+      do {
+        const query = cursor ? `?limit=40&before=${encodeURIComponent(cursor)}` : "?limit=40";
+        const res = await app.request(`http://localhost/api/v1/chats/${chatId}/messages${query}`);
+        expect(res.status).toBe(200);
+        const body = (await res.json()) as ChatMessagesResponse;
+        expect(body.messages.length).toBeLessThanOrEqual(40);
+        collected.unshift(...body.messages.map((m) => m.content));
+        cursor = body.nextCursor;
+        pages += 1;
+      } while (cursor);
+      expect(pages).toBe(7);
+      expect(collected).toHaveLength(total);
+      expect(collected[0]).toBe("Nachricht 0");
+      expect(collected[total - 1]).toBe(`Nachricht ${total - 1}`);
+      expect(new Set(collected).size).toBe(total);
+
+      // Ohne Parameter: die neuesten 100, älterer Rest per Cursor
+      const first = await app.request(`http://localhost/api/v1/chats/${chatId}/messages`);
+      const firstBody = (await first.json()) as ChatMessagesResponse;
+      expect(firstBody.messages).toHaveLength(HISTORY_PAGE_DEFAULT);
+      expect(firstBody.messages.at(-1)?.content).toBe(`Nachricht ${total - 1}`);
+      expect(firstBody.nextCursor).toBe(
+        encodeHistoryCursor({ created_at: now + 75, id: "msg_0150" })
+      );
+    });
+
+    it("weist ungültige Seitenparameter mit 422 ab", async () => {
+      const chatId = "chat_param";
+      await ragRepo.createChat({
+        id: chatId,
+        notebook_id: testNotebookId,
+        user_id: testUserId,
+        title: "Parameter",
+        model_used: "auto",
+        created_at: 1,
+        updated_at: 1
+      });
+      for (const query of [
+        "limit=0",
+        `limit=${HISTORY_PAGE_MAX + 1}`,
+        "limit=abc",
+        "limit=2.5",
+        "before=kaputt"
+      ]) {
+        const res = await app.request(`http://localhost/api/v1/chats/${chatId}/messages?${query}`);
+        expect(res.status, query).toBe(422);
+      }
+    });
+
+    it("Cursor: Kodieren und Prüfen", () => {
+      expect(encodeHistoryCursor({ created_at: 5, id: "msg_a" })).toBe("5~msg_a");
+      expect(decodeHistoryCursor("5~msg_a")).toEqual({ createdAt: 5, id: "msg_a" });
+      expect(decodeHistoryCursor("5~msg~b")).toEqual({ createdAt: 5, id: "msg~b" });
+      expect(decodeHistoryCursor("ohne-trenner")).toBeNull();
+      expect(decodeHistoryCursor("~msg_a")).toBeNull();
+      expect(decodeHistoryCursor("x~msg_a")).toBeNull();
+      expect(decodeHistoryCursor("-1~msg_a")).toBeNull();
+      expect(decodeHistoryCursor("5~")).toBeNull();
+    });
   });
 });

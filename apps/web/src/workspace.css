@@ -4868,3 +4868,9 @@ html[data-reduce-motion="true"][data-design] .rn-tool:hover {
     height: 24px;
   }
 }
+
+/* Chat: Verlauf als Markdown sichern (Issue #243) */
+.rn-chat-tools {
+  display: flex;
+  justify-content: flex-end;
+}
