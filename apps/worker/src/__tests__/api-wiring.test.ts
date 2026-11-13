@@ -24,6 +24,8 @@ interface Fixture {
   ragRepo: RagRepository;
   cookies: Record<"alice" | "bob" | "carol" | "mallory", string>;
   dataDir: string;
+  /** Closes the in-process Durable Object databases. */
+  closeEnv: () => void;
 }
 
 /** In-memory R2 mock that accepts streamed bodies like the real binding. */
@@ -52,7 +54,8 @@ async function createFixture(extraEnv: Record<string, unknown> = {}): Promise<Fi
   const sqlite = new DatabaseSync(":memory:");
   runSqliteMigrations(sqlite, resolve(process.cwd(), "apps/worker/migrations"));
   // Explicit test salt: production has no fallback, a missing salt blocks login (503).
-  const { env: baseEnv } = createNodeEnv({ db: sqlite, dataDir, sessionSaltSecret: TEST_SALT });
+  const handle = createNodeEnv({ db: sqlite, dataDir, sessionSaltSecret: TEST_SALT });
+  const baseEnv = handle.env;
   const env = Object.assign(baseEnv, { MEDIA: createStreamingR2Mock() }, extraEnv) as Env;
 
   const coreRepo = new CoreRepository(createD1DatabaseAdapter(env.DB));
@@ -100,7 +103,7 @@ async function createFixture(extraEnv: Record<string, unknown> = {}): Promise<Fi
     cookies[id] = `sid=${session.rawToken}`;
   }
 
-  return { env, sqlite, coreRepo, ragRepo, cookies, dataDir };
+  return { env, sqlite, coreRepo, ragRepo, cookies, dataDir, closeEnv: handle.close };
 }
 
 describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
@@ -143,6 +146,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    fx.closeEnv();
     fx.sqlite.close();
     rmSync(fx.dataDir, { recursive: true, force: true });
   });
@@ -236,6 +240,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
     }
 
     function disposeFixture(other: Fixture): void {
+      other.closeEnv();
       other.sqlite.close();
       rmSync(other.dataDir, { recursive: true, force: true });
     }
@@ -317,6 +322,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
         { method: "POST", json: { email: "user@example.test", turnstileToken: "tok" } },
         mailFx.env
       );
+      mailFx.closeEnv();
       mailFx.sqlite.close();
       rmSync(mailFx.dataDir, { recursive: true, force: true });
       expect(res.status).toBe(200);
@@ -612,7 +618,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
   });
 
   describe("jobs", () => {
-    it("enqueue: 401 anonymous, 404 foreign notebook, 200 with access", async () => {
+    it("enqueue: 401 anonymous, 404 foreign notebook, 201 with access (real JobDO)", async () => {
       const json = { notebookId: "nb_a", kind: "mindmap" };
       expect((await call("/api/v1/jobs/enqueue", { method: "POST", json })).status).toBe(401);
       expect(
@@ -622,7 +628,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       expect(
         (await call("/api/v1/jobs/enqueue", { method: "POST", json, cookie: fx.cookies.alice }))
           .status
-      ).toBe(200);
+      ).toBe(201);
     });
 
     it("list: requires session, notebookId and notebook access", async () => {
@@ -740,6 +746,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       const res = await call("/api/v1/keys", { cookie: kekFx.cookies.alice }, kekFx.env);
       expect(res.status).toBe(200);
       expect(((await res.json()) as { keys: unknown[] }).keys).toEqual([]);
+      kekFx.closeEnv();
       kekFx.sqlite.close();
       rmSync(kekFx.dataDir, { recursive: true, force: true });
     });
@@ -778,6 +785,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
         // Routes without session creation stay available.
         expect((await call("/api/v1/health", {}, noSaltFx.env)).status).toBeLessThan(600);
         expect((await call("/api/v1/demo/info", {}, noSaltFx.env)).status).toBeLessThan(500);
+        noSaltFx.closeEnv();
         noSaltFx.sqlite.close();
         rmSync(noSaltFx.dataDir, { recursive: true, force: true });
       }
@@ -813,6 +821,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       expect(row?.ip_hash).not.toBe(
         await computeDailySaltedHash("198.51.100.23", `relationnotes-session:${ORIGIN}`)
       );
+      saltFx.closeEnv();
       saltFx.sqlite.close();
       rmSync(saltFx.dataDir, { recursive: true, force: true });
     });
@@ -843,6 +852,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
         prodFx.env
       );
       expect(denied.status).toBe(403);
+      prodFx.closeEnv();
       prodFx.sqlite.close();
       rmSync(prodFx.dataDir, { recursive: true, force: true });
     });
