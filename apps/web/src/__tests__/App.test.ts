@@ -1,8 +1,12 @@
 import { WORKSPACE_VERSION } from "@notebook-lm/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { App } from "../App.js";
+import { preloadStudioViewers } from "../lazy-viewers.js";
+
+// Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
+beforeAll(() => preloadStudioViewers());
 
 describe("RelationNotes Web Shell (App.tsx)", () => {
   it("renders accessible main landmark with RelationNotes title and workspace version", () => {
