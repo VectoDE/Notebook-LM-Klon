@@ -12,7 +12,6 @@ import {
   EntityEvidenceSchema,
   type EntitySourceText,
   REVIEW_STATUSES,
-  type ReviewStatus,
   collapseWhitespace,
   locateQuote
 } from "./entity-graph.js";
@@ -348,11 +347,6 @@ export function renderInfographicSvg(
   return parts.join("\n");
 }
 
-/** Status eines Eintrags setzen (Timeline, Tabelle, Kennzahlen gleichermaßen). */
-export function setReviewStatus<T extends { readonly id: string; readonly status: ReviewStatus }>(
-  items: readonly T[],
-  id: string,
-  status: ReviewStatus
-): T[] {
-  return items.map((item) => (item.id === id ? { ...item, status } : item));
-}
+// setReviewStatus liegt in review-status.ts (ohne zod), damit die Oberfläche es beim Start
+// laden kann, ohne die Schemata dieses Moduls mitzuziehen. Die API bleibt unverändert.
+export { setReviewStatus } from "./review-status.js";

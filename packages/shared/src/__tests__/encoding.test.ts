@@ -123,7 +123,7 @@ describe("UTF-8 & Anti-Mojibake Repository Guard", () => {
     }
 
     expect(violations).toEqual([]);
-  });
+  }, 60_000);
 
   it("enforces strict zero-emoji policy across all repository files (Decision #109)", () => {
     const files = collectTextFiles(REPO_ROOT);

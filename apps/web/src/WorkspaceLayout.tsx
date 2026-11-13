@@ -22,13 +22,10 @@ import { GraphViewer } from "./GraphViewer.js";
 import { Icon, type IconName } from "./Icon.js";
 import { NotebookTitle } from "./NotebookTitle.js";
 import { PanelRail, PanelToggle, RailButton } from "./PanelRail.js";
-import { SettingsDrawer } from "./SettingsDrawer.js";
-import { ShareDialog } from "./ShareDialog.js";
-import { SignInDialog } from "./SignInDialog.js";
 import { SOURCE_FILE_ACCEPT, SourcesPanel } from "./SourcesPanel.js";
 import { StudioPanel, type StudioTool } from "./StudioPanel.js";
 import { Toast, type ToastMessage } from "./Toast.js";
-import { triggerBrowserDownload } from "./artifact-exporters.js";
+import { afterSettled } from "./after-settled.js";
 import {
   ChatApiError,
   errorKeyForStatus,
@@ -38,6 +35,7 @@ import {
   technicalErrorDetail
 } from "./chat-client.js";
 import { chatToMarkdown } from "./chat-export.js";
+import { triggerBrowserDownload } from "./download.js";
 import { wipeLocalData } from "./encrypted-store.js";
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
 import { buildKnowledgeGraph } from "./knowledge-graph.js";
@@ -52,8 +50,13 @@ import {
   storeCollapsedPanels,
   storeNotebookTitle
 } from "./layout-preferences.js";
+import {
+  LazySettingsDrawer as SettingsDrawer,
+  LazyShareDialog as ShareDialog,
+  LazySignInDialog as SignInDialog
+} from "./lazy-viewers.js";
 import { signOutAndWipe } from "./local-session.js";
-import { buildStructuredDemo } from "./structured-demo.js";
+import type { StructuredData } from "./structured-demo.js";
 import { describeSyncStatus } from "./sync-status-text.js";
 import { browserStorage, readStoredModel, storeModel } from "./theme-preferences.js";
 import { useNotebookSync } from "./useNotebookSync.js";
@@ -150,8 +153,12 @@ export const DEFAULT_SOURCES: WorkspaceSource[] = [
   }
 ];
 
-/** Timeline, Datentabelle und Infografik der Demo, geprüft gegen die Demo-Quellen (Issue #239). */
-const DEFAULT_STRUCTURED = buildStructuredDemo(DEFAULT_SOURCES);
+/**
+ * Timeline, Datentabelle und Infografik der Demo, geprüft gegen die Demo-Quellen (Issue #239).
+ * Die Prüfung braucht zod; sie läuft deshalb nach dem ersten Rendern aus einem eigenen Block.
+ */
+const loadStructuredDemo = (): Promise<StructuredData> =>
+  import("./structured-demo.js").then((m) => m.buildStructuredDemo(DEFAULT_SOURCES));
 
 /**
  * Sprache der Demo-Inhalte (Issue #323): Zusammenfassung, Lernkarten und Quiz sind deutsch,
@@ -494,6 +501,7 @@ export function WorkspaceLayout({
   /** Werkzeug aus der eingeklappten Studio-Leiste: Spalte ausklappen, Werkzeug öffnen. */
   const openStudioTool = (tool: StudioTool) => {
     setStudioToolRequest({ tool });
+    handleStudioToolSelected(tool);
     goToPanel("studio");
   };
 
@@ -610,6 +618,27 @@ export function WorkspaceLayout({
     }
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [structuredDemo, setStructuredDemo] = useState<StructuredData | undefined>(undefined);
+  const structuredRequestedRef = useRef(false);
+  /** Lädt Timeline, Tabelle und Infografik der Demo einmal, beim Bedarf oder nach dem Laden. */
+  const ensureStructuredDemo = useCallback(() => {
+    if (structuredRequestedRef.current) return;
+    structuredRequestedRef.current = true;
+    void loadStructuredDemo().then(setStructuredDemo);
+  }, []);
+  // Nicht im Weg des LCP: erst nach dem Laden, sofern kein Werkzeug sie früher braucht.
+  useEffect(() => {
+    if (initialTool === "timeline" || initialTool === "table" || initialTool === "infographic") {
+      ensureStructuredDemo();
+    }
+    return afterSettled(ensureStructuredDemo);
+  }, [ensureStructuredDemo, initialTool]);
+  const handleStudioToolSelected = useCallback(
+    (tool: StudioTool) => {
+      if (tool === "timeline" || tool === "table" || tool === "infographic") ensureStructuredDemo();
+    },
+    [ensureStructuredDemo]
+  );
   const chatIdRef = useRef<string | undefined>(undefined);
   const abortRef = useRef<AbortController | null>(null);
   const lastPromptRef = useRef<string>("");
@@ -1200,6 +1229,7 @@ export function WorkspaceLayout({
             <StudioPanel
               notebookTitle={notebookTitle}
               activeTool={initialTool}
+              onSelectTool={handleStudioToolSelected}
               toolRequest={studioToolRequest}
               onOpenGraph={() => goToPanel("graph")}
               mindmapData={DEFAULT_MINDMAP}
@@ -1211,7 +1241,7 @@ export function WorkspaceLayout({
               contentLangs={DEFAULT_CONTENT_LANGS}
               selectedSourceCount={sources.filter((s) => s.isSelected !== false).length}
               onNotify={notify}
-              structuredData={DEFAULT_STRUCTURED}
+              structuredData={structuredDemo}
               structuredSources={sources}
               structuredLang="en"
               panelAttributes={panelAttributes("studio")}
