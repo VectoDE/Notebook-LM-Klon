@@ -544,6 +544,38 @@ const ENTRIES: readonly Entry[] = [
     "Die E-Mail konnte nicht zugestellt werden. Bitte später erneut versuchen.",
     "The email could not be delivered. Please try again later."
   ],
+  ["signInPasskeyTitle", "Passkey einrichten", "Set up a passkey"],
+  [
+    "signInPasskeyText",
+    "Nach der Anmeldung als Gast oder per Anmeldelink: Ein Passkey ersetzt künftig Anmeldelink und Passwort. Er bleibt auf Ihrem Gerät, der Server speichert nur den öffentlichen Schlüssel.",
+    "After signing in as a guest or with a sign-in link: a passkey replaces sign-in links and passwords from now on. It stays on your device; the server only stores the public key."
+  ],
+  ["signInPasskeyButton", "Passkey einrichten", "Set up passkey"],
+  [
+    "signInPasskeySuccess",
+    "Der Passkey ist eingerichtet. Sie können sich ab jetzt damit anmelden.",
+    "Your passkey is set up. You can use it to sign in from now on."
+  ],
+  [
+    "signInErrorPasskeySession",
+    "Für einen Passkey zuerst anmelden, als Gast oder per Anmeldelink.",
+    "Sign in first, as a guest or with a sign-in link, to set up a passkey."
+  ],
+  [
+    "signInErrorPasskeySupport",
+    "Dieser Browser unterstützt keine Passkeys.",
+    "This browser does not support passkeys."
+  ],
+  [
+    "signInErrorPasskeyCancelled",
+    "Die Passkey-Einrichtung wurde abgebrochen.",
+    "Passkey setup was cancelled."
+  ],
+  [
+    "signInErrorPasskey",
+    "Der Passkey konnte nicht eingerichtet werden. Bitte erneut versuchen.",
+    "The passkey could not be set up. Please try again."
+  ],
   [
     "signInErrorNetwork",
     "Keine Verbindung zum Server. Bitte Verbindung prüfen.",

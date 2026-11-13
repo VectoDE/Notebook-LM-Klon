@@ -87,7 +87,12 @@ export function registerChatRoutes(
   async function checkNotebookAccess(
     notebookId: string,
     userId: string
-  ): Promise<{ ok: boolean; status: number; problem?: ReturnType<typeof createProblemDetails> }> {
+  ): Promise<{
+    ok: boolean;
+    status: number;
+    role?: "owner" | "editor" | "viewer";
+    problem?: ReturnType<typeof createProblemDetails>;
+  }> {
     if (!deps.coreRepo) {
       return { ok: true, status: 200 };
     }
@@ -128,7 +133,7 @@ export function registerChatRoutes(
         })
       };
     }
-    return { ok: true, status: 200 };
+    return { ok: true, status: 200, role: userRole };
   }
 
   /**
@@ -219,6 +224,23 @@ export function registerChatRoutes(
           updated_at: now
         });
       } else {
+        // Fail closed: an existing chat may only be written to from its own notebook,
+        // and only by its owner or by a notebook member with edit rights (not viewers).
+        const sameNotebook = existingChat.notebook_id === notebookId;
+        const isOwner = existingChat.user_id === sessionUser.id;
+        const canEdit = access.role === "owner" || access.role === "editor";
+        if (!sameNotebook || (!isOwner && !canEdit)) {
+          const problem = createProblemDetails({
+            status: 404,
+            title: "Not Found",
+            detail: `Chat '${chatId}' wurde nicht gefunden.`,
+            instance: c.req.path,
+            code: "CHAT_NOT_FOUND"
+          });
+          return c.json(problem, 404, {
+            "content-type": "application/problem+json; charset=utf-8"
+          });
+        }
         await deps.ragRepo.updateChatTimestamp(chatId, now);
       }
     } else {
