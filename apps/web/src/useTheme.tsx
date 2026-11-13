@@ -322,7 +322,7 @@ export function ThemeProvider({
     });
     // Ein Link mit ?lang=de|en (hreflang, Issue #263) hat Vorrang vor der gespeicherten Wahl.
     const urlLanguage =
-      typeof window === "undefined" ? undefined : languageFromSearch(window.location.search);
+      typeof window === "undefined" ? undefined : languageFromSearch(window.location?.search ?? "");
     return urlLanguage ? { ...prefs, language: urlLanguage } : prefs;
   });
   const [theme, setThemeState] = useState<DesignTheme>(initial.theme);
