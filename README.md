@@ -255,6 +255,24 @@ Prüfe den lokalen Health-Endpunkt:
 curl -i http://localhost:8787/api/v1/health
 ```
 
+### 4. Betrieb: Client-IP und `TRUSTED_PROXY_HEADER` (für Betreiber)
+
+Rate-Limits, Turnstile (`remoteip`), Sitzungen und das BYOK-Audit-Log brauchen die IP-Adresse des Clients. Der Worker ermittelt sie an genau einer Stelle, `resolveClientIp()` in [`apps/worker/src/rate-limiter.ts`](apps/worker/src/rate-limiter.ts), und vertraut dabei nur Quellen, die nicht vom Client stammen:
+
+| Reihenfolge | Quelle | Wann sie gilt |
+| :--- | :--- | :--- |
+| 1 | Header aus `TRUSTED_PROXY_HEADER`, davon der **letzte** Eintrag | Nur wenn der Betreiber die Variable setzt |
+| 2 | `cf-connecting-ip` | Nur in der Cloudflare-Workers-Laufzeit (setzt die Cloudflare-Edge) |
+| 3 | Socket-Adresse der TCP-Verbindung | Nur im Node-Server |
+
+Ohne diese Garantien werden `cf-connecting-ip` und `x-forwarded-for` ignoriert, weil jeder Client sie frei setzen kann. Ist keine vertrauenswürdige IP bekannt, wird keine IP gespeichert oder an Turnstile übergeben.
+
+- **Cloudflare Workers:** nichts einstellen. Die Edge setzt `cf-connecting-ip` selbst.
+- **Node-Server direkt im Internet:** nichts einstellen. Es zählt die Socket-Adresse.
+- **Node-Server hinter einem Reverse Proxy** (nginx, Caddy, Traefik, Load Balancer): `TRUSTED_PROXY_HEADER` auf den Header setzen, den **Ihr** Proxy schreibt, zum Beispiel `TRUSTED_PROXY_HEADER=x-forwarded-for` oder `TRUSTED_PROXY_HEADER=x-real-ip`. Groß- und Kleinschreibung spielen keine Rolle.
+
+Wichtig: Setzen Sie `TRUSTED_PROXY_HEADER` nur, wenn der Server ausschließlich über diesen Proxy erreichbar ist und der Proxy den Header selbst anhängt oder überschreibt (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;` oder `proxy_set_header X-Real-IP $remote_addr;`). Ist der Server zusätzlich direkt erreichbar, kann ein Angreifer den Header fälschen und Rate-Limits umgehen. Bei mehreren Proxys hintereinander zählt der letzte Eintrag, also die Adresse, die der Proxy direkt vor dem Server gesehen hat.
+
 ---
 
 ## Saubere Repository-Struktur (Entscheidung #108)
