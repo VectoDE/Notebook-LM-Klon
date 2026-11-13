@@ -9,6 +9,7 @@ import {
 } from "@notebook-lm/shared";
 import type { Context, Hono } from "hono";
 import { requireAuth } from "./auth-middleware.js";
+import { readBodyLimited } from "./body-limit.js";
 import { WORKER_VERSION } from "./version.js";
 
 /**
@@ -18,7 +19,11 @@ import { WORKER_VERSION } from "./version.js";
  *   (Test oder eigenes) und welche Formate. Öffentlich, damit die Oberfläche vor dem Export
  *   ehrlich anzeigen kann, ob die Datei signiert wird.
  * - POST /api/v1/provenance/sign: nimmt die exportierte Datei als Rohdaten (Content-Type =
- *   Medienart) und gibt sie mit eingebettetem C2PA-Manifest zurück. Nur angemeldet.
+ *   Medienart) und gibt sie mit eingebettetem C2PA-Manifest zurück. Nur für Konten auf der
+ *   Freigabeliste (PROVENANCE_SIGN_USER_IDS), sonst 403. Jede Signatur wird protokolliert.
+ *
+ * Der Server signiert nur, was er selbst nicht verifizieren kann; deshalb ist die Freigabe
+ * fail closed (leere Liste = niemand darf signieren). Die KI-Kennzeichnung ist fest gesetzt.
  *
  * Der Signierer kommt aus der Umgebung (PROVENANCE_SIGNER). In Cloudflare Workers gibt es
  * keinen: die Route antwortet dann 503 statt eine unsignierte Datei als signiert auszugeben.
@@ -33,8 +38,21 @@ export interface ProvenanceSigner {
 export interface ProvenanceRoutesDependencies {
   /** Liefert den Signierer der Umgebung oder undefined. */
   readonly resolveSigner: (env: Env) => ProvenanceSigner | undefined;
+  /** Konten, die signieren dürfen. Standard: PROVENANCE_SIGN_USER_IDS aus der Umgebung. */
+  readonly signerUserIds?: ((env: Env) => ReadonlySet<string>) | undefined;
   /** Größte angenommene Datei in Bytes (Standard PROVENANCE_MAX_BYTES). */
   readonly maxBytes?: number | undefined;
+  /** Protokoll für Signaturen (Standard: console.info als JSON-Zeile). */
+  readonly audit?: ((entry: ProvenanceAuditEntry) => void) | undefined;
+}
+
+export interface ProvenanceAuditEntry {
+  readonly event: "provenance.sign";
+  readonly userId: string;
+  readonly mimeType: string;
+  readonly bytes: number;
+  readonly certificate: ProvenanceCertificateKind;
+  readonly at: string;
 }
 
 type ProvenanceApp = Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>;
@@ -43,7 +61,7 @@ const PROBLEM_HEADERS = { "content-type": "application/problem+json; charset=utf
 
 function problem(
   c: Context,
-  status: 400 | 413 | 415 | 502 | 503,
+  status: 400 | 403 | 413 | 415 | 502 | 503,
   title: string,
   detail: string,
   code: string
@@ -61,11 +79,30 @@ export function signerFromEnv(env: Env): ProvenanceSigner | undefined {
   return candidate && typeof candidate.sign === "function" ? candidate : undefined;
 }
 
+/** Freigabeliste aus PROVENANCE_SIGN_USER_IDS (kommagetrennt). Leer = niemand. */
+export function signerUserIdsFromEnv(env: Env): ReadonlySet<string> {
+  const raw = (env as unknown as { PROVENANCE_SIGN_USER_IDS?: unknown }).PROVENANCE_SIGN_USER_IDS;
+  if (typeof raw !== "string") return new Set();
+  return new Set(
+    raw
+      .split(",")
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0)
+  );
+}
+
+function defaultAudit(entry: ProvenanceAuditEntry): void {
+  console.info(JSON.stringify(entry));
+}
+
 export function registerProvenanceRoutes(
   app: ProvenanceApp,
   deps: ProvenanceRoutesDependencies = { resolveSigner: signerFromEnv }
 ): void {
   const maxBytes = deps.maxBytes ?? PROVENANCE_MAX_BYTES;
+  const signerUserIds = deps.signerUserIds ?? signerUserIdsFromEnv;
+  const audit = deps.audit ?? defaultAudit;
+
   app.get("/api/v1/provenance/status", (c) => {
     const signer = deps.resolveSigner(c.env);
     const status: ProvenanceStatus = signer
@@ -88,6 +125,16 @@ export function registerProvenanceRoutes(
         "PROVENANCE_NOT_CONFIGURED"
       );
     }
+    const userId = c.get("sessionUser")?.id ?? "";
+    if (!signerUserIds(c.env).has(userId)) {
+      return problem(
+        c,
+        403,
+        "Forbidden",
+        "Dieses Konto darf keine Herkunftsnachweise ausstellen.",
+        "PROVENANCE_FORBIDDEN"
+      );
+    }
     const mimeType = baseMimeType(c.req.header("content-type") ?? "");
     if (!isC2paSignable(mimeType)) {
       return problem(
@@ -102,8 +149,8 @@ export function registerProvenanceRoutes(
     if (declared > maxBytes) {
       return tooLarge(c, maxBytes);
     }
-    const data = new Uint8Array(await c.req.arrayBuffer());
-    if (data.byteLength > maxBytes) {
+    const data = await readBodyLimited(c.req.raw, maxBytes);
+    if (data === null) {
       return tooLarge(c, maxBytes);
     }
     if (data.byteLength === 0) {
@@ -113,7 +160,7 @@ export function registerProvenanceRoutes(
       title: c.req.query("title") ?? "",
       mimeType,
       generatorVersion: WORKER_VERSION,
-      aiGenerated: c.req.query("ai") !== "0"
+      aiGenerated: true
     });
     let signed: Uint8Array;
     try {
@@ -127,6 +174,14 @@ export function registerProvenanceRoutes(
         "PROVENANCE_SIGN_FAILED"
       );
     }
+    audit({
+      event: "provenance.sign",
+      userId,
+      mimeType,
+      bytes: data.byteLength,
+      certificate: signer.certificate,
+      at: new Date().toISOString()
+    });
     return new Response(signed as Uint8Array<ArrayBuffer>, {
       status: 200,
       headers: {
