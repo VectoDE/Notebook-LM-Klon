@@ -10,6 +10,7 @@ const METRICS: CleanupMetrics = {
   deletedGuests: 1,
   deletedSessions: 2,
   deletedMagicLinks: 0,
+  deletedChallenges: 0,
   deletedNotebooks: 0,
   deletedR2Objects: 0,
   durationMs: 3
