@@ -657,11 +657,14 @@ describe("Chat Routes & SSE Streaming (POST /api/v1/notebooks/:id/chat & GET /ap
     });
     registerChatRoutes(noCoreApp, { ragRepo, autoRouter });
 
-    const res = await noCoreApp.request(`http://localhost/api/v1/notebooks/${testNotebookId}/chat`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ message: "Nicht erlaubt", chatId: foreignUserChatId })
-    });
+    const res = await noCoreApp.request(
+      `http://localhost/api/v1/notebooks/${testNotebookId}/chat`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message: "Nicht erlaubt", chatId: foreignUserChatId })
+      }
+    );
 
     expect(res.status).toBe(404);
     expect(await ragRepo.getMessagesByChat(foreignUserChatId)).toHaveLength(0);
