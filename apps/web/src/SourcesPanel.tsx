@@ -10,7 +10,9 @@ import {
 import { EmptyState } from "./EmptyState.js";
 import { Icon } from "./Icon.js";
 import { ViewToggle } from "./ViewToggle.js";
+import type { FetchLike } from "./comments-client.js";
 import { trapTabKey } from "./focus-trap.js";
+import { LazyCommentThread } from "./lazy-viewers.js";
 import { browserStorage, shouldReduceMotion } from "./theme-preferences.js";
 import { type SourceUrlError, validateSourceUrl } from "./url-validation.js";
 import { useReturnFocus } from "./useReturnFocus.js";
@@ -37,6 +39,10 @@ export interface SourcesPanelProps {
   readonly panelAttributes?: PanelFocusAttributes | undefined;
   /** Bedienelement am Spaltenrand im Kopf, z. B. der Knopf zum Einklappen (Issue #325). */
   readonly headerAction?: ReactNode | undefined;
+  /** Notebook der Quellen; mit ID zeigt der Inspektor den Kommentar-Faden (Issue #353). */
+  readonly notebookId?: string | undefined;
+  /** Abrufe für Kommentare (Tests); Standard ist fetch. */
+  readonly commentsFetch?: FetchLike | undefined;
 }
 
 /** Erlaubte Dateiarten beim Hochladen (auch für den Knopf in der eingeklappten Leiste). */
@@ -51,7 +57,9 @@ export function SourcesPanel({
   onImportUrl,
   onClearActiveCitation,
   panelAttributes,
-  headerAction
+  headerAction,
+  notebookId,
+  commentsFetch
 }: SourcesPanelProps) {
   const { t, tf } = useTheme();
   const [filterText, setFilterText] = useState("");
@@ -454,6 +462,17 @@ export function SourcesPanel({
               <span>{inspectedSource.rawText ?? t("srcNoFulltext")}</span>
             )}
           </div>
+
+          {notebookId && (
+            <LazyCommentThread
+              key={inspectedSource.id}
+              notebookId={notebookId}
+              targetType="source"
+              targetId={inspectedSource.id}
+              targetTitle={inspectedSource.title}
+              fetchFn={commentsFetch}
+            />
+          )}
         </aside>
       )}
 

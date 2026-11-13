@@ -46,6 +46,17 @@
     },
     {
       "name": "BYOK"
+    },
+    {
+      "name": "Synchronisation"
+    },
+    {
+      "name": "Kommentare",
+      "description": "Kommentare an Quellen und Notizen mit Erwähnungen (Issue #353). Lesen: viewer, Schreiben: editor, Bearbeiten: Verfasser, Löschen: Verfasser oder owner."
+    },
+    {
+      "name": "Herkunft",
+      "description": "C2PA-Herkunftsnachweis für exportierte Medien (Issue #353). Signiert wird nur in der Node-Laufzeit mit c2patool; auf Cloudflare Workers antwortet /sign mit 503. Details: docs/c2pa.md."
     }
   ],
   "security": [
@@ -457,6 +468,94 @@
         }
       }
     },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "tags": ["Auth"],
+        "summary": "Abmelden: Sitzung beenden und Cookie entwerten",
+        "description": "Löscht die Sitzung serverseitig und setzt ein abgelaufenes Sitzungs-Cookie. Antwortet auch ohne Sitzung mit 204. Damit ist das Schlüsselmaterial der lokalen Ablage (GET /api/v1/auth/local-key) dieser Sitzung nicht mehr abrufbar (Issue #348). Der Browser löscht seine lokale Datenbank vor diesem Aufruf.",
+        "security": [],
+        "responses": {
+          "204": {
+            "description": "Abgemeldet",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Abgelaufenes Sitzungs-Cookie (Max-Age=0)"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/local-key": {
+      "get": {
+        "operationId": "getLocalKey",
+        "tags": ["Auth"],
+        "summary": "Schlüsselmaterial der verschlüsselten lokalen Ablage",
+        "description": "32 Byte (base64url), per HKDF-SHA-256 aus SESSION_SALT_SECRET, Nutzer-ID und Sitzungs-Hash abgeleitet und nicht gespeichert. Gleiche Sitzung, gleiches Material; nach Abmelden oder Ablauf nicht mehr abrufbar. Der Browser leitet daraus einen nicht exportierbaren AES-GCM-Schlüssel ab (docs/local-encryption.md, Issue #348).",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["version", "keyMaterial"],
+                  "properties": {
+                    "version": {
+                      "type": "integer",
+                      "const": 1
+                    },
+                    "keyMaterial": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]{43}$",
+                      "description": "32 Byte, base64url ohne Auffüllung"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
     "/api/v1/notebooks/{id}/chat": {
       "post": {
         "operationId": "chatWithNotebook",
@@ -542,6 +641,28 @@
               "type": "string",
               "minLength": 1
             }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Nachrichten je Seite (Standard 100, höchstens 200); die Seite ist aufsteigend sortiert",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 100
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "description": "nextCursor der vorigen Antwort; liefert die nächstälteren Nachrichten",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         ],
         "responses": {
@@ -560,6 +681,9 @@
           },
           "404": {
             "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
           },
           "429": {
             "$ref": "#/components/responses/Problem429"
@@ -690,6 +814,165 @@
           },
           "502": {
             "$ref": "#/components/responses/Problem502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/doc": {
+      "get": {
+        "operationId": "getNotebookDoc",
+        "tags": ["Synchronisation"],
+        "summary": "Fehlende Yjs-Änderungen des Notebooks holen",
+        "description": "Liefert den Teil des Yjs-Stands, der zum Zustandsvektor `sv` fehlt (ohne `sv`: den ganzen Stand), dazu den Zustandsvektor des Servers. Rolle viewer. Antwort `no-store` (Issue #347).",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Notebook-ID"
+          },
+          {
+            "name": "sv",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]*$",
+              "description": "base64url ohne Auffüllung"
+            },
+            "description": "Yjs-Zustandsvektor des Clients"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["update", "stateVector"],
+                  "properties": {
+                    "update": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]*$",
+                      "description": "base64url ohne Auffüllung"
+                    },
+                    "stateVector": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]*$",
+                      "description": "base64url ohne Auffüllung"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      },
+      "post": {
+        "operationId": "pushNotebookDoc",
+        "tags": ["Synchronisation"],
+        "summary": "Yjs-Änderungen einspielen (auch gesammelt nach Offline-Phase)",
+        "description": "Führt ein Yjs-Update (v1) in den Stand des Notebooks im NotebookDO ein. Idempotent und kommutativ: doppelte oder vertauschte Updates ergeben denselben Stand. Höchstens 256 KiB je Update, 2 MiB je Notebook. Rolle editor (Issue #347).",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Notebook-ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["update"],
+                "properties": {
+                  "update": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]*$",
+                    "description": "base64url ohne Auffüllung"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Eingespielt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["stateVector"],
+                  "properties": {
+                    "stateVector": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]*$",
+                      "description": "base64url ohne Auffüllung"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
           },
           "503": {
             "$ref": "#/components/responses/Problem503"
@@ -1773,6 +2056,565 @@
           }
         }
       }
+    },
+    "/api/v1/notebooks/{id}/members": {
+      "get": {
+        "operationId": "listNotebookMembers",
+        "tags": ["Kommentare"],
+        "summary": "Personen mit Zugriff auf das Notebook (für Erwähnungen)",
+        "description": "Nur ID und Anzeigename, keine E-Mail-Adressen. Mindestrolle: viewer.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["members"],
+                  "properties": {
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CommentPerson"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/comments": {
+      "get": {
+        "operationId": "listComments",
+        "tags": ["Kommentare"],
+        "summary": "Kommentare zu einer Quelle oder Notiz",
+        "description": "Älteste zuerst, höchstens 200. Mindestrolle: viewer.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "targetType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CommentTargetType"
+            }
+          },
+          {
+            "name": "targetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["comments"],
+                  "properties": {
+                    "comments": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Comment"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createComment",
+        "tags": ["Kommentare"],
+        "summary": "Kommentar anlegen",
+        "description": "Ziel muss im selben Notebook liegen; erwähnt werden können nur Personen mit Zugriff. Mindestrolle: editor.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Angelegt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/comments/{commentId}": {
+      "patch": {
+        "operationId": "updateComment",
+        "tags": ["Kommentare"],
+        "summary": "Eigenen Kommentar bearbeiten",
+        "description": "Nur die verfassende Person mit Rolle editor oder höher. Erwähnungen werden ersetzt.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "description": "Kommentar-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCommentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteComment",
+        "tags": ["Kommentare"],
+        "summary": "Kommentar löschen",
+        "description": "Verfasser oder Eigentümer (owner) des Notebooks.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "description": "Kommentar-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Gelöscht"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/mentions": {
+      "get": {
+        "operationId": "listMyMentions",
+        "tags": ["Kommentare"],
+        "summary": "Kommentare, in denen ich erwähnt werde",
+        "description": "Neueste zuerst, höchstens 50. Mindestrolle: viewer.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["comments"],
+                  "properties": {
+                    "comments": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Comment"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/provenance/status": {
+      "get": {
+        "operationId": "getProvenanceStatus",
+        "tags": ["Herkunft"],
+        "summary": "Kann dieser Server Exporte signieren?",
+        "description": "Öffentlich. Liefert, ob ein Signaturzertifikat eingerichtet ist, ob es das öffentliche C2PA-Testzertifikat oder ein eigenes ist, und welche Medienarten signiert werden können.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvenanceStatus"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/provenance/sign": {
+      "post": {
+        "operationId": "signExport",
+        "tags": ["Herkunft"],
+        "summary": "Export mit C2PA-Manifest signieren",
+        "description": "Nimmt die exportierte Datei als Rohdaten (Content-Type = Medienart, höchstens 64 MB) und gibt sie mit eingebettetem C2PA-Manifest zurück: Erzeuger RelationNotes mit Version, Titel und Aktion c2pa.created mit IPTC digitalSourceType (trainedAlgorithmicMedia, mit ai=0 digitalCreation). WebM, Ogg und Opus unterstützt C2PA nicht (415).",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "description": "Titel im Manifest (Steuerzeichen werden entfernt, höchstens 200 Zeichen).",
+            "schema": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          },
+          {
+            "name": "ai",
+            "in": "query",
+            "required": false,
+            "description": "0 = nicht KI-erzeugt; sonst gilt die Datei als KI-erzeugt.",
+            "schema": {
+              "type": "string",
+              "enum": ["0", "1"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/svg+xml": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/wav": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/mpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/mp4": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "video/mp4": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signierte Datei in derselben Medienart.",
+            "headers": {
+              "x-c2pa-certificate": {
+                "description": "test = öffentliches C2PA-Testzertifikat, production = eigenes Zertifikat.",
+                "schema": {
+                  "type": "string",
+                  "enum": ["test", "production"]
+                }
+              }
+            },
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/svg+xml": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "audio/wav": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "audio/mpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "audio/mp4": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/mp4": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Problem415"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "502": {
+            "$ref": "#/components/responses/Problem502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1867,6 +2709,16 @@
       },
       "Problem503": {
         "description": "Dienst nicht konfiguriert oder nicht verfügbar (fail-closed).",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "Problem415": {
+        "description": "Medienart wird nicht unterstützt.",
         "content": {
           "application/problem+json": {
             "schema": {
@@ -2124,6 +2976,11 @@
             "minimum": 0,
             "maximum": 2
           },
+          "language": {
+            "type": "string",
+            "enum": ["de", "en"],
+            "description": "Sprache der Oberfläche; bestimmt die ehrliche Antwort, wenn die Quellen nichts hergeben"
+          },
           "maxChunks": {
             "type": "integer",
             "minimum": 1,
@@ -2183,6 +3040,11 @@
             "items": {
               "$ref": "#/components/schemas/ChatMessage"
             }
+          },
+          "nextCursor": {
+            "type": ["string", "null"],
+            "minLength": 1,
+            "description": "Cursor für die nächstältere Seite (Parameter before); null, wenn es keine ältere Seite gibt"
           }
         }
       },
@@ -2846,6 +3708,152 @@
           "newKeyVersion": {
             "type": "integer",
             "minimum": 1
+          }
+        }
+      },
+      "CommentTargetType": {
+        "type": "string",
+        "enum": ["source", "note"]
+      },
+      "CommentPerson": {
+        "type": "object",
+        "required": ["id", "displayName"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateCommentRequest": {
+        "type": "object",
+        "required": ["targetType", "targetId", "body"],
+        "properties": {
+          "targetType": {
+            "$ref": "#/components/schemas/CommentTargetType"
+          },
+          "targetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "description": "Klartext, wird getrimmt; keine Steuerzeichen außer Tab und Zeilenumbruch."
+          },
+          "mentions": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "Nutzer-IDs erwähnter Personen (Doppelte werden entfernt)."
+          }
+        }
+      },
+      "UpdateCommentRequest": {
+        "type": "object",
+        "required": ["body"],
+        "properties": {
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "description": "Klartext, wird getrimmt; keine Steuerzeichen außer Tab und Zeilenumbruch."
+          },
+          "mentions": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "Nutzer-IDs erwähnter Personen (Doppelte werden entfernt)."
+          }
+        }
+      },
+      "Comment": {
+        "type": "object",
+        "required": [
+          "id",
+          "notebookId",
+          "targetType",
+          "targetId",
+          "author",
+          "body",
+          "mentions",
+          "createdAt",
+          "updatedAt",
+          "edited",
+          "canEdit",
+          "canDelete"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "notebookId": {
+            "type": "string"
+          },
+          "targetType": {
+            "$ref": "#/components/schemas/CommentTargetType"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/CommentPerson"
+          },
+          "body": {
+            "type": "string"
+          },
+          "mentions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentPerson"
+            }
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "Unix-Zeit in ms"
+          },
+          "updatedAt": {
+            "type": "integer"
+          },
+          "edited": {
+            "type": "boolean"
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canDelete": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ProvenanceStatus": {
+        "type": "object",
+        "required": ["available", "certificate", "formats"],
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "certificate": {
+            "type": ["string", "null"],
+            "enum": ["test", "production", null]
+          },
+          "formats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }

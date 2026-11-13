@@ -90,6 +90,18 @@ const ENTRIES: readonly Entry[] = [
   ["chatSendAria", "Frage absenden", "Send question"],
   ["chatCitationAria", "Zitat {n} in Quelle anzeigen", "Show citation {n} in source"],
   ["chatCitationQuote", "Zitat [{n}]", "Citation [{n}]"],
+  // Markdown-Export des Verlaufs (Issue #243)
+  ["chatExport", "Als Markdown sichern", "Save as Markdown"],
+  [
+    "chatExportAria",
+    "Als Markdown sichern: Chatverlauf mit Quellenangaben herunterladen",
+    "Save as Markdown: download the chat history with citations"
+  ],
+  ["chatExportFile", "Chat", "Chat"],
+  ["chatExportedAt", "Exportiert am", "Exported on"],
+  ["chatExportSources", "Quellen", "Sources"],
+  ["chatExportPage", "S.", "p."],
+  ["chatExportAiLabel", "KI-generiert", "AI-generated"],
 
   // Studio
   ["studioPanelLabel", "Studio-Panel", "Studio panel"],
@@ -451,6 +463,52 @@ const ENTRIES: readonly Entry[] = [
   ],
   ["accountOpenSettings", "Einstellungen öffnen", "Open settings"],
 
+  // Stand der Offline-Synchronisation (Issue #347)
+  ["syncSyncing", "Synchronisiert …", "Syncing …"],
+  ["syncSynced", "Alles synchronisiert", "All synced"],
+  ["syncPendingOne", "{n} Änderung wartet", "{n} change waiting"],
+  ["syncPendingMany", "{n} Änderungen warten", "{n} changes waiting"],
+  ["syncOfflineNone", "Offline", "Offline"],
+  [
+    "syncOfflineOne",
+    "Offline · {n} Änderung lokal gesichert",
+    "Offline · {n} change saved locally"
+  ],
+  [
+    "syncOfflineMany",
+    "Offline · {n} Änderungen lokal gesichert",
+    "Offline · {n} changes saved locally"
+  ],
+  ["syncErrorNone", "Synchronisierung fehlgeschlagen", "Sync failed"],
+  [
+    "syncErrorOne",
+    "Synchronisierung fehlgeschlagen · {n} Änderung lokal gesichert",
+    "Sync failed · {n} change saved locally"
+  ],
+  [
+    "syncErrorMany",
+    "Synchronisierung fehlgeschlagen · {n} Änderungen lokal gesichert",
+    "Sync failed · {n} changes saved locally"
+  ],
+
+  // Abmelden mit Löschen der lokalen Daten (Issue #348)
+  ["signOutWipe", "Abmelden und lokale Daten löschen", "Sign out and delete local data"],
+  [
+    "signOutDone",
+    "Abgemeldet. Die lokalen Daten auf diesem Gerät sind gelöscht.",
+    "Signed out. The local data on this device has been deleted."
+  ],
+  [
+    "signOutLocalOnly",
+    "Lokale Daten sind gelöscht. Der Server war nicht erreichbar, die Sitzung endet spätestens mit ihrem Ablauf.",
+    "Local data has been deleted. The server could not be reached, so the session ends when it expires at the latest."
+  ],
+  [
+    "signOutFailed",
+    "Die lokalen Daten ließen sich nicht vollständig löschen. Schließen Sie andere Tabs dieser Seite und versuchen Sie es erneut.",
+    "The local data could not be fully deleted. Close other tabs of this site and try again."
+  ],
+
   // Anmelden mit Turnstile (Issue #233)
   ["signInOpen", "Anmelden", "Sign in"],
   ["signInTitle", "Anmelden", "Sign in"],
@@ -675,7 +733,44 @@ const ENTRIES: readonly Entry[] = [
   ["toastClose", "Hinweis schließen", "Dismiss notice"],
   ["toastSourceAdded", "Quelle hinzugefügt: {title}", "Source added: {title}"],
   ["toastSourcesAdded", "{n} Quellen hinzugefügt", "{n} sources added"],
-  ["toastDownload", "Download gestartet: {file}", "Download started: {file}"]
+  ["toastDownload", "Download gestartet: {file}", "Download started: {file}"],
+
+  // Herkunftsnachweis (C2PA) für Exporte, Issue #353
+  [
+    "provSignedTest",
+    "Mit C2PA-Herkunftsnachweis signiert, Testzertifikat: Prüfwerkzeuge zeigen es als nicht vertrauenswürdig.",
+    "Signed with C2PA Content Credentials using a test certificate: verifiers show it as untrusted."
+  ],
+  [
+    "provSignedProduction",
+    "Mit C2PA-Herkunftsnachweis signiert. Die KI-Herkunft ist in der Datei belegt.",
+    "Signed with C2PA Content Credentials. The AI origin is recorded in the file."
+  ],
+  [
+    "provUnsignedFormat",
+    "Ohne C2PA-Signatur exportiert: Dieses Format unterstützt C2PA nicht.",
+    "Exported without a C2PA signature: this format does not support C2PA."
+  ],
+  [
+    "provUnsignedTooLarge",
+    "Ohne C2PA-Signatur exportiert: Die Datei ist größer als 64 MB.",
+    "Exported without a C2PA signature: the file is larger than 64 MB."
+  ],
+  [
+    "provUnsignedNotConfigured",
+    "Ohne C2PA-Signatur exportiert: Auf diesem Server ist kein Signaturzertifikat eingerichtet. Die KI-Herkunft steht in den Metadaten.",
+    "Exported without a C2PA signature: no signing certificate is set up on this server. The AI origin is in the metadata."
+  ],
+  [
+    "provUnsignedSignIn",
+    "Ohne C2PA-Signatur exportiert: Signiert wird nur nach der Anmeldung.",
+    "Exported without a C2PA signature: signing requires you to sign in."
+  ],
+  [
+    "provUnsignedFailed",
+    "Ohne C2PA-Signatur exportiert: Der Signaturdienst war nicht erreichbar.",
+    "Exported without a C2PA signature: the signing service could not be reached."
+  ]
 
   // Rollen
 ];
