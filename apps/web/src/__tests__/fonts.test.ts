@@ -86,6 +86,38 @@ describe("Selbst gehostete Schriften (Issue #355)", () => {
     }
   });
 
+  it("führt jede Schrift mit Version, Upstream und Lizenz im Inventar (Issue #281)", () => {
+    for (const font of FONTS) {
+      const entry = sources.slice(sources.indexOf(`${font.file}\n`));
+      const weights = font.weight.replace(" ", "-");
+      expect(entry, font.file).toMatch(
+        new RegExp(`Familie:\\s+${font.family} \\d+\\.\\d+ \\(wght ${weights}\\)`)
+      );
+      expect(entry).toMatch(/Upstream:\s+https:\/\/github\.com\//);
+      expect(entry).toMatch(new RegExp(`Lizenz:\\s+${font.license}`));
+      // Copyright-Hinweis steht am Anfang des Lizenztexts
+      expect(readFileSync(resolve(licenseDir, font.license), "utf8")).toMatch(/^Copyright /);
+    }
+    expect(sources).toContain("keine Rechtsberatung");
+  });
+
+  it("verlinkt jede Lizenzdatei aus der README, jeder Link zeigt auf eine Datei (Issue #281)", () => {
+    const repoRoot = resolve(webDir, "../..");
+    const readme = readFileSync(resolve(repoRoot, "README.md"), "utf8");
+    const links = [
+      ...readme.matchAll(/\]\((apps\/web\/(?:public\/fonts|src\/fonts)\/[^)]+)\)/g)
+    ].map((m) => m[1] as string);
+    for (const font of FONTS) {
+      expect(links, font.license).toContain(`apps/web/public/fonts/LICENSES/${font.license}`);
+    }
+    expect(links).toContain("apps/web/src/fonts/SOURCES.txt");
+    for (const link of links) {
+      expect(existsSync(resolve(repoRoot, link)), link).toBe(true);
+    }
+    // Keine Lizenzdatei ohne README-Link
+    expect(readdirSync(licenseDir).sort()).toEqual(FONTS.map((f) => f.license).sort());
+  });
+
   it("bindet jede Schrift per @font-face mit font-display swap und Latin-Subset ein", () => {
     expect(faces).toHaveLength(FONTS.length);
     for (const font of FONTS) {
