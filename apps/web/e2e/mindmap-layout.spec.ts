@@ -184,7 +184,18 @@ for (const design of DESIGNS) {
           });
         }
 
-        // Werkzeugknöpfe: 44 x 44 px, benachbarte Knöpfe mit mindestens 8 px Abstand
+        // Werkzeugknöpfe: 44 x 44 px, benachbarte Knöpfe mit mindestens 8 px Abstand.
+        // Gemessen wird die Ruhegröße: Der Klick auf den Reiter löst :active mit
+        // scale(--rn-press-scale) aus, dessen Rückfederung noch laufen kann (45 px x 0,97).
+        await page.mouse.move(0, 0);
+        await page.waitForFunction(() =>
+          document.getAnimations().every((animation) => {
+            const target = (animation.effect as KeyframeEffect | null)?.target;
+            const inToolbar =
+              target instanceof Element && target.closest('[data-testid="mindmap-toolbar"]');
+            return !inToolbar || animation.playState !== "running";
+          })
+        );
         const boxes = await page
           .getByTestId("mindmap-toolbar")
           .locator("button:visible")

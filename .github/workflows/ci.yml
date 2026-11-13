@@ -78,6 +78,69 @@ jobs:
       - name: Run Playwright E2E
         run: pnpm --filter @notebook-lm/web test:e2e
 
+  c2pa-provenance:
+    name: C2PA-Herkunftsnachweis (c2patool 0.29.0, Testzertifikat)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      C2PATOOL_VERSION: "v0.29.0"
+      C2PATOOL_SHA256: "af5494722fc8c3f239980f36ceb3acf496d1481850d356a4bb34777b33b08043"
+      # Public C2PA test certificate from contentauth/c2pa-rs, pinned to a commit (Issue #353).
+      # It is downloaded only here and never committed; see docs/c2pa.md.
+      C2PA_RS_COMMIT: "0e92435c6d621c02c9bde2a8d82346295ed1f509"
+      C2PA_CERT_SHA256: "2bf499037fd1fa7d803e3052c7b4ef6a0e67564aa2b805c0d7ae64d25a13c07b"
+      C2PA_KEY_SHA256: "f547ec8dbf24e50b51cf9924e58c250d246ed8844304408a072801fcf70a95d7"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "26"
+          cache: "pnpm"
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Download c2patool release and verify its checksum
+        run: |
+          mkdir -p "$RUNNER_TEMP/c2pa"
+          cd "$RUNNER_TEMP/c2pa"
+          asset="${C2PATOOL_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          curl -sSfL -o "$asset"             "https://github.com/contentauth/c2patool/releases/download/${C2PATOOL_VERSION}/${asset}"
+          echo "${C2PATOOL_SHA256}  ${asset}" | sha256sum -c -
+          tar -xzf "$asset"
+          tool="$(find "$RUNNER_TEMP/c2pa" -type f -name c2patool | head -n 1)"
+          anchors="$(find "$RUNNER_TEMP/c2pa" -type f -name trust_anchors.pem | head -n 1)"
+          test -x "$tool" && test -s "$anchors"
+          "$tool" --version
+          echo "C2PATOOL_PATH=$tool" >> "$GITHUB_ENV"
+          echo "C2PA_TRUST_ANCHORS=$anchors" >> "$GITHUB_ENV"
+
+      - name: Download C2PA test certificate and verify its checksums
+        run: |
+          base="https://raw.githubusercontent.com/contentauth/c2pa-rs/${C2PA_RS_COMMIT}/sdk/tests/fixtures/certs"
+          cd "$RUNNER_TEMP/c2pa"
+          curl -sSfL -o es256.pub "$base/es256.pub"
+          curl -sSfL -o es256.pem "$base/es256.pem"
+          echo "${C2PA_CERT_SHA256}  es256.pub" | sha256sum -c -
+          echo "${C2PA_KEY_SHA256}  es256.pem" | sha256sum -c -
+          chmod 600 es256.pem
+          echo "C2PA_SIGN_CERT=$RUNNER_TEMP/c2pa/es256.pub" >> "$GITHUB_ENV"
+          echo "C2PA_PRIVATE_KEY=$RUNNER_TEMP/c2pa/es256.pem" >> "$GITHUB_ENV"
+
+      - name: Sign PNG, SVG, WAV and MP4 through the API and verify them with c2patool
+        run: >-
+          pnpm exec vitest run apps/worker/src/__tests__/c2pa-integration.test.ts
+          --reporter=verbose
+
   secret-and-dependency-scan:
     name: Secret Scan (Gitleaks) & Dependency Audit (OSV)
     runs-on: ubuntu-latest

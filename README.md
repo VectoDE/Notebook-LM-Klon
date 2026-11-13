@@ -16,8 +16,7 @@
 [![CI – Quality, Security & Checklist Gate](https://github.com/VectoDE/Notebook-LM-Klon/actions/workflows/ci.yml/badge.svg)](https://github.com/VectoDE/Notebook-LM-Klon/actions/workflows/ci.yml)
 [![CodeQL SAST](https://github.com/VectoDE/Notebook-LM-Klon/actions/workflows/codeql.yml/badge.svg)](https://github.com/VectoDE/Notebook-LM-Klon/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/VectoDE/Notebook-LM-Klon/badge)](https://scorecard.dev/viewer/?uri=github.com/VectoDE/Notebook-LM-Klon)
-[![Test Coverage: 100%](https://img.shields.io/badge/Coverage-100%25-10B981?style=flat&logo=vitest&logoColor=white)](vitest.config.ts)
-[![Accessibility: WCAG 2.2 AAA](https://img.shields.io/badge/Accessibility-WCAG_2.2_AAA-2563EB?style=flat)](docs/accessibility-wcag-aaa.md)
+[![Release](https://img.shields.io/github/v/release/VectoDE/Notebook-LM-Klon?display_name=tag)](https://github.com/VectoDE/Notebook-LM-Klon/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-F59E0B.svg)](LICENSE)
 
 [**Offizielles GitHub Wiki**](https://github.com/VectoDE/Notebook-LM-Klon/wiki) · [**Systemarchitektur**](docs/architecture.md) · [**Hybrid-RAG & Vektoren**](docs/rag-and-vectors.md) · [**RelationFlow-Brücke**](docs/relationflow-integration.md) · [**Security & DSGVO**](docs/security-and-compliance.md) · [**WCAG 2.2 AAA**](docs/accessibility-wcag-aaa.md)
@@ -312,6 +311,7 @@ SESSION_SALT_SECRET=… KEK_V1=… node apps/worker/dist/node-server.js
 | `RESEND_API_KEY`, `MAIL_FROM` | nein | Mailversand über Resend, wenn kein SMTP gesetzt ist. Ohne Mailversand kommen keine Magic-Link-Mails an. |
 | `CLEANUP_INTERVAL_MINUTES` | nein | Aufräumlauf im Server, Standard `60` wie der Cron `0 * * * *` auf Cloudflare. `0` schaltet ihn ab; dann führt ein externer Cron `node apps/worker/dist/node-server.js cleanup` aus. |
 | `DEMO_GEMINI_KEY` | nein | Schlüssel für das Demo-Profil. |
+| `C2PATOOL_PATH`, `C2PA_SIGN_CERT`, `C2PA_PRIVATE_KEY` | nein | C2PA-Herkunftsnachweis für Exporte: Pfad zu `c2patool`, PEM-Zertifikatskette und PEM-Schlüssel. Fehlt einer der drei Werte, bleiben Exporte unsigniert und die App sagt das. `C2PA_CERT_KIND=production` nur bei eigenem Zertifikat, sonst gilt es als Testzertifikat. `C2PA_TSA_URL` optional für einen Zeitstempeldienst. Siehe [docs/c2pa.md](docs/c2pa.md). |
 
 **Turnstile-Testschlüssel, nur für Entwicklung und Tests:** Site-Key `1x00000000000000000000AA` und Secret `1x0000000000000000000000000000000AA`. Beide bestehen immer und schützen deshalb vor keinem Bot. Für den echten Betrieb legen Sie im Cloudflare-Dashboard ein eigenes Turnstile-Widget an. Läuft das Test-Secret auf einer `https`-Adresse, warnt der Server beim Start.
 
@@ -389,6 +389,7 @@ SESSION_SALT_SECRET=… KEK_V1=… node apps/worker/dist/node-server.js
 | `RESEND_API_KEY`, `MAIL_FROM` | no | Mail via Resend when SMTP is not set. Without mail delivery, magic-link mails do not arrive. |
 | `CLEANUP_INTERVAL_MINUTES` | no | Cleanup inside the server, default `60` like the Cloudflare cron `0 * * * *`. `0` turns it off; an external cron then runs `node apps/worker/dist/node-server.js cleanup`. |
 | `DEMO_GEMINI_KEY` | no | Key for the demo profile. |
+| `C2PATOOL_PATH`, `C2PA_SIGN_CERT`, `C2PA_PRIVATE_KEY` | no | C2PA provenance for exports: path to `c2patool`, PEM certificate chain and PEM key. If one of the three is missing, exports stay unsigned and the app says so. Set `C2PA_CERT_KIND=production` only with your own certificate, otherwise it counts as a test certificate. `C2PA_TSA_URL` is optional for a timestamp service. See [docs/c2pa.md](docs/c2pa.md). |
 
 **Turnstile test keys, for development and tests only:** site key `1x00000000000000000000AA` and secret `1x0000000000000000000000000000000AA`. Both always pass, so they protect against no bot at all. For real operation, create your own Turnstile widget in the Cloudflare dashboard. If the test secret runs on an `https` address, the server warns at start.
 
@@ -483,7 +484,7 @@ Sämtliche Architekturentscheidungen (ADRs #1–#110) sind im Ordner [`docs/`](d
 7. [**Cloudflare Free-Tier-Limits & CPU-Budgets**](docs/platform-limits.md) – Empirische Benchmarks (`< 0,6 ms` WebCrypto) und Kapazitätsrechnung.
 8. [**Loom-Präsentations- & Bewerbungs-Leitfaden**](docs/loom-presentation-guide.md) – Drehbuch für eine überzeugende 10-Minuten-Vorführung.
 9. [**Anforderungs- & Entscheidungsregister (ADRs #1–#110)**](docs/anforderungen.md) – Lückenlose Dokumentation aller 110 Architektur- und Qualitätsentscheidungen.
-10. [**Lasttests (k6, lokal und Live-Rauchtest)**](docs/load-test.md) – 100 simulierte Nutzer, p95 31 ms, 0 % Fehler; Reports als HTML und JSON.
+10. [**Lasttests (k6, lokal und Live-Rauchtest)**](docs/load-test.md) – 200 gleichzeitige simulierte Nutzer mit Upload, Chat, Suche und Studio, p95 249 ms, 0 % Fehler; [HTML-Report](docs/load-test/report-local.html) und [JSON](docs/load-test/summary-local.json).
 11. [**Datenschutz je KI-Modell**](docs/datenschutz-modelle.md) – Training mit Eingaben je Anbieter und Zugangsweg, mit Quellen, Wortlaut und Abrufdatum.
 
 ---

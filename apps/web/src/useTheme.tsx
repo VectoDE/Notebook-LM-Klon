@@ -4,7 +4,7 @@
  * Implements Sub-Issue #128 & #129:
  * - 4 Design Systems: pure, immersive-cinema, editorial-calm, fusion
  * - 3 Color Modes: light, dark, aaa-contrast, dazu "system" (Standard, folgt dem Gerät live)
- * - 2 Languages: de, en
+ * - 3 Languages: de, de-x-ls (Leichte Sprache, Katalog lädt bei Bedarf, Issue #349), en
  * - Persistence in localStorage and html attributes (data-design, data-color-mode, lang)
  */
 
@@ -26,7 +26,7 @@ import {
   THEMES
 } from "./design-tokens.js";
 import { type TranslationDictionary, fill } from "./i18n.js";
-import { LOCALE_FILES, buildI18n } from "./locale-registry.js";
+import { LOCALE_LOADERS, createLocaleRegistry } from "./locale-registry.js";
 import { applySeoLanguage, languageFromSearch } from "./seo.js";
 import {
   COLOR_MODE_PREFERENCES,
@@ -37,6 +37,7 @@ import {
   SYSTEM_COLOR_QUERIES,
   applyReduceMotion,
   applyThemeToDocument,
+  documentLanguage,
   readReduceMotion,
   resolveColorMode,
   resolveInitialPreferences,
@@ -44,15 +45,22 @@ import {
   systemPrefersReducedMotion
 } from "./theme-preferences.js";
 import { AREA_DE, AREA_EN } from "./translations-areas.js";
+import { ENTITY_GRAPH_DE, ENTITY_GRAPH_EN } from "./translations-entity-graph.js";
+import { STRUCTURED_DE, STRUCTURED_EN } from "./translations-structured.js";
 
-export { COLOR_MODES, COLOR_MODE_PREFERENCES, LANGUAGES, THEMES };
+export { COLOR_MODES, COLOR_MODE_PREFERENCES, LANGUAGES, THEMES, documentLanguage };
 export type { ColorMode, ColorModePreference, DesignTheme, Language };
 
 export type { TranslationDictionary };
 
-export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
+/** Eingebaute Kataloge; weitere Sprachen (z. B. Leichte Sprache) kommen aus locales/*.json. */
+export type BuiltinLanguage = "de" | "en";
+
+export const TRANSLATIONS: Record<BuiltinLanguage, TranslationDictionary> = {
   de: {
     ...AREA_DE,
+    ...ENTITY_GRAPH_DE,
+    ...STRUCTURED_DE,
     appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
     appSubtitle:
       "Bereit für Forschung, Quellenanalyse, Wissengraphen und barrierefreie Studio-Synthese.",
@@ -161,7 +169,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navChat: "Chat",
     navChatAria: "Chat & Zitate",
     navStudio: "Studio",
-    navStudioAria: "Studio (7 Werkzeuge)",
+    navStudioAria: "Studio (10 Werkzeuge)",
     navSettings: "Einstellungen",
     navSettingsHint: "Sprache, KI-Modell, Datenschutz",
     menuOpen: "Menü öffnen",
@@ -183,6 +191,8 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   },
   en: {
     ...AREA_EN,
+    ...ENTITY_GRAPH_EN,
+    ...STRUCTURED_EN,
     appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
     appSubtitle:
       "Ready for research, source grounding, knowledge graphs, and accessible synthesis.",
@@ -285,7 +295,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navChat: "Chat",
     navChatAria: "Chat & citations",
     navStudio: "Studio",
-    navStudioAria: "Studio (7 tools)",
+    navStudioAria: "Studio (10 tools)",
     navSettings: "Settings",
     navSettingsHint: "Language, AI model, privacy",
     menuOpen: "Open menu",
@@ -307,8 +317,12 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   }
 };
 
-/** Alle Kataloge (Deutsch, Englisch und weitere aus locales/*.json) mit Rückfall pro Schlüssel. */
-export const I18N = buildI18n(TRANSLATIONS, LOCALE_FILES);
+/**
+ * Alle Kataloge mit Rückfall pro Schlüssel: Deutsch und Englisch eingebaut, weitere aus
+ * locales/*.json werden erst bei Wahl der Sprache geladen (LOCALES.load).
+ */
+export const LOCALES = createLocaleRegistry(TRANSLATIONS, LOCALE_LOADERS);
+export const I18N = LOCALES.i18n;
 
 /** Text zum Schlüssel in der Sprache; fehlt er, folgt die Rückfallkette, zuletzt der Schlüssel selbst. */
 export function translate(language: string, key: string): string {
@@ -380,6 +394,9 @@ export function ThemeProvider({
   const [theme, setThemeState] = useState<DesignTheme>(initial.theme);
   const [colorMode, setColorModeState] = useState<ColorModePreference>(initial.colorMode);
   const [language, setLanguageState] = useState<Language>(initial.language);
+  // Sprache, deren Katalog bereitsteht. Bis eine nachgeladene Sprache da ist, gilt ihr Rückfall.
+  const [loadedLanguage, setLoadedLanguage] = useState<Language>(initial.language);
+  const textLanguage = LOCALES.isLoaded(language) ? language : loadedLanguage;
   const [reduceMotion, setReduceMotion] = useState<boolean>(() =>
     readReduceMotion(browserEnvironment().storage)
   );
@@ -414,6 +431,17 @@ export function ThemeProvider({
 
   const resolvedColorMode = resolveColorMode(colorMode, systemMode);
 
+  // Katalog der gewählten Sprache nachladen (eigener Chunk); danach neu rendern.
+  useEffect(() => {
+    let active = true;
+    void LOCALES.load(language).then(() => {
+      if (active) setLoadedLanguage(language);
+    });
+    return () => {
+      active = false;
+    };
+  }, [language]);
+
   // Zustand in DOM-Attribute und localStorage spiegeln
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -423,7 +451,7 @@ export function ThemeProvider({
       browserEnvironment().storage,
       systemMode
     );
-    applySeoLanguage(document, language);
+    applySeoLanguage(document, documentLanguage(language));
   }, [theme, colorMode, language, systemMode]);
 
   useEffect(() => {
@@ -443,12 +471,12 @@ export function ThemeProvider({
     setLanguageState(newLang);
   }, []);
 
-  const t = useCallback((key: string): string => translate(language, key), [language]);
+  const t = useCallback((key: string): string => translate(textLanguage, key), [textLanguage]);
 
   const tf = useCallback(
     (key: string, vars: Readonly<Record<string, string | number>>): string =>
-      fill(translate(language, key), vars),
-    [language]
+      fill(translate(textLanguage, key), vars),
+    [textLanguage]
   );
 
   const value = useMemo<ThemeContextValue>(
