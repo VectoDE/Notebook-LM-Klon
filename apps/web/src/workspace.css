@@ -703,6 +703,13 @@ html[data-color-mode="aaa-contrast"] .rn-popover {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* Sprachwahl (Issue #349): drei Sprachen untereinander, auch lange Namen wie
+   „Deutsch – Leichte Sprache“ passen ohne Kürzen. */
+.rn-segmented--stack {
+  grid-template-columns: minmax(0, 1fr);
+  border-radius: var(--rn-radius-md);
+}
+
 .rn-segmented--grid .rn-segment {
   box-sizing: border-box;
   padding: 4px 8px;

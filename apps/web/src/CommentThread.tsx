@@ -41,7 +41,7 @@ import {
   updateComment
 } from "./comments-client.js";
 import { commentTexts } from "./translations-comments.js";
-import { fill, useTheme } from "./useTheme.js";
+import { LOCALES, fill, useTheme } from "./useTheme.js";
 
 export interface CommentThreadProps {
   readonly notebookId: string;
@@ -59,7 +59,8 @@ type LoadState = "idle" | "loading" | "ready" | "error";
 /** Texte der Kommentare in der Sprache der Oberfläche (eigener Katalog, siehe translations-comments.ts). */
 function useCommentText() {
   const { language } = useTheme();
-  const texts = commentTexts(language);
+  // Eigene Texte einer nachgeladenen Variante (Leichte Sprache); der Kontext rendert neu, sobald sie da sind.
+  const texts = commentTexts(language, LOCALES.texts(language));
   const t = (key: string): string => texts[key] ?? key;
   const tf = (key: string, vars: Readonly<Record<string, string | number>>): string =>
     fill(t(key), vars);
