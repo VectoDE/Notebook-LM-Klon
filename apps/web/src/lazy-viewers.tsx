@@ -7,6 +7,7 @@
  * hängt eine bereits sichtbare Instanz nicht neu ein (Zustand und Fokus bleiben erhalten).
  */
 import { type ComponentType, type ReactNode, Suspense, createElement, lazy, useState } from "react";
+import type { CommentThreadProps } from "./CommentThread.js";
 
 export interface PreloadableComponent<P extends object> {
   (props: P): ReactNode;
@@ -64,9 +65,25 @@ export const LazyDataTableViewer = lazyWithPreload(() =>
  * Bewusst nicht im Vorladen untätiger Zeit (preloadStudioViewers), damit der Teil samt
  * eigenem Textkatalog nicht in den Startaufwand fällt.
  */
-export const LazyCommentThread = lazyWithPreload(() =>
-  import("./CommentThread.js").then((m) => m.CommentThread)
-);
+export const LazyCommentThread = lazyWithPreload(() => loadCommentThread());
+
+/** Platzhalter, wenn der Kommentar-Teil nicht nachgeladen werden kann. */
+const CommentsUnavailable = (): ReactNode => null;
+
+/**
+ * Lädt die Kommentar-Oberfläche. Scheitert das ohne Netz (Offline-Chat, Issue #346), bleibt
+ * der Bereich leer, statt die ganze Seite mit einem Ladefehler abzubrechen. Kommentare
+ * brauchen ohnehin den Server.
+ */
+export function loadCommentThread(
+  importer: () => Promise<{ CommentThread: ComponentType<CommentThreadProps> }> = () =>
+    import("./CommentThread.js")
+): Promise<ComponentType<CommentThreadProps>> {
+  return importer().then(
+    (m) => m.CommentThread,
+    () => CommentsUnavailable
+  );
+}
 
 /** Viewer, die der Browser im Leerlauf vorlädt. */
 const IDLE_VIEWERS = [

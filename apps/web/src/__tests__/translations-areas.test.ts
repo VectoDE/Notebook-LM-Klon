@@ -18,6 +18,7 @@ import { preloadStudioViewers } from "../lazy-viewers.js";
 import { podcastStateKey } from "../stage-visuals.js";
 import { AREA_DE, AREA_EN } from "../translations-areas.js";
 import { COMMENTS_DE, COMMENTS_EN } from "../translations-comments.js";
+import { OFFLINE_CHAT_DE, OFFLINE_CHAT_EN } from "../translations-offline-chat.js";
 import {
   TRANSLATIONS,
   ThemeProvider,
@@ -48,9 +49,12 @@ describe("Bedientexte der Bereiche (Issue #320)", () => {
   it("jeder im Quelltext benutzte Schlüssel steht in Deutsch und Englisch", () => {
     for (const [entry, file] of usedKeys()) {
       const key = entry.slice(file.length + 1);
-      // Die Kommentar-Oberfläche hat einen eigenen, nachgeladenen Katalog (#353).
-      const de = file === "CommentThread.tsx" ? COMMENTS_DE : TRANSLATIONS.de;
-      const en = file === "CommentThread.tsx" ? COMMENTS_EN : TRANSLATIONS.en;
+      // Kommentar-Oberfläche (#353) und Offline-Chat (#346) haben eigene, nachgeladene Kataloge.
+      const own: Record<string, readonly [Record<string, string>, Record<string, string>]> = {
+        "CommentThread.tsx": [COMMENTS_DE, COMMENTS_EN],
+        "offline-chat-ui.tsx": [OFFLINE_CHAT_DE, OFFLINE_CHAT_EN]
+      };
+      const [de, en] = own[file] ?? [TRANSLATIONS.de, TRANSLATIONS.en];
       expect(de[key], `${file}: ${key} (de)`).toBeTruthy();
       expect(en[key], `${file}: ${key} (en)`).toBeTruthy();
     }
