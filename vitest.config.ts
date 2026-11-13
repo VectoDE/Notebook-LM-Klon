@@ -35,7 +35,10 @@ export default defineConfig({
         "apps/web/src/locale-registry.ts",
         "apps/web/src/local-crypto.ts",
         "apps/web/src/encrypted-store.ts",
-        "apps/web/src/local-session.ts"
+        "apps/web/src/local-session.ts",
+        "apps/web/src/offline-sync.ts",
+        "apps/web/src/notebook-sync.ts",
+        "apps/web/src/sync-status-text.ts"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {
