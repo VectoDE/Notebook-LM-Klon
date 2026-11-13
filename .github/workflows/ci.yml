@@ -78,6 +78,24 @@ jobs:
       - name: Run Playwright E2E
         run: pnpm --filter @notebook-lm/web test:e2e
 
+      - name: Upload contrast report (WCAG 2.2 AAA, 4 designs x 3 modes)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: kontrast-bericht
+          path: apps/web/test-results/kontrast-bericht/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload screenshots (designs, modes, mobile header, zoom 200 %)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: screenshots
+          path: apps/web/test-results/screenshots/
+          if-no-files-found: error
+          retention-days: 30
+
   secret-and-dependency-scan:
     name: Secret Scan (Gitleaks) & Dependency Audit (OSV)
     runs-on: ubuntu-latest
