@@ -1,0 +1,22 @@
+/* Umschalter Begriffe / Beziehungsgraph (Issue #238). Klein und sofort geladen; die
+   übrigen Stile des Beziehungsgraphen kommen mit der nachgeladenen Ansicht. */
+
+.rn-graph-mode {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rn-space-2);
+}
+
+.rn-graph-mode button[aria-pressed="true"] {
+  border-color: var(--rn-color-primary);
+  box-shadow: inset 0 0 0 1px var(--rn-color-primary);
+}
+
+/* Begriffsansicht bleibt beim Umschalten erhalten (Zustand), ist aber ausgeblendet */
+.rn-graph-view[hidden] {
+  display: none;
+}
