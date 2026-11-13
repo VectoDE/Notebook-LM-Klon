@@ -1,8 +1,12 @@
 import { WORKSPACE_VERSION } from "@notebook-lm/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { WorkspaceLayout } from "../WorkspaceLayout.js";
+import { preloadStudioViewers } from "../lazy-viewers.js";
+
+// Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
+beforeAll(() => preloadStudioViewers());
 
 describe("WorkspaceLayout Component (Issue #31)", () => {
   it("renders 3-panel workspace layout with header, 3 panels and mobile navigation", () => {

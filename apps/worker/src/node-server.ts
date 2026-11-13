@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
+import { etag } from "hono/etag";
 import { JobDO, NotebookDO } from "./durable-objects.js";
 import { createApp } from "./index.js";
 import {
@@ -150,6 +151,17 @@ export function createNodeEnv(options?: {
 }
 
 /**
+ * Cache-Regel für statische Dateien: gehashte Build-Dateien unter /assets/ ändern nie ihren
+ * Inhalt (ein Jahr, immutable), alles andere (index.html, robots.txt, sitemap.xml, llms.txt)
+ * wird bei jedem Aufruf per ETag neu validiert.
+ */
+export function staticCacheControl(path: string): string {
+  return path.startsWith("/assets/")
+    ? "public, max-age=31536000, immutable"
+    : "public, max-age=0, must-revalidate";
+}
+
+/**
  * Starts the Node server. Reads and validates the configuration first and throws
  * NodeConfigError (nothing is opened or bound) when a mandatory secret is missing.
  */
@@ -192,6 +204,14 @@ export function startNodeServer(options?: NodeServerOptions): Promise<NodeServer
   rootApp.route("/", createApp());
 
   if (existsSync(staticDir)) {
+    // ETag (304 bei If-None-Match) und Cache-Control für statische Dateien (Issue #263).
+    rootApp.use("/*", etag());
+    rootApp.use("/*", async (c, next) => {
+      await next();
+      if (c.res.status === 200 || c.res.status === 304) {
+        c.header("cache-control", staticCacheControl(c.req.path));
+      }
+    });
     rootApp.use("/*", serveStatic({ root: staticDir }));
     rootApp.get("*", (c) => {
       const indexHtmlPath = join(staticDir, "index.html");

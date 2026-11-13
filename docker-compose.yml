@@ -1,22 +1,47 @@
+# RelationNotes on Node.js: web app and API on http://localhost:8787 (one container, one port).
+# Configuration reference: README, chapter "Betrieb mit Node.js und Docker".
+#
+# Start:  export SESSION_SALT_SECRET=$(openssl rand -hex 32) KEK_V1=$(openssl rand -hex 32)
+#         export TURNSTILE_SECRET_KEY=... VITE_TURNSTILE_SITE_KEY=...
+#         docker compose up -d --build
+# Variables not set on the host stay empty (= not configured). Without SESSION_SALT_SECRET or
+# KEK_V1 the server refuses to start; without TURNSTILE_SECRET_KEY guest login and magic link
+# answer 503 TURNSTILE_NOT_CONFIGURED (fail-closed).
 services:
   app:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile
+      args:
+        # Public site key of the Turnstile widget, built into the web app.
+        # TEST ONLY: 1x00000000000000000000AA always passes. Use your own key in production.
+        VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY:-}
     ports:
       - "8787:8787"
     environment:
-      - NODE_ENV=production
-      - PORT=8787
-      - APP_PROFILE=full
-      - APP_ORIGIN=http://localhost:8787
-      # Secret, from the host environment (e.g. `openssl rand -hex 32`). Without it login is blocked (503).
-      - SESSION_SALT_SECRET
-      # Secret, from the host environment (e.g. `openssl rand -hex 32`, at least 32 characters).
-      # Without it BYOK key storage is off (503). See apps/worker/.env.example and docs/security-and-compliance.md.
-      - KEK_V1
-      - KEK_V2
-      - KEK_CURRENT_VERSION
+      APP_PROFILE: ${APP_PROFILE:-full}
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8787}
+      # Secrets from the host environment, each at least 32 characters (`openssl rand -hex 32`).
+      SESSION_SALT_SECRET: ${SESSION_SALT_SECRET:-}
+      KEK_V1: ${KEK_V1:-}
+      KEK_V2: ${KEK_V2:-}
+      KEK_CURRENT_VERSION: ${KEK_CURRENT_VERSION:-}
+      # Turnstile secret that belongs to VITE_TURNSTILE_SITE_KEY.
+      # TEST ONLY: 1x0000000000000000000000000000000AA always passes. Never use it in production.
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      # Only when a reverse proxy in front of the container writes this header (README: TRUSTED_PROXY_HEADER).
+      TRUSTED_PROXY_HEADER: ${TRUSTED_PROXY_HEADER:-}
+      # Mail: SMTP (used when SMTP_HOST is set) or Resend, each with MAIL_FROM.
+      MAIL_FROM: ${MAIL_FROM:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      DEMO_GEMINI_KEY: ${DEMO_GEMINI_KEY:-}
+      # Hourly cleanup inside the server; 0 = external cron runs
+      # `docker compose exec app node apps/worker/dist/node-server.js cleanup`.
+      CLEANUP_INTERVAL_MINUTES: ${CLEANUP_INTERVAL_MINUTES:-60}
     volumes:
       - app-data:/app/.data
     restart: unless-stopped

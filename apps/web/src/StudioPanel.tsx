@@ -8,12 +8,7 @@ import type {
 import { type ReactNode, useEffect, useState } from "react";
 import { DeepDiveStage } from "./DeepDiveStage.js";
 import { EmptyState } from "./EmptyState.js";
-import { FlashcardsViewer } from "./FlashcardsViewer.js";
 import { Icon, type IconName } from "./Icon.js";
-import { InteractiveAudioHostPlayer } from "./InteractiveAudioHostPlayer.js";
-import { MindmapViewer } from "./MindmapViewer.js";
-import { QuizViewer } from "./QuizViewer.js";
-import { VideoOverviewPlayer } from "./VideoOverviewPlayer.js";
 import {
   escapeHtmlText,
   exportBriefingToMarkdown,
@@ -22,6 +17,13 @@ import {
   exportQuizToJson,
   triggerBrowserDownload
 } from "./artifact-exporters.js";
+import {
+  LazyFlashcardsViewer as FlashcardsViewer,
+  LazyInteractiveAudioHostPlayer as InteractiveAudioHostPlayer,
+  LazyMindmapViewer as MindmapViewer,
+  LazyQuizViewer as QuizViewer,
+  LazyVideoOverviewPlayer as VideoOverviewPlayer
+} from "./lazy-viewers.js";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, PanelFocusAttributes } from "./workspace-types.js";
 
