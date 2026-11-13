@@ -46,14 +46,24 @@ export function decodeHtmlEntities(text: string): string {
 }
 
 /**
- * Macht aus einem HTML-Ausschnitt reinen Text. Nach dem Entfernen der Tags werden übrige spitze
- * Klammern (nur aus kaputten Tags möglich, echter Text kommt von mammoth als &lt;/&gt;) gestrichen,
- * damit keine Tag-Reste wie "<script" stehen bleiben. Erst danach werden Entitäten aufgelöst.
+ * Entfernt Markup Zeichen für Zeichen: alles von "<" bis zum nächsten ">" fällt weg, ebenso jede
+ * einzelne spitze Klammer. Echter Text kommt von mammoth als &lt;/&gt;, daher bleiben aus kaputtem
+ * HTML keine Tag-Reste wie "<script" stehen (CodeQL js/incomplete-multi-character-sanitization).
  */
+function stripMarkup(html: string): string {
+  let text = "";
+  let inTag = false;
+  for (const char of html) {
+    if (char === "<") inTag = true;
+    else if (char === ">") inTag = false;
+    else if (!inTag) text += char;
+  }
+  return text;
+}
+
+/** Macht aus einem HTML-Ausschnitt reinen Text; Entitäten werden erst nach dem Entfernen aufgelöst. */
 function cleanText(html: string): string {
-  return decodeHtmlEntities(html.replace(/<[^>]*>/g, "").replace(/[<>]/g, ""))
-    .replace(/\s+/g, " ")
-    .trim();
+  return decodeHtmlEntities(stripMarkup(html)).replace(/\s+/g, " ").trim();
 }
 
 const BLOCK_TAG = /<(\/?)(h[1-6]|p|li|ul|ol|tr|td|th)\b[^>]*>/gi;
