@@ -10,7 +10,10 @@ import { pathToFileURL } from "node:url";
 
 const ANSWER = ["Die Suche ", "kombiniert Volltext ", "und Vektoren ", "[1]."];
 
+let requestCount = 0;
+
 function handle(req, res) {
+  requestCount += 1;
   if (req.method === "GET" && (req.url === "/" || req.url === "/api/tags")) {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ models: [{ name: "llama3" }] }));
@@ -59,7 +62,10 @@ export async function startFakeOllama(port = 11434) {
   } catch {
     // Kein IPv6 auf diesem Rechner: IPv4 reicht.
   }
-  return { close: () => Promise.all(servers.map((s) => new Promise((r) => s.close(r)))) };
+  return {
+    requests: () => requestCount,
+    close: () => Promise.all(servers.map((s) => new Promise((r) => s.close(r))))
+  };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

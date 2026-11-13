@@ -9,7 +9,7 @@
 
 import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { createWriteStream, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { startFakeOllama } from "./fake-ollama.mjs";
@@ -56,6 +56,37 @@ async function waitForHealth(timeoutMs) {
   throw new Error("Worker wurde nicht rechtzeitig erreichbar");
 }
 
+// Vorprüfung: ein Gast fragt einmal im Chat. Bricht ab, bevor 200 Nutzer losgeschickt werden,
+// wenn der Weg Worker -> Test-LLM nicht funktioniert.
+async function preflightChat() {
+  const headers = { "content-type": "application/json", origin: BASE_URL };
+  const login = await fetch(`${BASE_URL}/api/v1/auth/guest`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ turnstileToken: "XXXX.DUMMY.TOKEN.XXXX", locale: "de" })
+  });
+  const { demoNotebookId } = await login.json();
+  const cookie = (login.headers.getSetCookie?.() ?? []).map((c) => c.split(";")[0]).join("; ");
+  let res;
+  let body;
+  try {
+    res = await fetch(`${BASE_URL}/api/v1/notebooks/${demoNotebookId}/chat`, {
+      method: "POST",
+      headers: { ...headers, cookie, accept: "text/event-stream" },
+      body: JSON.stringify({ message: "Vorprüfung", model: "llama3", maxChunks: 5 }),
+      signal: AbortSignal.timeout(20_000)
+    });
+    body = await res.text();
+  } catch (error) {
+    throw new Error(`Vorprüfung Chat: ${error} (Test-LLM-Aufrufe ${fakeLlm.requests()})`);
+  }
+  console.log(`Vorprüfung Chat: Status ${res.status}, Test-LLM-Aufrufe ${fakeLlm.requests()}`);
+  console.log(body.slice(0, 600));
+  if (res.status !== 200 || !body.includes("event: token")) {
+    throw new Error("Vorprüfung Chat fehlgeschlagen");
+  }
+}
+
 let worker;
 let fakeLlm;
 let exitCode = 1;
@@ -89,9 +120,16 @@ try {
       "--var",
       `APP_ORIGIN:${BASE_URL}`
     ],
-    { cwd: workerDir, env: workerEnv, stdio: "ignore" }
+    { cwd: workerDir, env: workerEnv, stdio: ["ignore", "pipe", "pipe"] }
   );
+  // Worker-Ausgabe landet im Report-Ordner (Artefakt), damit Fehler unter Last nachvollziehbar sind.
+  // Das zufällige Session-Salz wird vor dem Schreiben entfernt.
+  const workerLog = createWriteStream(join(outDir, "worker.log"));
+  const redact = (chunk) => workerLog.write(String(chunk).replaceAll(salt, "[entfernt]"));
+  worker.stdout.on("data", redact);
+  worker.stderr.on("data", redact);
   await waitForHealth(120_000);
+  await preflightChat();
 
   const k6Version =
     spawnSync(k6Bin, ["version"], { encoding: "utf8" }).stdout?.trim() ?? "unbekannt";
