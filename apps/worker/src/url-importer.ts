@@ -282,6 +282,7 @@ export function registerUrlImportRoutes(
         title,
         sourceType,
         byteSize,
+        wordCount: wordCheck.wordCount,
         chunksCount: chunkRows.length,
         status: "ready"
       },
