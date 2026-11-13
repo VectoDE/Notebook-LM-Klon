@@ -9,7 +9,7 @@ import {
   generateSessionToken,
   sha256Hex
 } from "./session.js";
-import { verifyTurnstileToken } from "./turnstile.js";
+import { requireTurnstile } from "./turnstile.js";
 
 export const GUEST_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const MAGIC_LINK_TTL_MS = 15 * 60 * 1000; // 15 minutes
@@ -45,67 +45,12 @@ export function createGuestAndMagicLinkRoutes(
 ): Hono<{ Bindings: Env }> {
   const router = new Hono<{ Bindings: Env }>();
 
-  /**
-   * Fail-closed bot check: missing secret -> 503, missing or rejected token -> 403.
-   * Returns null only when Siteverify confirmed the token.
-   */
-  const checkTurnstile = async (c: Context, token: unknown): Promise<Response | null> => {
-    const problemHeaders = { "content-type": "application/problem+json; charset=utf-8" };
-    const secretKey = opts.turnstileSecretKey?.trim();
-    if (!secretKey) {
-      return c.json(
-        createProblemDetails({
-          status: 503,
-          title: "Service Unavailable",
-          detail:
-            "Bot-Schutz ist nicht konfiguriert (TURNSTILE_SECRET_KEY fehlt). Anmeldung ist deaktiviert.",
-          instance: c.req.path,
-          code: "TURNSTILE_NOT_CONFIGURED"
-        }),
-        503,
-        problemHeaders
-      );
-    }
-
-    if (typeof token !== "string" || token.trim() === "") {
-      return c.json(
-        createProblemDetails({
-          status: 403,
-          title: "Forbidden",
-          detail: "Turnstile-Token fehlt. Bitte die Bot-Prüfung abschließen.",
-          instance: c.req.path,
-          code: "BOT_VERIFICATION_REQUIRED"
-        }),
-        403,
-        problemHeaders
-      );
-    }
-
-    const verifyRes = await verifyTurnstileToken(
-      {
-        secretKey,
-        token,
-        remoteIp: c.req.header("cf-connecting-ip") || null
-      },
-      opts.customFetch
-    );
-
-    if (!verifyRes.success) {
-      return c.json(
-        createProblemDetails({
-          status: 403,
-          title: "Forbidden",
-          detail: "Turnstile Bot-Verifikation fehlgeschlagen.",
-          instance: c.req.path,
-          code: "BOT_VERIFICATION_FAILED"
-        }),
-        403,
-        problemHeaders
-      );
-    }
-
-    return null;
-  };
+  /** Fail-closed bot check (503 without secret, 403 without or with a rejected token). */
+  const checkTurnstile = (c: Context, token: unknown): Promise<Response | null> =>
+    requireTurnstile(c, token, {
+      secretKey: opts.turnstileSecretKey,
+      customFetch: opts.customFetch
+    });
 
   // Helper to ensure demo workspace exists
   const ensureDemoWorkspace = async (now: number): Promise<void> => {

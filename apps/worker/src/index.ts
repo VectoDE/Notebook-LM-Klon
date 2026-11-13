@@ -183,7 +183,8 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   registerHealthAndDemoRoutes(app);
 
   // 3. Auth (public, rate-limit category "auth")
-  // Guest login and magic-link fail closed (503) when TURNSTILE_SECRET_KEY is missing.
+  // Guest login, magic-link and passkey registration fail closed (503) when
+  // TURNSTILE_SECRET_KEY is missing.
   // Every route that creates a session fails closed (503) when SESSION_SALT_SECRET is missing.
   const requireSalt = requireConfiguredSessionSalt();
   app.use("/api/v1/auth/guest", requireSalt);
@@ -212,6 +213,7 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
         expectedOrigin: config.origin
       }),
       sessionManager,
+      turnstileSecretKey: secrets.TURNSTILE_SECRET_KEY,
       isProduction
     })
   );

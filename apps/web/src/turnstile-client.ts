@@ -156,6 +156,16 @@ export function authErrorKey(code: string): string {
       return "signInErrorMail";
     case "NETWORK_ERROR":
       return "signInErrorNetwork";
+    case "UNAUTHORIZED":
+      return "signInErrorPasskeySession";
+    case "PASSKEY_NOT_SUPPORTED":
+      return "signInErrorPasskeySupport";
+    case "PASSKEY_CANCELLED":
+      return "signInErrorPasskeyCancelled";
+    case "PASSKEY_FAILED":
+    case "WEBAUTHN_VERIFICATION_FAILED":
+    case "REGISTRATION_ERROR":
+      return "signInErrorPasskey";
     default:
       return "signInErrorGeneric";
   }
