@@ -5,9 +5,9 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   NodeConfigError,
-  createMockDurableObjectNamespace,
   createNodeEnv,
   pickPassthroughVars,
+  runCleanupCommand,
   runNodeServerCli,
   startNodeServer
 } from "../node-server.js";
@@ -40,40 +40,46 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
     safeCleanDir(TEST_DATA_DIR);
   });
 
-  describe("createMockDurableObjectNamespace", () => {
-    it("provides IDs and fetches /health or generic DO routes", async () => {
-      const doNamespace = createMockDurableObjectNamespace("TestDO");
+  describe("Durable Objects on Node (#330)", () => {
+    it("runs the real JobDO: enqueue answers 201 and the alarm completes the job", async () => {
+      const db = new DatabaseSync(":memory:");
+      const handle = createNodeEnv({ db, dataDir: TEST_DATA_DIR });
+      try {
+        const stub = handle.env.JOB_DO.get(handle.env.JOB_DO.idFromName("nb_1"));
+        const enqueued = await stub.fetch("http://internal/jobs/enqueue", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ notebookId: "nb_1", kind: "mindmap", payload: {} })
+        });
+        expect(enqueued.status).toBe(201);
+        const { id } = (await enqueued.json()) as { id: string };
 
-      const idByName = doNamespace.idFromName("notebook-123");
-      expect(idByName.toString()).toBe("TestDO-notebook-123");
-      expect(idByName.equals(idByName)).toBe(false);
+        let status = "";
+        for (let i = 0; i < 100 && status !== "completed"; i++) {
+          await new Promise((r) => setTimeout(r, 20));
+          const res = await stub.fetch(`http://internal/jobs/${id}`);
+          status = ((await res.json()) as { status: string }).status;
+        }
+        expect(status).toBe("completed");
+        expect(existsSync(join(TEST_DATA_DIR, "do", "JobDO"))).toBe(true);
 
-      const uniqueId = doNamespace.newUniqueId();
-      expect(uniqueId.toString()).toContain("TestDO-");
-
-      const idFromStr = doNamespace.idFromString("custom-id");
-      expect(idFromStr.toString()).toBe("custom-id");
-      expect(idFromStr.equals(idFromStr)).toBe(false);
-      expect(uniqueId.equals(uniqueId)).toBe(false);
-
-      const stub = doNamespace.get(uniqueId);
-      const healthRes = await stub.fetch("http://localhost/health");
-      expect(healthRes.status).toBe(200);
-      const healthJson = (await healthRes.json()) as { ok: boolean };
-      expect(healthJson.ok).toBe(true);
-
-      const otherRes = await stub.fetch(new Request("http://localhost/other"));
-      expect(otherRes.status).toBe(200);
-    });
+        const notebook = handle.env.NOTEBOOK_DO.get(handle.env.NOTEBOOK_DO.idFromName("nb_1"));
+        expect((await notebook.fetch("http://internal/health")).status).toBe(200);
+      } finally {
+        handle.close();
+        db.close();
+      }
+    }, 15000);
   });
 
   describe("createNodeEnv", () => {
     it("creates environment bindings with default or custom options", async () => {
-      const { env, db } = createNodeEnv({
+      const handle = createNodeEnv({
         dataDir: TEST_DATA_DIR,
         appProfile: "full",
         appOrigin: "http://127.0.0.1:8787"
       });
+      const { env, db } = handle;
       expect(env.APP_PROFILE).toBe("full");
       expect(env.APP_ORIGIN).toBe("http://127.0.0.1:8787");
       expect(env.DB).toBeDefined();
@@ -82,13 +88,16 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       expect(env.JOB_DO).toBeDefined();
       const assetRes = await env.ASSETS.fetch("http://localhost/asset.png");
       expect(assetRes.status).toBe(404);
+      handle.close();
       db.close();
     });
 
     it("creates default data directory when not provided", () => {
       const customDb = new DatabaseSync(":memory:");
-      const { env } = createNodeEnv({ db: customDb });
-      expect(env.APP_PROFILE).toBe("demo");
+      const handle = createNodeEnv({ db: customDb });
+      expect(handle.env.APP_PROFILE).toBe("demo");
+      expect(handle.dataDir).toBe(join(process.cwd(), ".data"));
+      handle.close();
       customDb.close();
     });
 
@@ -97,16 +106,58 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       const read = (e: Env) => (e as unknown as Record<string, unknown>).SESSION_SALT_SECRET;
       vi.stubEnv("SESSION_SALT_SECRET", "from-process-env");
       try {
-        expect(read(createNodeEnv({ db: customDb }).env)).toBe("from-process-env");
-        expect(read(createNodeEnv({ db: customDb, sessionSaltSecret: "explicit" }).env)).toBe(
-          "explicit"
-        );
+        const dataDir = TEST_DATA_DIR;
+        expect(read(createNodeEnv({ db: customDb, dataDir }).env)).toBe("from-process-env");
+        expect(
+          read(createNodeEnv({ db: customDb, dataDir, sessionSaltSecret: "explicit" }).env)
+        ).toBe("explicit");
         vi.stubEnv("SESSION_SALT_SECRET", undefined);
-        expect(read(createNodeEnv({ db: customDb }).env)).toBeUndefined();
+        expect(read(createNodeEnv({ db: customDb, dataDir }).env)).toBeUndefined();
       } finally {
         vi.unstubAllEnvs();
         customDb.close();
       }
+    });
+  });
+
+  describe("mail delivery choice (#330)", () => {
+    const smtp = {
+      host: "smtp.example.test",
+      port: 587,
+      secure: false,
+      requireTls: true,
+      user: undefined,
+      pass: undefined,
+      from: "noreply@example.test"
+    };
+
+    it("uses SMTP as SEND_EMAIL and drops RESEND_API_KEY when SMTP is configured", () => {
+      const db = new DatabaseSync(":memory:");
+      const handle = createNodeEnv({
+        db,
+        dataDir: TEST_DATA_DIR,
+        vars: { RESEND_API_KEY: "re_test", MAIL_FROM: "noreply@example.test" },
+        smtp
+      });
+      const env = handle.env as unknown as Record<string, unknown>;
+      expect(env.SEND_EMAIL).toEqual({ send: expect.any(Function) });
+      expect(env.RESEND_API_KEY).toBeUndefined();
+      handle.close();
+      db.close();
+    });
+
+    it("keeps RESEND_API_KEY without SMTP", () => {
+      const db = new DatabaseSync(":memory:");
+      const handle = createNodeEnv({
+        db,
+        dataDir: TEST_DATA_DIR,
+        vars: { RESEND_API_KEY: "re_test", MAIL_FROM: "noreply@example.test" }
+      });
+      const env = handle.env as unknown as Record<string, unknown>;
+      expect(env.RESEND_API_KEY).toBe("re_test");
+      expect(env.SEND_EMAIL).toBeUndefined();
+      handle.close();
+      db.close();
     });
   });
 
@@ -216,6 +267,41 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       await serverInstance.close();
     });
 
+    it("starts the hourly cleanup by default and runs the same cleanup as the cron (#334)", async () => {
+      const info = vi.spyOn(console, "info").mockImplementation(() => {});
+      const instance = await startNodeServer({
+        env: SECRETS,
+        onWarning: () => {},
+        port: 0,
+        dataDir: join(TEST_DATA_DIR, "srv-data-cleanup"),
+        staticDir: join(TEST_DATA_DIR, "no-static")
+      });
+      try {
+        expect(instance.scheduler).toBeDefined();
+        const metrics = await instance.scheduler?.runOnce();
+        expect(metrics).toEqual(expect.objectContaining({ deletedGuests: expect.any(Number) }));
+        expect(info).toHaveBeenCalledWith(
+          expect.stringContaining('"event":"scheduled_cleanup_completed"')
+        );
+      } finally {
+        await instance.close();
+        info.mockRestore();
+      }
+    });
+
+    it("leaves the cleanup to an external cron when the interval is 0", async () => {
+      const instance = await startNodeServer({
+        env: SECRETS,
+        onWarning: () => {},
+        port: 0,
+        dataDir: join(TEST_DATA_DIR, "srv-data-nocleanup"),
+        staticDir: join(TEST_DATA_DIR, "no-static"),
+        cleanupIntervalMinutes: 0
+      });
+      expect(instance.scheduler).toBeUndefined();
+      await instance.close();
+    });
+
     it("reaches every API router over HTTP on the Node path (wiring, not 404)", async () => {
       clearRateLimitMemory();
       // Explicit test salt: without SESSION_SALT_SECRET the login routes answer 503.
@@ -269,6 +355,9 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
           code: "TURNSTILE_NOT_CONFIGURED"
         });
         expect((await probe("GET", "/api/v1/demo/info")).status).toBe(200);
+        // Demo sub-routes forward method and body (HEAD without body, POST with body).
+        expect((await fetch(`${base}/api/v1/demo/info`, { method: "HEAD" })).status).toBe(200);
+        expect((await probe("POST", "/api/v1/demo/seed", { role: "viewer" })).status).toBe(200);
 
         // Unknown API paths stay 404, so the 401s above are real routes.
         expect(await probe("GET", "/api/v1/does-not-exist")).toEqual({
@@ -332,57 +421,120 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
 
   it("passes trustedProxyHeader from options into the environment", () => {
     const customDb = new DatabaseSync(":memory:");
-    const { env } = createNodeEnv({ db: customDb, trustedProxyHeader: "x-real-ip" });
+    const { env } = createNodeEnv({
+      db: customDb,
+      dataDir: TEST_DATA_DIR,
+      trustedProxyHeader: "x-real-ip"
+    });
     expect((env as unknown as { TRUSTED_PROXY_HEADER?: string }).TRUSTED_PROXY_HEADER).toBe(
       "x-real-ip"
     );
     customDb.close();
   });
 
-  describe("runNodeServerCli", () => {
-    it("returns 0 and logs the address when the server starts", async () => {
+  describe("runCleanupCommand (#334)", () => {
+    it("runs one cleanup against the data directory and logs the result", async () => {
       const info = vi.fn();
-      const code = await runNodeServerCli(
-        async () => ({ port: 1234 }) as unknown as Awaited<ReturnType<typeof startNodeServer>>,
+      await runCleanupCommand(
+        { env: SECRETS, dataDir: join(TEST_DATA_DIR, "cli-cleanup") },
         { info, error: vi.fn() }
       );
+      expect(existsSync(join(TEST_DATA_DIR, "cli-cleanup", "local.sqlite"))).toBe(true);
+      expect(info).toHaveBeenCalledWith(
+        expect.stringContaining('"event":"scheduled_cleanup_completed"')
+      );
+    });
+
+    it("reads process.env by default and refuses without mandatory secrets", async () => {
+      vi.stubEnv("SESSION_SALT_SECRET", "");
+      try {
+        await expect(runCleanupCommand()).rejects.toThrow(NodeConfigError);
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    });
+  });
+
+  describe("runNodeServerCli", () => {
+    const log = () => ({ info: vi.fn(), error: vi.fn() });
+
+    it("serve (default command): returns 0 and logs the address", async () => {
+      const l = log();
+      const code = await runNodeServerCli([], {
+        start: async () =>
+          ({ port: 1234 }) as unknown as Awaited<ReturnType<typeof startNodeServer>>,
+        log: l
+      });
       expect(code).toBe(0);
-      expect(info).toHaveBeenCalledWith(expect.stringContaining("http://localhost:1234"));
+      expect(l.info).toHaveBeenCalledWith(expect.stringContaining("http://localhost:1234"));
+    });
+
+    it("cleanup: runs one cleanup and returns 0", async () => {
+      const cleanup = vi.fn(async () => {});
+      expect(await runNodeServerCli(["cleanup"], { cleanup, log: log() })).toBe(0);
+      expect(cleanup).toHaveBeenCalledOnce();
+    });
+
+    it("cleanup without injected runner uses runCleanupCommand with process.env", async () => {
+      vi.stubEnv("SESSION_SALT_SECRET", SECRETS.SESSION_SALT_SECRET);
+      vi.stubEnv("KEK_V1", SECRETS.KEK_V1);
+      vi.stubEnv("DATA_DIR", join(TEST_DATA_DIR, "cli-default"));
+      const l = log();
+      try {
+        expect(await runNodeServerCli(["cleanup"], { log: l })).toBe(0);
+        expect(l.info).toHaveBeenCalledWith(
+          expect.stringContaining('"event":"scheduled_cleanup_completed"')
+        );
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    });
+
+    it("rejects an unknown command with exit code 2", async () => {
+      const l = log();
+      expect(await runNodeServerCli(["migrate"], { log: l })).toBe(2);
+      expect(l.error).toHaveBeenCalledWith(expect.stringContaining('Unbekannter Befehl "migrate"'));
     });
 
     it("prints the configuration problems and returns 1", async () => {
-      const error = vi.fn();
-      const code = await runNodeServerCli(
-        async () => {
+      const l = log();
+      const code = await runNodeServerCli(["serve"], {
+        start: async () => {
           throw new NodeConfigError(["SESSION_SALT_SECRET fehlt."]);
         },
-        { info: vi.fn(), error }
-      );
+        log: l
+      });
       expect(code).toBe(1);
-      expect(error).toHaveBeenCalledWith(
+      expect(l.error).toHaveBeenCalledWith(
         expect.stringMatching(/Start abgebrochen[\s\S]*SESSION_SALT_SECRET fehlt/)
       );
     });
 
     it("returns 1 for other startup errors", async () => {
-      const error = vi.fn();
-      const code = await runNodeServerCli(
-        async () => {
+      const l = log();
+      const code = await runNodeServerCli(["serve"], {
+        start: async () => {
           throw new Error("EADDRINUSE");
         },
-        { info: vi.fn(), error }
-      );
+        log: l
+      });
       expect(code).toBe(1);
-      expect(error).toHaveBeenCalledWith("[node-server] Start fehlgeschlagen:", expect.any(Error));
+      expect(l.error).toHaveBeenCalledWith(
+        "[node-server] Start fehlgeschlagen:",
+        expect.any(Error)
+      );
     });
 
-    it("uses startNodeServer and console by default", async () => {
+    it("uses process.argv, startNodeServer and console by default", async () => {
       const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const argv = process.argv;
+      process.argv = [argv[0] ?? "node", "node-server.js"];
       vi.stubEnv("SESSION_SALT_SECRET", "");
       try {
         expect(await runNodeServerCli()).toBe(1);
         expect(error).toHaveBeenCalledWith(expect.stringMatching(/SESSION_SALT_SECRET fehlt/));
       } finally {
+        process.argv = argv;
         error.mockRestore();
         vi.unstubAllEnvs();
       }

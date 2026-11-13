@@ -14,6 +14,7 @@ export interface CleanupMetrics {
   deletedGuests: number;
   deletedSessions: number;
   deletedMagicLinks: number;
+  deletedChallenges: number;
   deletedNotebooks: number;
   deletedR2Objects: number;
   /** Audit entries older than AUDIT_RETENTION_DAYS (Issue #259). */
@@ -33,6 +34,7 @@ export interface RunCleanupOptions {
  * - Expired guest accounts (is_guest = 1 AND expires_at < now)
  * - Expired user sessions (expires_at < now)
  * - Expired magic links (expires_at < now)
+ * - Expired WebAuthn challenges (expires_at <= now)
  * - Expired demo notebooks (expires_at IS NOT NULL AND expires_at < now)
  * - Associated R2 objects (sources, artifacts) under guest / notebook prefixes
  * - Audit log entries older than the retention period (90 days)
@@ -94,7 +96,13 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
   const magicLinkDelRes = await db.run("DELETE FROM magic_links WHERE expires_at < ?", [now]);
   deletedMagicLinks = magicLinkDelRes.changes;
 
-  // 5. Enforce audit log retention
+  // 5. Purge expired WebAuthn challenges (single-use, 5-minute lifetime)
+  const challengeDelRes = await db.run("DELETE FROM webauthn_challenges WHERE expires_at <= ?", [
+    now
+  ]);
+  const deletedChallenges = challengeDelRes.changes;
+
+  // 6. Enforce audit log retention
   const deletedAuditEntries = await purgeExpiredAuditEntries(db, now);
 
   const durationMs = Date.now() - startTime;
@@ -103,6 +111,7 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
     deletedGuests,
     deletedSessions,
     deletedMagicLinks,
+    deletedChallenges,
     deletedNotebooks,
     deletedR2Objects,
     deletedAuditEntries,
@@ -165,11 +174,10 @@ export async function purgeUsers(
   // Notebooks (ON DELETE CASCADE handles shares, sources, chunks, vectors, chats, notes)
   if (notebookIds.length > 0) {
     const nbPlaceholders = notebookIds.map(() => "?").join(",");
-    const nbDelRes = await db.run(
-      `DELETE FROM notebooks WHERE id IN (${nbPlaceholders})`,
-      notebookIds
-    );
-    deletedNotebooks += nbDelRes.changes;
+    await db.run(`DELETE FROM notebooks WHERE id IN (${nbPlaceholders})`, notebookIds);
+    // Count from the SELECT above: meta.changes may include ON DELETE CASCADE rows
+    // depending on the driver (node:sqlite total_changes), D1 does not.
+    deletedNotebooks = notebookIds.length;
   }
 
   // Workspaces (owner_id is ON DELETE RESTRICT, so they go before the owner)
@@ -179,9 +187,13 @@ export async function purgeUsers(
   }
 
   // Users last (ON DELETE CASCADE removes passkeys, sessions, quotas, workspace_members)
-  const userDelRes = await db.run(`DELETE FROM users WHERE id IN (${placeholders})`, ids);
+  const existingUsers = await db.query<{ id: string }>(
+    `SELECT id FROM users WHERE id IN (${placeholders})`,
+    ids
+  );
+  await db.run(`DELETE FROM users WHERE id IN (${placeholders})`, ids);
 
-  return { deletedUsers: userDelRes.changes, deletedNotebooks, deletedR2Objects };
+  return { deletedUsers: existingUsers.length, deletedNotebooks, deletedR2Objects };
 }
 
 /**

@@ -13,6 +13,7 @@ import {
   type DesignTheme,
   THEMES
 } from "./design-tokens.js";
+import { directionOf } from "./i18n.js";
 
 export type Language = "de" | "en";
 
@@ -135,6 +136,7 @@ export function applyThemeToDocument(
   root.setAttribute("data-design", prefs.theme);
   root.setAttribute("data-color-mode", resolveColorMode(prefs.colorMode, systemMode));
   root.setAttribute("lang", prefs.language);
+  root.setAttribute("dir", directionOf(prefs.language));
   root.removeAttribute("data-theme");
   try {
     storage?.setItem(STORAGE_KEYS.theme, prefs.theme);

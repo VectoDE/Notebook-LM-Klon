@@ -8,6 +8,8 @@ import {
   type QuotaAction,
   getOrInitUserQuota,
   incrementUserQuota,
+  localizedQuotaReason,
+  prefersEnglish,
   quotaGuardMiddleware,
   verifyQuotaAction
 } from "../quota-guard.js";
@@ -476,6 +478,7 @@ describe("Quota Guard (Sub-Issue #79)", () => {
     const denied = await verifyQuotaAction(db, "u2", action, config.quotas);
     expect(denied.allowed).toBe(false);
     expect(denied.code).toBe("QUOTA_MAX_NOTEBOOKS_EXCEEDED");
+    expect(denied.reasonEn).toBe("You have reached the maximum number of notebooks (3).");
 
     close();
   });
@@ -507,6 +510,8 @@ describe("Quota Guard (Sub-Issue #79)", () => {
     );
     expect(over.allowed).toBe(false);
     expect(over.code).toBe("QUOTA_MAX_SOURCE_BYTES_EXCEEDED");
+    expect(over.reason).toBe("Die Datei ist 50 MB groß. Erlaubt sind höchstens 50 MB pro Quelle.");
+    expect(over.reasonEn).toBe("The file is 50 MB. Each source may be at most 50 MB.");
 
     close();
   });
@@ -530,6 +535,8 @@ describe("Quota Guard (Sub-Issue #79)", () => {
     const denied = await verifyQuotaAction(db, "u5", action, config.quotas);
     expect(denied.allowed).toBe(false);
     expect(denied.code).toBe("QUOTA_MAX_SOURCES_PER_NOTEBOOK_EXCEEDED");
+    expect(denied.reason).toContain("schon 50 Quellen");
+    expect(denied.reasonEn).toContain("already has 50 sources");
 
     // Another notebook of the same user is not affected by the count
     expect(
@@ -573,6 +580,9 @@ describe("Quota Guard (Sub-Issue #79)", () => {
       expect(over.code).toBe("NOTEBOOK_SIZE_LIMIT");
       expect(over.reason).toContain("200 MB");
       expect(over.reason).toContain("160 MB");
+      expect(over.reasonEn).toBe(
+        "Notebook limit of 200 MB exceeded: the notebook holds 160 MB, the new source (40 MB) does not fit."
+      );
 
       close();
     }
@@ -631,6 +641,17 @@ describe("Quota Guard (Sub-Issue #79)", () => {
     expect(problem.status).toBe(413);
     expect(problem.code).toBe("NOTEBOOK_SIZE_LIMIT");
     expect(problem.detail).toContain("200 MB");
+    expect(problem.detail).toContain("Notizbuch-Limit");
+
+    const en = await app.request(
+      "http://localhost/nb",
+      { method: "POST", headers: { "accept-language": "en-GB,de;q=0.5" } },
+      { DB: db }
+    );
+    expect(en.status).toBe(413);
+    const enProblem = (await en.json()) as { code: string; detail: string };
+    expect(enProblem.code).toBe("NOTEBOOK_SIZE_LIMIT");
+    expect(enProblem.detail).toMatch(/^Notebook limit of 200 MB exceeded/);
 
     close();
   });
@@ -683,6 +704,21 @@ describe("Quota Guard (Sub-Issue #79)", () => {
     expect(problem.code).toBe("QUOTA_MAX_LLM_CALLS_EXCEEDED");
 
     close();
+  });
+
+  it("prefersEnglish / localizedQuotaReason choose the message by Accept-Language", () => {
+    expect(prefersEnglish("en")).toBe(true);
+    expect(prefersEnglish("en-US,en;q=0.9")).toBe(true);
+    expect(prefersEnglish("EN-gb")).toBe(true);
+    expect(prefersEnglish("en;q=0.8")).toBe(true);
+    expect(prefersEnglish("de-DE,en;q=0.9")).toBe(false);
+    expect(prefersEnglish("eng")).toBe(false);
+    expect(prefersEnglish("")).toBe(false);
+    expect(prefersEnglish(undefined)).toBe(false);
+    expect(prefersEnglish(null)).toBe(false);
+    const check = { allowed: false, code: "X", reason: "Deutsch", reasonEn: "English" };
+    expect(localizedQuotaReason(check, "en")).toBe("English");
+    expect(localizedQuotaReason(check, "fr")).toBe("Deutsch");
   });
 
   it("handles unauthenticated or missing DB or null action gracefully in middleware", async () => {
