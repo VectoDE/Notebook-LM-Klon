@@ -166,11 +166,10 @@ export async function purgeUsers(
   // Notebooks (ON DELETE CASCADE handles shares, sources, chunks, vectors, chats, notes)
   if (notebookIds.length > 0) {
     const nbPlaceholders = notebookIds.map(() => "?").join(",");
-    const nbDelRes = await db.run(
-      `DELETE FROM notebooks WHERE id IN (${nbPlaceholders})`,
-      notebookIds
-    );
-    deletedNotebooks += nbDelRes.changes;
+    await db.run(`DELETE FROM notebooks WHERE id IN (${nbPlaceholders})`, notebookIds);
+    // Count from the SELECT above: meta.changes may include ON DELETE CASCADE rows
+    // depending on the driver (node:sqlite total_changes), D1 does not.
+    deletedNotebooks = notebookIds.length;
   }
 
   // Workspaces (owner_id is ON DELETE RESTRICT, so they go before the owner)
@@ -180,9 +179,13 @@ export async function purgeUsers(
   }
 
   // Users last (ON DELETE CASCADE removes passkeys, sessions, quotas, workspace_members)
-  const userDelRes = await db.run(`DELETE FROM users WHERE id IN (${placeholders})`, ids);
+  const existingUsers = await db.query<{ id: string }>(
+    `SELECT id FROM users WHERE id IN (${placeholders})`,
+    ids
+  );
+  await db.run(`DELETE FROM users WHERE id IN (${placeholders})`, ids);
 
-  return { deletedUsers: userDelRes.changes, deletedNotebooks, deletedR2Objects };
+  return { deletedUsers: existingUsers.length, deletedNotebooks, deletedR2Objects };
 }
 
 /**
