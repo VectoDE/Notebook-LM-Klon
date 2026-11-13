@@ -1,18 +1,69 @@
-import type {
-  SlideChartData,
-  VideoChapter,
-  VideoSlide,
-  VideoStoryboard
+import {
+  type MediaTextLanguage,
+  type SlideChartData,
+  type TimedTextCue,
+  type VideoChapter,
+  type VideoSlide,
+  type VideoStoryboard,
+  buildWebVtt,
+  storyboardCaptionCues,
+  storyboardDescriptionCues,
+  storyboardTranscript
 } from "@notebook-lm/shared";
-import { type KeyboardEvent, useCallback, useEffect, useId, useRef, useState } from "react";
+import {
+  type KeyboardEvent,
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { Icon } from "./Icon.js";
+import type { TranscriptItem } from "./MediaTranscript.js";
+import { triggerBrowserDownload } from "./artifact-exporters.js";
 import { useTheme } from "./useTheme.js";
+
+// Erst beim Aufklappen laden: hält das Startpaket unter dem Skript-Budget (Issue #350)
+const MediaTranscript = lazy(() =>
+  import("./MediaTranscript.js").then((m) => ({ default: m.MediaTranscript }))
+);
 
 export interface VideoOverviewPlayerProps {
   readonly storyboard: VideoStoryboard;
   readonly onTimeUpdate?: (currentTimeMs: number) => void;
   readonly onEnded?: () => void;
   readonly autoplay?: boolean;
+  /** Sprache der Folien und des Sprechertexts (Issue #350); bestimmt lang und Vorlesestimme. */
+  readonly contentLang?: MediaTextLanguage | undefined;
+  /** Rückmeldung nach einem Download (Hinweis-Leiste). */
+  readonly onNotify?: ((message: string) => void) | undefined;
+}
+
+/** Cue zur Zeit; an der Grenze gewinnt der spätere. */
+export function cueAt(cues: readonly TimedTextCue[], timeMs: number): TimedTextCue | undefined {
+  return cues.findLast((cue) => timeMs >= cue.startMs && timeMs < cue.endMs);
+}
+
+/** Web Speech API zum Vorlesen, falls der Browser sie hat. */
+function speechSynthesisApi(): SpeechSynthesis | null {
+  return typeof window !== "undefined" && "speechSynthesis" in window
+    ? window.speechSynthesis
+    : null;
+}
+
+/** Objekt-URL für eine WebVTT-Spur; null ohne Browser-API (Server-Rendering, Tests). */
+function useVttUrl(vtt: string): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof URL === "undefined" || typeof URL.createObjectURL !== "function") return;
+    const next = URL.createObjectURL(new Blob([vtt], { type: "text/vtt" }));
+    setUrl(next);
+    return () => URL.revokeObjectURL(next);
+  }, [vtt]);
+  return url;
 }
 
 /**
@@ -304,7 +355,14 @@ function SlideText({ slide, bodyId }: { readonly slide: VideoSlide; readonly bod
 }
 
 export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
-  const { storyboard, onTimeUpdate, onEnded, autoplay = false } = props;
+  const {
+    storyboard,
+    onTimeUpdate,
+    onEnded,
+    autoplay = false,
+    contentLang = "de",
+    onNotify
+  } = props;
   const { t, tf } = useTheme();
 
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
@@ -314,15 +372,92 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [currentSubtitle, setCurrentSubtitle] = useState<string>("");
   const [liveAnnouncement, setLiveAnnouncement] = useState<string>("");
+  const [adSpeech, setAdSpeech] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [showSignLanguage, setShowSignLanguage] = useState(false);
+
+  // Medienalternativen aus Sprechertext und Folien (Issue #350)
+  const captionCues = useMemo(() => storyboardCaptionCues(storyboard), [storyboard]);
+  const descriptionCues = useMemo(
+    () => storyboardDescriptionCues(storyboard, contentLang),
+    [storyboard, contentLang]
+  );
+  const captionsVtt = useMemo(
+    () => buildWebVtt(captionCues, storyboard.title),
+    [captionCues, storyboard.title]
+  );
+  const descriptionsVtt = useMemo(
+    () => buildWebVtt(descriptionCues, storyboard.title),
+    [descriptionCues, storyboard.title]
+  );
+  const transcript = useMemo(
+    () => storyboardTranscript(storyboard, contentLang),
+    [storyboard, contentLang]
+  );
+  const transcriptItems: readonly TranscriptItem[] = useMemo(
+    () =>
+      transcript.map((entry) => ({
+        id: entry.id,
+        startMs: entry.startMs,
+        endMs: entry.endMs,
+        chapter: entry.chapter,
+        text: entry.narration,
+        description: entry.description
+      })),
+    [transcript]
+  );
+  const captionsUrl = useVttUrl(captionsVtt);
+  const descriptionsUrl = useVttUrl(descriptionsVtt);
+  const signVideo = storyboard.signLanguageVideo;
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number | null>(null);
+  const signVideoRef = useRef<HTMLVideoElement | null>(null);
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
+  // true, solange das Video nur für eine vorgelesene Beschreibung anhält
+  const pausedForDescriptionRef = useRef(false);
 
   const idBase = useId();
   const slideBodyId = `${idBase}-slide`;
   const hintId = `${idBase}-hint`;
+  const transcriptId = `${idBase}-transcript`;
+
+  useEffect(() => {
+    setSpeechSupported(speechSynthesisApi() !== null);
+    return () => {
+      speechSynthesisApi()?.cancel();
+    };
+  }, []);
+
+  /**
+   * Erweiterte Audiodeskription (WCAG 1.2.7): Das Video hält an, die Beschreibung wird in der
+   * Sprache der Inhalte vorgelesen, danach läuft es weiter.
+   */
+  const speakDescription = useCallback(
+    (text: string) => {
+      const synth = speechSynthesisApi();
+      if (!synth || !text) return;
+      synth.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = contentLang === "en" ? "en-US" : "de-DE";
+      if (isPlayingRef.current) {
+        pausedForDescriptionRef.current = true;
+        setIsPlaying(false);
+      }
+      utterance.onend = () => {
+        if (pausedForDescriptionRef.current) {
+          pausedForDescriptionRef.current = false;
+          setIsPlaying(true);
+        }
+      };
+      synth.speak(utterance);
+    },
+    [contentLang]
+  );
 
   // Determine current slide and subtitle from currentTimeMs
   useEffect(() => {
@@ -340,33 +475,43 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
 
     if (foundSlideIndex !== activeSlideIndex) {
       setActiveSlideIndex(foundSlideIndex);
-      const activeSlide = storyboard.slides[foundSlideIndex];
-      if (activeSlide && audioDescriptionEnabled) {
-        setLiveAnnouncement(tf("videoLiveAd", { text: activeSlide.audioDescription }));
+      const description = descriptionCues[foundSlideIndex]?.text;
+      if (description && audioDescriptionEnabled) {
+        if (adSpeech) speakDescription(description);
+        else setLiveAnnouncement(tf("videoLiveAd", { text: description }));
       }
     }
 
-    // Subtitle cue matching
-    if (showSubtitles) {
-      const activeCue = storyboard.subtitles.find(
-        (cue) => currentTimeMs >= cue.startTimeMs && currentTimeMs < cue.endTimeMs
-      );
-      setCurrentSubtitle(activeCue ? activeCue.text : "");
-    } else {
-      setCurrentSubtitle("");
-    }
+    // Untertitel aus dem Sprechertext (dieselben Cues wie die WebVTT-Spur)
+    setCurrentSubtitle(showSubtitles ? (cueAt(captionCues, currentTimeMs)?.text ?? "") : "");
 
     onTimeUpdate?.(currentTimeMs);
   }, [
     currentTimeMs,
     storyboard.slides,
-    storyboard.subtitles,
+    captionCues,
+    descriptionCues,
     activeSlideIndex,
     audioDescriptionEnabled,
+    adSpeech,
+    speakDescription,
     showSubtitles,
     onTimeUpdate,
     tf
   ]);
+
+  // Das Gebärdensprachvideo läuft mit: Start und Pause folgen dem Player
+  useEffect(() => {
+    const video = signVideoRef.current;
+    if (!video || !showSignLanguage) return;
+    if (isPlaying) {
+      video.play().catch(() => {
+        // Der Browser kann die Wiedergabe blockieren; das Video bleibt dann stehen
+      });
+    } else {
+      video.pause();
+    }
+  }, [isPlaying, showSignLanguage]);
 
   // Hintergrund der aktiven Folie zeichnen; der Text steht als HTML darüber
   const renderCanvas = useCallback(() => {
@@ -442,6 +587,11 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
 
   // Navigation handlers
   const handlePlayPause = () => {
+    // Eigene Bedienung beendet das Warten auf eine vorgelesene Beschreibung
+    if (pausedForDescriptionRef.current) {
+      pausedForDescriptionRef.current = false;
+      speechSynthesisApi()?.cancel();
+    }
     setIsPlaying((prev) => !prev);
   };
 
@@ -450,6 +600,9 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
     setCurrentTimeMs(clamped);
     if (audioRef.current) {
       audioRef.current.currentTime = clamped / 1000;
+    }
+    if (signVideoRef.current) {
+      signVideoRef.current.currentTime = clamped / 1000;
     }
   };
 
@@ -464,15 +617,69 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
     setLiveAnnouncement(t(next ? "videoSubsOn" : "videoSubsOff"));
   };
 
+  const currentDescription = descriptionCues[activeSlideIndex]?.text ?? "";
+
   const toggleAudioDescription = () => {
     const next = !audioDescriptionEnabled;
     setAudioDescriptionEnabled(next);
+    if (!next) {
+      setAdSpeech(false);
+      pausedForDescriptionRef.current = false;
+      speechSynthesisApi()?.cancel();
+    }
     setLiveAnnouncement(
-      next
-        ? tf("videoAdOn", { text: currentSlide?.audioDescription ?? "" }).trim()
-        : t("videoAdOff")
+      next ? tf("videoAdOn", { text: currentDescription }).trim() : t("videoAdOff")
     );
   };
+
+  const toggleAdSpeech = () => {
+    const next = !adSpeech;
+    setAdSpeech(next);
+    if (next) {
+      setAudioDescriptionEnabled(true);
+      setLiveAnnouncement(t("videoAdSpeechOn"));
+      speakDescription(currentDescription);
+    } else {
+      pausedForDescriptionRef.current = false;
+      speechSynthesisApi()?.cancel();
+      setLiveAnnouncement(t("videoAdSpeechOff"));
+    }
+  };
+
+  const toggleSignLanguage = () => {
+    const next = !showSignLanguage;
+    setShowSignLanguage(next);
+    setLiveAnnouncement(t(next ? "videoSignOn" : "videoSignOff"));
+  };
+
+  const download = (filename: string, content: string, mimeType: string) => {
+    triggerBrowserDownload(filename, content, mimeType);
+    onNotify?.(tf("toastDownload", { file: filename }));
+  };
+  const transcriptDownloads = [
+    {
+      id: "txt",
+      label: t("mediaDownloadText"),
+      run: () =>
+        void import("./media-downloads.js").then((m) =>
+          download(
+            `${storyboard.title}_transkript.txt`,
+            m.videoTranscriptText(storyboard.title, transcript, contentLang),
+            "text/plain;charset=utf-8"
+          )
+        )
+    },
+    {
+      id: "captions",
+      label: t("mediaDownloadCaptions"),
+      run: () => download(`${storyboard.title}_untertitel.vtt`, captionsVtt, "text/vtt")
+    },
+    {
+      id: "descriptions",
+      label: t("mediaDownloadDescriptions"),
+      run: () => download(`${storyboard.title}_audiodeskription.vtt`, descriptionsVtt, "text/vtt")
+    }
+  ];
 
   // Tastenkürzel am Player; Knöpfe, Regler und Eingaben behalten ihre eigenen Tasten
   const handleKeyDown = (e: KeyboardEvent<HTMLElement>) => {
@@ -552,17 +759,65 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
         )}
 
         {showSubtitles && currentSubtitle && (
-          <div className="rn-video-subtitle" data-testid="subtitles-overlay" aria-live="polite">
+          <div
+            className="rn-video-subtitle"
+            data-testid="subtitles-overlay"
+            aria-live="polite"
+            lang={contentLang}
+          >
             {currentSubtitle}
           </div>
         )}
 
+        {signVideo && showSignLanguage && (
+          <video
+            ref={signVideoRef}
+            className="rn-video-sign"
+            src={signVideo.url}
+            muted
+            playsInline
+            preload="metadata"
+            aria-label={t("videoSignAria")}
+            data-sign-language={signVideo.language}
+            data-testid="sign-language-video"
+            onLoadedMetadata={(e) => {
+              e.currentTarget.currentTime = currentTimeMs / 1000;
+            }}
+          >
+            <track
+              kind="captions"
+              src={captionsUrl ?? undefined}
+              srcLang={contentLang}
+              label={t("videoSubtitles")}
+            />
+          </video>
+        )}
+
         {storyboard.audioUrl && (
           <audio ref={audioRef} src={storyboard.audioUrl} data-testid="player-audio-element">
-            <track kind="captions" srcLang="de" label="Deutsch" />
+            <track
+              kind="captions"
+              src={captionsUrl ?? undefined}
+              srcLang={contentLang}
+              label={t("videoSubtitles")}
+              default
+            />
+            <track
+              kind="descriptions"
+              src={descriptionsUrl ?? undefined}
+              srcLang={contentLang}
+              label={t("videoAudioDesc")}
+            />
           </audio>
         )}
       </div>
+
+      {audioDescriptionEnabled && currentDescription && (
+        <p className="rn-video-ad" data-testid="video-ad-text">
+          <span className="rn-video-ad-label">{t("videoAdVisible")}</span>{" "}
+          <span lang={contentLang}>{currentDescription}</span>
+        </p>
+      )}
 
       <output className="sr-only" aria-live="polite" data-testid="a11y-live-region">
         {liveAnnouncement}
@@ -628,6 +883,47 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
             </span>
             {t("videoAudioDesc")}
           </button>
+
+          {speechSupported && (
+            <button
+              type="button"
+              onClick={toggleAdSpeech}
+              className="rn-stage-btn rn-video-toggle"
+              data-testid="toggle-ad-speech-button"
+              aria-pressed={adSpeech}
+            >
+              <span className="rn-video-toggle-box" aria-hidden="true">
+                <Icon name="check" size={16} className="rn-icon rn-video-toggle-check" />
+              </span>
+              {t("videoAdSpeech")}
+            </button>
+          )}
+
+          {signVideo && (
+            <button
+              type="button"
+              onClick={toggleSignLanguage}
+              className="rn-stage-btn rn-video-toggle"
+              data-testid="toggle-sign-language-button"
+              aria-pressed={showSignLanguage}
+            >
+              <span className="rn-video-toggle-box" aria-hidden="true">
+                <Icon name="check" size={16} className="rn-icon rn-video-toggle-check" />
+              </span>
+              {t("videoSignLanguage")}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setShowTranscript((prev) => !prev)}
+            className="rn-stage-btn"
+            data-testid="toggle-transcript-button"
+            aria-expanded={showTranscript}
+            aria-controls={transcriptId}
+          >
+            {t(showTranscript ? "mediaTranscriptHide" : "mediaTranscriptShow")}
+          </button>
         </div>
 
         <nav className="rn-video-chapters" aria-label={t("videoChaptersNav")}>
@@ -651,6 +947,27 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
             );
           })}
         </nav>
+      </div>
+
+      {!signVideo && (
+        <p className="rn-video-note" data-testid="sign-language-unavailable">
+          {t("videoSignUnavailable")}
+        </p>
+      )}
+
+      <div id={transcriptId} hidden={!showTranscript}>
+        {showTranscript && (
+          <Suspense fallback={null}>
+            <MediaTranscript
+              items={transcriptItems}
+              currentTimeMs={currentTimeMs}
+              onSeek={handleSeek}
+              contentLang={contentLang}
+              downloads={transcriptDownloads}
+              testId="video-transcript"
+            />
+          </Suspense>
+        )}
       </div>
     </section>
   );

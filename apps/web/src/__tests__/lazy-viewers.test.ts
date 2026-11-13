@@ -8,6 +8,7 @@ import {
   LazyQuizViewer,
   LazyVideoOverviewPlayer,
   lazyWithPreload,
+  preloadMediaPlayers,
   preloadStudioViewers,
   scheduleStudioViewerPreload
 } from "../lazy-viewers.js";
@@ -42,6 +43,11 @@ describe("Studio-Viewer lazy laden (#257)", () => {
     ]) {
       await expect(viewer.preload()).resolves.toBeTypeOf("function");
     }
+  });
+
+  it("lädt die Medien-Player auf Absicht vor (#350)", async () => {
+    await expect(preloadMediaPlayers()).resolves.toHaveLength(2);
+    await expect(LazyVideoOverviewPlayer.preload()).resolves.toBeTypeOf("function");
   });
 
   it("plant das Vorladen über den Leerlauf-Planer ein", async () => {

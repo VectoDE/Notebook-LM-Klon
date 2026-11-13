@@ -68,20 +68,33 @@ export const LazyCommentThread = lazyWithPreload(() =>
   import("./CommentThread.js").then((m) => m.CommentThread)
 );
 
-/** Lädt alle Studio-Viewer vorab, z. B. in Tests oder wenn der Browser untätig ist. */
+/** Viewer, die der Browser im Leerlauf vorlädt. */
+const IDLE_VIEWERS = [
+  LazyMindmapViewer,
+  LazyFlashcardsViewer,
+  LazyQuizViewer,
+  LazyTimelineViewer,
+  LazyInfographicViewer,
+  LazyDataTableViewer
+];
+
+/**
+ * Video- und Audio-Player tragen Untertitel, Transkript und Audiodeskription (Issue #350).
+ * Sie laden erst, wenn jemand ein Studio-Werkzeug ansteuert (Zeiger oder Fokus), nicht im
+ * Leerlauf. So bleibt der Startaufwand im Skript-Budget.
+ */
+export function preloadMediaPlayers(): Promise<unknown> {
+  return Promise.all([LazyVideoOverviewPlayer.preload(), LazyInteractiveAudioHostPlayer.preload()]);
+}
+
+/** Lädt alle Studio-Viewer vorab, z. B. in Tests. */
 export async function preloadStudioViewers(): Promise<void> {
-  await Promise.all(
-    [
-      LazyMindmapViewer,
-      LazyFlashcardsViewer,
-      LazyQuizViewer,
-      LazyVideoOverviewPlayer,
-      LazyInteractiveAudioHostPlayer,
-      LazyTimelineViewer,
-      LazyInfographicViewer,
-      LazyDataTableViewer
-    ].map((viewer) => viewer.preload())
-  );
+  await Promise.all([...IDLE_VIEWERS.map((viewer) => viewer.preload()), preloadMediaPlayers()]);
+}
+
+/** Leerlauf-Vorladen ohne die Medien-Player. */
+async function preloadIdleViewers(): Promise<void> {
+  await Promise.all(IDLE_VIEWERS.map((viewer) => viewer.preload()));
 }
 
 type IdleScheduler = (callback: () => void) => void;
@@ -94,6 +107,6 @@ export function scheduleStudioViewerPreload(
       : setTimeout(callback, 2000)
 ): void {
   schedule(() => {
-    void preloadStudioViewers();
+    void preloadIdleViewers();
   });
 }
