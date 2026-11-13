@@ -29,6 +29,18 @@ Wir zählen, wie oft die App am Tag geöffnet wird. Dazu schickt der Browser bei
 
 Ob für diese Zählung eine Einwilligung nötig ist, hängt von § 25 TDDDG und Art. 6 DSGVO ab. Da nichts auf dem Gerät gespeichert oder ausgelesen wird und keine personenbezogenen Daten entstehen, gehen wir von keiner Einwilligungspflicht aus. Das ist eine technische Einschätzung, keine Rechtsberatung.
 
+## Google Tag Manager und Google Analytics 4 (nur mit Einwilligung)
+
+Standardmäßig ist kein Google-Dienst eingebunden. Erst wenn der Betreiber beim Build eine Container-ID setzt (`VITE_GTM_ID`), erscheint das Einwilligungsbanner. Ohne diese Variable lädt die App nichts von Google und zeigt kein Banner.
+
+- Solange keine Einwilligung vorliegt, wird `gtm.js` nicht geladen und es geht keine Anfrage an Google.
+- Nach „Alle akzeptieren“ oder aktivierter Messung unter „Anpassen“ setzt die App zuerst den Google Consent Mode v2 mit allen vier Signalen auf `denied` (`ad_storage`, `ad_user_data`, `ad_personalization`, `analytics_storage`) und erlaubt danach nur `analytics_storage`. Werbesignale bleiben verweigert.
+- Widerruf über „Cookie-Einstellungen“ in der Fußzeile: `analytics_storage` geht zurück auf `denied`, die Cookies `_ga`, `_ga_<ID>` und `_gid` werden gelöscht.
+- Die Content-Security-Policy des Workers erlaubt dafür `https://www.googletagmanager.com` als Skriptquelle und die GA4-Endpunkte für Verbindungen.
+- Search Console: Das Bestätigungs-Tag wird nur eingebaut, wenn `VITE_GSC_VERIFICATION` gesetzt ist.
+
+Rechtsgrundlage wäre die Einwilligung (§ 25 Abs. 1 TDDDG, Art. 6 Abs. 1 lit. a DSGVO). Google LLC verarbeitet Daten auch in den USA; vor dem Einschalten müssen Auftragsverarbeitungsvertrag, Drittlandübermittlung (EU-US Data Privacy Framework) und die Texte hier anwaltlich geprüft werden.
+
 ## Löschung
 
 Sie können Ihr Konto jederzeit löschen. Alle Datensätze und Dateien werden sofort entfernt. Im Wiederherstellungsverlauf der Datenbank (Cloudflare D1 Time Travel) bleiben sie technisch bedingt noch bis zu 30 Tage enthalten und sind danach endgültig gelöscht. Einzelheiten: [Löschkonzept](./loeschkonzept.md).
@@ -39,4 +51,4 @@ Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit, Widers
 
 ## Empfänger
 
-Cloudflare, Inc. als Auftragsverarbeiter für Hosting, Datenbank, Dateispeicher und Bot-Schutz (Turnstile). KI-Anbieter erhalten Inhalte nur, wenn Sie selbst einen eigenen Schlüssel hinterlegen und eine Anfrage stellen.
+Cloudflare, Inc. als Auftragsverarbeiter für Hosting, Datenbank, Dateispeicher und Bot-Schutz (Turnstile). Google Ireland Ltd./Google LLC nur, wenn der Betreiber den Tag Manager eingerichtet hat und Sie eingewilligt haben. KI-Anbieter erhalten Inhalte nur, wenn Sie selbst einen eigenen Schlüssel hinterlegen und eine Anfrage stellen.

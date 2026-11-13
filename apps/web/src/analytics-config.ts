@@ -19,3 +19,16 @@ export function readSiteVerification(raw: string | undefined): string | null {
   const value = raw?.trim() ?? "";
   return SITE_VERIFICATION_PATTERN.test(value) ? value : null;
 }
+
+/**
+ * Fügt das Search-Console-Meta-Tag in den <head> ein, wenn VITE_GSC_VERIFICATION gültig
+ * ist (Issue #260). Ohne gültiges Token bleibt das HTML unverändert.
+ */
+export function injectSiteVerification(html: string, raw: string | undefined): string {
+  const token = readSiteVerification(raw);
+  if (!token) return html;
+  return html.replace(
+    "</head>",
+    `  <meta name="google-site-verification" content="${token}" />\n  </head>`
+  );
+}

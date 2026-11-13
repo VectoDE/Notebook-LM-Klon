@@ -11,9 +11,12 @@ import { PrivacyCenter } from "./PrivacyCenter.js";
 import { QuizViewer } from "./QuizViewer.js";
 import { WorkspaceLayout } from "./WorkspaceLayout.js";
 import { readGtmId } from "./analytics-config.js";
+import { type GtmGlobal, gtmConsentHandler } from "./gtm.js";
 
 /** Einwilligung nur abfragen, wenn ein optionaler Dienst eingerichtet ist (Issue #261). */
 const OPTIONAL_SERVICES_CONFIGURED = readGtmId(import.meta.env.VITE_GTM_ID) !== null;
+// Stabiler Handler: lädt Google Tag Manager erst nach Einwilligung (Issue #260)
+const HANDLE_CONSENT = gtmConsentHandler(import.meta.env.VITE_GTM_ID, globalThis as GtmGlobal);
 
 const DEFAULT_MINDMAP: MindmapNode = {
   id: "cf_root",
@@ -88,7 +91,10 @@ export const App: FunctionComponent<AppProps> = ({
     // WorkspaceLayout bringt Kopfzeile (banner) und main selbst mit
     return (
       <>
-        <PrivacyCenter optionalServicesConfigured={OPTIONAL_SERVICES_CONFIGURED} />
+        <PrivacyCenter
+          optionalServicesConfigured={OPTIONAL_SERVICES_CONFIGURED}
+          onConsentChange={HANDLE_CONSENT}
+        />
         <WorkspaceLayout initialTool={initialTool} />
       </>
     );
