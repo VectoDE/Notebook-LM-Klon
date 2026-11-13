@@ -20,6 +20,7 @@ import { resolveAppConfig } from "./config.js";
 import { CoreRepository } from "./core-repository.js";
 import { createD1DatabaseAdapter } from "./d1-adapter.js";
 import { createDemoRoutes } from "./demo-routes.js";
+import { registerDocSyncRoutes } from "./doc-sync.js";
 import { createGuestAndMagicLinkRoutes } from "./guest-magic-link-routes.js";
 import { registerJobRoutes } from "./job-routes.js";
 import { createKeyVaultFromEnv } from "./key-vault.js";
@@ -258,6 +259,19 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
     recordQuotaUsage(llmQuota)
   );
   registerAudioRoutes(app, { ragRepo, coreRepo, keyVault });
+
+  // Yjs-Stand des Notebooks: lesen ab viewer, schreiben ab editor (Issue #347)
+  app.get(
+    "/api/v1/notebooks/:id/doc",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "viewer", "id")
+  );
+  app.post(
+    "/api/v1/notebooks/:id/doc",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "editor", "id")
+  );
+  registerDocSyncRoutes(app);
 
   // 5. Sources (editor for writes, viewer for download)
   app.use(
