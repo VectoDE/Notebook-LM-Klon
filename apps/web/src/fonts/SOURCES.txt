@@ -37,5 +37,13 @@ jetbrains-mono-latin-wght-normal.woff2
   Abruf:     https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono@5.3.0/files/jetbrains-mono-latin-wght-normal.woff2
   Lizenz:    JetBrainsMono-OFL.txt
 
+Pflichten aus der OFL 1.1 bei Weitergabe: Lizenztext und Copyright-Hinweis beilegen
+(public/fonts/LICENSES/, im Build unter /fonts/LICENSES/), Schriften nicht einzeln
+verkaufen. Die Dateien sind unverändert (Prüfsummen), daher greift die Regel zu
+Reserved Font Names (Source Serif 4: "Source") nicht.
+
+Hinweis: Diese Aufstellung ist keine Rechtsberatung. Bei Zweifeln zur Lizenz eine
+Anwältin oder einen Anwalt fragen.
+
 Bekannte Grenze: das große Eszett (U+1E9E) liegt nicht im Latin-Subset und fällt auf die
 Systemschrift zurück. Die Oberfläche nutzt es nicht.
