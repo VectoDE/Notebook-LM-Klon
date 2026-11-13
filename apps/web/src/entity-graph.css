@@ -1,0 +1,144 @@
+/* ==========================================================================
+   Beziehungsgraph (Issue #238). Baut auf den Wissensgraph-Stilen (.rn-graph-*) auf.
+   Unterscheidung ohne Farbe: Form je Art (rund, eckig, leicht abgerundet), Linienart je
+   Prüfstatus (durchgezogen = bestätigt, gestrichelt = zu prüfen, gepunktet = abgelehnt).
+   ========================================================================== */
+
+.rn-eg-node[data-status="suggested"] .rn-graph-box,
+.rn-graph-edge[data-status="suggested"] {
+  stroke-dasharray: 6 5;
+}
+
+.rn-eg-node[data-status="rejected"] .rn-graph-box,
+.rn-graph-edge[data-status="rejected"] {
+  stroke-dasharray: 2 4;
+}
+
+.rn-eg-node[data-status="rejected"] .rn-graph-label {
+  text-decoration: line-through;
+}
+
+.rn-eg-filter,
+.rn-eg-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2) var(--rn-space-4);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.rn-eg-filter > legend,
+.rn-eg-kinds > legend {
+  float: left;
+  margin-inline-end: var(--rn-space-2);
+  padding: 0;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-eg-check,
+.rn-eg-select {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rn-space-2);
+  min-height: 44px;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-eg-check input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--rn-color-primary);
+}
+
+.rn-eg-select select,
+.rn-eg-edit input,
+.rn-eg-edit select {
+  min-height: 44px;
+  padding: 0 var(--rn-space-3);
+  border: 1px solid var(--rn-color-border);
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-primary);
+  font: inherit;
+}
+
+.rn-eg-subtitle {
+  margin: 0;
+  font-size: var(--rn-text-body);
+  font-weight: 600;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-eg-relations {
+  display: grid;
+  gap: var(--rn-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-eg-relation {
+  display: grid;
+  gap: var(--rn-space-2);
+  padding: var(--rn-space-3);
+  border-radius: var(--rn-radius-lg);
+  border: 1px solid var(--rn-color-panel-border);
+  background: var(--rn-color-panel);
+}
+
+.rn-eg-relation[data-status="suggested"] {
+  border-style: dashed;
+}
+
+.rn-eg-relation-line,
+.rn-eg-status {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.rn-eg-status {
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-eg-evidence {
+  display: grid;
+  gap: var(--rn-space-1);
+  margin: 0;
+}
+
+.rn-eg-evidence blockquote {
+  margin: 0;
+  padding-inline-start: var(--rn-space-3);
+  border-inline-start: 3px solid var(--rn-color-border);
+  font-style: italic;
+  overflow-wrap: anywhere;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-eg-evidence figcaption {
+  font-size: var(--rn-text-small);
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-eg-edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--rn-space-3);
+}
+
+.rn-eg-edit label {
+  display: grid;
+  gap: var(--rn-space-1);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  color: var(--rn-color-text-secondary);
+}

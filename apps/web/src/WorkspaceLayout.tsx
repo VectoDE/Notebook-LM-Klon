@@ -112,6 +112,9 @@ export const DEFAULT_QUIZ: QuizQuestion[] = [
   }
 ];
 
+/** Demo-Beziehungsgraph (Issue #238), erst beim Umschalten geladen. */
+const loadDemoEntityGraph = () => import("./entity-graph-view.js").then((m) => m.DEMO_ENTITY_GRAPH);
+
 export const DEFAULT_SOURCES: WorkspaceSource[] = [
   {
     id: "src_1",
@@ -648,8 +651,11 @@ export function WorkspaceLayout({
    * Sprung aus dem Graphen in die Quellen. Unter 900 px verschwindet der Graph dabei aus dem
    * Bild: dann geht der Fokus in die Quellen, sonst bliebe er auf einem unsichtbaren Knopf.
    */
-  const jumpToSourceFromGraph = (sourceId: string) => {
-    handleCitationClick({ sourceId });
+  const jumpToSourceFromGraph = (sourceId: string) => jumpToCitationFromGraph({ sourceId });
+
+  /** Wie oben, mit Zitat: Die Quelle zeigt die belegte Stelle markiert (Issue #238). */
+  const jumpToCitationFromGraph = (citation: CitationLocation) => {
+    handleCitationClick(citation);
     if (!isSinglePanel) return;
     requestAnimationFrame(() => {
       if (document.activeElement?.closest("[data-panel='sources']")) return;
@@ -1055,6 +1061,9 @@ export function WorkspaceLayout({
               graph={knowledgeGraph}
               contentLang={DEFAULT_CONTENT_LANGS.sources}
               onSourceJump={jumpToSourceFromGraph}
+              entityGraph={loadDemoEntityGraph}
+              entitySources={sources}
+              onCitationJump={jumpToCitationFromGraph}
               onClose={isSinglePanel ? undefined : () => goToPanel("chat")}
               panelAttributes={panelAttributes("graph")}
             />
