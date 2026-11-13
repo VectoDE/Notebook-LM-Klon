@@ -40,7 +40,7 @@ import {
 import { chatToMarkdown } from "./chat-export.js";
 import { wipeLocalData } from "./encrypted-store.js";
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
-import { IngestFailure, type IngestResult, ingestFile } from "./ingest-client.js";
+import type { IngestResult } from "./ingest-client.js";
 import { buildKnowledgeGraph } from "./knowledge-graph.js";
 import {
   type CollapsedPanels,
@@ -62,6 +62,7 @@ import { documentLanguage, useTheme } from "./useTheme.js";
 import type {
   CitationLocation,
   PanelFocusAttributes,
+  SourceErrorCode,
   SourceStage,
   WorkspaceSource
 } from "./workspace-types.js";
@@ -263,7 +264,18 @@ export type SourceIngest = (
   onProgress: (stage: SourceStage, progress: number) => void
 ) => Promise<IngestResult>;
 
-const defaultIngest: SourceIngest = (file, onProgress) => ingestFile(file, { onProgress });
+/** Lädt den Ingest-Client erst beim ersten Upload nach; das Start-Bundle bleibt kleiner. */
+const defaultIngest: SourceIngest = async (file, onProgress) => {
+  const { ingestFile } = await import("./ingest-client.js");
+  return ingestFile(file, { onProgress });
+};
+
+/** Fehlercode eines IngestFailure, strukturell geprüft, damit der Client nicht statisch geladen wird. */
+function ingestErrorCodeOf(error: unknown): SourceErrorCode {
+  return error instanceof Error && error.name === "IngestFailure" && "code" in error
+    ? (error.code as SourceErrorCode)
+    : "failed";
+}
 
 /** Standardtitel des Demo-Notebooks, bis er umbenannt wird. */
 export const DEFAULT_NOTEBOOK_TITLE = "Cloudflare Edge Stack Architecture";
@@ -705,7 +717,7 @@ export function WorkspaceLayout({
         } catch (error) {
           updateSource(source.id, {
             status: "error",
-            errorCode: error instanceof IngestFailure ? error.code : "failed"
+            errorCode: ingestErrorCodeOf(error)
           });
           notify(tf("toastSourceFailed", { title: source.title }));
           return false;
