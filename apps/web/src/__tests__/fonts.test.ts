@@ -93,7 +93,12 @@ describe("Selbst gehostete Schriften (Issue #355)", () => {
       expect(entry, font.file).toMatch(
         new RegExp(`Familie:\\s+${font.family} \\d+\\.\\d+ \\(wght ${weights}\\)`)
       );
-      expect(entry).toMatch(/Upstream:\s+https:\/\/github\.com\//);
+      const upstream = entry
+        .split("\n")
+        .find((line) => line.trim().startsWith("Upstream:"))
+        ?.replace("Upstream:", "")
+        .trim();
+      expect(upstream?.startsWith("https://github.com/"), font.file).toBe(true);
       expect(entry).toMatch(new RegExp(`Lizenz:\\s+${font.license}`));
       // Copyright-Hinweis steht am Anfang des Lizenztexts
       expect(readFileSync(resolve(licenseDir, font.license), "utf8")).toMatch(/^Copyright /);
