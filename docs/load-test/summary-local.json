@@ -117,154 +117,146 @@
       "id": "d41d8cd98f00b204e9800998ecf8427e",
       "groups": [],
       "checks": [
-          {
-            "id": "f0d11e7f929f297b547841a0c2b20e8e",
-            "passes": 80,
-            "fails": 0,
-            "name": "guest(aktiv): 201 mit Notizbuch",
-            "path": "::guest(aktiv): 201 mit Notizbuch"
-          },
-          {
-            "name": "upload: 201 angelegt",
-            "path": "::upload: 201 angelegt",
-            "id": "f943d89c006953e8fde248e0d0c1ca53",
-            "passes": 240,
-            "fails": 0
-          },
-          {
-            "id": "04c1598433ed826cb0b3bd0fc40bd5e0",
-            "passes": 240,
-            "fails": 0,
-            "name": "upload: 200 Datei gespeichert",
-            "path": "::upload: 200 Datei gespeichert"
-          },
-          {
-            "name": "upload: 200 geprüft und bereit",
-            "path": "::upload: 200 geprüft und bereit",
-            "id": "4225f8592eb4f036d485b3e83f7f8f6a",
-            "passes": 240,
-            "fails": 0
-          },
-          {
-            "name": "upload: 200 Chunks gespeichert",
-            "path": "::upload: 200 Chunks gespeichert",
-            "id": "bb1b91444f9ff8907a89379a2e3b34a6",
-            "passes": 240,
-            "fails": 0
-          },
-          {
-            "id": "9963793a350980a497eabc7f99e9733e",
-            "passes": 2140,
-            "fails": 0,
-            "name": "health: 200",
-            "path": "::health: 200"
-          },
-          {
-            "name": "health: status ok",
-            "path": "::health: status ok",
-            "id": "306b558404ca471c9cc76d80c8f43399",
-            "passes": 2140,
-            "fails": 0
-          },
-          {
-            "passes": 60,
-            "fails": 0,
-            "name": "guest: 201",
-            "path": "::guest: 201",
-            "id": "26ad25013a696ed02ddb495caea93ec1"
-          },
-          {
-            "name": "providers: 200",
-            "path": "::providers: 200",
-            "id": "580a2851d0ac4686b14a07b6717d4a83",
-            "passes": 1904,
-            "fails": 0
-          },
-          {
-            "path": "::providers: Katalog",
-            "id": "81a81854e9ebaa9f1846cdec0466b8c4",
-            "passes": 1904,
-            "fails": 0,
-            "name": "providers: Katalog"
-          },
-          {
-            "name": "demo/info: 200",
-            "path": "::demo/info: 200",
-            "id": "b08f6189a9c30e87026aedd65450c878",
-            "passes": 2140,
-            "fails": 0
-          },
-          {
-            "name": "demo/info: Notebooks vorhanden",
-            "path": "::demo/info: Notebooks vorhanden",
-            "id": "0a1bdd40d9445bb584282896df1f638f",
-            "passes": 2140,
-            "fails": 0
-          },
-          {
-            "passes": 1904,
-            "fails": 0,
-            "name": "search(fts): 200",
-            "path": "::search(fts): 200",
-            "id": "5517501a27eaeb4732745d826f864d9a"
-          },
-          {
-            "id": "6872134d8313d0937b9b5a2d6772c02d",
-            "passes": 1289,
-            "fails": 0,
-            "name": "search(eigenes Notizbuch): 200",
-            "path": "::search(eigenes Notizbuch): 200"
-          },
-          {
-            "fails": 0,
-            "name": "SPA: 200 und HTML",
-            "path": "::SPA: 200 und HTML",
-            "id": "263a08fc76792df77ae3649812f4eccd",
-            "passes": 2140
-          },
-          {
-            "name": "jobs: 200",
-            "path": "::jobs: 200",
-            "id": "3f844df66bb9b73d6b73a5ac97161c6d",
-            "passes": 1904,
-            "fails": 0
-          },
-          {
-            "name": "chat: 200 als Stream",
-            "path": "::chat: 200 als Stream",
-            "id": "e7b660cc4c41387c85c8b8cc74f204da",
-            "passes": 1289,
-            "fails": 0
-          },
-          {
-            "name": "chat: Antwort-Token im Stream",
-            "path": "::chat: Antwort-Token im Stream",
-            "id": "2e43b6edd9bb9f3de704969d65aa3358",
-            "passes": 1289,
-            "fails": 0
-          },
-          {
-            "path": "::studio: 201 Job eingereiht",
-            "id": "e20625a9f2f6c575ebe1fbd4f1d25f8f",
-            "passes": 1289,
-            "fails": 0,
-            "name": "studio: 201 Job eingereiht"
-          }
-        ],
+        {
+          "id": "f0d11e7f929f297b547841a0c2b20e8e",
+          "passes": 80,
+          "fails": 0,
+          "name": "guest(aktiv): 201 mit Notizbuch",
+          "path": "::guest(aktiv): 201 mit Notizbuch"
+        },
+        {
+          "name": "upload: 201 angelegt",
+          "path": "::upload: 201 angelegt",
+          "id": "f943d89c006953e8fde248e0d0c1ca53",
+          "passes": 240,
+          "fails": 0
+        },
+        {
+          "id": "04c1598433ed826cb0b3bd0fc40bd5e0",
+          "passes": 240,
+          "fails": 0,
+          "name": "upload: 200 Datei gespeichert",
+          "path": "::upload: 200 Datei gespeichert"
+        },
+        {
+          "name": "upload: 200 geprüft und bereit",
+          "path": "::upload: 200 geprüft und bereit",
+          "id": "4225f8592eb4f036d485b3e83f7f8f6a",
+          "passes": 240,
+          "fails": 0
+        },
+        {
+          "name": "upload: 200 Chunks gespeichert",
+          "path": "::upload: 200 Chunks gespeichert",
+          "id": "bb1b91444f9ff8907a89379a2e3b34a6",
+          "passes": 240,
+          "fails": 0
+        },
+        {
+          "id": "9963793a350980a497eabc7f99e9733e",
+          "passes": 2140,
+          "fails": 0,
+          "name": "health: 200",
+          "path": "::health: 200"
+        },
+        {
+          "name": "health: status ok",
+          "path": "::health: status ok",
+          "id": "306b558404ca471c9cc76d80c8f43399",
+          "passes": 2140,
+          "fails": 0
+        },
+        {
+          "passes": 60,
+          "fails": 0,
+          "name": "guest: 201",
+          "path": "::guest: 201",
+          "id": "26ad25013a696ed02ddb495caea93ec1"
+        },
+        {
+          "name": "providers: 200",
+          "path": "::providers: 200",
+          "id": "580a2851d0ac4686b14a07b6717d4a83",
+          "passes": 1904,
+          "fails": 0
+        },
+        {
+          "path": "::providers: Katalog",
+          "id": "81a81854e9ebaa9f1846cdec0466b8c4",
+          "passes": 1904,
+          "fails": 0,
+          "name": "providers: Katalog"
+        },
+        {
+          "name": "demo/info: 200",
+          "path": "::demo/info: 200",
+          "id": "b08f6189a9c30e87026aedd65450c878",
+          "passes": 2140,
+          "fails": 0
+        },
+        {
+          "name": "demo/info: Notebooks vorhanden",
+          "path": "::demo/info: Notebooks vorhanden",
+          "id": "0a1bdd40d9445bb584282896df1f638f",
+          "passes": 2140,
+          "fails": 0
+        },
+        {
+          "passes": 1904,
+          "fails": 0,
+          "name": "search(fts): 200",
+          "path": "::search(fts): 200",
+          "id": "5517501a27eaeb4732745d826f864d9a"
+        },
+        {
+          "id": "6872134d8313d0937b9b5a2d6772c02d",
+          "passes": 1289,
+          "fails": 0,
+          "name": "search(eigenes Notizbuch): 200",
+          "path": "::search(eigenes Notizbuch): 200"
+        },
+        {
+          "fails": 0,
+          "name": "SPA: 200 und HTML",
+          "path": "::SPA: 200 und HTML",
+          "id": "263a08fc76792df77ae3649812f4eccd",
+          "passes": 2140
+        },
+        {
+          "name": "jobs: 200",
+          "path": "::jobs: 200",
+          "id": "3f844df66bb9b73d6b73a5ac97161c6d",
+          "passes": 1904,
+          "fails": 0
+        },
+        {
+          "name": "chat: 200 als Stream",
+          "path": "::chat: 200 als Stream",
+          "id": "e7b660cc4c41387c85c8b8cc74f204da",
+          "passes": 1289,
+          "fails": 0
+        },
+        {
+          "name": "chat: Antwort-Token im Stream",
+          "path": "::chat: Antwort-Token im Stream",
+          "id": "2e43b6edd9bb9f3de704969d65aa3358",
+          "passes": 1289,
+          "fails": 0
+        },
+        {
+          "path": "::studio: 201 Job eingereiht",
+          "id": "e20625a9f2f6c575ebe1fbd4f1d25f8f",
+          "passes": 1289,
+          "fails": 0,
+          "name": "studio: 201 Job eingereiht"
+        }
+      ],
       "name": "",
       "path": ""
     },
     "options": {
       "noColor": false,
-      "summaryTrendStats": [
-        "avg",
-        "min",
-        "med",
-        "p(90)",
-        "p(95)",
-        "p(99)",
-        "max"
-      ],
+      "summaryTrendStats": ["avg", "min", "med", "p(90)", "p(95)", "p(99)", "max"],
       "summaryTimeUnit": ""
     },
     "state": {
