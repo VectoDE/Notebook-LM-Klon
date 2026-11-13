@@ -18,6 +18,39 @@ import { OllamaLocalProvider } from "./ollama-provider.js";
 import type { RagRepository } from "./rag-repository.js";
 import { queryNotebookVectorSearch } from "./search-routes.js";
 
+/**
+ * Ehrliche Antwort, wenn die ausgewählten Quellen nichts zur Frage hergeben (Issue #243).
+ * Kein Modellaufruf: ohne Belege gibt es nichts, worauf eine Antwort sich stützen könnte.
+ */
+export const NO_EVIDENCE_ANSWER = {
+  de: "Dazu finde ich in den ausgewählten Quellen keine Angaben. Wähle weitere Quellen aus oder stelle die Frage anders.",
+  en: "I can't find anything about this in the selected sources. Select more sources or ask the question differently."
+} as const;
+
+/** Seitengröße des Verlaufs: Standard und Obergrenze je Anfrage (Issue #243). */
+export const HISTORY_PAGE_DEFAULT = 100;
+export const HISTORY_PAGE_MAX = 200;
+
+/** Cursor einer Nachricht für die Keyset-Paginierung: Zeitstempel und id. */
+export function encodeHistoryCursor(row: {
+  readonly created_at: number;
+  readonly id: string;
+}): string {
+  return `${row.created_at}~${row.id}`;
+}
+
+/** Liest einen Cursor; null bei ungültiger Form. */
+export function decodeHistoryCursor(
+  cursor: string
+): { readonly createdAt: number; readonly id: string } | null {
+  const sep = cursor.indexOf("~");
+  if (sep <= 0) return null;
+  const createdAt = Number(cursor.slice(0, sep));
+  const id = cursor.slice(sep + 1);
+  if (!Number.isSafeInteger(createdAt) || createdAt < 0 || id.length === 0) return null;
+  return { createdAt, id };
+}
+
 export interface ChatRoutesDependencies {
   readonly ragRepo: RagRepository;
   readonly coreRepo?: CoreRepository | undefined;
@@ -170,7 +203,8 @@ export function registerChatRoutes(
       chatId: existingChatId,
       model: requestedModel,
       sourceIds,
-      maxChunks
+      maxChunks,
+      language
     } = parseResult.data;
 
     // 1. Resolve or create chat
@@ -286,6 +320,43 @@ export function registerChatRoutes(
       }));
     }
 
+    // Keine Belege in den Quellen: ehrlich sagen, statt das Modell raten zu lassen (#243)
+    if (chunks.length === 0) {
+      const answer = NO_EVIDENCE_ANSWER[language ?? "de"];
+      const resolvedChatId = chatId;
+      return streamSSE(c, async (stream) => {
+        await stream.writeSSE({
+          event: "token",
+          data: JSON.stringify({ delta: answer, chatId: resolvedChatId })
+        });
+        await stream.writeSSE({
+          event: "citations",
+          data: JSON.stringify({
+            chatId: resolvedChatId,
+            citations: [],
+            validIndices: [],
+            hallucinatedIndices: []
+          })
+        });
+        const messageId = `msg_${crypto.randomUUID()}`;
+        await stream.writeSSE({
+          event: "done",
+          data: JSON.stringify({ chatId: resolvedChatId, messageId, noEvidence: true })
+        });
+        await deps.ragRepo.createMessage({
+          id: messageId,
+          chat_id: resolvedChatId,
+          role: "assistant",
+          content: answer,
+          citations_json: JSON.stringify([]),
+          latency_ms: 0,
+          token_usage_json: null,
+          ai_generated: 0,
+          created_at: Date.now()
+        });
+      });
+    }
+
     // 4. Build Grounded Context & System Prompt with Prompt Injection Neutralisation
     const grounded = buildGroundedContext(chunks);
 
@@ -334,6 +405,10 @@ export function registerChatRoutes(
     // 6. Return Server-Sent Events (SSE) Stream
     return streamSSE(c, async (stream) => {
       let fullAssistantText = "";
+      // Abbruch durch den Client (Stopp-Knopf oder Verbindungsende) beendet auch die
+      // Anfrage an das Modell; eine abgebrochene Antwort wird nicht gespeichert (#243).
+      const upstream = new AbortController();
+      stream.onAbort(() => upstream.abort());
 
       try {
         const streamIterable = provider.chatStream(
@@ -343,11 +418,13 @@ export function registerChatRoutes(
           ],
           {
             model: routingDecision.model,
-            apiKey
+            apiKey,
+            signal: upstream.signal
           }
         );
 
         for await (const chunk of streamIterable) {
+          if (upstream.signal.aborted) break;
           fullAssistantText += chunk.deltaText;
           await stream.writeSSE({
             event: "token",
@@ -358,6 +435,7 @@ export function registerChatRoutes(
           });
         }
 
+        if (upstream.signal.aborted) return;
         const latencyMs = Date.now() - startTime;
 
         // Sub-Issue #105: Validate citations & Hallucination validation
@@ -417,6 +495,7 @@ export function registerChatRoutes(
           created_at: Date.now()
         });
       } catch (err: unknown) {
+        if (upstream.signal.aborted) return;
         const errorMessage = (err as Error).message;
         await stream.writeSSE({
           event: "error",
@@ -480,7 +559,32 @@ export function registerChatRoutes(
       }
     }
 
-    const rawMessages = await deps.ragRepo.getMessagesByChat(chatId);
+    // Gesamtverlauf ohne Obergrenze, seitenweise: je Seite höchstens HISTORY_PAGE_MAX
+    // Nachrichten, ältere über nextCursor (Issue #243)
+    const limitParam = c.req.query("limit");
+    const beforeParam = c.req.query("before");
+    const limit = limitParam === undefined ? HISTORY_PAGE_DEFAULT : Number(limitParam);
+    const before = beforeParam === undefined ? undefined : decodeHistoryCursor(beforeParam);
+    if (!Number.isInteger(limit) || limit < 1 || limit > HISTORY_PAGE_MAX || before === null) {
+      const problem = createProblemDetails({
+        status: 422,
+        title: "Unprocessable Content",
+        detail: `limit muss zwischen 1 und ${HISTORY_PAGE_MAX} liegen, before ein gültiger Cursor sein.`,
+        instance: c.req.path,
+        code: "VALIDATION_ERROR"
+      });
+      return c.json(problem, 422, {
+        "content-type": "application/problem+json; charset=utf-8"
+      });
+    }
+
+    const page = await deps.ragRepo.getMessagesPage(chatId, limit, before);
+    const hasMore = page.length > limit;
+    const rawMessages = page.slice(0, limit).reverse();
+    // page ist absteigend sortiert: page[limit - 1] ist die älteste Nachricht dieser Seite
+    const nextCursor = hasMore
+      ? encodeHistoryCursor(page[limit - 1] as { created_at: number; id: string })
+      : null;
 
     const messages = rawMessages.map((m) => {
       let citations: Record<string, unknown>[] | null = null;
@@ -516,7 +620,8 @@ export function registerChatRoutes(
 
     const responsePayload: ChatMessagesResponse = {
       chatId,
-      messages
+      messages,
+      nextCursor
     };
 
     return c.json(responsePayload, 200, {

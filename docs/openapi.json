@@ -637,6 +637,28 @@
               "type": "string",
               "minLength": 1
             }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Nachrichten je Seite (Standard 100, höchstens 200); die Seite ist aufsteigend sortiert",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 100
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "description": "nextCursor der vorigen Antwort; liefert die nächstälteren Nachrichten",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         ],
         "responses": {
@@ -655,6 +677,9 @@
           },
           "404": {
             "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
           },
           "429": {
             "$ref": "#/components/responses/Problem429"
@@ -2752,6 +2777,11 @@
             "minimum": 0,
             "maximum": 2
           },
+          "language": {
+            "type": "string",
+            "enum": ["de", "en"],
+            "description": "Sprache der Oberfläche; bestimmt die ehrliche Antwort, wenn die Quellen nichts hergeben"
+          },
           "maxChunks": {
             "type": "integer",
             "minimum": 1,
@@ -2811,6 +2841,11 @@
             "items": {
               "$ref": "#/components/schemas/ChatMessage"
             }
+          },
+          "nextCursor": {
+            "type": ["string", "null"],
+            "minLength": 1,
+            "description": "Cursor für die nächstältere Seite (Parameter before); null, wenn es keine ältere Seite gibt"
           }
         }
       },

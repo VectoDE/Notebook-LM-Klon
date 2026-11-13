@@ -5146,3 +5146,9 @@ html[data-reduce-motion="true"][data-design] .rn-tool:hover {
 .rn-inspector:has(.rn-comments-region:not([hidden])) {
   max-height: none;
 }
+
+/* Chat: Verlauf als Markdown sichern (Issue #243) */
+.rn-chat-tools {
+  display: flex;
+  justify-content: flex-end;
+}
