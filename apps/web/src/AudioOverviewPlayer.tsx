@@ -186,7 +186,7 @@ export function AudioOverviewPlayer(props: AudioOverviewPlayerProps) {
   return (
     <section
       aria-labelledby={`${baseId}-title`}
-      className="audio-player-container audio-overview"
+      className="audio-overview"
       data-testid="audio-overview"
       onKeyDown={onKeyDown}
     >
@@ -243,7 +243,7 @@ export function AudioOverviewPlayer(props: AudioOverviewPlayerProps) {
         </label>
         <button
           type="button"
-          className="btn-play-pause"
+          className="audio-overview-btn audio-overview-btn--primary"
           onClick={generate}
           disabled={!hasSources}
           data-testid="audio-overview-generate"
@@ -281,7 +281,7 @@ export function AudioOverviewPlayer(props: AudioOverviewPlayerProps) {
             <legend className="sr-only">{txt.controls}</legend>
             <button
               type="button"
-              className="btn-interject"
+              className="audio-overview-btn"
               onClick={() => run("previous")}
               disabled={playerDisabled || currentIndex === 0}
               aria-keyshortcuts="ArrowLeft J"
@@ -291,7 +291,7 @@ export function AudioOverviewPlayer(props: AudioOverviewPlayerProps) {
             </button>
             <button
               type="button"
-              className="btn-play-pause"
+              className="audio-overview-btn audio-overview-btn--primary"
               onClick={() => run("toggle")}
               disabled={playerDisabled}
               aria-keyshortcuts="Space K"
@@ -301,7 +301,7 @@ export function AudioOverviewPlayer(props: AudioOverviewPlayerProps) {
             </button>
             <button
               type="button"
-              className="btn-interject"
+              className="audio-overview-btn"
               onClick={() => run("next")}
               disabled={playerDisabled || currentIndex >= total - 1}
               aria-keyshortcuts="ArrowRight L"
@@ -311,7 +311,7 @@ export function AudioOverviewPlayer(props: AudioOverviewPlayerProps) {
             </button>
             <button
               type="button"
-              className="btn-cancel"
+              className="audio-overview-btn"
               onClick={() => run("stop")}
               disabled={playerDisabled || playback === "idle"}
               aria-keyshortcuts="Escape"
