@@ -5,6 +5,7 @@ import type { AuditLogger } from "./audit-log.js";
 import { requireAuth } from "./auth-middleware.js";
 import type { CoreRepository } from "./core-repository.js";
 import type { PasskeyService } from "./passkey-service.js";
+import { resolveClientIp } from "./rate-limiter.js";
 import { type SessionManager, buildSessionCookie } from "./session.js";
 
 export function createPasskeyRoutes(opts: {
@@ -153,7 +154,7 @@ export function createPasskeyRoutes(opts: {
       }
 
       // Create new session & rotate
-      const ip = c.req.header("cf-connecting-ip") ?? null;
+      const ip = resolveClientIp(c) ?? null;
       const ua = c.req.header("user-agent") ?? null;
       const session = await opts.sessionManager.createSession(result.user.id, ip, ua);
       await opts.auditLogger?.record(c, {
