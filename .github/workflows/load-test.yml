@@ -89,6 +89,7 @@ jobs:
           "$K6_BIN" run load-test/k6/scenarios.js \
             -e PROFILE=smoke -e BASE_URL="$LIVE_URL" -e SMOKE_VUS=3 -e SMOKE_DURATION=30s \
             -e REPORT_DIR=load-test/results -e K6_VERSION="$K6_VERSION_TEXT"
+          node load-test/render-report.mjs load-test/results/summary-smoke.json             load-test/results/report-smoke.html
 
       - name: Upload Lasttest-Reports
         if: ${{ always() }}

@@ -104,9 +104,14 @@ try {
       K6_VERSION: k6Version,
       K6_WEB_DASHBOARD: "true",
       K6_WEB_DASHBOARD_PORT: "-1",
-      K6_WEB_DASHBOARD_EXPORT: join(outDir, "report-local.html")
+      K6_WEB_DASHBOARD_EXPORT: join(outDir, "report-local-k6.html")
     }
   });
+  run(process.execPath, [
+    join(root, "load-test", "render-report.mjs"),
+    join(outDir, "summary-local.json"),
+    join(outDir, "report-local.html")
+  ]);
   exitCode = 0;
 } catch (error) {
   console.error(String(error));
