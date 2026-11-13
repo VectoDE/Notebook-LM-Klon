@@ -22,6 +22,7 @@ import { GraphViewer } from "./GraphViewer.js";
 import { Icon, type IconName } from "./Icon.js";
 import { NotebookTitle } from "./NotebookTitle.js";
 import { PanelRail, PanelToggle, RailButton } from "./PanelRail.js";
+import { LegalFooter } from "./PrivacyCenter.js";
 import { SettingsDrawer } from "./SettingsDrawer.js";
 import { ShareDialog } from "./ShareDialog.js";
 import { SignInDialog } from "./SignInDialog.js";
@@ -1096,6 +1097,9 @@ export function WorkspaceLayout({
           </div>
         </div>
       </main>
+
+      {/* Datenschutz und Cookie-Einstellungen (Widerruf), jederzeit erreichbar (Issue #261) */}
+      <LegalFooter />
 
       {/* Untere Reiterleiste (unter 600 px): im Daumenbereich, Symbol und Kurzname */}
       <nav aria-label={t("navAreas")} data-testid="mobile-bottom-nav" className="mobile-bottom-nav">

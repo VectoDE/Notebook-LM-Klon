@@ -1,0 +1,193 @@
+/* ==========================================================================
+   Einwilligungsbanner, Cookie-Einstellungen, Datenschutzhinweise, Fußzeile
+   (Issue #261). Alle drei Banner-Knöpfe teilen eine Klasse: gleiche Größe,
+   Farbe, Schriftstärke; keiner ist hervorgehoben.
+   ========================================================================== */
+.rn-consent-banner {
+  position: fixed;
+  z-index: 60;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: 16px;
+  display: grid;
+  gap: var(--rn-space-3);
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--rn-space-5);
+  border: 1px solid var(--rn-color-panel-border);
+  border-radius: var(--rn-radius-lg, 16px);
+  background: var(--rn-color-panel);
+  box-shadow: 0 12px 40px var(--rn-color-panel-shadow, rgb(0 0 0 / 0.18));
+  color: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-ui);
+}
+
+.rn-consent-title,
+.rn-privacy-title {
+  margin: 0;
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-h3, 1.25rem);
+  font-weight: var(--rn-weight-heading, 700);
+  line-height: 1.3;
+}
+
+.rn-consent-text,
+.rn-privacy-text {
+  margin: 0;
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  line-height: 1.55;
+}
+
+.rn-consent-link,
+.rn-legal-link {
+  display: inline;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--rn-color-primary);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.rn-consent-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--rn-space-2);
+}
+
+/* Eine Klasse für alle drei Wahlmöglichkeiten: absichtlich keine primäre Variante */
+.rn-consent-choice {
+  width: 100%;
+  background: var(--rn-color-panel);
+  border-color: var(--rn-color-border);
+  color: var(--rn-color-text-primary);
+  font-weight: 600;
+}
+
+.rn-consent-choice:hover {
+  background: var(--rn-color-surface-variant);
+}
+
+.rn-consent-choice:focus-visible,
+.rn-consent-link:focus-visible,
+.rn-legal-link:focus-visible {
+  outline: 3px solid var(--rn-color-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 599.98px) {
+  .rn-consent-banner {
+    right: 8px;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    left: 8px;
+    padding: var(--rn-space-4);
+  }
+  .rn-consent-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rn-privacy-card {
+  display: grid;
+  gap: var(--rn-space-4);
+  max-width: 640px;
+  /* Lange Hinweise scrollen in der Karte; der Schließen-Knopf bleibt erreichbar */
+  max-height: calc(100dvh - 2 * var(--rn-space-4));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.rn-privacy-head {
+  position: sticky;
+  top: calc(-1 * var(--rn-space-6));
+  z-index: 1;
+  margin: calc(-1 * var(--rn-space-6)) calc(-1 * var(--rn-space-6)) 0;
+  padding: var(--rn-space-6) var(--rn-space-6) var(--rn-space-2);
+  background: var(--rn-color-panel);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rn-space-3);
+}
+
+.rn-privacy-form {
+  display: grid;
+  gap: var(--rn-space-3);
+}
+
+.rn-privacy-option {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: var(--rn-space-3);
+  align-items: start;
+  padding: var(--rn-space-3);
+  border: 1px solid var(--rn-color-panel-border);
+  border-radius: var(--rn-radius-md, 12px);
+}
+
+.rn-privacy-option input {
+  width: 22px;
+  height: 22px;
+  margin: 2px 0 0;
+  accent-color: var(--rn-color-accent);
+}
+
+.rn-privacy-option-label {
+  display: block;
+  color: var(--rn-color-text-primary);
+  font-weight: 700;
+}
+
+.rn-privacy-option-desc {
+  display: block;
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+}
+
+.rn-privacy-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.rn-privacy-section {
+  display: grid;
+  gap: var(--rn-space-2);
+}
+
+.rn-privacy-section-title {
+  margin: 0;
+  color: var(--rn-color-text-primary);
+  font-size: var(--rn-text-base);
+  font-weight: 700;
+}
+
+.rn-privacy-disclaimer {
+  font-style: italic;
+}
+
+.rn-legal-footer {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--rn-space-4);
+  padding: 0 16px;
+  border-top: 1px solid var(--rn-color-panel-border);
+  background: var(--rn-color-canvas);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+}
+
+/* Trefferfläche 44 px wie alle Bedienelemente der App (WCAG 2.5.5) */
+.rn-legal-footer .rn-legal-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--rn-space-2);
+  color: var(--rn-color-text-secondary);
+}

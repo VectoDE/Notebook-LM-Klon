@@ -18,6 +18,12 @@
   ],
   "tags": [
     {
+      "name": "Analyse"
+    },
+    {
+      "name": "Konto"
+    },
+    {
       "name": "System"
     },
     {
@@ -1526,6 +1532,100 @@
           },
           "503": {
             "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/me": {
+      "delete": {
+        "operationId": "deleteOwnAccount",
+        "tags": ["Konto"],
+        "summary": "Eigenes Konto sofort löschen (Art. 17 DSGVO)",
+        "description": "Löscht das Konto mit allen D1-Datensätzen und R2-Objekten in derselben Anfrage und setzt das Sitzungscookie zurück. Backups (D1 Time Travel) laufen nach spätestens 30 Tagen aus, siehe docs/loeschkonzept.md.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["confirm"],
+                "properties": {
+                  "confirm": {
+                    "const": "DELETE_MY_ACCOUNT"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Konto gelöscht",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["deleted", "deletedNotebooks", "deletedR2Objects"],
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean"
+                    },
+                    "deletedNotebooks": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "deletedR2Objects": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          }
+        }
+      }
+    },
+    "/api/v1/metrics": {
+      "post": {
+        "operationId": "countUsage",
+        "tags": ["Analyse"],
+        "summary": "Seitenaufruf cookielos zählen",
+        "description": "Öffentlich. Erhöht einen Tageszähler je Messgröße. Liest weder Cookie, Sitzung noch IP-Adresse und setzt kein Cookie.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["metric"],
+                "properties": {
+                  "metric": {
+                    "enum": ["page_view"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Gezählt"
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
           }
         }
       }

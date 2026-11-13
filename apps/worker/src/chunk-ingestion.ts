@@ -5,6 +5,7 @@ import {
   quantizeFloat32ToInt8
 } from "@notebook-lm/shared";
 import type { Hono } from "hono";
+import type { AuditLogger } from "./audit-log.js";
 import { resolveAppConfig } from "./config.js";
 import type { CoreRepository } from "./core-repository.js";
 import type { RagRepository } from "./rag-repository.js";
@@ -16,6 +17,8 @@ export interface ChunkIngestionRoutesDependencies {
   ragRepo: RagRepository;
   coreRepo?: CoreRepository | undefined;
   d1Database?: D1Database | undefined;
+  /** Security audit log (Issue #259); source deletions are recorded when set. */
+  auditLogger?: AuditLogger | undefined;
 }
 
 /**
@@ -372,6 +375,11 @@ export function registerChunkIngestionRoutes(
 
     // Delete source in database (cascades to chunks, chunk_vectors, and FTS triggers)
     await ragRepo.deleteSource(sourceId);
+    await deps.auditLogger?.record(c, {
+      userId: sessionUser.id,
+      action: "source.delete",
+      target: `source:${sourceId}`
+    });
 
     // Delete R2 media if key exists
     if (source.r2_key && c.env.MEDIA) {
