@@ -1,0 +1,3081 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "RelationNotes API",
+    "version": "0.1.0",
+    "summary": "HTTP-API des RelationNotes-Workers (NotebookLM & RelationFlow Knowledge Studio)",
+    "description": "Alle Endpunkte liegen unter `/api/v1`. Fehler folgen RFC 9457 (`application/problem+json`). Bis auf die als öffentlich markierten Endpunkte ist eine Sitzung (Cookie) nötig; schreibende Aufrufe prüfen zusätzlich die Notebook-Rolle (viewer, editor, owner). Neue Routen müssen hier eingetragen werden: `packages/shared/src/__tests__/openapi.test.ts` schlägt sonst fehl.",
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8787",
+      "description": "Lokale Entwicklung (wrangler dev)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "System"
+    },
+    {
+      "name": "Demo"
+    },
+    {
+      "name": "Auth"
+    },
+    {
+      "name": "Chat"
+    },
+    {
+      "name": "Suche"
+    },
+    {
+      "name": "Studio"
+    },
+    {
+      "name": "Quellen"
+    },
+    {
+      "name": "Modelle"
+    },
+    {
+      "name": "Jobs"
+    },
+    {
+      "name": "BYOK"
+    }
+  ],
+  "security": [
+    {
+      "sessionCookie": []
+    }
+  ],
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "getHealth",
+        "tags": ["System"],
+        "summary": "Gesundheitsstatus des Workers",
+        "description": "Öffentlich. Prüft D1, R2 und Durable Objects. `status` ist `ok` oder `degraded`.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/demo/info": {
+      "get": {
+        "operationId": "getDemoInfo",
+        "tags": ["Demo"],
+        "summary": "Demo-Workspace und Notebooks",
+        "description": "Öffentlich. Liefert die Demo-Notebooks und den Demo-Hinweis (Header und Body).",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoInfoResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/demo/seed": {
+      "post": {
+        "operationId": "seedDemo",
+        "tags": ["Demo"],
+        "summary": "Demo-Notebooks für die Sitzung anlegen",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": ["viewer", "editor"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoSeedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/guest": {
+      "post": {
+        "operationId": "createGuestSession",
+        "tags": ["Auth"],
+        "summary": "Gastzugang mit Turnstile-Prüfung",
+        "description": "Setzt das Sitzungs-Cookie. Ohne konfigurierten Turnstile-Schlüssel antwortet der Dienst mit 503 (fail-closed).",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Gastsitzung erstellt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestSessionResponse"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "HttpOnly-Sitzungs-Cookie"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/magic-link": {
+      "post": {
+        "operationId": "requestMagicLink",
+        "tags": ["Auth"],
+        "summary": "Anmeldelink per E-Mail anfordern",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MagicLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MagicLinkSentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "500": {
+            "description": "E-Mail-Zustellung fehlgeschlagen.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/magic-link/callback": {
+      "get": {
+        "operationId": "magicLinkCallback",
+        "tags": ["Auth"],
+        "summary": "Magic-Link einlösen",
+        "security": [],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sitzung erstellt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthVerifiedResponse"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "HttpOnly-Sitzungs-Cookie"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkey/register/options": {
+      "post": {
+        "operationId": "passkeyRegisterOptions",
+        "tags": ["Auth"],
+        "summary": "WebAuthn-Registrierungsoptionen",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "PublicKeyCredentialCreationOptionsJSON (WebAuthn)"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkey/register/verify": {
+      "post": {
+        "operationId": "passkeyRegisterVerify",
+        "tags": ["Auth"],
+        "summary": "WebAuthn-Registrierung bestätigen",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "RegistrationResponseJSON (WebAuthn)"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["verified", "upgradedToPermanent"],
+                  "properties": {
+                    "verified": {
+                      "type": "boolean"
+                    },
+                    "upgradedToPermanent": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkey/login/options": {
+      "post": {
+        "operationId": "passkeyLoginOptions",
+        "tags": ["Auth"],
+        "summary": "WebAuthn-Anmeldeoptionen",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "PublicKeyCredentialRequestOptionsJSON (WebAuthn)"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkey/login/verify": {
+      "post": {
+        "operationId": "passkeyLoginVerify",
+        "tags": ["Auth"],
+        "summary": "WebAuthn-Anmeldung bestätigen",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "AuthenticationResponseJSON (WebAuthn)"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sitzung erstellt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthVerifiedResponse"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "HttpOnly-Sitzungs-Cookie"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/chat": {
+      "post": {
+        "operationId": "chatWithNotebook",
+        "tags": ["Chat"],
+        "summary": "Quellenbasierter Chat (Server-Sent Events)",
+        "description": "Streamt die Antwort als `text/event-stream`. Mindestrolle: viewer. Zählt auf das LLM-Kontingent.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SSE-Stream mit Antwort-Chunks, Zitaten und EU-AI-Act-Metadaten.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/chats/{id}/messages": {
+      "get": {
+        "operationId": "listChatMessages",
+        "tags": ["Chat"],
+        "summary": "Nachrichten eines Chats",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Chat-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessagesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/search": {
+      "post": {
+        "operationId": "searchNotebook",
+        "tags": ["Suche"],
+        "summary": "Eigenständige RAG-Suche (hybrid, vector, fts)",
+        "description": "Hybrid aus Vektorsuche und FTS5-BM25 mit Reciprocal Rank Fusion. Mindestrolle: viewer. Für Agenten wie RelationFlow als Wissens-Tool gedacht.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/audio-interject": {
+      "post": {
+        "operationId": "audioInterject",
+        "tags": ["Studio"],
+        "summary": "Live-Rückfrage im Audio-Overview",
+        "description": "Mindestrolle: viewer. Zählt auf das LLM-Kontingent.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioInterjectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioInterjectResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "502": {
+            "$ref": "#/components/responses/Problem502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/sources": {
+      "post": {
+        "operationId": "initSourceUpload",
+        "tags": ["Quellen"],
+        "summary": "Upload einer Quelle einleiten",
+        "description": "Legt die Quelle mit Status `uploading` an. Mindestrolle: editor. Erlaubte Typen werden serverseitig geprüft.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceInitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Quelle angelegt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceInitResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "415": {
+            "description": "Dateityp nicht unterstützt.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/sources/url": {
+      "post": {
+        "operationId": "importSourceFromUrl",
+        "tags": ["Quellen"],
+        "summary": "Quelle aus einer URL importieren",
+        "description": "SSRF-geschützter Abruf. Mindestrolle: editor.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportUrlRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Quelle importiert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportUrlResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "502": {
+            "$ref": "#/components/responses/Problem502"
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{id}/upload": {
+      "put": {
+        "operationId": "uploadSourceFile",
+        "tags": ["Quellen"],
+        "summary": "Datei über den Worker hochladen",
+        "description": "Fallback, wenn keine vorsignierte R2-URL konfiguriert ist. `Content-Length` ist Pflicht. Mindestrolle: editor.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Quellen-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["status", "sourceId", "etag"],
+                  "properties": {
+                    "status": {
+                      "const": "uploaded"
+                    },
+                    "sourceId": {
+                      "type": "string"
+                    },
+                    "etag": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "411": {
+            "description": "Content-Length fehlt.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{id}/upload/complete": {
+      "post": {
+        "operationId": "completeSourceUpload",
+        "tags": ["Quellen"],
+        "summary": "Upload abschließen (Magic-Byte-Prüfung)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Quellen-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["status", "sourceId", "verified"],
+                  "properties": {
+                    "status": {
+                      "const": "ready"
+                    },
+                    "sourceId": {
+                      "type": "string"
+                    },
+                    "verified": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "415": {
+            "description": "Dateiinhalt passt nicht zum Typ.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{id}/file": {
+      "get": {
+        "operationId": "downloadSourceFile",
+        "tags": ["Quellen"],
+        "summary": "Quelldatei herunterladen",
+        "description": "Mindestrolle: viewer. Antwort mit `Content-Disposition: attachment` und `X-Content-Type-Options: nosniff`.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Quellen-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dateiinhalt",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{id}/chunks": {
+      "post": {
+        "operationId": "ingestChunks",
+        "tags": ["Quellen"],
+        "summary": "Text-Chunks und Vektoren einspielen",
+        "description": "Der Browser zerlegt Dateien und sendet Chunks mit int8-quantisierten oder float32-Vektoren. Mindestrolle: editor.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Quellen-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngestChunksRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestChunksResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{id}": {
+      "delete": {
+        "operationId": "deleteSource",
+        "tags": ["Quellen"],
+        "summary": "Quelle löschen",
+        "description": "Mindestrolle: editor.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Quellen-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "deletedSourceId", "notebookId"],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "deletedSourceId": {
+                      "type": "string"
+                    },
+                    "notebookId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/providers": {
+      "get": {
+        "operationId": "listProviders",
+        "tags": ["Modelle"],
+        "summary": "Anbieter-Katalog und Standard-Routing",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["providers", "autoDecisionDefault"],
+                  "properties": {
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    },
+                    "autoDecisionDefault": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/providers/route": {
+      "post": {
+        "operationId": "routeModel",
+        "tags": ["Modelle"],
+        "summary": "Auto-Modell-Router: Entscheidung berechnen",
+        "description": "Bei Datenschutzmodus oder `forceLocal` wählt der Router ein lokales Modell.",
+        "security": [],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "privacyMode": {
+                    "type": "boolean"
+                  },
+                  "forceLocal": {
+                    "type": "boolean"
+                  },
+                  "availableKeys": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "task": {
+                    "type": "string",
+                    "enum": ["chat", "tts", "coding", "embedding", "analysis"]
+                  },
+                  "estimatedTokens": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "preferredModel": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "description": "RouteModelDecision"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/providers/ollama/probe": {
+      "get": {
+        "operationId": "probeOllama",
+        "tags": ["Modelle"],
+        "summary": "Erreichbarkeit von Ollama prüfen",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/enqueue": {
+      "post": {
+        "operationId": "enqueueJob",
+        "tags": ["Jobs"],
+        "summary": "Studio-Job einreihen",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueueJobRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Job eingereiht",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/jobs": {
+      "get": {
+        "operationId": "listJobs",
+        "tags": ["Jobs"],
+        "summary": "Jobs eines Notebooks auflisten",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "notebookId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/JobStatus"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/JobKind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobRecord"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{id}": {
+      "get": {
+        "operationId": "getJob",
+        "tags": ["Jobs"],
+        "summary": "Job-Status (derzeit nicht freigegeben)",
+        "description": "Antwortet bewusst mit einem Problem-Detail, bis die Besitzprüfung vorhanden ist.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Job-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{id}/cancel": {
+      "post": {
+        "operationId": "cancelJob",
+        "tags": ["Jobs"],
+        "summary": "Job abbrechen (derzeit nicht freigegeben)",
+        "description": "Antwortet bewusst mit einem Problem-Detail, bis die Besitzprüfung vorhanden ist.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Job-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/keys": {
+      "get": {
+        "operationId": "listKeys",
+        "tags": ["BYOK"],
+        "summary": "Eigene API-Schlüssel (nur Metadaten)",
+        "description": "Schlüssel werden nie im Klartext zurückgegeben.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BYOKKeyList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/keys/{provider}": {
+      "put": {
+        "operationId": "putKey",
+        "tags": ["BYOK"],
+        "summary": "API-Schlüssel speichern (AES-256-GCM)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderType"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BYOKPutKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BYOKKeyMetadata"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteKey",
+        "tags": ["BYOK"],
+        "summary": "API-Schlüssel löschen",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderType"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "message"],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/keys/{provider}/test": {
+      "post": {
+        "operationId": "testKey",
+        "tags": ["BYOK"],
+        "summary": "Gespeicherten Schlüssel beim Anbieter testen",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderType"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BYOKKeyTestResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "description": "Schlüssel ungültig",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BYOKKeyTestResult"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/keys/rekey": {
+      "post": {
+        "operationId": "rekeyKeys",
+        "tags": ["BYOK"],
+        "summary": "Schlüssel auf die aktuelle KEK-Version umschlüsseln",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BYOKRekeyResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/providers/custom": {
+      "get": {
+        "operationId": "getCustomEndpoint",
+        "tags": ["Modelle"],
+        "summary": "Eigenen OpenAI-kompatiblen Endpunkt lesen (ohne Schlüssel)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomEndpointState"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      },
+      "put": {
+        "operationId": "putCustomEndpoint",
+        "tags": ["Modelle"],
+        "summary": "Eigenen OpenAI-kompatiblen Endpunkt speichern",
+        "description": "Nur HTTPS auf Hosts aus `BYOM_ALLOWED_HOSTS`; private, lokale und reservierte Adressen werden abgelehnt. Den Schlüssel speichert `PUT /api/v1/keys/custom`.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomEndpointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomEndpointSaved"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteCustomEndpoint",
+        "tags": ["Modelle"],
+        "summary": "Eigenen Endpunkt und zugehörigen Schlüssel löschen",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["configured"],
+                  "properties": {
+                    "configured": {
+                      "type": "boolean",
+                      "const": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/providers/custom/test": {
+      "post": {
+        "operationId": "testCustomEndpoint",
+        "tags": ["Modelle"],
+        "summary": "Verbindung zum eigenen Endpunkt testen (GET /models)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomEndpointTestResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "description": "Verbindung fehlgeschlagen oder Schlüssel nicht lesbar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomEndpointTestResult"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-sid",
+        "description": "HttpOnly-Sitzungs-Cookie, gesetzt durch /api/v1/auth/*. Lokal über HTTP heißt es `sid`."
+      }
+    },
+    "responses": {
+      "Problem400": {
+        "description": "Ungültige Anfrage (z. B. kein gültiges JSON).",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "Problem401": {
+        "description": "Keine gültige Sitzung.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "Problem403": {
+        "description": "Keine Berechtigung für diese Aktion.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "Problem404": {
+        "description": "Ressource nicht gefunden (auch bei fehlendem Zugriff, um IDOR zu vermeiden).",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "Problem413": {
+        "description": "Datei oder Text überschreitet das Limit.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "Problem422": {
+        "description": "Validierungsfehler.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "Problem429": {
+        "description": "Rate-Limit überschritten.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "Problem502": {
+        "description": "Upstream-Fehler.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "Problem503": {
+        "description": "Dienst nicht konfiguriert oder nicht verfügbar (fail-closed).",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ProblemDetails": {
+        "type": "object",
+        "description": "RFC 9457 Problem Details (application/problem+json).",
+        "required": ["type", "title", "status", "detail"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "default": "about:blank"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["field", "message"],
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ServiceStatus": {
+        "type": "string",
+        "enum": ["ok", "degraded", "down"]
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": ["status", "version", "profile", "timestamp", "services"],
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ServiceStatus"
+          },
+          "version": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "string",
+            "enum": ["demo", "full"]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "services": {
+            "type": "object",
+            "required": ["d1", "r2", "durableObjects"],
+            "properties": {
+              "d1": {
+                "$ref": "#/components/schemas/ServiceStatus"
+              },
+              "r2": {
+                "$ref": "#/components/schemas/ServiceStatus"
+              },
+              "durableObjects": {
+                "$ref": "#/components/schemas/ServiceStatus"
+              }
+            }
+          }
+        }
+      },
+      "DemoInfoResponse": {
+        "type": "object",
+        "required": ["workspaceId", "notebooks", "hasDemoKey", "disclaimer"],
+        "properties": {
+          "workspaceId": {
+            "type": "string"
+          },
+          "notebooks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "hasDemoKey": {
+            "type": "boolean"
+          },
+          "disclaimer": {
+            "type": "string"
+          }
+        }
+      },
+      "DemoSeedResponse": {
+        "type": "object",
+        "required": ["success", "workspaceId", "notebookIds", "metrics"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "notebookIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "metrics": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "GuestRequest": {
+        "type": "object",
+        "required": ["turnstileToken"],
+        "properties": {
+          "turnstileToken": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          }
+        }
+      },
+      "MagicLinkRequest": {
+        "type": "object",
+        "required": ["email", "turnstileToken"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "turnstileToken": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          }
+        }
+      },
+      "MagicLinkSentResponse": {
+        "type": "object",
+        "required": ["message", "expiresInSeconds"],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "AuthUser": {
+        "type": "object",
+        "required": ["id", "isGuest"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": ["string", "null"]
+          },
+          "displayName": {
+            "type": ["string", "null"]
+          },
+          "locale": {
+            "type": "string"
+          },
+          "isGuest": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "type": "integer"
+          }
+        }
+      },
+      "GuestSessionResponse": {
+        "type": "object",
+        "required": ["user", "defaultWorkspaceId", "demoWorkspaceId", "demoNotebookId"],
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AuthUser"
+          },
+          "defaultWorkspaceId": {
+            "type": "string"
+          },
+          "demoWorkspaceId": {
+            "type": "string"
+          },
+          "demoNotebookId": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthVerifiedResponse": {
+        "type": "object",
+        "required": ["verified", "user"],
+        "properties": {
+          "verified": {
+            "type": "boolean"
+          },
+          "user": {
+            "$ref": "#/components/schemas/AuthUser"
+          }
+        }
+      },
+      "ChatRequest": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32000
+          },
+          "chatId": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "sourceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "temperature": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "maxChunks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10
+          }
+        }
+      },
+      "ChatMessage": {
+        "type": "object",
+        "required": ["id", "chatId", "role", "content", "aiGenerated", "createdAt"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "chatId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant", "system"]
+          },
+          "content": {
+            "type": "string"
+          },
+          "citations": {
+            "type": ["array", "null"],
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "latencyMs": {
+            "type": ["number", "null"]
+          },
+          "tokenUsage": {
+            "type": ["object", "null"],
+            "additionalProperties": true
+          },
+          "aiGenerated": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "integer"
+          }
+        }
+      },
+      "ChatMessagesResponse": {
+        "type": "object",
+        "required": ["chatId", "messages"],
+        "properties": {
+          "chatId": {
+            "type": "string"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            }
+          }
+        }
+      },
+      "SearchMode": {
+        "type": "string",
+        "enum": ["hybrid", "vector", "fts"],
+        "default": "hybrid"
+      },
+      "SearchRequest": {
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1
+          },
+          "queryVector": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          },
+          "sourceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mode": {
+            "$ref": "#/components/schemas/SearchMode"
+          }
+        }
+      },
+      "SearchCitation": {
+        "type": "object",
+        "required": ["chunkId", "sourceId", "sourceTitle", "page", "score", "snippet"],
+        "properties": {
+          "chunkId": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "sourceTitle": {
+            "type": "string"
+          },
+          "page": {
+            "type": ["integer", "null"],
+            "minimum": 1
+          },
+          "startOffset": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "endOffset": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "score": {
+            "type": "number"
+          },
+          "snippet": {
+            "type": "string"
+          },
+          "vectorRank": {
+            "type": ["integer", "null"]
+          },
+          "ftsRank": {
+            "type": ["integer", "null"]
+          },
+          "vectorScore": {
+            "type": ["number", "null"]
+          },
+          "ftsScore": {
+            "type": ["number", "null"]
+          }
+        }
+      },
+      "SearchResponse": {
+        "type": "object",
+        "required": ["notebookId", "query", "mode", "totalResults", "latencyMs", "results"],
+        "properties": {
+          "notebookId": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/SearchMode"
+          },
+          "totalResults": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "latencyMs": {
+            "type": "number",
+            "minimum": 0
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchCitation"
+            }
+          }
+        }
+      },
+      "AudioInterjectRequest": {
+        "type": "object",
+        "required": ["userQuestion"],
+        "properties": {
+          "userQuestion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "currentTimeMs": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0
+          },
+          "podcastContext": {
+            "type": "string",
+            "maxLength": 32000,
+            "default": ""
+          },
+          "sourceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "voiceMode": {
+            "type": "string",
+            "enum": ["dialogue", "single", "summary"],
+            "default": "dialogue"
+          },
+          "host1Name": {
+            "type": "string",
+            "default": "Dr. Maria Weber"
+          },
+          "host2Name": {
+            "type": "string",
+            "default": "Thomas Koch"
+          }
+        }
+      },
+      "AudioInterjectResponse": {
+        "type": "object",
+        "required": [
+          "notebookId",
+          "question",
+          "currentTimeMs",
+          "turns",
+          "fullAnswer",
+          "citations",
+          "speechSynthesis"
+        ],
+        "properties": {
+          "notebookId": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "currentTimeMs": {
+            "type": "number"
+          },
+          "turns": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["speaker", "speakerName", "text"],
+              "properties": {
+                "speaker": {
+                  "type": "string",
+                  "enum": ["host1", "host2"]
+                },
+                "speakerName": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "ssmlCue": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "fullAnswer": {
+            "type": "string"
+          },
+          "citations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["index", "chunkId", "sourceId", "sourceTitle"],
+              "properties": {
+                "index": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "chunkId": {
+                  "type": "string"
+                },
+                "sourceId": {
+                  "type": "string"
+                },
+                "sourceTitle": {
+                  "type": "string"
+                },
+                "page": {
+                  "type": ["integer", "null"]
+                },
+                "startOffset": {
+                  "type": ["integer", "null"]
+                },
+                "endOffset": {
+                  "type": ["integer", "null"]
+                },
+                "quote": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "speechSynthesis": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "SourceInitRequest": {
+        "type": "object",
+        "required": ["filename", "mimeType", "byteSize"],
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "byteSize": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "SourceInitResponse": {
+        "type": "object",
+        "required": ["sourceId", "mode", "uploadUrl", "r2Key", "expiresInSeconds"],
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["presigned-s3", "worker-upload"]
+          },
+          "uploadUrl": {
+            "type": "string"
+          },
+          "r2Key": {
+            "type": "string"
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "const": 900
+          }
+        }
+      },
+      "ImportUrlRequest": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "ImportUrlResponse": {
+        "type": "object",
+        "required": [
+          "sourceId",
+          "notebookId",
+          "title",
+          "sourceType",
+          "byteSize",
+          "chunksCount",
+          "status"
+        ],
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "notebookId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "sourceType": {
+            "type": "string"
+          },
+          "byteSize": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "chunksCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "const": "ready"
+          }
+        }
+      },
+      "IngestChunksRequest": {
+        "type": "object",
+        "required": ["chunks"],
+        "properties": {
+          "chunks": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["chunkIndex", "text"],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "chunkIndex": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "tokenCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "pageNumber": {
+                  "type": ["integer", "null"],
+                  "minimum": 1
+                },
+                "startOffset": {
+                  "type": ["integer", "null"],
+                  "minimum": 0
+                },
+                "endOffset": {
+                  "type": ["integer", "null"],
+                  "minimum": 0
+                },
+                "vector": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "required": ["quantized", "scale"],
+                      "properties": {
+                        "quantized": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": -128,
+                            "maximum": 127
+                          }
+                        },
+                        "scale": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "model": {
+                          "type": "string"
+                        },
+                        "dimensions": {
+                          "type": "integer",
+                          "minimum": 1
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": ["float32"],
+                      "properties": {
+                        "float32": {
+                          "type": "array",
+                          "items": {
+                            "type": "number"
+                          }
+                        },
+                        "model": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "model": {
+            "type": "string",
+            "default": "text-embedding-3-small"
+          },
+          "markReady": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "IngestChunksResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "sourceId",
+          "notebookId",
+          "chunksIngested",
+          "vectorsIngested",
+          "status"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "notebookId": {
+            "type": "string"
+          },
+          "chunksIngested": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "vectorsIngested": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "enum": ["uploading", "processing", "ready", "error"]
+          }
+        }
+      },
+      "JobKind": {
+        "type": "string",
+        "enum": [
+          "audio_overview",
+          "video_overview",
+          "mindmap",
+          "flashcards",
+          "quiz",
+          "faq",
+          "timeline",
+          "briefing",
+          "gdpr_export"
+        ]
+      },
+      "JobStatus": {
+        "type": "string",
+        "enum": ["queued", "running", "completed", "failed", "cancelled"]
+      },
+      "JobRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "notebookId",
+          "kind",
+          "status",
+          "progress",
+          "attempts",
+          "maxAttempts",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "notebookId": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/JobKind"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "progress": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "maxAttempts": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "result": {
+            "type": ["object", "null"],
+            "additionalProperties": true
+          },
+          "error": {
+            "type": ["string", "null"]
+          },
+          "createdAt": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "integer"
+          }
+        }
+      },
+      "EnqueueJobRequest": {
+        "type": "object",
+        "required": ["notebookId", "kind"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "notebookId": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/JobKind"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true,
+            "default": {}
+          },
+          "maxAttempts": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10,
+            "default": 3
+          }
+        }
+      },
+      "ProviderType": {
+        "type": "string",
+        "enum": ["openai", "anthropic", "google", "groq", "deepseek", "mistral", "custom"]
+      },
+      "BYOKPutKeyRequest": {
+        "type": "object",
+        "required": ["apiKey"],
+        "properties": {
+          "apiKey": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 512
+          }
+        }
+      },
+      "BYOKKeyMetadata": {
+        "type": "object",
+        "required": [
+          "provider",
+          "keyVersion",
+          "last4",
+          "masked",
+          "createdAt",
+          "updatedAt",
+          "active"
+        ],
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/ProviderType"
+          },
+          "keyVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "last4": {
+            "type": "string",
+            "maxLength": 4
+          },
+          "masked": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "number"
+          },
+          "updatedAt": {
+            "type": "number"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "BYOKKeyList": {
+        "type": "object",
+        "required": ["keys"],
+        "properties": {
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BYOKKeyMetadata"
+            }
+          }
+        }
+      },
+      "BYOKKeyTestResult": {
+        "type": "object",
+        "required": ["provider", "valid", "message", "latencyMs"],
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/ProviderType"
+          },
+          "valid": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "latencyMs": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      },
+      "BYOKRekeyResult": {
+        "type": "object",
+        "required": ["total", "rotated", "failed", "skipped", "newKeyVersion"],
+        "properties": {
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rotated": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "skipped": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "newKeyVersion": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "CustomEndpointState": {
+        "type": "object",
+        "required": ["enabled", "configured", "baseUrl", "chatModel", "embedModel", "hasKey"],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "false, wenn der Betreiber keine Hosts in BYOM_ALLOWED_HOSTS freigegeben hat"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "baseUrl": {
+            "type": ["string", "null"]
+          },
+          "chatModel": {
+            "type": ["string", "null"]
+          },
+          "embedModel": {
+            "type": ["string", "null"]
+          },
+          "hasKey": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CustomEndpointRequest": {
+        "type": "object",
+        "required": ["baseUrl", "chatModel"],
+        "properties": {
+          "baseUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "HTTPS-Adresse auf einem freigegebenen Host, ohne Port, Zugangsdaten, Query oder Fragment"
+          },
+          "chatModel": {
+            "type": "string",
+            "maxLength": 200,
+            "pattern": "^[\\w.:/@-]+$"
+          },
+          "embedModel": {
+            "type": "string",
+            "maxLength": 200,
+            "pattern": "^[\\w.:/@-]+$"
+          }
+        }
+      },
+      "CustomEndpointSaved": {
+        "type": "object",
+        "required": ["configured", "baseUrl", "chatModel", "embedModel"],
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "const": true
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "chatModel": {
+            "type": "string"
+          },
+          "embedModel": {
+            "type": ["string", "null"]
+          }
+        }
+      },
+      "CustomEndpointTestResult": {
+        "type": "object",
+        "required": ["ok", "latencyMs"],
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "latencyMs": {
+            "type": "number",
+            "minimum": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Fehlertext ohne Schlüssel"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}
