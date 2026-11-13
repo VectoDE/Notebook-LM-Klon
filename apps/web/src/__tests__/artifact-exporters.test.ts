@@ -72,7 +72,11 @@ describe("Artifact Exporters (Sub-Issue #124)", () => {
       const fakeAnchor: Record<string, unknown> = {
         href: "",
         download: "",
-        click: clickMock
+        click: clickMock,
+        // Der Download-Helfer setzt href und download über setAttribute.
+        setAttribute: (name: string, value: string) => {
+          fakeAnchor[name] = value;
+        }
       };
 
       const fakeDoc = {
