@@ -79,6 +79,11 @@ describe("DOCX-Auszug mit mammoth (#152)", { timeout: 180_000 }, () => {
 });
 
 describe("docxHtmlToBlocks Randfälle (#152)", () => {
+  it("lässt keine Tag-Reste aus kaputtem HTML stehen, behält aber kodierte spitze Klammern", () => {
+    const blocks = docxHtmlToBlocks("<p>a<scr<script>ipt>b &lt;c&gt;</p>");
+    expect(blocks).toEqual([{ kind: "paragraph", level: 0, text: "aiptb <c>" }]);
+  });
+
   it("ordnet verschachtelte Listen, Inline-Auszeichnung und Absätze in Listenpunkten zu", () => {
     const blocks = docxHtmlToBlocks(
       "<ul><li>Außen <strong>fett</strong><ul><li><p>Innen</p></li></ul></li></ul>" +

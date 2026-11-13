@@ -45,8 +45,13 @@ export function decodeHtmlEntities(text: string): string {
   });
 }
 
+/**
+ * Macht aus einem HTML-Ausschnitt reinen Text. Nach dem Entfernen der Tags werden übrige spitze
+ * Klammern (nur aus kaputten Tags möglich, echter Text kommt von mammoth als &lt;/&gt;) gestrichen,
+ * damit keine Tag-Reste wie "<script" stehen bleiben. Erst danach werden Entitäten aufgelöst.
+ */
 function cleanText(html: string): string {
-  return decodeHtmlEntities(html.replace(/<[^>]*>/g, ""))
+  return decodeHtmlEntities(html.replace(/<[^>]*>/g, "").replace(/[<>]/g, ""))
     .replace(/\s+/g, " ")
     .trim();
 }
