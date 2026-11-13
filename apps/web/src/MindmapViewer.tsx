@@ -44,6 +44,8 @@ export interface MindmapViewerProps {
 export interface RenderLayoutNode {
   readonly id: string;
   readonly label: string;
+  /** Umgebrochene Zeilen der Beschriftung (mindestens eine). */
+  readonly lines: readonly string[];
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -76,14 +78,102 @@ const TOGGLE_RESERVE = 40;
 /** Radius des Ein-/Ausklapp-Knopfs: 12 px ergibt ein Ziel von 24 x 24 px (WCAG 2.5.8). */
 export const TOGGLE_RADIUS = 12;
 
+/** Größte Textbreite einer Zeile in px; längere Beschriftungen brechen um (Issue #279). */
+export const LABEL_MAX_TEXT_WIDTH = 280;
+/** Zeilenabstand der Knotenbeschriftung in px (14 px Schrift, gut 1,4-fach). */
+export const LABEL_LINE_HEIGHT = 20;
+/** Rand oben und unten im Knoten: eine Zeile ergibt genau NODE_HEIGHT (44 px). */
+const LABEL_PADDING_Y = (NODE_HEIGHT - LABEL_LINE_HEIGHT) / 2;
+/** Unsichtbare Trefferfläche des Ein-/Ausklapp-Knopfs: 44 x 44 px (WCAG 2.5.5). */
+export const TOGGLE_HIT_RADIUS = 22;
+
+/** Misst die Breite eines Textes in px. */
+export type MeasureText = (text: string) => number;
+
+/** Schätzung ohne Browser (Tests, Server-Rendering): konservative Breite je Zeichen. */
+export const estimateTextWidth: MeasureText = (text) => Math.ceil(text.length * CHAR_WIDTH);
+
 /**
- * Breite eines Knotens: mindestens NODE_WIDTH, sonst so breit, dass die
- * Beschriftung vollständig hineinpasst (kein Abschneiden, auch nicht an der Wurzel).
+ * Bricht eine Beschriftung in Zeilen von höchstens maxWidth px um, an Leerzeichen.
+ * Ein einzelnes Wort, das breiter ist als die Zeile, wird hart getrennt: so wird nichts
+ * abgeschnitten, auch nicht bei langen Komposita oder URLs.
  */
-export function nodeWidthFor(label: string, hasChildren: boolean): number {
-  const text = Math.ceil(label.length * CHAR_WIDTH);
+export function wrapLabel(
+  label: string,
+  maxWidth: number,
+  measure: MeasureText = estimateTextWidth
+): string[] {
+  const lines: string[] = [];
+  let current = "";
+  for (const word of label.trim().split(/\s+/)) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (measure(candidate) <= maxWidth) {
+      current = candidate;
+      continue;
+    }
+    if (current) lines.push(current);
+    let rest = word;
+    while (rest.length > 1 && measure(rest) > maxWidth) {
+      let cut = rest.length - 1;
+      while (cut > 1 && measure(rest.slice(0, cut)) > maxWidth) cut -= 1;
+      lines.push(rest.slice(0, cut));
+      rest = rest.slice(cut);
+    }
+    current = rest;
+  }
+  if (current || lines.length === 0) lines.push(current);
+  return lines;
+}
+
+export interface NodeSize {
+  readonly width: number;
+  readonly height: number;
+  readonly lines: readonly string[];
+}
+
+/**
+ * Größe eines Knotens: mindestens NODE_WIDTH x NODE_HEIGHT, sonst so groß, dass die
+ * umgebrochene Beschriftung vollständig hineinpasst (kein Abschneiden, auch nicht an der Wurzel).
+ */
+export function nodeSizeFor(
+  label: string,
+  hasChildren: boolean,
+  measure: MeasureText = estimateTextWidth
+): NodeSize {
+  const lines = wrapLabel(label, LABEL_MAX_TEXT_WIDTH, measure);
+  const text = Math.max(...lines.map((line) => measure(line)));
   const reserve = LABEL_PADDING_LEFT * 2 + (hasChildren ? TOGGLE_RESERVE : 0);
-  return Math.max(NODE_WIDTH, text + reserve);
+  return {
+    width: Math.max(NODE_WIDTH, Math.ceil(text) + reserve),
+    height: Math.max(NODE_HEIGHT, lines.length * LABEL_LINE_HEIGHT + LABEL_PADDING_Y * 2),
+    lines
+  };
+}
+
+/** Breite eines Knotens (siehe nodeSizeFor). */
+export function nodeWidthFor(
+  label: string,
+  hasChildren: boolean,
+  measure: MeasureText = estimateTextWidth
+): number {
+  return nodeSizeFor(label, hasChildren, measure).width;
+}
+
+/**
+ * Misst im Browser mit der tatsächlichen Schrift des Designs (fett, als obere Grenze) und
+ * nimmt den größeren Wert aus Messung und Schätzung. Breite Schriften wie Space Grotesk
+ * passen so ebenfalls in den Knoten. Ohne Canvas bleibt es bei der Schätzung.
+ */
+export function createTextMeasure(doc: Document | undefined): MeasureText {
+  const ctx = doc?.createElement("canvas").getContext?.("2d");
+  if (!doc || !ctx) return estimateTextWidth;
+  const family =
+    doc.defaultView
+      ?.getComputedStyle(doc.documentElement)
+      .getPropertyValue("--rn-font-family-ui")
+      .trim() || "sans-serif";
+  ctx.font = `700 ${NODE_FONT_SIZE}px ${family}`;
+  return (text) => Math.max(estimateTextWidth(text), Math.ceil(ctx.measureText(text).width));
 }
 export interface MindmapFit {
   readonly zoom: number;
@@ -143,7 +233,8 @@ export function computeMindmapLayout(
   collapsedIds: ReadonlySet<string>,
   depth = 0,
   startX = 40,
-  startY = 40
+  startY = 40,
+  measure: MeasureText = estimateTextWidth
 ): { layoutNode: RenderLayoutNode; totalHeight: number; connections: RenderLayoutConnection[] } {
   const isCollapsed = collapsedIds.has(node.id);
   const rawChildren = node.children ?? [];
@@ -153,49 +244,51 @@ export function computeMindmapLayout(
   const connections: RenderLayoutConnection[] = [];
 
   let currentY = startY;
-  const width = nodeWidthFor(node.label, hasChildren);
+  const { width, height, lines } = nodeSizeFor(node.label, hasChildren, measure);
   const childX = startX + width + HORIZONTAL_SPACING;
 
   if (hasChildren && !isCollapsed) {
     for (const child of rawChildren) {
-      const childResult = computeMindmapLayout(child, collapsedIds, depth + 1, childX, currentY);
+      const childResult = computeMindmapLayout(
+        child,
+        collapsedIds,
+        depth + 1,
+        childX,
+        currentY,
+        measure
+      );
       childLayouts.push(childResult.layoutNode);
       connections.push(...childResult.connections);
       connections.push({
         fromX: startX + width,
-        fromY: 0, // adjusted after node Y is finalized
+        fromY: Number.NaN, // wird gesetzt, sobald die Lage des Knotens feststeht
         toX: childResult.layoutNode.x,
-        toY: childResult.layoutNode.y + NODE_HEIGHT / 2
+        toY: childResult.layoutNode.y + childResult.layoutNode.height / 2
       });
       currentY += childResult.totalHeight + VERTICAL_SPACING;
     }
   }
 
-  const subtreeHeight =
-    hasChildren && !isCollapsed && childLayouts.length > 0
-      ? currentY - startY - VERTICAL_SPACING
-      : NODE_HEIGHT;
+  const childrenSpan = childLayouts.length > 0 ? currentY - startY - VERTICAL_SPACING : 0;
 
-  // Center parent vertically relative to its children if expanded
-  const nodeY =
-    hasChildren && !isCollapsed && childLayouts.length > 0
-      ? startY + (subtreeHeight - NODE_HEIGHT) / 2
-      : startY;
+  // Elternknoten mittig zu seinen Kindern; ist er selbst höher, beginnt er oben
+  const nodeY = startY + Math.max(0, (childrenSpan - height) / 2);
 
   // Fix fromY for outgoing connections
   for (const conn of connections) {
-    if (conn.fromX === startX + width && conn.fromY === 0) {
-      (conn as { fromY: number }).fromY = nodeY + NODE_HEIGHT / 2;
+    if (conn.fromX === startX + width && Number.isNaN(conn.fromY)) {
+      (conn as { fromY: number }).fromY = nodeY + height / 2;
     }
   }
 
   const layoutNode: RenderLayoutNode = {
     id: node.id,
     label: node.label,
+    lines,
     x: startX,
     y: nodeY,
     width,
-    height: NODE_HEIGHT,
+    height,
     depth,
     hasChildren,
     isCollapsed,
@@ -205,7 +298,7 @@ export function computeMindmapLayout(
     children: childLayouts
   };
 
-  const totalHeight = Math.max(NODE_HEIGHT, subtreeHeight);
+  const totalHeight = Math.max(height, childrenSpan);
   return { layoutNode, totalHeight, connections };
 }
 
@@ -399,8 +492,24 @@ export function MindmapViewer({
   initialZoom = 1.0,
   contentLang
 }: MindmapViewerProps) {
-  const { t, tf } = useTheme();
+  const { t, tf, theme } = useTheme();
   const title = titleProp ?? t("mmDefaultTitle");
+  // Nach dem Laden der Schriften neu messen (WOFF2 kommen nach dem ersten Rendern)
+  const [fontsLoaded, setFontsLoaded] = useState(0);
+  useEffect(() => {
+    let active = true;
+    void document.fonts?.ready.then(() => {
+      if (active) setFontsLoaded((n) => n + 1);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Design und Schriften ändern die Messung
+  const measure = useMemo(
+    () => createTextMeasure(typeof document === "undefined" ? undefined : document),
+    [theme, fontsLoaded]
+  );
   const [zoom, setZoom] = useState(initialZoom);
   const [pan, setPan] = useState({ x: 20, y: 20 });
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(() => new Set());
@@ -429,8 +538,8 @@ export function MindmapViewer({
   }, []);
 
   const layout = useMemo(() => {
-    return computeMindmapLayout(rootNode, collapsedIds);
-  }, [rootNode, collapsedIds]);
+    return computeMindmapLayout(rootNode, collapsedIds, 0, 40, 40, measure);
+  }, [rootNode, collapsedIds, measure]);
 
   const flatVisibleNodes = useMemo(() => {
     return flattenLayoutNodes(layout.layoutNode);
@@ -664,13 +773,22 @@ export function MindmapViewer({
                   />
                   <text
                     x={LABEL_PADDING_LEFT}
-                    y={node.height / 2 + 5}
+                    y={node.height / 2 + 5 - ((node.lines.length - 1) * LABEL_LINE_HEIGHT) / 2}
                     textAnchor="start"
                     fontSize={NODE_FONT_SIZE}
                     className="rn-mm-label"
                     lang={contentLang}
                   >
-                    {node.label}
+                    {node.lines.map((line, index) => (
+                      <tspan
+                        // biome-ignore lint/suspicious/noArrayIndexKey: Zeilen haben keine eigene Kennung
+                        key={index}
+                        x={LABEL_PADDING_LEFT}
+                        dy={index === 0 ? 0 : LABEL_LINE_HEIGHT}
+                      >
+                        {line}
+                      </tspan>
+                    ))}
                   </text>
 
                   {node.hasChildren && (
@@ -683,6 +801,8 @@ export function MindmapViewer({
                         toggleCollapse(node.id);
                       }}
                     >
+                      {/* Unsichtbare Trefferfläche 44 x 44 px um den sichtbaren 24-px-Knopf */}
+                      <circle r={TOGGLE_HIT_RADIUS} className="rn-mm-toggle-hit" />
                       <circle r={TOGGLE_RADIUS} className="rn-mm-toggle-dot" />
                       <text
                         textAnchor="middle"
