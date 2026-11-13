@@ -48,8 +48,8 @@ export function triggerBrowserDownload(
   const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = toSafeFilename(filename);
+  anchor.setAttribute("href", url);
+  anchor.setAttribute("download", toSafeFilename(filename));
   document.body.appendChild(anchor);
   anchor.click();
   document.body.removeChild(anchor);
