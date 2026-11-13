@@ -355,6 +355,9 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
           code: "TURNSTILE_NOT_CONFIGURED"
         });
         expect((await probe("GET", "/api/v1/demo/info")).status).toBe(200);
+        // Demo sub-routes forward method and body (HEAD without body, POST with body).
+        expect((await fetch(`${base}/api/v1/demo/info`, { method: "HEAD" })).status).toBe(200);
+        expect((await probe("POST", "/api/v1/demo/seed", { role: "viewer" })).status).toBe(200);
 
         // Unknown API paths stay 404, so the 401s above are real routes.
         expect(await probe("GET", "/api/v1/does-not-exist")).toEqual({
