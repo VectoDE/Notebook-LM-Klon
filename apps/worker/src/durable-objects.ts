@@ -7,6 +7,13 @@ import {
   dotProductInt8,
   quantizeFloat32ToInt8
 } from "@notebook-lm/shared";
+import {
+  DocSyncError,
+  diffFromState,
+  fromBase64Url,
+  mergeIntoState,
+  toBase64Url
+} from "./doc-sync.js";
 
 export interface DurableObjectSqlCursor {
   toArray(): Record<string, unknown>[];
@@ -70,6 +77,11 @@ export class NotebookDO {
         source_id TEXT NOT NULL,
         scale REAL NOT NULL,
         vector BLOB NOT NULL
+      );
+       CREATE TABLE IF NOT EXISTS notebook_doc (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        state BLOB NOT NULL,
+        updated_at INTEGER NOT NULL
       );`
     );
     this.initialized = true;
@@ -227,8 +239,71 @@ export class NotebookDO {
     return delivered;
   }
 
+  /** Gespeicherter Yjs-Stand des Notebooks (Issue #347), null wenn noch leer. */
+  private readDocState(): Uint8Array | null {
+    this.ensureSchema();
+    const rows = this.ctx.storage.sql
+      .exec("SELECT state FROM notebook_doc WHERE id = 1")
+      .toArray() as { state?: ArrayBuffer | Uint8Array }[];
+    const state = rows[0]?.state;
+    return state ? new Uint8Array(state) : null;
+  }
+
+  /** Spielt ein Yjs-Update ein und liefert den neuen Zustandsvektor. */
+  public applyDocUpdate(update: Uint8Array): Uint8Array {
+    const merged = mergeIntoState(this.readDocState(), update);
+    this.ctx.storage.sql.exec(
+      "INSERT INTO notebook_doc (id, state, updated_at) VALUES (1, ?, ?) ON CONFLICT(id) DO UPDATE SET state = excluded.state, updated_at = excluded.updated_at",
+      merged,
+      Date.now()
+    );
+    return diffFromState(merged).stateVector;
+  }
+
+  /** Was einem Client mit diesem Zustandsvektor fehlt. */
+  public readDocDiff(stateVector?: Uint8Array): { update: Uint8Array; stateVector: Uint8Array } {
+    return diffFromState(this.readDocState(), stateVector);
+  }
+
+  private docProblem(error: unknown, instance: string): Response {
+    const known = error instanceof DocSyncError;
+    const status = known ? error.status : 500;
+    return Response.json(
+      createProblemDetails({
+        status,
+        title: known
+          ? status === 413
+            ? "Payload Too Large"
+            : "Bad Request"
+          : "Internal Server Error",
+        detail: known ? error.message : "Notebook-Stand konnte nicht verarbeitet werden.",
+        instance,
+        code: known ? error.code : "DOC_SYNC_FAILED"
+      }),
+      { status, headers: { "content-type": "application/problem+json; charset=utf-8" } }
+    );
+  }
+
   public async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
+
+    // GET /doc?sv=…: fehlende Yjs-Änderungen; POST /doc: Yjs-Update einspielen (Issue #347)
+    if (url.pathname === "/doc" && (request.method === "GET" || request.method === "POST")) {
+      try {
+        if (request.method === "GET") {
+          const sv = url.searchParams.get("sv");
+          const diff = this.readDocDiff(sv ? fromBase64Url(sv) : undefined);
+          return Response.json({
+            update: toBase64Url(diff.update),
+            stateVector: toBase64Url(diff.stateVector)
+          });
+        }
+        const update = new Uint8Array(await request.arrayBuffer());
+        return Response.json({ stateVector: toBase64Url(this.applyDocUpdate(update)) });
+      } catch (error) {
+        return this.docProblem(error, url.pathname);
+      }
+    }
 
     if (request.method === "GET" && url.pathname === "/health") {
       const report = this.ping();

@@ -451,6 +451,52 @@ const ENTRIES: readonly Entry[] = [
   ],
   ["accountOpenSettings", "Einstellungen öffnen", "Open settings"],
 
+  // Stand der Offline-Synchronisation (Issue #347)
+  ["syncSyncing", "Synchronisiert …", "Syncing …"],
+  ["syncSynced", "Alles synchronisiert", "All synced"],
+  ["syncPendingOne", "{n} Änderung wartet", "{n} change waiting"],
+  ["syncPendingMany", "{n} Änderungen warten", "{n} changes waiting"],
+  ["syncOfflineNone", "Offline", "Offline"],
+  [
+    "syncOfflineOne",
+    "Offline · {n} Änderung lokal gesichert",
+    "Offline · {n} change saved locally"
+  ],
+  [
+    "syncOfflineMany",
+    "Offline · {n} Änderungen lokal gesichert",
+    "Offline · {n} changes saved locally"
+  ],
+  ["syncErrorNone", "Synchronisierung fehlgeschlagen", "Sync failed"],
+  [
+    "syncErrorOne",
+    "Synchronisierung fehlgeschlagen · {n} Änderung lokal gesichert",
+    "Sync failed · {n} change saved locally"
+  ],
+  [
+    "syncErrorMany",
+    "Synchronisierung fehlgeschlagen · {n} Änderungen lokal gesichert",
+    "Sync failed · {n} changes saved locally"
+  ],
+
+  // Abmelden mit Löschen der lokalen Daten (Issue #348)
+  ["signOutWipe", "Abmelden und lokale Daten löschen", "Sign out and delete local data"],
+  [
+    "signOutDone",
+    "Abgemeldet. Die lokalen Daten auf diesem Gerät sind gelöscht.",
+    "Signed out. The local data on this device has been deleted."
+  ],
+  [
+    "signOutLocalOnly",
+    "Lokale Daten sind gelöscht. Der Server war nicht erreichbar, die Sitzung endet spätestens mit ihrem Ablauf.",
+    "Local data has been deleted. The server could not be reached, so the session ends when it expires at the latest."
+  ],
+  [
+    "signOutFailed",
+    "Die lokalen Daten ließen sich nicht vollständig löschen. Schließen Sie andere Tabs dieser Seite und versuchen Sie es erneut.",
+    "The local data could not be fully deleted. Close other tabs of this site and try again."
+  ],
+
   // Anmelden mit Turnstile (Issue #233)
   ["signInOpen", "Anmelden", "Sign in"],
   ["signInTitle", "Anmelden", "Sign in"],

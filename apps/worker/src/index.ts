@@ -19,9 +19,11 @@ import { resolveAppConfig } from "./config.js";
 import { CoreRepository } from "./core-repository.js";
 import { createD1DatabaseAdapter } from "./d1-adapter.js";
 import { createDemoRoutes } from "./demo-routes.js";
+import { registerDocSyncRoutes } from "./doc-sync.js";
 import { createGuestAndMagicLinkRoutes } from "./guest-magic-link-routes.js";
 import { registerJobRoutes } from "./job-routes.js";
 import { createKeyVaultFromEnv } from "./key-vault.js";
+import { registerLocalDataRoutes } from "./local-data-routes.js";
 import {
   CloudflareMailAdapter,
   type CloudflareSendEmailBinding,
@@ -225,6 +227,9 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
     })
   );
 
+  // Abmelden und Schlüssel der verschlüsselten lokalen Ablage (Issue #348)
+  registerLocalDataRoutes(app, { sessionManager, saltSecret, isProduction });
+
   // 4. Chat, search, audio (session + notebook role, LLM quota)
   const llmQuota = (): QuotaAction => ({ type: "llm_call" });
 
@@ -253,6 +258,19 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
     recordQuotaUsage(llmQuota)
   );
   registerAudioRoutes(app, { ragRepo, coreRepo, keyVault });
+
+  // Yjs-Stand des Notebooks: lesen ab viewer, schreiben ab editor (Issue #347)
+  app.get(
+    "/api/v1/notebooks/:id/doc",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "viewer", "id")
+  );
+  app.post(
+    "/api/v1/notebooks/:id/doc",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "editor", "id")
+  );
+  registerDocSyncRoutes(app);
 
   // 5. Sources (editor for writes, viewer for download)
   app.use(
