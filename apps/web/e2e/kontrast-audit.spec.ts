@@ -41,10 +41,10 @@ interface Measurement {
 function measureTexts(page: Page): Promise<Measurement> {
   return page.evaluate(() => {
     // rgb()/rgba() liefert 0 bis 255; color(srgb …) aus color-mix() liefert 0 bis 1
-      const parse = (c: string) => {
-        const n = (c.match(/[\d.]+/g) ?? []).map(Number);
-        return c.startsWith("color(") ? n.map((v, i) => (i < 3 ? v * 255 : v)) : n;
-      };
+    const parse = (c: string) => {
+      const n = (c.match(/[\d.]+/g) ?? []).map(Number);
+      return c.startsWith("color(") ? n.map((v, i) => (i < 3 ? v * 255 : v)) : n;
+    };
     const lum = (rgb: number[]) => {
       const [r = 0, g = 0, b = 0] = rgb.slice(0, 3).map((v) => {
         const s = v / 255;
@@ -72,9 +72,7 @@ function measureTexts(page: Page): Promise<Measurement> {
       return null;
     };
     // Grundfläche der App: die Arbeitsfläche trägt --rn-color-canvas
-    const bodyStyle = getComputedStyle(
-      document.querySelector(".workspace-shell") ?? document.body
-    );
+    const bodyStyle = getComputedStyle(document.querySelector(".workspace-shell") ?? document.body);
     const canvasBg = parse(bodyStyle.backgroundColor);
     const canvasFg = parse(bodyStyle.color);
 
@@ -167,8 +165,7 @@ async function measureFocus(page: Page, steps: number): Promise<FocusFinding[]> 
         node = node.parentElement;
       }
       const ring = parse(s.outlineStyle === "none" ? s.borderTopColor : s.outlineColor);
-      const width =
-        s.outlineStyle === "none" ? 0 : Number.parseFloat(s.outlineWidth || "0");
+      const width = s.outlineStyle === "none" ? 0 : Number.parseFloat(s.outlineWidth || "0");
       const a = lum(ring);
       const b = lum(bg);
       return {
@@ -184,33 +181,36 @@ async function measureFocus(page: Page, steps: number): Promise<FocusFinding[]> 
 
 /** Kontrast Text zu eigener (sonst geerbter) deckender Fläche eines Elements. */
 function elementContrast(page: Page, selector: string): Promise<number> {
-  return page.locator(selector).first().evaluate((el) => {
-    // rgb()/rgba() liefert 0 bis 255; color(srgb …) aus color-mix() liefert 0 bis 1
+  return page
+    .locator(selector)
+    .first()
+    .evaluate((el) => {
+      // rgb()/rgba() liefert 0 bis 255; color(srgb …) aus color-mix() liefert 0 bis 1
       const parse = (c: string) => {
         const n = (c.match(/[\d.]+/g) ?? []).map(Number);
         return c.startsWith("color(") ? n.map((v, i) => (i < 3 ? v * 255 : v)) : n;
       };
-    const lum = (rgb: number[]) => {
-      const [r = 0, g = 0, b = 0] = rgb.slice(0, 3).map((v) => {
-        const s = v / 255;
-        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-      });
-      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    };
-    let node: Element | null = el;
-    let bg = [255, 255, 255];
-    while (node) {
-      const c = parse(getComputedStyle(node).backgroundColor);
-      if (c.length >= 3 && (c[3] === undefined || c[3] >= 0.99)) {
-        bg = c;
-        break;
+      const lum = (rgb: number[]) => {
+        const [r = 0, g = 0, b = 0] = rgb.slice(0, 3).map((v) => {
+          const s = v / 255;
+          return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      let node: Element | null = el;
+      let bg = [255, 255, 255];
+      while (node) {
+        const c = parse(getComputedStyle(node).backgroundColor);
+        if (c.length >= 3 && (c[3] === undefined || c[3] >= 0.99)) {
+          bg = c;
+          break;
+        }
+        node = node.parentElement;
       }
-      node = node.parentElement;
-    }
-    const a = lum(parse(getComputedStyle(el).color));
-    const b = lum(bg);
-    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-  });
+      const a = lum(parse(getComputedStyle(el).color));
+      const b = lum(bg);
+      return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    });
 }
 
 /** Deaktivierte Bedienelemente der Ansicht mit Kontrast (nur Bericht). */
@@ -220,10 +220,10 @@ function measureDisabled(page: Page): Promise<{ target: string; ratio: number }[
       .filter((el) => el.getBoundingClientRect().width > 1)
       .map((el) => {
         // rgb()/rgba() liefert 0 bis 255; color(srgb …) aus color-mix() liefert 0 bis 1
-      const parse = (c: string) => {
-        const n = (c.match(/[\d.]+/g) ?? []).map(Number);
-        return c.startsWith("color(") ? n.map((v, i) => (i < 3 ? v * 255 : v)) : n;
-      };
+        const parse = (c: string) => {
+          const n = (c.match(/[\d.]+/g) ?? []).map(Number);
+          return c.startsWith("color(") ? n.map((v, i) => (i < 3 ? v * 255 : v)) : n;
+        };
         const lum = (rgb: number[]) => {
           const [r = 0, g = 0, b = 0] = rgb.slice(0, 3).map((v) => {
             const s = v / 255;
