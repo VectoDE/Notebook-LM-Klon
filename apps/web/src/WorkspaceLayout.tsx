@@ -57,7 +57,7 @@ import { buildStructuredDemo } from "./structured-demo.js";
 import { describeSyncStatus } from "./sync-status-text.js";
 import { browserStorage, readStoredModel, storeModel } from "./theme-preferences.js";
 import { useNotebookSync } from "./useNotebookSync.js";
-import { useTheme } from "./useTheme.js";
+import { documentLanguage, useTheme } from "./useTheme.js";
 import type { CitationLocation, PanelFocusAttributes, WorkspaceSource } from "./workspace-types.js";
 
 export const DEFAULT_MINDMAP: MindmapNode = {
@@ -742,7 +742,8 @@ export function WorkspaceLayout({
         chatId: chatIdRef.current,
         model: activeModel,
         sourceIds: selectedIds,
-        language,
+        // Antworten der KI: Leichte Sprache gilt für die Oberfläche, die Antwort kommt auf Deutsch.
+        language: documentLanguage(language),
         signal: controller.signal,
         fetchImpl: chatFetch
       })) {

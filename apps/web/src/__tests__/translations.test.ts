@@ -74,7 +74,9 @@ describe("Oberfläche auf Englisch", () => {
       expect(html, text).toContain(text);
     }
     expect(html).not.toContain("Darstellung");
-    expect(html).not.toContain("Sprache");
+    // Die Sprachnamen stehen in der jeweiligen Sprache („Deutsch – Leichte Sprache“, Issue #349).
+    const withoutLanguageNames = html.replaceAll(/<span lang="\w+">[^<]*<\/span>/g, "");
+    expect(withoutLanguageNames).not.toContain("Sprache");
   });
 
   it("übersetzt die Darstellung samt Bewegung und Rolle", () => {
