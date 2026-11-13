@@ -155,6 +155,32 @@ describe("endpoint-guard: geschützter Aufruf", () => {
     expect(seen?.redirect).toBe("manual");
   });
 
+  it("bricht ab, wenn die Header nicht rechtzeitig kommen", async () => {
+    const fetchFn = ((_url: string, init: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+      })) as unknown as typeof fetch;
+    await expect(
+      guardedEndpointFetch(
+        "https://api.relationflow.example/v1/models",
+        {},
+        { allowlist: ALLOW, resolver: publicResolver, fetchFn, timeoutMs: 20 }
+      )
+    ).rejects.toMatchObject({ name: "TimeoutError" });
+  });
+
+  it("prüft eingebettete IPv4 in IPv6-Übergangsformen", () => {
+    expect(isBlockedIp("::7f00:1")).toBe(true);
+    expect(isBlockedIp("::5db8:d70e")).toBe(false);
+    expect(isBlockedIp("64:ff9b::a9fe:a9fe")).toBe(true);
+    expect(isBlockedIp("64:ff9b::5db8:d70e")).toBe(false);
+    expect(isBlockedIp("64:ff9b:1::1")).toBe(true);
+    expect(isBlockedIp("2002:a9fe:a9fe::1")).toBe(true);
+    expect(isBlockedIp("2002:5db8:d70e::1")).toBe(false);
+    expect(isBlockedIp("2001:0:4136:e378::1")).toBe(true);
+    expect(isBlockedIp("2001:4860::8888")).toBe(false);
+  });
+
   it("liefert die Antwort bei erlaubtem Ziel", async () => {
     const fetchFn = (async () => new Response("ok")) as unknown as typeof fetch;
     const res = await guardedEndpointFetch(

@@ -204,13 +204,26 @@ export async function guardedEndpointFetch(
   }
   await assertHostResolvesPublic(validation.url.hostname, options.resolver);
 
-  const timeout = AbortSignal.timeout(options.timeoutMs ?? DEFAULT_ENDPOINT_TIMEOUT_MS);
-  const signal = init.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
-  const response = await options.fetchFn(validation.url.toString(), {
-    ...init,
-    redirect: "manual",
-    signal
-  });
+  // Zeitlimit nur bis die Antwort-Header da sind; das Lesen des Bodys (Streams) begrenzt der
+  // Aufrufer über sein eigenes Signal bzw. ein Leerlauf-Limit je Chunk.
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(new DOMException("Zeitüberschreitung beim Endpunkt.", "TimeoutError")),
+    options.timeoutMs ?? DEFAULT_ENDPOINT_TIMEOUT_MS
+  );
+  const signal = init.signal
+    ? AbortSignal.any([init.signal, controller.signal])
+    : controller.signal;
+  let response: Response;
+  try {
+    response = await options.fetchFn(validation.url.toString(), {
+      ...init,
+      redirect: "manual",
+      signal
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (response.status >= 300 && response.status < 400) {
     throw new SsrSecurityError(

@@ -343,6 +343,8 @@ export function registerChatRoutes(
     // 6. Return Server-Sent Events (SSE) Stream
     return streamSSE(c, async (stream) => {
       let fullAssistantText = "";
+      // Modell laut Endpunkt (BYOM meldet den echten Namen erst im Stream)
+      let streamedModel: string | undefined;
 
       try {
         const streamIterable = provider.chatStream(
@@ -351,13 +353,14 @@ export function registerChatRoutes(
             { role: "user", content: message }
           ],
           {
-            model: routingDecision.model ?? "custom",
+            model: routingDecision.model,
             apiKey
           }
         );
 
         for await (const chunk of streamIterable) {
           fullAssistantText += chunk.deltaText;
+          streamedModel = chunk.model;
           await stream.writeSSE({
             event: "token",
             data: JSON.stringify({
@@ -393,7 +396,7 @@ export function registerChatRoutes(
         const aiActMetadata = {
           aiGenerated: true as const,
           provider: routingDecision.provider,
-          model: routingDecision.model ?? "custom",
+          model: routingDecision.model ?? streamedModel ?? "custom",
           timestamp: new Date().toISOString(),
           latencyMs
         };

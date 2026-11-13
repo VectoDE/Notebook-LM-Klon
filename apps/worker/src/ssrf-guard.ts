@@ -244,6 +244,31 @@ export function isPrivateOrReservedIpv6(segments: number[]): boolean {
     return isPrivateOrReservedIpv4(ipv4Val);
   }
 
+  // IPv4-compatible (deprecated, ::a.b.c.d): embedded IPv4 decides
+  if (s0 === 0 && s1 === 0 && s2 === 0 && s3 === 0 && s4 === 0 && s5 === 0) {
+    return isPrivateOrReservedIpv4(((s6 << 16) | s7) >>> 0);
+  }
+
+  // NAT64 well-known prefix 64:ff9b::/96: embedded IPv4 decides
+  if (s0 === 0x64 && s1 === 0xff9b && s2 === 0 && s3 === 0 && s4 === 0 && s5 === 0) {
+    return isPrivateOrReservedIpv4(((s6 << 16) | s7) >>> 0);
+  }
+
+  // NAT64 local-use 64:ff9b:1::/48 (RFC 8215)
+  if (s0 === 0x64 && s1 === 0xff9b && s2 === 1) {
+    return true;
+  }
+
+  // 6to4 2002::/16: embedded IPv4 in segments 1 and 2
+  if (s0 === 0x2002) {
+    return isPrivateOrReservedIpv4(((s1 << 16) | s2) >>> 0);
+  }
+
+  // Teredo 2001:0::/32 tunnels to arbitrary IPv4 targets
+  if (s0 === 0x2001 && s1 === 0) {
+    return true;
+  }
+
   // Unique Local Address (ULA) fc00::/7 (fc00::/8 and fd00::/8)
   if ((s0 & 0xfe00) === 0xfc00) {
     return true;

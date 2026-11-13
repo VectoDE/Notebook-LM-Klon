@@ -229,6 +229,15 @@ describe("OpenAiCompatibleProvider: Stream", () => {
     expect(chunks.at(-1)).toMatchObject({ isDone: true, finishReason: "unknown", model: "x" });
   });
 
+  it("bricht einen Stream ab, wenn der Endpunkt zu lange schweigt", async () => {
+    handler = (_req, res) => {
+      res.writeHead(200, { "content-type": "text/event-stream" });
+      res.write('data: {"choices":[{"delta":{"content":"a"}}]}\n\n');
+      // danach keine Daten mehr, Verbindung bleibt offen
+    };
+    await expect(collect(provider({ idleTimeoutMs: 50 }))).rejects.toThrow("zu lange keine Daten");
+  });
+
   it("wirft bei Antwort ohne Body", async () => {
     const noBody = (async () => new Response(null, { status: 200 })) as unknown as typeof fetch;
     await expect(collect(provider({ fetchFn: noBody }))).rejects.toThrow("ohne Inhalt");

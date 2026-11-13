@@ -36,8 +36,12 @@ export interface OpenAiCompatibleConfig {
   readonly resolver?: HostResolver | undefined;
   readonly fetchFn?: typeof fetch | undefined;
   readonly timeoutMs?: number | undefined;
+  /** Längste Pause zwischen zwei Stream-Teilen, danach Abbruch (Standard 60 s). */
+  readonly idleTimeoutMs?: number | undefined;
   readonly name?: string | undefined;
 }
+
+export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 60_000;
 
 interface OpenAiChoice {
   readonly message?: { readonly content?: string | null };
@@ -93,6 +97,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
   private readonly chatModel: string;
   private readonly embedModel: string | undefined;
   private readonly guard: GuardedFetchOptions;
+  private readonly idleTimeoutMs: number;
 
   constructor(config: OpenAiCompatibleConfig) {
     this.baseUrl = config.baseUrl.trim().replace(/\/+$/, "");
@@ -100,6 +105,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     this.chatModel = config.chatModel;
     this.embedModel = config.embedModel;
     this.name = config.name ?? "Eigener Endpunkt (OpenAI-kompatibel)";
+    this.idleTimeoutMs = config.idleTimeoutMs ?? DEFAULT_STREAM_IDLE_TIMEOUT_MS;
     const fetchFn = config.fetchFn ?? globalThis.fetch.bind(globalThis);
     this.guard = {
       allowlist: config.allowlist,
@@ -142,6 +148,26 @@ export class OpenAiCompatibleProvider implements LlmProvider {
       );
     }
     return res;
+  }
+
+  /** Liest den nächsten Stream-Teil; bricht ab, wenn der Endpunkt zu lange schweigt. */
+  private async readWithIdleLimit(
+    reader: ReadableStreamDefaultReader<Uint8Array>
+  ): Promise<ReadableStreamReadResult<Uint8Array>> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const idle = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        const error = new Error("Endpunkt-Stream: zu lange keine Daten, abgebrochen.");
+        // Erst ablehnen, dann die Verbindung schließen; Fehler beim Abbrechen sind hier egal.
+        reject(error);
+        void Promise.allSettled([reader.cancel(error)]);
+      }, this.idleTimeoutMs);
+    });
+    try {
+      return await Promise.race([reader.read(), idle]);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   private chatPayload(
@@ -206,7 +232,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
 
     try {
       while (!finished) {
-        const { value, done } = await reader.read();
+        const { value, done } = await this.readWithIdleLimit(reader);
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
 

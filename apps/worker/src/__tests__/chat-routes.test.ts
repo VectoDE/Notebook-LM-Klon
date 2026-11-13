@@ -723,8 +723,12 @@ describe("Chat Routes & SSE Streaming (POST /api/v1/notebooks/:id/chat & GET /ap
     const text = await ok.text();
     expect(text).toContain("Eigen");
     expect(text).toContain('"provider":"custom"');
-    expect(text).toContain('"model":"custom"');
+    expect(text).toContain('"model":"gemini-2.5-flash"');
     expect(seenUsers).toEqual([testUserId]);
+
+    // Ohne gestreamte Teile bleibt als Modellangabe "custom"
+    const silent = await ask(build(async () => new MockStreamingProvider([])));
+    expect(await silent.text()).toContain('"model":"custom"');
 
     for (const resolver of [
       undefined,
