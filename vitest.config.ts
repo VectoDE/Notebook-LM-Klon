@@ -27,6 +27,7 @@ export default defineConfig({
         "apps/web/src/diagram-i18n.ts",
         "apps/web/src/turnstile-client.ts",
         "apps/web/src/seo.ts",
+        "apps/web/src/lazy-viewers.tsx",
         "apps/web/src/i18n.ts",
         "apps/web/src/locale-registry.ts"
       ],
