@@ -14,14 +14,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { DEMO_PODCAST_TRANSCRIPT, DeepDiveStage } from "./DeepDiveStage.js";
 import { EmptyState } from "./EmptyState.js";
 import { Icon, type IconName } from "./Icon.js";
-import {
-  escapeHtmlText,
-  exportBriefingToMarkdown,
-  exportFlashcardsToAnkiCsv,
-  exportMindmapToSvgString,
-  exportQuizToJson,
-  triggerBrowserDownload
-} from "./artifact-exporters.js";
+import { escapeHtmlText, triggerBrowserDownload } from "./download.js";
 import {
   LazyDataTableViewer as DataTableViewer,
   LazyFlashcardsViewer as FlashcardsViewer,
@@ -135,6 +128,13 @@ function useStructuredReview(initial: StructuredData | undefined) {
   const [infographic, setInfographic] = useState<readonly InfographicFact[]>(
     initial?.infographic ?? []
   );
+  // Die Demo-Daten kommen nach dem Start nach (eigener Block, Issue #257): dann übernehmen.
+  useEffect(() => {
+    if (!initial) return;
+    setTimeline(initial.timeline);
+    setTable(initial.table);
+    setInfographic(initial.infographic);
+  }, [initial]);
   return {
     timeline,
     table,
@@ -210,37 +210,40 @@ export function StudioPanel({
   };
 
   const handleExport = (type: "anki" | "mindmap" | "quiz" | "briefing") => {
-    if (type === "anki" && flashcardsData) {
-      const result = exportFlashcardsToAnkiCsv(flashcardsData);
-      download(result.filename, result.content, result.mimeType);
-    } else if (type === "mindmap" && mindmapData) {
-      const label = escapeHtmlText(mindmapData.label);
-      const svg = addSvgProvenanceMetadata(
-        exportMindmapToSvgString(
-          `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="120" viewBox="0 0 640 120"><title>${label}</title><text x="24" y="68" font-family="sans-serif" font-size="24">${label}</text></svg>`
-        )
-      );
-      void downloadWithProvenance(
-        `${notebookTitle}_mindmap.svg`,
-        new Blob([svg], { type: "image/svg+xml" }),
-        "image/svg+xml",
-        `${notebookTitle} – Mindmap`
-      );
-    } else if (type === "quiz" && quizData) {
-      const json = exportQuizToJson(quizData);
-      download(`${notebookTitle}_quiz.json`, json, "application/json");
-    } else if (type === "briefing") {
-      const result = exportBriefingToMarkdown(
-        {
-          executiveSummary: "Zusammenfassung des Notebooks.",
-          keyTakeaways: ["Durable Objects", "D1 SQLite"],
-          actionItems: ["Architektur umsetzen"]
-        },
-        // Der Titel ist frei bearbeitbar: als reiner Text in die Markdown-Datei
-        escapeHtmlText(notebookTitle)
-      );
-      download(result.filename, result.content, result.mimeType);
-    }
+    // Die Formatierer laden erst beim Export, nicht beim Start (Issue #257, LCP mobil).
+    void import("./artifact-exporters.js").then((exporters) => {
+      if (type === "anki" && flashcardsData) {
+        const result = exporters.exportFlashcardsToAnkiCsv(flashcardsData);
+        download(result.filename, result.content, result.mimeType);
+      } else if (type === "mindmap" && mindmapData) {
+        const label = escapeHtmlText(mindmapData.label);
+        const svg = addSvgProvenanceMetadata(
+          exporters.exportMindmapToSvgString(
+            `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="120" viewBox="0 0 640 120"><title>${label}</title><text x="24" y="68" font-family="sans-serif" font-size="24">${label}</text></svg>`
+          )
+        );
+        void downloadWithProvenance(
+          `${notebookTitle}_mindmap.svg`,
+          new Blob([svg], { type: "image/svg+xml" }),
+          "image/svg+xml",
+          `${notebookTitle} – Mindmap`
+        );
+      } else if (type === "quiz" && quizData) {
+        const json = exporters.exportQuizToJson(quizData);
+        download(`${notebookTitle}_quiz.json`, json, "application/json");
+      } else if (type === "briefing") {
+        const result = exporters.exportBriefingToMarkdown(
+          {
+            executiveSummary: "Zusammenfassung des Notebooks.",
+            keyTakeaways: ["Durable Objects", "D1 SQLite"],
+            actionItems: ["Architektur umsetzen"]
+          },
+          // Der Titel ist frei bearbeitbar: als reiner Text in die Markdown-Datei
+          escapeHtmlText(notebookTitle)
+        );
+        download(result.filename, result.content, result.mimeType);
+      }
+    });
   };
 
   // Werkzeugliste: eine Quelle für Symbol, Titel, Beschreibung und Aktionen
