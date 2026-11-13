@@ -11,7 +11,7 @@ import {
   setReviewStatus
 } from "@notebook-lm/shared";
 import { type ReactNode, useEffect, useState } from "react";
-import { DeepDiveStage } from "./DeepDiveStage.js";
+import { DEMO_PODCAST_TRANSCRIPT, DeepDiveStage } from "./DeepDiveStage.js";
 import { EmptyState } from "./EmptyState.js";
 import { Icon, type IconName } from "./Icon.js";
 import {
@@ -30,7 +30,8 @@ import {
   LazyMindmapViewer as MindmapViewer,
   LazyQuizViewer as QuizViewer,
   LazyTimelineViewer as TimelineViewer,
-  LazyVideoOverviewPlayer as VideoOverviewPlayer
+  LazyVideoOverviewPlayer as VideoOverviewPlayer,
+  preloadMediaPlayers
 } from "./lazy-viewers.js";
 import {
   type FetchLike,
@@ -181,6 +182,10 @@ export function StudioPanel({
   useEffect(() => {
     if (toolRequest) setCurrentTool(toolRequest.tool);
   }, [toolRequest]);
+
+  const warmMediaPlayers = () => {
+    void preloadMediaPlayers();
+  };
 
   const selectTool = (tool: StudioTool) => {
     setCurrentTool(tool);
@@ -435,7 +440,13 @@ export function StudioPanel({
         className="rn-cinema-enter rn-tool-view"
       >
         {currentTool === "overview" && (
-          <div className="rn-studio-overview" data-testid="studio-overview">
+          // Medien-Player erst laden, wenn jemand die Werkzeuge ansteuert (Issue #350)
+          <div
+            className="rn-studio-overview"
+            data-testid="studio-overview"
+            onPointerEnter={warmMediaPlayers}
+            onFocus={warmMediaPlayers}
+          >
             {selectedSourceCount === 0 && (
               <EmptyState
                 art="studio"
@@ -507,12 +518,14 @@ export function StudioPanel({
             notebookId="nb_active"
             stateMachine={audioStateMachine}
             currentTrackTitle={notebookTitle}
+            transcriptLines={DEMO_PODCAST_TRANSCRIPT}
+            onNotify={onNotify}
           />
         )}
 
         {/* Tool Viewer: Video */}
         {currentTool === "video" && videoStoryboard && (
-          <VideoOverviewPlayer storyboard={videoStoryboard} />
+          <VideoOverviewPlayer storyboard={videoStoryboard} onNotify={onNotify} />
         )}
 
         {/* Tool Viewer: Mindmap */}

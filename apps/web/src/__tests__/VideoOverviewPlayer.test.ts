@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   VideoOverviewPlayer,
   backdropScrimAlpha,
+  cueAt,
   drawSlideToCanvas,
   formatTime,
   isShortcutExemptTarget
@@ -288,5 +289,50 @@ describe("VideoOverviewPlayer (Sub-Issue #120)", () => {
     expect(html).toContain('<figcaption class="rn-video-chart-title">Wachstum 2026</figcaption>');
     expect(html).toContain('<rect width="100" height="10" rx="2" fill="currentColor">');
     expect(html).toContain('<span class="rn-video-bar-value">30%</span>');
+  });
+});
+
+describe("Medienalternativen im Video-Player (#350)", () => {
+  it("findet den Cue zur Zeit, an der Grenze den späteren", () => {
+    const cues = [
+      { id: "1", startMs: 0, endMs: 1000, text: "a" },
+      { id: "2", startMs: 1000, endMs: 2000, text: "b" }
+    ];
+    expect(cueAt(cues, 1000)?.text).toBe("b");
+    expect(cueAt(cues, 2500)).toBeUndefined();
+  });
+
+  it("bietet das Transkript an und sagt offen, dass kein Gebärdensprachvideo da ist", () => {
+    const html = renderToStaticMarkup(
+      createElement(VideoOverviewPlayer, { storyboard: mockStoryboard })
+    );
+    expect(html).toMatch(
+      /data-testid="toggle-transcript-button" aria-expanded="false" aria-controls="[^"]+-transcript">Transkript zeigen<\/button>/
+    );
+    expect(html).toContain('data-testid="sign-language-unavailable"');
+    expect(html).toContain("noch kein Video in Deutscher Gebärdensprache hinterlegt");
+    expect(html).not.toContain("toggle-sign-language-button");
+    // Ohne Browser-API keine Spur-URL und kein Vorlese-Knopf (beides erst im Browser)
+    expect(html).toContain(
+      '<track kind="captions" srcLang="de" label="Untertitel" default=""/><track kind="descriptions" srcLang="de" label="Audiodeskription"/>'
+    );
+    expect(html).not.toContain("toggle-ad-speech-button");
+  });
+
+  it("bietet Gebärdensprache an, sobald ein Video hinterlegt ist", () => {
+    const html = renderToStaticMarkup(
+      createElement(VideoOverviewPlayer, {
+        storyboard: {
+          ...mockStoryboard,
+          signLanguageVideo: { url: "/dgs.webm", language: "gsg" }
+        }
+      })
+    );
+    expect(html).toMatch(
+      /data-testid="toggle-sign-language-button" aria-pressed="false">.*?Gebärdensprache<\/button>/
+    );
+    expect(html).not.toContain("sign-language-unavailable");
+    // Das Video selbst erscheint erst nach dem Einschalten
+    expect(html).not.toContain("sign-language-video");
   });
 });
