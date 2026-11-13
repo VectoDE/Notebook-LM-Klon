@@ -20,6 +20,7 @@ Nutzer können eigene API-Schlüssel für Google Gemini, OpenAI und Anthropic Cl
 3. **Additional Authenticated Data (`AAD`):** Um zu verhindern, dass ein verschlüsselter Datenbankeintrag (`ciphertext`) in D1 einem anderen Nutzer oder einem anderen Provider untergeschoben werden kann (*Ciphertext Transplanting*), wird der Kontext fest in das GCM-Authentifizierungs-Tag eingebunden:
    $$\text{AAD} = \text{UTF8}(\texttt{user\_id} \mathbin{\Vert} \texttt{"|"} \mathbin{\Vert} \texttt{provider} \mathbin{\Vert} \texttt{"|v"} \mathbin{\Vert} \texttt{key\_version})$$
 4. **Maskierte Anzeige:** Die Datenbank speichert lediglich `ciphertext`, `iv`, `key_version` und die letzten 4 Zeichen (`last4`). Das Frontend sieht ausschließlich `••••1a2b`.
+5. **Rotation und früherer fester KEK:** Ablauf für den KEK-Wechsel und die Prüfung auf Schlüssel, die mit dem früheren festen Fallback-KEK gespeichert wurden: [kek-vorfall-und-rotation.md](./kek-vorfall-und-rotation.md).
 
 ### 1.1 Pflicht-Secrets (kein Ersatzwert im Code)
 
