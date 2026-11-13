@@ -805,3 +805,17 @@ html[data-color-mode="aaa-contrast"] .rn-toast {
     transform: none;
   }
 }
+
+/* Herkunftshinweis (C2PA) nach einem Medienexport, Issue #353 */
+.rn-export-note {
+  display: block;
+  margin-top: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--rn-color-panel-border);
+  border-inline-start-width: 4px;
+  border-radius: var(--rn-radius-lg);
+  background: var(--rn-color-panel);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}

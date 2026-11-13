@@ -1,27 +1,38 @@
-import type {
-  FlashcardItem,
-  MindmapNode,
-  PodcastStateMachine,
-  QuizQuestion,
-  VideoStoryboard
+import {
+  type DataTable,
+  type FlashcardItem,
+  type InfographicFact,
+  type MindmapNode,
+  type PodcastStateMachine,
+  type QuizQuestion,
+  type ReviewStatus,
+  type TimelineEntry,
+  type VideoStoryboard,
+  setReviewStatus
 } from "@notebook-lm/shared";
 import { type ReactNode, useEffect, useState } from "react";
-import { DeepDiveStage } from "./DeepDiveStage.js";
+import { DEMO_PODCAST_TRANSCRIPT, DeepDiveStage } from "./DeepDiveStage.js";
 import { EmptyState } from "./EmptyState.js";
-import { FlashcardsViewer } from "./FlashcardsViewer.js";
 import { Icon, type IconName } from "./Icon.js";
-import { InteractiveAudioHostPlayer } from "./InteractiveAudioHostPlayer.js";
-import { MindmapViewer } from "./MindmapViewer.js";
-import { QuizViewer } from "./QuizViewer.js";
-import { VideoOverviewPlayer } from "./VideoOverviewPlayer.js";
+import { escapeHtmlText, triggerBrowserDownload } from "./download.js";
 import {
-  escapeHtmlText,
-  exportBriefingToMarkdown,
-  exportFlashcardsToAnkiCsv,
-  exportMindmapToSvgString,
-  exportQuizToJson,
-  triggerBrowserDownload
-} from "./artifact-exporters.js";
+  LazyDataTableViewer as DataTableViewer,
+  LazyFlashcardsViewer as FlashcardsViewer,
+  LazyInfographicViewer as InfographicViewer,
+  LazyInteractiveAudioHostPlayer as InteractiveAudioHostPlayer,
+  LazyMindmapViewer as MindmapViewer,
+  LazyQuizViewer as QuizViewer,
+  LazyTimelineViewer as TimelineViewer,
+  LazyVideoOverviewPlayer as VideoOverviewPlayer,
+  preloadMediaPlayers
+} from "./lazy-viewers.js";
+import {
+  type FetchLike,
+  addSvgProvenanceMetadata,
+  provenanceNoteKey,
+  signExport
+} from "./provenance-client.js";
+import type { StructuredData } from "./structured-demo.js";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, PanelFocusAttributes } from "./workspace-types.js";
 
@@ -32,7 +43,10 @@ export type StudioTool =
   | "mindmap"
   | "flashcards"
   | "quiz"
-  | "briefing";
+  | "briefing"
+  | "timeline"
+  | "table"
+  | "infographic";
 
 interface StudioAction {
   readonly label: string;
@@ -92,7 +106,49 @@ export interface StudioPanelProps {
   readonly selectedSourceCount?: number | undefined;
   /** Kurze Rückmeldung in der Hinweis-Leiste, z. B. nach einem Export. */
   readonly onNotify?: ((message: string) => void) | undefined;
+  /** Abruf für die C2PA-Signatur der Exporte (Tests); Standard ist fetch. */
+  readonly provenanceFetch?: FetchLike | undefined;
+  /**
+   * Timeline, Datentabelle und Infografik (Issue #239). Ohne Daten fehlen die drei Einträge.
+   * Der Prüfstand liegt hier im Studio und bleibt beim Wechsel zwischen Werkzeugen erhalten.
+   */
+  readonly structuredData?: StructuredData | undefined;
+  /** Quellen (id, Titel) für Belegzeilen, Quellenspalte und Fußnoten. */
+  readonly structuredSources?:
+    | readonly { readonly id: string; readonly title: string }[]
+    | undefined;
+  /** Sprache der Inhalte von Timeline, Tabelle und Infografik (BCP 47). */
+  readonly structuredLang?: string | undefined;
 }
+
+/** Prüfstand je Werkzeug: Status ändern, Rest unverändert. */
+function useStructuredReview(initial: StructuredData | undefined) {
+  const [timeline, setTimeline] = useState<readonly TimelineEntry[]>(initial?.timeline ?? []);
+  const [table, setTable] = useState<DataTable>(initial?.table ?? { columns: ["–"], rows: [] });
+  const [infographic, setInfographic] = useState<readonly InfographicFact[]>(
+    initial?.infographic ?? []
+  );
+  // Die Demo-Daten kommen nach dem Start nach (eigener Block, Issue #257): dann übernehmen.
+  useEffect(() => {
+    if (!initial) return;
+    setTimeline(initial.timeline);
+    setTable(initial.table);
+    setInfographic(initial.infographic);
+  }, [initial]);
+  return {
+    timeline,
+    table,
+    infographic,
+    setTimelineStatus: (id: string, status: ReviewStatus) =>
+      setTimeline((items) => setReviewStatus(items, id, status)),
+    setTableStatus: (id: string, status: ReviewStatus) =>
+      setTable((current) => ({ ...current, rows: setReviewStatus(current.rows, id, status) })),
+    setInfographicStatus: (id: string, status: ReviewStatus) =>
+      setInfographic((items) => setReviewStatus(items, id, status))
+  };
+}
+
+const browserFetch: FetchLike = (input, init) => fetch(input, init);
 
 export function StudioPanel({
   notebookTitle = "RelationNotes Studio",
@@ -110,15 +166,26 @@ export function StudioPanel({
   toolRequest,
   onOpenGraph,
   selectedSourceCount,
-  onNotify
+  onNotify,
+  structuredData,
+  structuredSources = [],
+  structuredLang,
+  provenanceFetch = browserFetch
 }: StudioPanelProps) {
   const { t, tf } = useTheme();
   const [currentTool, setCurrentTool] = useState<StudioTool>(activeTool);
   const [isDeepDiveOpen, setIsDeepDiveOpen] = useState(false);
+  // Sichtbarer Herkunftshinweis zum letzten Medienexport (Issue #353)
+  const [exportNote, setExportNote] = useState<{ key: string; signed: boolean } | null>(null);
+  const review = useStructuredReview(structuredData);
 
   useEffect(() => {
     if (toolRequest) setCurrentTool(toolRequest.tool);
   }, [toolRequest]);
+
+  const warmMediaPlayers = () => {
+    void preloadMediaPlayers();
+  };
 
   const selectTool = (tool: StudioTool) => {
     setCurrentTool(tool);
@@ -130,28 +197,53 @@ export function StudioPanel({
     onNotify?.(tf("toastDownload", { file: filename }));
   };
 
+  /** Medienexport: erst C2PA-Signatur versuchen, dann laden und offen sagen, was geschah. */
+  const downloadWithProvenance = async (
+    filename: string,
+    content: Blob,
+    mimeType: string,
+    title: string
+  ) => {
+    const outcome = await signExport(provenanceFetch, content, { mimeType, title });
+    download(filename, outcome.blob, mimeType);
+    setExportNote({ key: provenanceNoteKey(outcome), signed: outcome.signed });
+  };
+
   const handleExport = (type: "anki" | "mindmap" | "quiz" | "briefing") => {
-    if (type === "anki" && flashcardsData) {
-      const result = exportFlashcardsToAnkiCsv(flashcardsData);
-      download(result.filename, result.content, result.mimeType);
-    } else if (type === "mindmap" && mindmapData) {
-      const svg = exportMindmapToSvgString(`<svg><text>${mindmapData.label}</text></svg>`);
-      download(`${notebookTitle}_mindmap.svg`, svg, "image/svg+xml");
-    } else if (type === "quiz" && quizData) {
-      const json = exportQuizToJson(quizData);
-      download(`${notebookTitle}_quiz.json`, json, "application/json");
-    } else if (type === "briefing") {
-      const result = exportBriefingToMarkdown(
-        {
-          executiveSummary: "Zusammenfassung des Notebooks.",
-          keyTakeaways: ["Durable Objects", "D1 SQLite"],
-          actionItems: ["Architektur umsetzen"]
-        },
-        // Der Titel ist frei bearbeitbar: als reiner Text in die Markdown-Datei
-        escapeHtmlText(notebookTitle)
-      );
-      download(result.filename, result.content, result.mimeType);
-    }
+    // Die Formatierer laden erst beim Export, nicht beim Start (Issue #257, LCP mobil).
+    void import("./artifact-exporters.js").then((exporters) => {
+      if (type === "anki" && flashcardsData) {
+        const result = exporters.exportFlashcardsToAnkiCsv(flashcardsData);
+        download(result.filename, result.content, result.mimeType);
+      } else if (type === "mindmap" && mindmapData) {
+        const label = escapeHtmlText(mindmapData.label);
+        const svg = addSvgProvenanceMetadata(
+          exporters.exportMindmapToSvgString(
+            `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="120" viewBox="0 0 640 120"><title>${label}</title><text x="24" y="68" font-family="sans-serif" font-size="24">${label}</text></svg>`
+          )
+        );
+        void downloadWithProvenance(
+          `${notebookTitle}_mindmap.svg`,
+          new Blob([svg], { type: "image/svg+xml" }),
+          "image/svg+xml",
+          `${notebookTitle} – Mindmap`
+        );
+      } else if (type === "quiz" && quizData) {
+        const json = exporters.exportQuizToJson(quizData);
+        download(`${notebookTitle}_quiz.json`, json, "application/json");
+      } else if (type === "briefing") {
+        const result = exporters.exportBriefingToMarkdown(
+          {
+            executiveSummary: "Zusammenfassung des Notebooks.",
+            keyTakeaways: ["Durable Objects", "D1 SQLite"],
+            actionItems: ["Architektur umsetzen"]
+          },
+          // Der Titel ist frei bearbeitbar: als reiner Text in die Markdown-Datei
+          escapeHtmlText(notebookTitle)
+        );
+        download(result.filename, result.content, result.mimeType);
+      }
+    });
   };
 
   // Werkzeugliste: eine Quelle für Symbol, Titel, Beschreibung und Aktionen
@@ -264,8 +356,54 @@ export function StudioPanel({
         testId: "btn-export-briefing-md",
         run: () => handleExport("briefing")
       }
-    }
+    },
+    ...(structuredData
+      ? ([
+          {
+            id: "timeline",
+            icon: "list",
+            title: t("toolTimelineTitle"),
+            description: t("toolTimelineDesc"),
+            primary: {
+              label: t("toolTimelineOpen"),
+              testId: "btn-open-timeline-tool",
+              run: () => selectTool("timeline")
+            }
+          },
+          {
+            id: "infographic",
+            icon: "grid",
+            title: t("toolInfographicTitle"),
+            description: t("toolInfographicDesc"),
+            primary: {
+              label: t("toolInfographicOpen"),
+              testId: "btn-open-infographic-tool",
+              run: () => selectTool("infographic")
+            }
+          },
+          {
+            id: "table",
+            icon: "table",
+            title: t("toolTableTitle"),
+            description: t("toolTableDesc"),
+            primary: {
+              label: t("toolTableOpen"),
+              testId: "btn-open-table-tool",
+              run: () => selectTool("table")
+            }
+          }
+        ] satisfies StudioToolEntry[])
+      : [])
   ];
+
+  const structuredCommon = {
+    title: notebookTitle,
+    sources: structuredSources,
+    contentLang: structuredLang,
+    onCitationJump: onSourceJump,
+    onNotify,
+    provenanceFetch
+  };
 
   const [featureTool, ...listTools] = tools;
 
@@ -305,7 +443,13 @@ export function StudioPanel({
         className="rn-cinema-enter rn-tool-view"
       >
         {currentTool === "overview" && (
-          <div className="rn-studio-overview" data-testid="studio-overview">
+          // Medien-Player erst laden, wenn jemand die Werkzeuge ansteuert (Issue #350)
+          <div
+            className="rn-studio-overview"
+            data-testid="studio-overview"
+            onPointerEnter={warmMediaPlayers}
+            onFocus={warmMediaPlayers}
+          >
             {selectedSourceCount === 0 && (
               <EmptyState
                 art="studio"
@@ -359,6 +503,15 @@ export function StudioPanel({
                 </li>
               ))}
             </ul>
+            {exportNote && (
+              <output
+                className="rn-export-note"
+                data-testid="export-provenance-note"
+                data-signed={String(exportNote.signed)}
+              >
+                {t(exportNote.key)}
+              </output>
+            )}
           </div>
         )}
 
@@ -368,12 +521,14 @@ export function StudioPanel({
             notebookId="nb_active"
             stateMachine={audioStateMachine}
             currentTrackTitle={notebookTitle}
+            transcriptLines={DEMO_PODCAST_TRANSCRIPT}
+            onNotify={onNotify}
           />
         )}
 
         {/* Tool Viewer: Video */}
         {currentTool === "video" && videoStoryboard && (
-          <VideoOverviewPlayer storyboard={videoStoryboard} />
+          <VideoOverviewPlayer storyboard={videoStoryboard} onNotify={onNotify} />
         )}
 
         {/* Tool Viewer: Mindmap */}
@@ -405,6 +560,29 @@ export function StudioPanel({
         {/* Tool Viewer: Quiz */}
         {currentTool === "quiz" && quizData && (
           <QuizViewer questions={quizData} title={notebookTitle} contentLang={contentLangs?.quiz} />
+        )}
+
+        {/* Timeline, Infografik, Datentabelle (Issue #239) */}
+        {currentTool === "timeline" && structuredData && (
+          <TimelineViewer
+            entries={review.timeline}
+            onStatus={review.setTimelineStatus}
+            {...structuredCommon}
+          />
+        )}
+        {currentTool === "infographic" && structuredData && (
+          <InfographicViewer
+            facts={review.infographic}
+            onStatus={review.setInfographicStatus}
+            {...structuredCommon}
+          />
+        )}
+        {currentTool === "table" && structuredData && (
+          <DataTableViewer
+            table={review.table}
+            onStatus={review.setTableStatus}
+            {...structuredCommon}
+          />
         )}
       </div>
 

@@ -7,6 +7,15 @@
  * Verläufe und Lichtakzente sind reine Dekoration hinter oder neben dem Text.
  */
 
+/*
+ * Code-Schrift (JetBrains Mono, rund 40 KB) erst nach dem Laden (Issue #257, LCP mobil):
+ * Schon das Modell-Abzeichen im ersten Bild würde sie sonst vor dem ersten Inhalt holen.
+ * main.tsx setzt rn-mono-ready, sobald die Seite fertig ist; bis dahin gilt die Systemschrift.
+ */
+:root:not(.rn-mono-ready) {
+  --rn-font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
 /* ==========================================================================
    Grundgerüst
    ========================================================================== */
@@ -231,6 +240,88 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   font-family: var(--rn-font-family-headings);
   font-size: var(--rn-text-h3);
   font-weight: 600;
+}
+
+/* --- Stand der Synchronisation (Issue #347), nur mit Sitzung sichtbar --- */
+.rn-sync-status {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--rn-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 2px 10px;
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.rn-sync-status[hidden] {
+  display: none;
+}
+
+.rn-sync-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Form statt nur Farbe: offen bei Warten/Offline, Ring bei Fehler */
+.rn-sync-status[data-state="pending"] .rn-sync-dot,
+.rn-sync-status[data-state="offline"] .rn-sync-dot,
+.rn-sync-status[data-state="syncing"] .rn-sync-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+/* Offline: Ring mit Schrägstrich */
+.rn-sync-status[data-state="offline"] .rn-sync-dot {
+  background: linear-gradient(
+    135deg,
+    transparent 42%,
+    currentColor 42%,
+    currentColor 58%,
+    transparent 58%
+  );
+}
+
+.rn-sync-status[data-state="error"] {
+  color: var(--rn-color-text-primary);
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.rn-sync-count {
+  display: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* Unter 900 px hat der Titel Vorrang: sichtbar bleiben Symbol und Anzahl wartender
+   Änderungen, der volle Text steht im Tooltip und wird weiterhin angesagt. */
+@media (max-width: 899.98px) {
+  .rn-sync-status {
+    flex: none;
+    padding: 2px 8px;
+  }
+
+  .rn-sync-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .rn-sync-count {
+    display: inline;
+  }
 }
 
 /* --- Bereiche 600 bis 899 px: Reiterleiste unter der Anwendungsleiste --- */
@@ -619,6 +710,13 @@ html[data-color-mode="aaa-contrast"] .rn-popover {
 
 .rn-segmented--grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Sprachwahl (Issue #349): drei Sprachen untereinander, auch lange Namen wie
+   „Deutsch – Leichte Sprache“ passen ohne Kürzen. */
+.rn-segmented--stack {
+  grid-template-columns: minmax(0, 1fr);
+  border-radius: var(--rn-radius-md);
 }
 
 .rn-segmented--grid .rn-segment {
@@ -2979,7 +3077,7 @@ html[data-color-mode="aaa-contrast"] .rn-btn--unavailable {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--rn-space-2);
+  gap: var(--rn-space-3);
 }
 
 .rn-seg-tabs {
@@ -3016,11 +3114,12 @@ html[data-color-mode="aaa-contrast"] .rn-btn--unavailable {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px;
+  /* 8 px zwischen den Knöpfen: getrennte Ziele, auch mit dem Daumen (Issue #279) */
+  gap: var(--rn-space-2);
   min-width: 0;
   max-width: 100%;
   margin: 0;
-  padding: 0 0 0 2px;
+  padding: 0 0 0 var(--rn-space-1);
   border: 1px solid var(--rn-color-border);
   border-radius: var(--rn-radius-pill);
   background: var(--rn-color-panel);
@@ -3126,6 +3225,10 @@ html[data-color-mode="aaa-contrast"] .rn-btn--unavailable {
 
 .rn-mm-toggle {
   cursor: pointer;
+}
+
+.rn-mm-toggle-hit {
+  fill: transparent;
 }
 
 .rn-mm-toggle-dot {
@@ -4392,6 +4495,43 @@ html[data-color-mode="aaa-contrast"] .rn-stage-btn.rn-video-toggle[aria-pressed=
   color: var(--rn-color-text-primary);
 }
 
+/* Training-Angabe zum gewählten Modell mit Quelle (Issue #302) */
+.rn-model-policy {
+  display: grid;
+  gap: var(--rn-space-2);
+  margin-top: var(--rn-space-3);
+  padding: var(--rn-space-3) var(--rn-space-4);
+  border-radius: var(--rn-radius-md);
+  border: 1px solid var(--rn-color-panel-border);
+  background: var(--rn-color-canvas);
+}
+
+.rn-model-policy strong {
+  color: var(--rn-color-text-primary);
+}
+
+.rn-model-policy-sources {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--rn-text-small);
+  line-height: 1.55;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-model-policy-sources a {
+  display: inline-block;
+  min-height: 24px;
+  color: var(--rn-color-text-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  overflow-wrap: anywhere;
+}
+
+.rn-appearance-group > .rn-setting-hint {
+  margin-top: var(--rn-space-2);
+}
+
 @media (max-width: 599.98px) {
   .rn-drawer {
     width: 100%;
@@ -4867,4 +5007,311 @@ html[data-reduce-motion="true"][data-design] .rn-tool:hover {
     width: 48px;
     height: 24px;
   }
+}
+
+/* ==========================================================================
+   Kommentare an Quellen und Notizen (Issue #353)
+   ========================================================================== */
+.rn-comments {
+  margin-top: var(--rn-space-3);
+  padding-top: var(--rn-space-3);
+  border-top: 1px solid var(--rn-color-panel-border);
+}
+
+.rn-comments-region {
+  display: grid;
+  gap: var(--rn-space-3);
+  margin-top: var(--rn-space-2);
+}
+
+.rn-comments-region[hidden] {
+  display: none;
+}
+
+.rn-comments-note,
+.rn-comments-hint {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-comments-error {
+  margin: 0;
+  padding: var(--rn-space-2) var(--rn-space-3);
+  border-radius: var(--rn-radius-sm);
+  background: var(--rn-color-error-surface);
+  color: var(--rn-color-error);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+}
+
+.rn-comments-error p {
+  margin: 0 0 var(--rn-space-2);
+}
+
+.rn-comment-list {
+  display: grid;
+  gap: var(--rn-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-comment {
+  padding: var(--rn-space-2) var(--rn-space-3);
+  border-radius: var(--rn-radius-sm);
+  background: var(--rn-color-panel);
+  border: 1px solid var(--rn-color-panel-border);
+}
+
+.rn-comment-head {
+  font-size: var(--rn-text-small);
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-comment-author {
+  font-weight: 600;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-comment-body {
+  margin: var(--rn-space-1) 0 0;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rn-comment-mention {
+  font-weight: 600;
+  color: var(--rn-color-accent-text);
+}
+
+.rn-comment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2);
+  margin-top: var(--rn-space-2);
+}
+
+.rn-comment-confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2);
+  font-size: var(--rn-text-small);
+}
+
+.rn-comment-form {
+  display: grid;
+  gap: var(--rn-space-2);
+  justify-items: start;
+}
+
+.rn-comment-field {
+  position: relative;
+  width: 100%;
+}
+
+.rn-comment-input {
+  min-height: 88px;
+  padding: var(--rn-space-2) var(--rn-space-3);
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.rn-comment-mentions {
+  margin: 0;
+  padding: var(--rn-space-1);
+  list-style: none;
+  border-radius: var(--rn-radius-sm);
+  border: 1px solid var(--rn-color-border);
+  background: var(--rn-color-panel);
+  box-shadow: var(--rn-color-panel-shadow);
+}
+
+.rn-comment-mentions[hidden] {
+  display: none;
+}
+
+.rn-comment-mention-option,
+.rn-comment-mention-none {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--rn-space-3);
+  border-radius: var(--rn-radius-sm);
+}
+
+.rn-comment-mention-option {
+  cursor: pointer;
+}
+
+.rn-comment-mention-option[aria-selected="true"] {
+  background: var(--rn-color-highlight);
+  outline: 2px solid var(--rn-color-focus-ring);
+  outline-offset: -2px;
+}
+
+.rn-comment-mention-none {
+  color: var(--rn-color-text-secondary);
+}
+
+/* Mit geöffnetem Faden wächst der Inspektor mit, gescrollt wird im Panel */
+.rn-inspector:has(.rn-comments-region:not([hidden])) {
+  max-height: none;
+}
+
+/* Chat: Verlauf als Markdown sichern (Issue #243) */
+.rn-chat-tools {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ==========================================================================
+   Medienalternativen (Issue #350): Bildbeschreibung, Gebärdensprache, Transkript.
+   Alles liegt auf dem Bühnenmaterial; nur geprüfte Paare (stage-text, stage-muted,
+   stage-accent auf stage-bg).
+   ========================================================================== */
+.rn-video-ad {
+  margin: 0;
+  padding: var(--rn-space-2) var(--rn-space-3);
+  border-left: 3px solid var(--rn-color-stage-accent);
+  font-size: var(--rn-text-base);
+  line-height: 1.5;
+}
+
+.rn-video-ad-label,
+.rn-transcript-desc-label {
+  font-weight: 600;
+}
+
+.rn-video-note {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+  color: var(--rn-color-stage-muted);
+}
+
+/* Bild im Bild: Gebärdensprachvideo unten rechts über der Folie */
+.rn-video-sign {
+  position: absolute;
+  right: var(--rn-space-3);
+  bottom: var(--rn-space-3);
+  width: clamp(120px, 30%, 320px);
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: 2px solid var(--rn-color-stage-accent);
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-stage-bg);
+}
+
+.audio-transcript {
+  display: grid;
+  gap: var(--rn-space-3);
+  justify-items: start;
+}
+
+.audio-transcript > div {
+  justify-self: stretch;
+}
+
+.rn-transcript {
+  display: grid;
+  gap: var(--rn-space-3);
+  padding: var(--rn-space-4);
+  border: 1px solid var(--rn-stage-line);
+  border-radius: var(--rn-radius-md);
+  color: var(--rn-color-stage-text);
+}
+
+.rn-transcript-head,
+.rn-transcript-downloads,
+.rn-stage-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2);
+}
+
+.rn-transcript-head {
+  justify-content: space-between;
+}
+
+.rn-transcript-title {
+  margin: 0;
+  font-size: var(--rn-text-base);
+  color: var(--rn-color-stage-text);
+}
+
+.rn-transcript-list {
+  display: grid;
+  gap: var(--rn-space-3);
+  max-height: 24rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.rn-transcript-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--rn-space-3);
+  padding: var(--rn-space-2);
+  border-radius: var(--rn-radius-sm);
+}
+
+.rn-transcript-item[aria-current="time"] {
+  box-shadow: inset 3px 0 0 var(--rn-color-stage-accent);
+}
+
+.rn-transcript-time {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--rn-space-2);
+  border: 1px solid var(--rn-stage-line);
+  border-radius: var(--rn-radius-sm);
+  background: transparent;
+  color: var(--rn-color-stage-text);
+  font: inherit;
+  font-family: var(--rn-font-mono);
+  font-size: var(--rn-text-small);
+  line-height: 44px;
+  text-align: center;
+}
+
+button.rn-transcript-time {
+  cursor: pointer;
+}
+
+button.rn-transcript-time:hover {
+  border-color: var(--rn-color-stage-accent);
+}
+
+.rn-transcript-body {
+  display: grid;
+  gap: var(--rn-space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rn-transcript-chapter {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  color: var(--rn-color-stage-muted);
+}
+
+.rn-transcript-text,
+.rn-transcript-desc {
+  margin: 0;
+  font-size: var(--rn-text-base);
+  line-height: 1.5;
+}
+
+.rn-transcript-desc {
+  color: var(--rn-color-stage-muted);
 }

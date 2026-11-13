@@ -245,6 +245,31 @@ export class RagRepository {
     );
   }
 
+  /**
+   * Eine Seite des Verlaufs, neueste zuerst gelesen und aufsteigend zurückgegeben.
+   * Mit `before` nur Nachrichten, die älter sind als dieser Eintrag (Keyset-Paginierung,
+   * stabil auch bei gleichem Zeitstempel über die id). Liefert limit + 1 Zeilen höchstens,
+   * damit der Aufrufer erkennt, ob es ältere gibt.
+   */
+  async getMessagesPage(
+    chatId: string,
+    limit: number,
+    before?: { readonly createdAt: number; readonly id: string }
+  ): Promise<MessageRow[]> {
+    if (before) {
+      return this.db.query<MessageRow>(
+        `SELECT * FROM messages WHERE chat_id = ?
+           AND (created_at < ? OR (created_at = ? AND id < ?))
+         ORDER BY created_at DESC, id DESC LIMIT ?`,
+        [chatId, before.createdAt, before.createdAt, before.id, limit + 1]
+      );
+    }
+    return this.db.query<MessageRow>(
+      "SELECT * FROM messages WHERE chat_id = ? ORDER BY created_at DESC, id DESC LIMIT ?",
+      [chatId, limit + 1]
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Studio Artifacts
   // ---------------------------------------------------------------------------

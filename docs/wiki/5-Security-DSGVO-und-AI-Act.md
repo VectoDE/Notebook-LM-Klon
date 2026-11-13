@@ -21,6 +21,36 @@ Nutzer können eigene API-Schlüssel für Google Gemini, OpenAI und Anthropic Cl
    $$\text{AAD} = \text{UTF8}(\texttt{user\_id} \mathbin{\Vert} \texttt{"|"} \mathbin{\Vert} \texttt{provider} \mathbin{\Vert} \texttt{"|v"} \mathbin{\Vert} \texttt{key\_version})$$
 4. **Maskierte Anzeige:** Die Datenbank speichert lediglich `ciphertext`, `iv`, `key_version` und die letzten 4 Zeichen (`last4`). Das Frontend sieht ausschließlich `••••1a2b`.
 
+### 1.1 Pflicht-Secrets (kein Ersatzwert im Code)
+
+Der Worker enthält für keines dieser Secrets einen eingebauten Standardwert. Fehlt eines, schaltet er die betroffene Funktion ab, statt mit einem unsicheren Ersatz weiterzulaufen.
+
+| Secret | Wofür | Fehlt oder ungültig |
+|---|---|---|
+| `KEK_V1` (optional `KEK_V2` … `KEK_V10` und `KEK_CURRENT_VERSION`; älterer Name `BYOK_MASTER_KEY`) | Master Key für die BYOK-Verschlüsselung | `/api/v1/keys*` antwortet mit `503 BYOK_NOT_CONFIGURED` und speichert nichts. Ein KEK unter 32 Zeichen gilt als ungültig. |
+| `SESSION_SALT_SECRET` | Salt für die Hashes von IP und User-Agent in Sitzungen | Anmeldung antwortet mit `503 SESSION_SALT_NOT_CONFIGURED` |
+| `TURNSTILE_SECRET_KEY` | Bot-Schutz für Gastzugang und Magic-Link | `503 TURNSTILE_NOT_CONFIGURED` |
+
+**KEK erzeugen:** 32 Zufallsbytes, als Hex (64 Zeichen) oder Base64 (44 Zeichen):
+
+```sh
+openssl rand -hex 32        # oder: openssl rand -base64 32
+```
+
+**KEK setzen:**
+
+- Cloudflare: `pnpm --filter @notebook-lm/worker exec wrangler secret put KEK_V1`, dann den Wert einfügen. Für `wrangler dev` gehört er in `apps/worker/.dev.vars`; die Datei ist per `.gitignore` ausgeschlossen.
+- Node/Docker: als Umgebungsvariable `KEK_V1` des Prozesses. `docker-compose.yml` reicht `KEK_V1`, `KEK_V2` und `KEK_CURRENT_VERSION` aus der Umgebung des Hosts durch. Vorlage: `apps/worker/.env.example` (nach `.env` im Projektordner kopieren und füllen, `docker compose` liest sie dort).
+
+Den KEK nie ins Repository, in Tickets oder in Logs schreiben. Geht er verloren, lassen sich gespeicherte BYOK-Schlüssel nicht mehr entschlüsseln, und die Nutzer müssen sie neu eingeben.
+
+**KEK rotieren:**
+
+1. Neuen Schlüssel als `KEK_V2` setzen und `KEK_V1` stehen lassen.
+2. `KEK_CURRENT_VERSION=2` setzen. Neue und geänderte BYOK-Schlüssel werden ab jetzt mit Version 2 verschlüsselt, alte bleiben mit Version 1 lesbar.
+3. Bestehende Einträge umschlüsseln: `POST /api/v1/keys/rekey` stellt die Einträge der angemeldeten Person auf die aktuelle Version um.
+4. `KEK_V1` erst entfernen, wenn `SELECT COUNT(*) FROM provider_keys WHERE key_version = 1;` in D1 `0` ergibt.
+
 ---
 
 ## 2. Authentifizierung, Session-Sicherheit & Bot-Schutz
@@ -40,7 +70,7 @@ Nutzer können eigene API-Schlüssel für Google Gemini, OpenAI und Anthropic Cl
 | Rechtsrahmen | Technische Umsetzung im Projekt |
 |---|---|
 | **DSGVO (Art. 5, 15, 17, 20, 25, 32)** | • **Privacy by Default:** Lokaler Ollama-Modus (`127.0.0.1:11434`) überträgt keinerlei Daten an Dritte.<br>• **Datenminimierung:** IP-Adressen für Rate-Limits und Audit-Logs werden ausschließlich als tagesrotierter `SHA-256`-Hash gespeichert.<br>• **Speicherbegrenzung (Cron-TTL):** Gastkonten werden nach 24 h, Demo-Notebooks nach 30 Tagen inklusive aller R2-Objekte automatisch gelöscht.<br>• **Betroffenenrechte per 1-Klick:** Asynchroner Datenexport (`GET /api/v1/me/export` als ZIP via `JobDO`), sofortige Kontolöschung (`DELETE /api/v1/me`) und persönliches Sicherheits-Audit-Log (`GET /api/v1/me/audit`). |
-| **TDDDG (ehem. TTDSG § 25)** | • **Kein Cookie-Banner erforderlich:** Es wird ausschließlich ein technisch zwingend notwendiges Session-Cookie (`__Host-sid`) nach expliziter Nutzeranmeldung gesetzt. Optionale Offline-Caches (`IndexedDB`) werden nur auf Wunsch des Nutzers aktiviert. |
+| **TDDDG (ehem. TTDSG § 25)** | • **Kein Cookie-Banner erforderlich:** Es wird ausschließlich ein technisch zwingend notwendiges Session-Cookie (`__Host-sid`) nach expliziter Nutzeranmeldung gesetzt. Lokale Daten in `IndexedDB` liegen nur verschlüsselt vor (AES-GCM, Schlüssel aus der Konto-Sitzung, siehe [Lokale Verschlüsselung](11-Lokale-Verschluesselung)); Abmelden löscht sie. |
 | **DDG § 5 (Impressum & Adressschutz)** | • Vollständiges Impressum mit zwei unmittelbaren Kontaktwegen (E-Mail + Turnstile-geschütztes Kontaktformular `/api/v1/contact`).<br>• **Schutz privater Adressdaten im öffentlichen Repo (Entscheidung #59):** Im Quellcode stehen Platzhalter; die reale Wohnadresse wird erst zur Laufzeit über Cloudflare-Worker-Umgebungsvariablen in `/api/v1/legal/imprint` injiziert. |
 | **EU AI Act (Art. 50 Transparenzpflichten)** | • **Sichtbare Kennzeichnung:** Jede KI-Antwort, Zusammenfassung und jedes Audio-/Video-Artefakt trägt einen klaren Hinweis auf das erzeugende Modell.<br>• **Synthetische Stimmen (Deepfake-/Audio-Transparenz):** Der Zwei-Sprecher-Audio-Overview weist synthetische KI-Stimmen explizit im Player und im Transkript aus.<br>• **Maschinenlesbare Provenienz:** Alle API-Antworten und Export-Artefakte enthalten strukturierte `ai_generated: true`-Metadaten, Modellkennung und Zeitstempel.<br>• **Missbrauchsmeldung:** Integrierter Endpunkt `POST /api/v1/abuse-reports` für fehlerhafte oder unangemessene KI-Ausgaben. |
 

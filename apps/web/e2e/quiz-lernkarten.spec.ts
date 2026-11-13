@@ -22,6 +22,7 @@ test.describe("Quiz: Ansagen und Zustände", () => {
 
   test("zwischen Frage und Antworten liegt ein Abstand", async ({ page }) => {
     await openTool(page, "btn-open-quiz-tool");
+    await expect(page.locator(".rn-quiz-options")).toBeVisible();
     const gap = await page.evaluate(() => {
       const legend = document.querySelector(".rn-quiz-question")?.getBoundingClientRect();
       const options = document.querySelector(".rn-quiz-options")?.getBoundingClientRect();
