@@ -219,7 +219,7 @@ Alle Endpunkte unter `/api/v1` sind in [`docs/openapi.json`](docs/openapi.json) 
 ## Schnellstart – Einrichtung, Tests & Verifikation
 
 ### Voraussetzungen
-- **Node.js** `>= 22.0.0`
+- **Node.js** `>= 26` (aktuelle LTS „Lithium“, CI nutzt Node 26)
 - **pnpm** `>= 10.0.0` (oder Corepack aktiviert)
 
 ### 1. Repository klonen & Abhängigkeiten installieren
@@ -273,6 +273,160 @@ Ohne diese Garantien werden `cf-connecting-ip` und `x-forwarded-for` ignoriert, 
 - **Node-Server hinter einem Reverse Proxy** (nginx, Caddy, Traefik, Load Balancer): `TRUSTED_PROXY_HEADER` auf den Header setzen, den **Ihr** Proxy schreibt, zum Beispiel `TRUSTED_PROXY_HEADER=x-forwarded-for` oder `TRUSTED_PROXY_HEADER=x-real-ip`. Groß- und Kleinschreibung spielen keine Rolle.
 
 Wichtig: Setzen Sie `TRUSTED_PROXY_HEADER` nur, wenn der Server ausschließlich über diesen Proxy erreichbar ist und der Proxy den Header selbst anhängt oder überschreibt (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;` oder `proxy_set_header X-Real-IP $remote_addr;`). Ist der Server zusätzlich direkt erreichbar, kann ein Angreifer den Header fälschen und Rate-Limits umgehen. Bei mehreren Proxys hintereinander zählt der letzte Eintrag, also die Adresse, die der Proxy direkt vor dem Server gesehen hat.
+
+---
+
+## Betrieb mit Node.js und Docker
+
+RelationNotes läuft auch ohne Cloudflare: ein Node-Prozess liefert Web-App und API über einen Port (Standard `8787`). D1 wird zu SQLite (`node:sqlite`), R2 zu Dateien auf der Platte. `NotebookDO` und `JobDO` laufen als echte Klassen im Prozess, der stündliche Cron als Zeitplan im Server. Getestet wird in der CI auf Node 26 LTS. Belegt sind dort das Docker-Image mit Healthcheck, derselbe Smoke-Check gegen `wrangler dev` und gegen Node sowie Playwright gegen den Node-Build.
+
+### Starten
+
+```bash
+# Docker (empfohlen): Secrets setzen, Image bauen, starten
+export SESSION_SALT_SECRET=$(openssl rand -hex 32) KEK_V1=$(openssl rand -hex 32)
+export TURNSTILE_SECRET_KEY=<Ihr Secret> VITE_TURNSTILE_SITE_KEY=<Ihr Site-Key>
+docker compose up -d --build
+curl http://localhost:8787/api/v1/health
+
+# Ohne Docker (Node >= 26): bauen und das Bundle starten
+pnpm install --frozen-lockfile && pnpm build
+SESSION_SALT_SECRET=… KEK_V1=… node apps/worker/dist/node-server.js
+```
+
+`pnpm build` erzeugt `apps/worker/dist/node-server.js` mit allen Abhängigkeiten. Das Laufzeit-Image (`apps/worker/Dockerfile`) enthält deshalb nur dieses Bundle, die Migrationen und `apps/web/dist`. Es enthält kein `node_modules`, keine Quellen und kein `tsx`, läuft als Benutzer `node` und baut auf `node:26.13.1-alpine` mit festem sha256-Digest auf. Vorlage für alle Variablen: [`apps/worker/.env.example`](apps/worker/.env.example). Als `.env` ins Wurzelverzeichnis kopiert, wird sie von `docker compose` gelesen.
+
+### Umgebungsvariablen
+
+| Variable | Pflicht | Bedeutung |
+| :--- | :--- | :--- |
+| `SESSION_SALT_SECRET` | ja | Salz für Sitzungs-Hashes, mindestens 32 Zeichen. Fehlt es, startet der Server nicht. |
+| `KEK_V1` (oder `BYOK_MASTER_KEY`) | ja | Schlüssel für gespeicherte API-Schlüssel, mindestens 32 Zeichen. Zum Wechseln `KEK_V2` ergänzen und `KEK_CURRENT_VERSION=2` setzen. |
+| `TURNSTILE_SECRET_KEY` | empfohlen | Server-Secret von Cloudflare Turnstile. Ohne dieses Secret startet der Server mit einer Warnung, Gastzugang und Magic-Link antworten aber mit `503 TURNSTILE_NOT_CONFIGURED`. |
+| `VITE_TURNSTILE_SITE_KEY` | empfohlen | Öffentlicher Site-Key für das Widget. Er wird beim Bauen in die Web-App geschrieben und ist deshalb ein **Build-Argument** (`docker build --build-arg`, in Compose unter `build.args`), keine Laufzeitvariable. |
+| `APP_ORIGIN` | nein | Öffentliche Adresse ohne Pfad, z. B. `https://notes.example.org`. Standard: `http://localhost:<PORT>`. |
+| `APP_PROFILE` | nein | `demo` (Standard) oder `full`. |
+| `PORT`, `DATA_DIR`, `STATIC_DIR` | nein | Port (Standard `8787`), Datenordner (Standard `.data`, im Image `/app/.data`) und Ordner der Web-App. |
+| `TRUSTED_PROXY_HEADER` | nein | Nur hinter einem Reverse Proxy, siehe Abschnitt 4 im Schnellstart. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE`, `MAIL_FROM` | nein | Mailversand per SMTP. Standard ist Port 587 mit Pflicht zu STARTTLS, Port 465 nutzt TLS direkt. Ist SMTP gesetzt, bleibt Resend ungenutzt. |
+| `RESEND_API_KEY`, `MAIL_FROM` | nein | Mailversand über Resend, wenn kein SMTP gesetzt ist. Ohne Mailversand kommen keine Magic-Link-Mails an. |
+| `CLEANUP_INTERVAL_MINUTES` | nein | Aufräumlauf im Server, Standard `60` wie der Cron `0 * * * *` auf Cloudflare. `0` schaltet ihn ab; dann führt ein externer Cron `node apps/worker/dist/node-server.js cleanup` aus. |
+| `DEMO_GEMINI_KEY` | nein | Schlüssel für das Demo-Profil. |
+
+**Turnstile-Testschlüssel, nur für Entwicklung und Tests:** Site-Key `1x00000000000000000000AA` und Secret `1x0000000000000000000000000000000AA`. Beide bestehen immer und schützen deshalb vor keinem Bot. Für den echten Betrieb legen Sie im Cloudflare-Dashboard ein eigenes Turnstile-Widget an. Läuft das Test-Secret auf einer `https`-Adresse, warnt der Server beim Start.
+
+**Abweichung von „vollständig unabhängig von Cloudflare“:** Auf Node bleibt Turnstile vor Gastzugang und Magic-Link eingeschaltet. Das hat der Inhaber so entschieden, damit beide Laufzeiten gleich gut gegen Bots geschützt sind. Der Node-Betrieb braucht deshalb ein kostenloses Turnstile-Widget von Cloudflare und ausgehende Verbindungen zu `challenges.cloudflare.com`. Ohne Secret bleibt die Anmeldung gesperrt; es gibt keinen Rückfall auf „ohne Prüfung“. Alles andere läuft auf Node ohne Cloudflare: Datenbank, Speicher, Durable Objects, Cron und Mail.
+
+### Grenzen der Node-Laufzeit
+
+- Ein Prozess je Datenordner. Durable Objects und Rate-Limits liegen im Prozess, mehrere Instanzen auf demselben `DATA_DIR` sind nicht vorgesehen.
+- Keine WebSocket-Hibernation: `getWebSockets()` liefert eine leere Liste.
+- `dump()` der D1-Schnittstelle gibt es nicht. Gesichert wird über die Dateien (siehe unten).
+
+### Sichern
+
+Alle Daten liegen in `DATA_DIR` (Compose-Volume `app-data`, im Container `/app/.data`):
+- `local.sqlite` ist die Datenbank (WAL-Modus, also auch `-wal` und `-shm`).
+- `media/`, `media-meta/` enthalten die hochgeladenen Dateien.
+- `do/` enthält die SQLite-Dateien der Durable Objects.
+
+```bash
+# Konsistente Sicherung: kurz anhalten, Volume als Archiv sichern, wieder starten
+docker compose stop app
+docker run --rm -v notebook-lm-klon_app-data:/data -v "$PWD":/backup alpine \
+  tar czf /backup/relationnotes-$(date +%F).tar.gz -C /data .
+docker compose start app
+```
+
+Den Volume-Namen zeigt `docker volume ls`. Wiederherstellen: Container anhalten, das Archiv in ein leeres Volume entpacken (`tar xzf … -C /data`), Container starten. Die Secrets (`SESSION_SALT_SECRET`, `KEK_*`) gehören getrennt von der Sicherung an einen sicheren Ort. Ohne den passenden KEK lassen sich gespeicherte API-Schlüssel nicht mehr entschlüsseln.
+
+### Aktualisieren
+
+```bash
+git pull
+docker compose build --pull
+docker compose up -d
+curl http://localhost:8787/api/v1/health
+```
+
+Vorher sichern. Neue Migrationen aus `apps/worker/migrations` spielt der Server beim Start selbst ein; die Buchführung steht in der Tabelle `d1_migrations`. Ist der Healthcheck nicht grün (`docker compose ps`), zeigt `docker compose logs app` den Grund, etwa fehlende Pflicht-Secrets.
+
+---
+
+## Running with Node.js and Docker (English)
+
+RelationNotes also runs without Cloudflare: one Node process serves the web app and the API on one port (default `8787`). D1 becomes SQLite (`node:sqlite`) and R2 becomes files on disk. `NotebookDO` and `JobDO` run as the real classes in the process, and the hourly cron runs as a schedule inside the server. CI runs on Node 26 LTS. It verifies the Docker image with its health check, runs the same smoke check against `wrangler dev` and against Node, and runs Playwright against the Node build.
+
+### Start
+
+```bash
+# Docker (recommended): set secrets, build, start
+export SESSION_SALT_SECRET=$(openssl rand -hex 32) KEK_V1=$(openssl rand -hex 32)
+export TURNSTILE_SECRET_KEY=<your secret> VITE_TURNSTILE_SITE_KEY=<your site key>
+docker compose up -d --build
+curl http://localhost:8787/api/v1/health
+
+# Without Docker (Node >= 26): build and start the bundle
+pnpm install --frozen-lockfile && pnpm build
+SESSION_SALT_SECRET=… KEK_V1=… node apps/worker/dist/node-server.js
+```
+
+`pnpm build` produces `apps/worker/dist/node-server.js`, with all dependencies bundled. The runtime image (`apps/worker/Dockerfile`) therefore holds only that bundle, the migrations and `apps/web/dist`. It has no `node_modules`, no sources and no `tsx`, runs as user `node` and is based on `node:26.13.1-alpine` pinned by sha256 digest. Template for all variables: [`apps/worker/.env.example`](apps/worker/.env.example). Copied to `.env` in the repository root, `docker compose` reads it.
+
+### Environment variables
+
+| Variable | Required | Meaning |
+| :--- | :--- | :--- |
+| `SESSION_SALT_SECRET` | yes | Salt for session hashes, at least 32 characters. If it is missing, the server does not start. |
+| `KEK_V1` (or `BYOK_MASTER_KEY`) | yes | Key for stored API keys, at least 32 characters. To rotate, add `KEK_V2` and set `KEK_CURRENT_VERSION=2`. |
+| `TURNSTILE_SECRET_KEY` | recommended | Cloudflare Turnstile server secret. Without it the server starts with a warning, but guest login and magic link answer `503 TURNSTILE_NOT_CONFIGURED`. |
+| `VITE_TURNSTILE_SITE_KEY` | recommended | Public site key for the widget. It is written into the web app at build time, so it is a **build argument** (`docker build --build-arg`, in Compose under `build.args`), not a runtime variable. |
+| `APP_ORIGIN` | no | Public address without a path, e.g. `https://notes.example.org`. Default: `http://localhost:<PORT>`. |
+| `APP_PROFILE` | no | `demo` (default) or `full`. |
+| `PORT`, `DATA_DIR`, `STATIC_DIR` | no | Port (default `8787`), data directory (default `.data`, `/app/.data` in the image) and web app directory. |
+| `TRUSTED_PROXY_HEADER` | no | Only behind a reverse proxy, see section 4 of the quick start. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE`, `MAIL_FROM` | no | Mail via SMTP. Default is port 587 with mandatory STARTTLS; port 465 uses TLS directly. When SMTP is set, Resend is not used. |
+| `RESEND_API_KEY`, `MAIL_FROM` | no | Mail via Resend when SMTP is not set. Without mail delivery, magic-link mails do not arrive. |
+| `CLEANUP_INTERVAL_MINUTES` | no | Cleanup inside the server, default `60` like the Cloudflare cron `0 * * * *`. `0` turns it off; an external cron then runs `node apps/worker/dist/node-server.js cleanup`. |
+| `DEMO_GEMINI_KEY` | no | Key for the demo profile. |
+
+**Turnstile test keys, for development and tests only:** site key `1x00000000000000000000AA` and secret `1x0000000000000000000000000000000AA`. Both always pass, so they protect against no bot at all. For real operation, create your own Turnstile widget in the Cloudflare dashboard. If the test secret runs on an `https` address, the server warns at start.
+
+**Deviation from "fully independent of Cloudflare":** on Node, Turnstile stays switched on in front of guest login and magic link. The owner decided this so that both runtimes are equally protected against bots. Running on Node therefore needs a free Cloudflare Turnstile widget and outbound connections to `challenges.cloudflare.com`. Without the secret, sign-in stays blocked; there is no fallback to "no check". Everything else runs on Node without Cloudflare: database, storage, Durable Objects, cron and mail.
+
+### Limits of the Node runtime
+
+- One process per data directory. Durable Objects and rate limits live in the process; several instances on the same `DATA_DIR` are not supported.
+- No WebSocket hibernation: `getWebSockets()` returns an empty list.
+- The D1 `dump()` call does not exist. Back up the files instead (see below).
+
+### Backup
+
+All data lives in `DATA_DIR` (Compose volume `app-data`, `/app/.data` in the container):
+- `local.sqlite` is the database (WAL mode, so also `-wal` and `-shm`).
+- `media/` and `media-meta/` hold the uploaded files.
+- `do/` holds the SQLite files of the Durable Objects.
+
+```bash
+# Consistent backup: stop briefly, archive the volume, start again
+docker compose stop app
+docker run --rm -v notebook-lm-klon_app-data:/data -v "$PWD":/backup alpine \
+  tar czf /backup/relationnotes-$(date +%F).tar.gz -C /data .
+docker compose start app
+```
+
+`docker volume ls` shows the volume name. To restore: stop the container, unpack the archive into an empty volume (`tar xzf … -C /data`), start the container. Keep the secrets (`SESSION_SALT_SECRET`, `KEK_*`) in a safe place, separate from the backup. Without the matching KEK, stored API keys cannot be decrypted.
+
+### Update
+
+```bash
+git pull
+docker compose build --pull
+docker compose up -d
+curl http://localhost:8787/api/v1/health
+```
+
+Back up first. The server applies new migrations from `apps/worker/migrations` itself at start; the record is kept in the table `d1_migrations`. If the health check is not green (`docker compose ps`), `docker compose logs app` shows the reason, for example missing mandatory secrets.
 
 ---
 
