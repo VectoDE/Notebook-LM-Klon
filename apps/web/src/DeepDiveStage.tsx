@@ -1,8 +1,14 @@
-import type { PodcastStateMachine } from "@notebook-lm/shared";
+import {
+  type PodcastStateMachine,
+  buildWebVtt,
+  spokenLinesToCues,
+  spokenTranscriptToText
+} from "@notebook-lm/shared";
 import { useEffect, useRef, useState } from "react";
 import { AuroraOrb } from "./AuroraOrb.js";
 import { Icon } from "./Icon.js";
 import { LiveLyrics, type TranscriptLine } from "./LiveLyrics.js";
+import { triggerBrowserDownload } from "./artifact-exporters.js";
 import { useReturnFocus } from "./useReturnFocus.js";
 import { useTheme } from "./useTheme.js";
 
@@ -18,9 +24,12 @@ export interface DeepDiveStageProps {
   readonly onAskQuestion?: (() => void) | undefined;
   /** Ziel für den Fokus nach dem Schließen, wenn der Auslöser ihn nicht mehr annimmt. */
   readonly returnFocusFallback?: (() => HTMLElement | null | undefined) | undefined;
+  /** Sprache des Transkripts (BCP 47), Standard Deutsch wie die Demo (Issue #350). */
+  readonly transcriptLang?: "de" | "en" | undefined;
 }
 
-const DEFAULT_TRANSCRIPT: readonly TranscriptLine[] = [
+/** Demo-Transkript der Hosts; auch der Audio-Player zeigt es als Textalternative (#350). */
+export const DEMO_PODCAST_TRANSCRIPT: readonly TranscriptLine[] = [
   {
     id: "line_1",
     startMs: 0,
@@ -55,13 +64,14 @@ export function DeepDiveStage({
   isOpen,
   onClose,
   notebookTitle = "RelationNotes Deep Dive Studio",
-  transcriptLines = DEFAULT_TRANSCRIPT,
+  transcriptLines = DEMO_PODCAST_TRANSCRIPT,
   currentTimeMs = 2500,
   isPlaying = false,
   stateMachine: _stateMachine,
   onSeek,
   onAskQuestion,
-  returnFocusFallback
+  returnFocusFallback,
+  transcriptLang = "de"
 }: DeepDiveStageProps) {
   const { t } = useTheme();
   const [internalTimeMs, setInternalTimeMs] = useState(currentTimeMs);
@@ -140,6 +150,7 @@ export function DeepDiveStage({
             currentTimeMs={internalTimeMs}
             onSeek={handleSeek}
             isPlaying={isPlaying}
+            contentLang={transcriptLang}
           />
         </div>
       </div>
@@ -155,6 +166,40 @@ export function DeepDiveStage({
         </button>
 
         <p className="rn-stage-note">{t("stageNote")}</p>
+
+        {/* Textalternative zum Mitnehmen (Issue #350) */}
+        <div className="rn-stage-downloads">
+          <button
+            type="button"
+            className="rn-stage-btn"
+            data-testid="btn-stage-transcript-txt"
+            onClick={() =>
+              triggerBrowserDownload(
+                `${notebookTitle}_transkript.txt`,
+                spokenTranscriptToText(notebookTitle, transcriptLines, transcriptLang),
+                "text/plain;charset=utf-8"
+              )
+            }
+          >
+            <Icon name="download" size={16} />
+            {t("mediaDownloadText")}
+          </button>
+          <button
+            type="button"
+            className="rn-stage-btn"
+            data-testid="btn-stage-transcript-vtt"
+            onClick={() =>
+              triggerBrowserDownload(
+                `${notebookTitle}_untertitel.vtt`,
+                buildWebVtt(spokenLinesToCues(transcriptLines), notebookTitle),
+                "text/vtt"
+              )
+            }
+          >
+            <Icon name="download" size={16} />
+            {t("mediaDownloadCaptions")}
+          </button>
+        </div>
       </footer>
     </dialog>
   );

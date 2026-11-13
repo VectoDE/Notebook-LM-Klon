@@ -5152,3 +5152,150 @@ html[data-reduce-motion="true"][data-design] .rn-tool:hover {
   display: flex;
   justify-content: flex-end;
 }
+
+/* ==========================================================================
+   Medienalternativen (Issue #350): Bildbeschreibung, Gebärdensprache, Transkript.
+   Alles liegt auf dem Bühnenmaterial; nur geprüfte Paare (stage-text, stage-muted,
+   stage-accent auf stage-bg).
+   ========================================================================== */
+.rn-video-ad {
+  margin: 0;
+  padding: var(--rn-space-2) var(--rn-space-3);
+  border-left: 3px solid var(--rn-color-stage-accent);
+  font-size: var(--rn-text-base);
+  line-height: 1.5;
+}
+
+.rn-video-ad-label,
+.rn-transcript-desc-label {
+  font-weight: 600;
+}
+
+.rn-video-note {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+  color: var(--rn-color-stage-muted);
+}
+
+/* Bild im Bild: Gebärdensprachvideo unten rechts über der Folie */
+.rn-video-sign {
+  position: absolute;
+  right: var(--rn-space-3);
+  bottom: var(--rn-space-3);
+  width: clamp(120px, 30%, 320px);
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: 2px solid var(--rn-color-stage-accent);
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-stage-bg);
+}
+
+.audio-transcript {
+  display: grid;
+  gap: var(--rn-space-3);
+  justify-items: start;
+}
+
+.audio-transcript > div {
+  justify-self: stretch;
+}
+
+.rn-transcript {
+  display: grid;
+  gap: var(--rn-space-3);
+  padding: var(--rn-space-4);
+  border: 1px solid var(--rn-stage-line);
+  border-radius: var(--rn-radius-md);
+  color: var(--rn-color-stage-text);
+}
+
+.rn-transcript-head,
+.rn-transcript-downloads,
+.rn-stage-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2);
+}
+
+.rn-transcript-head {
+  justify-content: space-between;
+}
+
+.rn-transcript-title {
+  margin: 0;
+  font-size: var(--rn-text-base);
+  color: var(--rn-color-stage-text);
+}
+
+.rn-transcript-list {
+  display: grid;
+  gap: var(--rn-space-3);
+  max-height: 24rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.rn-transcript-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--rn-space-3);
+  padding: var(--rn-space-2);
+  border-radius: var(--rn-radius-sm);
+}
+
+.rn-transcript-item[aria-current="time"] {
+  box-shadow: inset 3px 0 0 var(--rn-color-stage-accent);
+}
+
+.rn-transcript-time {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--rn-space-2);
+  border: 1px solid var(--rn-stage-line);
+  border-radius: var(--rn-radius-sm);
+  background: transparent;
+  color: var(--rn-color-stage-text);
+  font: inherit;
+  font-family: var(--rn-font-mono);
+  font-size: var(--rn-text-small);
+  line-height: 44px;
+  text-align: center;
+}
+
+button.rn-transcript-time {
+  cursor: pointer;
+}
+
+button.rn-transcript-time:hover {
+  border-color: var(--rn-color-stage-accent);
+}
+
+.rn-transcript-body {
+  display: grid;
+  gap: var(--rn-space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rn-transcript-chapter {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  color: var(--rn-color-stage-muted);
+}
+
+.rn-transcript-text,
+.rn-transcript-desc {
+  margin: 0;
+  font-size: var(--rn-text-base);
+  line-height: 1.5;
+}
+
+.rn-transcript-desc {
+  color: var(--rn-color-stage-muted);
+}

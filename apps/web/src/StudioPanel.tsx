@@ -11,7 +11,7 @@ import {
   setReviewStatus
 } from "@notebook-lm/shared";
 import { type ReactNode, useEffect, useState } from "react";
-import { DeepDiveStage } from "./DeepDiveStage.js";
+import { DEMO_PODCAST_TRANSCRIPT, DeepDiveStage } from "./DeepDiveStage.js";
 import { EmptyState } from "./EmptyState.js";
 import { Icon, type IconName } from "./Icon.js";
 import {
@@ -507,12 +507,14 @@ export function StudioPanel({
             notebookId="nb_active"
             stateMachine={audioStateMachine}
             currentTrackTitle={notebookTitle}
+            transcriptLines={DEMO_PODCAST_TRANSCRIPT}
+            onNotify={onNotify}
           />
         )}
 
         {/* Tool Viewer: Video */}
         {currentTool === "video" && videoStoryboard && (
-          <VideoOverviewPlayer storyboard={videoStoryboard} />
+          <VideoOverviewPlayer storyboard={videoStoryboard} onNotify={onNotify} />
         )}
 
         {/* Tool Viewer: Mindmap */}

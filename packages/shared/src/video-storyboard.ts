@@ -114,7 +114,18 @@ export const VideoStoryboardSchema = z.object({
       description: z.string().min(1)
     })
   ),
-  audioUrl: z.string().optional()
+  audioUrl: z.string().optional(),
+  /**
+   * Gebärdensprachvideo zur Übersicht (Issue #350), zeitgleich zum Folienablauf. Ohne Eintrag
+   * bietet der Player die Gebärdensprache nicht an und sagt das offen. language ist ein
+   * BCP-47-Code, Standard "gsg" (Deutsche Gebärdensprache, ISO 639-3).
+   */
+  signLanguageVideo: z
+    .object({
+      url: z.string().min(1),
+      language: z.string().min(2).default("gsg")
+    })
+    .optional()
 });
 export type VideoStoryboard = z.infer<typeof VideoStoryboardSchema>;
 
