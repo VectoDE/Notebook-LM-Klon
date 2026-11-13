@@ -87,7 +87,32 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     byokText:
       "Bald können Sie hier eigene Schlüssel für Modellanbieter hinterlegen (BYOK steht für „Bring Your Own Key“). Sie werden verschlüsselt gespeichert.",
     gdprTitle: "DSGVO & Datenschutz",
-    gdprText: "Alle Verarbeitungen erfolgen datensparsam und EU-DSGVO-konform ohne Training.",
+    gdprText:
+      "Ob ein Anbieter Ihre Eingaben zum Training nutzt, hängt vom Modell ab. Die Angabe mit Quelle steht beim gewählten Modell unter „KI-Modell“.",
+    modelGeminiFlash: "Google Gemini 2.5 Flash (Standard)",
+    modelOllama: "Ollama Llama 3 (auf dem Server)",
+    policyTitle: "Training mit Ihren Eingaben",
+    policyStatusNoTraining: "Laut Anbieter kein Training",
+    policyStatusConditional: "Kein Training nur unter Bedingungen",
+    policyStatusLocal: "Lokal, kein externer Anbieter",
+    policyGemini:
+      "Google nutzt Eingaben und Antworten nicht zur Verbesserung seiner Produkte, wenn die Gemini API kostenpflichtig genutzt wird oder Sie sich im EWR, in der Schweiz oder im Vereinigten Königreich befinden. In der kostenlosen Stufe außerhalb dieser Regionen kann Google sie dafür nutzen und von Menschen prüfen lassen.",
+    policyAnthropic:
+      "Anthropic verwendet Eingaben und Ausgaben über die API standardmäßig nicht zum Training. Ausnahmen: Sie melden Feedback oder stimmen ausdrücklich zu.",
+    policyOpenai:
+      "OpenAI verwendet Daten aus der API seit dem 1. März 2023 nicht zum Training, außer Sie stimmen zu. Protokolle zur Missbrauchserkennung werden bis zu 30 Tage aufbewahrt.",
+    policyGroq:
+      "Laut Groq-Dienstvertrag (Ziffer 4.2) darf Groq Eingaben und Ausgaben nicht zum Training verwenden, außer Sie erlauben es.",
+    policyOllama:
+      "Ollama läuft auf dem Server dieser Installation. Eingaben gehen an keinen externen KI-Anbieter. Laut Ollama sieht Ollama bei lokaler Nutzung keine Eingaben.",
+    policyNotConnected:
+      "Noch nicht angebunden: Anfragen mit diesem Modell schlagen derzeit fehl, es werden keine Daten an den Anbieter gesendet.",
+    policyRoutedToGemini:
+      "Noch nicht angebunden: Anfragen gehen derzeit an Google Gemini 2.5 Flash, es gelten die Angaben von Google.",
+    policySource: "Quelle",
+    policyNewWindow: "(öffnet in neuem Fenster)",
+    policyRetrieved: "Stand der Anbieterangaben:",
+    policyDisclaimer: "Zusammenfassung, keine Rechtsberatung.",
     aiActTitle: "EU AI Act",
     aiActBadge: "Transparenzpflicht Art. 50 erfüllt (Kennzeichnung KI-generierter Inhalte).",
     cinemaStageClose: "Bühne schließen",
@@ -143,7 +168,9 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     menuTitle: "Menü",
     menuClose: "Menü schließen",
     settingsAppearanceHint: "Design und Farbschema stellen Sie unter „Darstellung“ ein.",
-    roleLabel: "Rolle",
+    roleLabel: "Rolle (Vorschau)",
+    roleHint:
+      "Nur Vorschau: Die Auswahl ändert derzeit nichts. Ihre Rechte in einem Arbeitsbereich legt der Server fest.",
     roleOwner: "Inhaber",
     roleEditor: "Bearbeiter",
     roleViewer: "Betrachter",
@@ -189,7 +216,32 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     byokText:
       "Soon you can add your own keys for model providers here (BYOK stands for “bring your own key”). They will be stored encrypted.",
     gdprTitle: "GDPR & Privacy",
-    gdprText: "All processing complies strictly with EU GDPR standards with zero model training.",
+    gdprText:
+      "Whether a provider uses your input for training depends on the model. See the details with source for the selected model under “AI model”.",
+    modelGeminiFlash: "Google Gemini 2.5 Flash (default)",
+    modelOllama: "Ollama Llama 3 (on the server)",
+    policyTitle: "Training on your input",
+    policyStatusNoTraining: "No training, per provider",
+    policyStatusConditional: "No training only under conditions",
+    policyStatusLocal: "Local, no external provider",
+    policyGemini:
+      "Google does not use prompts and responses to improve its products when the Gemini API is used as a paid service or when you are in the EEA, Switzerland or the UK. On the free tier outside these regions, Google may use them for that purpose and have humans review them.",
+    policyAnthropic:
+      "By default, Anthropic does not use API inputs and outputs for training. Exceptions: you send feedback or explicitly opt in.",
+    policyOpenai:
+      "Since 1 March 2023, OpenAI has not used API data for training unless you opt in. Abuse-monitoring logs are kept for up to 30 days.",
+    policyGroq:
+      "Under the Groq services agreement (section 4.2), Groq may not use inputs or outputs for training unless you permit it.",
+    policyOllama:
+      "Ollama runs on the server of this installation. Your input is not sent to an external AI provider. According to Ollama, it does not see prompts when run locally.",
+    policyNotConnected:
+      "Not connected yet: requests with this model currently fail, and no data is sent to the provider.",
+    policyRoutedToGemini:
+      "Not connected yet: requests currently go to Google Gemini 2.5 Flash, so Google's terms apply.",
+    policySource: "Source",
+    policyNewWindow: "(opens in a new window)",
+    policyRetrieved: "Provider terms as of:",
+    policyDisclaimer: "Summary, not legal advice.",
     aiActTitle: "EU AI Act",
     aiActBadge: "Article 50 Transparency standard fulfilled (labeled AI-generated content).",
     cinemaStageClose: "Close Stage",
@@ -240,7 +292,9 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     menuTitle: "Menu",
     menuClose: "Close menu",
     settingsAppearanceHint: "Design and color scheme are set under “Appearance”.",
-    roleLabel: "Role",
+    roleLabel: "Role (preview)",
+    roleHint:
+      "Preview only: this choice changes nothing yet. Your permissions in a workspace are set by the server.",
     roleOwner: "Owner",
     roleEditor: "Editor",
     roleViewer: "Viewer",
