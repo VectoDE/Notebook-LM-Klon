@@ -13,6 +13,7 @@ export interface CleanupMetrics {
   deletedGuests: number;
   deletedSessions: number;
   deletedMagicLinks: number;
+  deletedChallenges: number;
   deletedNotebooks: number;
   deletedR2Objects: number;
   durationMs: number;
@@ -30,6 +31,7 @@ export interface RunCleanupOptions {
  * - Expired guest accounts (is_guest = 1 AND expires_at < now)
  * - Expired user sessions (expires_at < now)
  * - Expired magic links (expires_at < now)
+ * - Expired WebAuthn challenges (expires_at <= now)
  * - Expired demo notebooks (expires_at IS NOT NULL AND expires_at < now)
  * - Associated R2 objects (sources, artifacts) under guest / notebook prefixes
  */
@@ -131,12 +133,19 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
   const magicLinkDelRes = await db.run("DELETE FROM magic_links WHERE expires_at < ?", [now]);
   deletedMagicLinks = magicLinkDelRes.changes;
 
+  // 5. Purge expired WebAuthn challenges (single-use, 5-minute lifetime)
+  const challengeDelRes = await db.run("DELETE FROM webauthn_challenges WHERE expires_at <= ?", [
+    now
+  ]);
+  const deletedChallenges = challengeDelRes.changes;
+
   const durationMs = Date.now() - startTime;
 
   return {
     deletedGuests,
     deletedSessions,
     deletedMagicLinks,
+    deletedChallenges,
     deletedNotebooks,
     deletedR2Objects,
     durationMs

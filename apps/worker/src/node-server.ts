@@ -1,8 +1,11 @@
 import {
+  closeSync,
   createWriteStream,
   existsSync,
   mkdirSync,
+  openSync,
   readFileSync,
+  readSync,
   readdirSync,
   rmSync,
   statSync,
@@ -19,6 +22,7 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { createApp } from "./index.js";
+import { KEK_ENV_NAMES } from "./key-vault.js";
 import { registerSocketAddress } from "./rate-limiter.js";
 import { MAX_SOURCE_BYTE_SIZE_LIMIT } from "./sources-upload.js";
 
@@ -159,6 +163,28 @@ export function createSqliteD1Adapter(db: DatabaseSync): D1Database {
   } as unknown as D1Database;
 }
 
+/**
+ * Resolves an R2 range option against an object size, like R2 does: `{ offset, length }`,
+ * `{ offset }` (to the end), `{ length }` (from the start) or `{ suffix }` (last n bytes).
+ * Values are clamped to the object. No range (or a `Headers` range) means the whole object.
+ */
+export function resolveObjectRange(
+  range: R2Range | Headers | undefined,
+  total: number
+): { offset: number; length: number } {
+  if (range === undefined || range instanceof Headers) {
+    return { offset: 0, length: total };
+  }
+  if ("suffix" in range && range.suffix !== undefined) {
+    const length = Math.min(Math.max(range.suffix, 0), total);
+    return { offset: total - length, length };
+  }
+  const bounded = range as { offset?: number; length?: number };
+  const offset = Math.min(Math.max(bounded.offset ?? 0, 0), total);
+  const length = Math.min(Math.max(bounded.length ?? total - offset, 0), total - offset);
+  return { offset, length };
+}
+
 export function createLocalR2Adapter(
   mediaDir: string,
   maxObjectBytes: number = MAX_OBJECT_BYTES
@@ -181,17 +207,30 @@ export function createLocalR2Adapter(
   };
 
   return {
-    get: async (key: string) => {
+    get: async (key: string, options?: R2GetOptions) => {
       const filePath = getFilePath(key);
       if (!existsSync(filePath)) {
         return null;
       }
-      const data = readFileSync(filePath);
+      const total = statSync(filePath).size;
+      const range = resolveObjectRange(options?.range, total);
+      // Only the requested bytes are read, so a 512-byte magic-byte probe does not
+      // load a whole file into memory. Bytes are never decoded as text.
+      const data = Buffer.alloc(range.length);
+      if (range.length > 0) {
+        const fd = openSync(filePath, "r");
+        try {
+          readSync(fd, data, 0, range.length, range.offset);
+        } finally {
+          closeSync(fd);
+        }
+      }
       return {
         key,
-        size: data.byteLength,
-        etag: `"${data.byteLength}"`,
-        httpEtag: `"${data.byteLength}"`,
+        size: total,
+        etag: `"${total}"`,
+        httpEtag: `"${total}"`,
+        range,
         arrayBuffer: async () =>
           data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
         text: async () => data.toString("utf8"),
@@ -377,6 +416,18 @@ export function runSqliteMigrations(db: DatabaseSync, migrationsDir: string): vo
   }
 }
 
+/** Copies KEK_V1 … KEK_V10, BYOK_MASTER_KEY and KEK_CURRENT_VERSION from the process env, if set. */
+export function readKekEnv(source: Record<string, string | undefined>): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const name of [...KEK_ENV_NAMES, "KEK_CURRENT_VERSION"]) {
+    const value = source[name];
+    if (value !== undefined) {
+      result[name] = value;
+    }
+  }
+  return result;
+}
+
 export function createNodeEnv(options?: {
   db?: DatabaseSync | undefined;
   dataDir?: string | undefined;
@@ -404,6 +455,8 @@ export function createNodeEnv(options?: {
     APP_ORIGIN: options?.appOrigin ?? "http://localhost:8787",
     SESSION_SALT_SECRET: options?.sessionSaltSecret ?? process.env.SESSION_SALT_SECRET,
     TRUSTED_PROXY_HEADER: options?.trustedProxyHeader,
+    // KEKs come only from the host environment. No default: without one BYOK answers 503.
+    ...readKekEnv(process.env),
     ASSETS: {
       fetch: async () => new Response("Not Found", { status: 404 })
     } as unknown as Fetcher,

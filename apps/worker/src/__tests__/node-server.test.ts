@@ -10,6 +10,8 @@ import {
   createMockDurableObjectNamespace,
   createNodeEnv,
   createSqliteD1Adapter,
+  readKekEnv,
+  resolveObjectRange,
   runSqliteMigrations,
   startNodeServer
 } from "../node-server.js";
@@ -222,6 +224,83 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       expect(Buffer.compare(Buffer.from(roundTrip), Buffer.from(original))).toBe(0);
     });
 
+    it("round-trips a binary PDF-like file byte-for-byte and serves byte ranges from it", async () => {
+      const r2 = createLocalR2Adapter(join(TEST_DATA_DIR, "media"));
+      // "%PDF-1.7\n%âãÏÓ" marker plus bytes that are invalid UTF-8 (0xC3 0x28, lone 0xFF/0xFE).
+      const header = Buffer.from([
+        0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, 0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a
+      ]);
+      const body = Buffer.alloc(4096);
+      for (let i = 0; i < body.length; i++) {
+        body[i] = (i * 31 + 7) % 256;
+      }
+      const original = Buffer.concat([header, Buffer.from([0xc3, 0x28, 0xff, 0xfe]), body]);
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          for (let i = 0; i < original.length; i += 1000) {
+            controller.enqueue(new Uint8Array(original.subarray(i, i + 1000)));
+          }
+          controller.close();
+        }
+      });
+
+      await r2.put("uploads/sample.pdf", stream);
+
+      const full = await r2.get("uploads/sample.pdf");
+      expect(full?.size).toBe(original.length);
+      expect(
+        Buffer.compare(Buffer.from((await full?.arrayBuffer()) ?? new ArrayBuffer(0)), original)
+      ).toBe(0);
+
+      const probe = await r2.get("uploads/sample.pdf", { range: { offset: 0, length: 512 } });
+      expect(probe?.size).toBe(original.length);
+      expect((probe as unknown as { range: unknown }).range).toEqual({ offset: 0, length: 512 });
+      const probeBytes = Buffer.from((await probe?.arrayBuffer()) ?? new ArrayBuffer(0));
+      expect(Buffer.compare(probeBytes, original.subarray(0, 512))).toBe(0);
+
+      const middle = await r2.get("uploads/sample.pdf", { range: { offset: 15, length: 4 } });
+      expect([...Buffer.from((await middle?.arrayBuffer()) ?? new ArrayBuffer(0))]).toEqual([
+        0xc3, 0x28, 0xff, 0xfe
+      ]);
+
+      const tail = await r2.get("uploads/sample.pdf", { range: { suffix: 3 } });
+      expect(
+        Buffer.compare(
+          Buffer.from((await tail?.arrayBuffer()) ?? new ArrayBuffer(0)),
+          original.subarray(-3)
+        )
+      ).toBe(0);
+
+      const empty = await r2.get("uploads/sample.pdf", { range: { offset: original.length } });
+      expect((await empty?.arrayBuffer())?.byteLength).toBe(0);
+    });
+
+    it("resolveObjectRange follows R2 range semantics and clamps to the object", () => {
+      expect(resolveObjectRange(undefined, 100)).toEqual({ offset: 0, length: 100 });
+      expect(resolveObjectRange(new Headers({ range: "bytes=0-1" }), 100)).toEqual({
+        offset: 0,
+        length: 100
+      });
+      expect(resolveObjectRange({ offset: 10, length: 20 }, 100)).toEqual({
+        offset: 10,
+        length: 20
+      });
+      expect(resolveObjectRange({ offset: 90 }, 100)).toEqual({ offset: 90, length: 10 });
+      expect(resolveObjectRange({ length: 5 }, 100)).toEqual({ offset: 0, length: 5 });
+      expect(resolveObjectRange({ offset: 90, length: 50 }, 100)).toEqual({
+        offset: 90,
+        length: 10
+      });
+      expect(resolveObjectRange({ offset: 200, length: 5 }, 100)).toEqual({
+        offset: 100,
+        length: 0
+      });
+      expect(resolveObjectRange({ offset: -5, length: -1 }, 100)).toEqual({ offset: 0, length: 0 });
+      expect(resolveObjectRange({ suffix: 30 }, 100)).toEqual({ offset: 70, length: 30 });
+      expect(resolveObjectRange({ suffix: 500 }, 100)).toEqual({ offset: 0, length: 100 });
+      expect(resolveObjectRange({ suffix: -1 }, 100)).toEqual({ offset: 100, length: 0 });
+    });
+
     it("uses MAX_OBJECT_BYTES (50 MB, per-file maximum) as the default cap", () => {
       expect(MAX_OBJECT_BYTES).toBe(50 * 1024 * 1024);
     });
@@ -409,6 +488,39 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
         vi.unstubAllEnvs();
         customDb.close();
       }
+    });
+
+    it("passes KEKs through from process.env and never invents one", () => {
+      const customDb = new DatabaseSync(":memory:");
+      const record = (e: Env) => e as unknown as Record<string, unknown>;
+      vi.stubEnv("KEK_V1", undefined);
+      vi.stubEnv("KEK_V2", undefined);
+      vi.stubEnv("BYOK_MASTER_KEY", undefined);
+      vi.stubEnv("KEK_CURRENT_VERSION", undefined);
+      try {
+        const none = record(createNodeEnv({ db: customDb }).env);
+        expect(none.KEK_V1).toBeUndefined();
+        expect(none.BYOK_MASTER_KEY).toBeUndefined();
+
+        vi.stubEnv("KEK_V1", "k1".repeat(32));
+        vi.stubEnv("KEK_V2", "k2".repeat(32));
+        vi.stubEnv("KEK_CURRENT_VERSION", "2");
+        const withKek = record(createNodeEnv({ db: customDb }).env);
+        expect(withKek.KEK_V1).toBe("k1".repeat(32));
+        expect(withKek.KEK_V2).toBe("k2".repeat(32));
+        expect(withKek.KEK_CURRENT_VERSION).toBe("2");
+      } finally {
+        vi.unstubAllEnvs();
+        customDb.close();
+      }
+    });
+
+    it("readKekEnv copies only KEK variables that are set", () => {
+      expect(readKekEnv({ KEK_V3: "x", BYOK_MASTER_KEY: "y", OTHER: "z" })).toEqual({
+        KEK_V3: "x",
+        BYOK_MASTER_KEY: "y"
+      });
+      expect(readKekEnv({})).toEqual({});
     });
   });
 
