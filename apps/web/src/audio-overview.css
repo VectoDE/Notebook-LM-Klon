@@ -1,0 +1,169 @@
+/* Audio-Übersicht (Issue #240): baut auf .audio-player-container und den Bühnenfarben auf.
+   Nur geprüfte Paare: stage-text, stage-muted, stage-accent auf stage-bg. */
+
+.audio-overview-intro,
+.audio-overview-note {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+  color: var(--rn-color-stage-muted);
+}
+
+.audio-overview-error {
+  color: var(--rn-color-stage-text);
+  border-left: 3px solid var(--rn-color-stage-accent);
+  padding-left: var(--rn-space-3);
+}
+
+.audio-overview-setup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--rn-space-3);
+}
+
+.audio-overview-length {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rn-space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.audio-overview-length legend,
+.audio-overview-lang > span {
+  margin-bottom: var(--rn-space-1);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  color: var(--rn-color-stage-text);
+}
+
+.audio-overview-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rn-space-2);
+  min-height: 44px;
+  padding: var(--rn-space-1) var(--rn-space-3);
+  border-radius: var(--rn-radius-md);
+  border: 1px solid var(--rn-stage-line);
+  color: var(--rn-color-stage-text);
+  cursor: pointer;
+}
+
+.audio-overview-option:has(input:checked) {
+  border-color: var(--rn-color-stage-accent);
+}
+
+.audio-overview-option input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--rn-color-stage-accent);
+}
+
+.audio-overview-option span {
+  display: grid;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+}
+
+.audio-overview-option small {
+  font-weight: 400;
+  color: var(--rn-color-stage-muted);
+}
+
+.audio-overview-lang {
+  display: grid;
+}
+
+.audio-overview-lang select {
+  min-height: 44px;
+  padding: 0 var(--rn-space-3);
+  border-radius: var(--rn-radius-sm);
+  border: 1px solid var(--rn-color-stage-muted);
+  background: var(--rn-color-stage-bg);
+  color: var(--rn-color-stage-text);
+  font: inherit;
+  font-size: var(--rn-text-small);
+}
+
+.audio-overview-subhead {
+  margin: 0;
+  font-size: var(--rn-text-base);
+  color: var(--rn-color-stage-text);
+}
+
+.audio-overview-transcript {
+  display: grid;
+  gap: var(--rn-space-2);
+  max-height: 22rem;
+  margin: 0;
+  padding: var(--rn-space-1);
+  overflow-y: auto;
+  list-style: none;
+  border-radius: var(--rn-radius-md);
+}
+
+.audio-overview-transcript:focus-visible {
+  outline: 2px solid var(--rn-color-stage-accent);
+  outline-offset: 2px;
+}
+
+.audio-overview-turn {
+  display: grid;
+  gap: var(--rn-space-1);
+  padding: var(--rn-space-2) var(--rn-space-3);
+  border-left: 3px solid var(--rn-stage-line);
+  color: var(--rn-color-stage-text);
+}
+
+.audio-overview-turn[data-speaker="expert"] {
+  margin-left: var(--rn-space-4);
+}
+
+.audio-overview-turn.is-active {
+  border-left-color: var(--rn-color-stage-accent);
+  background: color-mix(in srgb, var(--rn-color-stage-accent) 10%, transparent);
+}
+
+.audio-overview-turn p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.audio-overview-speaker {
+  font-size: var(--rn-text-small);
+  font-weight: 700;
+  color: var(--rn-color-stage-muted);
+}
+
+.audio-overview-turn.is-active .audio-overview-speaker {
+  color: var(--rn-color-stage-accent);
+}
+
+.audio-overview-cite {
+  margin-left: var(--rn-space-1);
+  color: var(--rn-color-stage-accent);
+  font-weight: 600;
+}
+
+.audio-overview-citations {
+  display: grid;
+  gap: var(--rn-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+  color: var(--rn-color-stage-text);
+}
+
+@media (forced-colors: active) {
+  .audio-overview-turn.is-active {
+    border-left-color: Highlight;
+    forced-color-adjust: none;
+    outline: 2px solid Highlight;
+  }
+}

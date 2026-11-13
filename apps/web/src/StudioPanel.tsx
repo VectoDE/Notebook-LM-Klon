@@ -5,7 +5,8 @@ import type {
   QuizQuestion,
   VideoStoryboard
 } from "@notebook-lm/shared";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { AudioOverviewPlayer } from "./AudioOverviewPlayer.js";
 import { DeepDiveStage } from "./DeepDiveStage.js";
 import { EmptyState } from "./EmptyState.js";
 import { FlashcardsViewer } from "./FlashcardsViewer.js";
@@ -22,6 +23,7 @@ import {
   exportQuizToJson,
   triggerBrowserDownload
 } from "./artifact-exporters.js";
+import { audioOverviewSourcesFromDemo } from "./audio-overview-sources.js";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, PanelFocusAttributes } from "./workspace-types.js";
 
@@ -115,6 +117,7 @@ export function StudioPanel({
   const { t, tf } = useTheme();
   const [currentTool, setCurrentTool] = useState<StudioTool>(activeTool);
   const [isDeepDiveOpen, setIsDeepDiveOpen] = useState(false);
+  const audioOverviewSources = useMemo(() => audioOverviewSourcesFromDemo(), []);
 
   useEffect(() => {
     if (toolRequest) setCurrentTool(toolRequest.tool);
@@ -362,7 +365,10 @@ export function StudioPanel({
           </div>
         )}
 
-        {/* Tool Viewer: Audio */}
+        {/* Tool Viewer: Audio – Übersicht mit Sprachausgabe (#240), darunter die Zwischenfrage */}
+        {currentTool === "audio" && (
+          <AudioOverviewPlayer sources={audioOverviewSources} notebookTitle={notebookTitle} />
+        )}
         {currentTool === "audio" && audioStateMachine && (
           <InteractiveAudioHostPlayer
             notebookId="nb_active"
