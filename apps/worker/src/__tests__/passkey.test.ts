@@ -7,14 +7,14 @@ import { describe, expect, it } from "vitest";
 import { sessionMiddleware } from "../auth-middleware.js";
 import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
 import { createPasskeyRoutes } from "../passkey-routes.js";
-import { PasskeyService, type WebAuthnEngine } from "../passkey-service.js";
+import { CHALLENGE_TTL_MS, PasskeyService, type WebAuthnEngine } from "../passkey-service.js";
 import { DEV_SESSION_COOKIE_NAME, SESSION_COOKIE_NAME, SessionManager } from "../session.js";
 
 function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } {
   const db = new DatabaseSync(":memory:");
-  const migrationPath = resolve(process.cwd(), "apps/worker/migrations/0001_initial_core.sql");
-  const sql = readFileSync(migrationPath, "utf-8");
-  db.exec(sql);
+  for (const file of ["0001_initial_core.sql", "0003_webauthn_challenges.sql"]) {
+    db.exec(readFileSync(resolve(process.cwd(), "apps/worker/migrations", file), "utf-8"));
+  }
 
   const adapter: DatabaseAdapter = {
     async exec(sqlStr: string): Promise<void> {
@@ -40,44 +40,146 @@ function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } 
 }
 
 describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)", () => {
-  it("handles challenge lifecycle, single-use consumption and expiration", () => {
-    const { adapter, close } = createSqliteAdapter();
-    const repo = new CoreRepository(adapter);
-    const service = new PasskeyService({
-      repo,
+  describe("challenge store in D1 (webauthn_challenges)", () => {
+    const opts = {
       rpName: "RelationNotes",
       rpID: "localhost",
       expectedOrigin: "http://localhost:5173"
+    };
+    type Row = {
+      challenge_key: string;
+      user_id: string | null;
+      created_at: number;
+      expires_at: number;
+    };
+
+    it("stores a challenge in D1 with a 5-minute expiry and consumes it exactly once", async () => {
+      const { adapter, close } = createSqliteAdapter();
+      const service = new PasskeyService({ repo: new CoreRepository(adapter), ...opts });
+
+      await service.storeChallenge("reg:usr_1", "challenge_value_1", "usr_1");
+      const [row] = await adapter.query<Row>("SELECT * FROM webauthn_challenges");
+      expect(row?.challenge_key).toBe("reg:usr_1");
+      expect(row?.user_id).toBe("usr_1");
+      expect((row?.expires_at ?? 0) - (row?.created_at ?? 0)).toBe(CHALLENGE_TTL_MS);
+      expect(CHALLENGE_TTL_MS).toBe(5 * 60 * 1000);
+
+      const c1 = await service.consumeChallenge("reg:usr_1", "usr_1");
+      expect(c1).toMatchObject({ challenge: "challenge_value_1", userId: "usr_1" });
+      // Replay: a second use finds nothing, the row is gone
+      expect(await service.consumeChallenge("reg:usr_1", "usr_1")).toBeNull();
+      expect(await adapter.query("SELECT * FROM webauthn_challenges")).toEqual([]);
+      close();
     });
 
-    service.storeChallenge("c1", "challenge_value_1", "usr_1");
-    // Single use
-    const c1 = service.consumeChallenge("c1");
-    expect(c1?.challenge).toBe("challenge_value_1");
-    expect(service.consumeChallenge("c1")).toBeNull();
+    it("is shared across service instances (no per-instance memory)", async () => {
+      const { adapter, close } = createSqliteAdapter();
+      const instanceA = new PasskeyService({ repo: new CoreRepository(adapter), ...opts });
+      const instanceB = new PasskeyService({ repo: new CoreRepository(adapter), ...opts });
 
-    // Expired challenge
-    service.storeChallenge("c2", "challenge_value_2", "usr_2");
-    // Artificially age the challenge
-    // @ts-expect-error accessing private for unit testing expiration branch
-    const c2Entry = service.challenges.get("c2");
-    if (c2Entry) {
-      c2Entry.createdAt = Date.now() - 6 * 60 * 1000;
-    }
-    expect(service.consumeChallenge("c2")).toBeNull();
+      await instanceA.storeChallenge("login:abc", "abc");
+      expect((await instanceB.consumeChallenge("login:abc"))?.challenge).toBe("abc");
+      expect(await instanceA.consumeChallenge("login:abc")).toBeNull();
+      close();
+    });
 
-    // Challenge cleanup trigger
-    service.storeChallenge("c3", "challenge_value_3");
-    // @ts-expect-error accessing private
-    const c3Entry = service.challenges.get("c3");
-    if (c3Entry) {
-      c3Entry.createdAt = Date.now() - 6 * 60 * 1000;
-    }
-    service.storeChallenge("c4", "challenge_value_4");
-    // @ts-expect-error accessing private
-    expect(service.challenges.has("c3")).toBe(false);
+    it("rejects and deletes an expired challenge", async () => {
+      const { adapter, close } = createSqliteAdapter();
+      const service = new PasskeyService({ repo: new CoreRepository(adapter), ...opts });
 
-    close();
+      await service.storeChallenge("login:old", "old");
+      await adapter.run("UPDATE webauthn_challenges SET expires_at = ? WHERE challenge_key = ?", [
+        Date.now() - 1,
+        "login:old"
+      ]);
+      expect(await service.consumeChallenge("login:old")).toBeNull();
+      expect(await adapter.query("SELECT * FROM webauthn_challenges")).toEqual([]);
+      close();
+    });
+
+    it("rejects a challenge issued to another user (foreign session)", async () => {
+      const { adapter, close } = createSqliteAdapter();
+      const service = new PasskeyService({ repo: new CoreRepository(adapter), ...opts });
+
+      await service.storeChallenge("reg:usr_a", "for_a", "usr_a");
+      expect(await service.consumeChallenge("reg:usr_a", "usr_b")).toBeNull();
+      // A login challenge carries no user and is not valid as a user-bound one either
+      await service.storeChallenge("login:x", "x");
+      expect(await service.consumeChallenge("login:x", "usr_a")).toBeNull();
+      close();
+    });
+
+    it("replaces an older challenge for the same key and purges expired rows on store", async () => {
+      const { adapter, close } = createSqliteAdapter();
+      const service = new PasskeyService({ repo: new CoreRepository(adapter), ...opts });
+
+      await service.storeChallenge("login:stale", "stale");
+      await adapter.run("UPDATE webauthn_challenges SET expires_at = ?", [Date.now() - 1]);
+      await service.storeChallenge("reg:usr_1", "first", "usr_1");
+      await service.storeChallenge("reg:usr_1", "second", "usr_1");
+
+      const rows = await adapter.query<Row>("SELECT challenge_key FROM webauthn_challenges");
+      expect(rows.map((r) => r.challenge_key)).toEqual(["reg:usr_1"]);
+      expect((await service.consumeChallenge("reg:usr_1", "usr_1"))?.challenge).toBe("second");
+      close();
+    });
+
+    it("HTTP: another session cannot finish a registration with someone else's challenge", async () => {
+      const { adapter, close } = createSqliteAdapter();
+      const repo = new CoreRepository(adapter);
+      const sessionManager = new SessionManager({ repo, saltSecret: "passkey-salt" });
+      const engine = {
+        generateRegistrationOptions: async () => ({ challenge: "chal_for_alice" }),
+        verifyRegistrationResponse: async () => ({ verified: false }),
+        generateAuthenticationOptions: async () => ({ challenge: "unused" }),
+        verifyAuthenticationResponse: async () => ({ verified: false })
+      } as unknown as WebAuthnEngine;
+      const passkeyService = new PasskeyService({ repo, ...opts }, engine);
+      const app = new Hono<{ Bindings: Env }>();
+      app.use("*", sessionMiddleware(sessionManager));
+      app.route(
+        "/api/v1/auth/passkey",
+        createPasskeyRoutes({ repo, passkeyService, sessionManager, isProduction: false })
+      );
+
+      const now = Date.now();
+      for (const id of ["usr_alice", "usr_bob"]) {
+        await repo.createUser({
+          id,
+          email: `${id}@example.test`,
+          display_name: id,
+          locale: "de",
+          is_guest: 0,
+          created_at: now,
+          expires_at: null,
+          deleted_at: null
+        });
+      }
+      const alice = await sessionManager.createSession("usr_alice", null, null);
+      const bob = await sessionManager.createSession("usr_bob", null, null);
+      const post = (path: string, token: string) =>
+        app.request(`https://api.example.com/api/v1/auth/passkey${path}`, {
+          method: "POST",
+          headers: {
+            cookie: `${SESSION_COOKIE_NAME}=${token}`,
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({ id: "x", rawId: "x", type: "public-key", response: {} })
+        });
+
+      expect((await post("/register/options", alice.rawToken)).status).toBe(200);
+      const bobVerify = await post("/register/verify", bob.rawToken);
+      expect(bobVerify.status).toBe(400);
+      expect(((await bobVerify.json()) as { detail: string }).detail).toBe(
+        "Challenge expired or invalid."
+      );
+      // Alice's challenge is untouched and still usable exactly once
+      const rows = await adapter.query<Row>("SELECT challenge_key FROM webauthn_challenges");
+      expect(rows.map((r) => r.challenge_key)).toEqual(["reg:usr_alice"]);
+      expect((await post("/register/verify", alice.rawToken)).status).toBe(400); // engine says not verified
+      expect(await adapter.query("SELECT * FROM webauthn_challenges")).toEqual([]);
+      close();
+    });
   });
 
   it("generates registration options with excluded existing credentials", async () => {
@@ -450,7 +552,7 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
       .replace(/\//g, "_")
       .replace(/=+$/, "");
 
-    service.storeChallenge("login:valid_login_challenge", "valid_login_challenge");
+    await service.storeChallenge("login:valid_login_challenge", "valid_login_challenge");
 
     await expect(
       service.verifyLogin({
@@ -482,7 +584,7 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
       created_at: now,
       last_used_at: null
     });
-    service.storeChallenge("login:orphan_challenge", "orphan_challenge");
+    await service.storeChallenge("login:orphan_challenge", "orphan_challenge");
 
     // 5. Direct verification tests with mocked webauthn engine to achieve 100% coverage
     const mockWebAuthnSuccess = {
@@ -515,7 +617,7 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
     // Test verifyRegistration with upgraded guest = true
     const guestUser = { ...user, id: "usr_guest_upg", email: "guest_upg@example.com", is_guest: 1 };
     await repo.createUser(guestUser);
-    directService.storeChallenge("reg:usr_guest_upg", "c_edge", "usr_guest_upg");
+    await directService.storeChallenge("reg:usr_guest_upg", "c_edge", "usr_guest_upg");
     const regResult = await directService.verifyRegistration(guestUser, {
       id: "pk_direct_01",
       rawId: "pk_direct_01",
@@ -533,7 +635,7 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
       is_guest: 0
     };
     await repo.createUser(permanentUser);
-    directService.storeChallenge("reg:usr_perm_reg", "c_perm", "usr_perm_reg");
+    await directService.storeChallenge("reg:usr_perm_reg", "c_perm", "usr_perm_reg");
     // Mock different credential ID for permanent user to satisfy UNIQUE(id)
     directService.webauthn.verifyRegistrationResponse = (async () => ({
       verified: true,
@@ -576,7 +678,7 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
       created_at: now,
       last_used_at: null
     });
-    directService.storeChallenge("login:soft_c", "soft_c");
+    await directService.storeChallenge("login:soft_c", "soft_c");
     const softClientData = btoa(JSON.stringify({ challenge: "soft_c" }))
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
@@ -600,7 +702,7 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
       { repo, rpName: "Test", rpID: "localhost", expectedOrigin: "http://localhost:5173" },
       mockWebAuthnFail as unknown as WebAuthnEngine
     );
-    failService.storeChallenge("reg:usr_edge", "c_edge_fail", "usr_edge");
+    await failService.storeChallenge("reg:usr_edge", "c_edge_fail", "usr_edge");
     const failReg = await failService.verifyRegistration(user, {
       id: "pk_fail",
       rawId: "pk_fail",
@@ -610,7 +712,7 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
     expect(failReg.verified).toBe(false);
 
     // Test verifyLogin success
-    directService.storeChallenge("login:valid_login_c", "valid_login_c");
+    await directService.storeChallenge("login:valid_login_c", "valid_login_c");
     const directLoginClientData = btoa(JSON.stringify({ challenge: "valid_login_c" }))
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
@@ -625,7 +727,7 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
     expect(directLoginResult.signCountUpdated).toBe(true);
 
     // Test verifyLogin failure
-    failService.storeChallenge("login:fail_login_c", "fail_login_c");
+    await failService.storeChallenge("login:fail_login_c", "fail_login_c");
     const failLoginClientData = btoa(JSON.stringify({ challenge: "fail_login_c" }))
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
@@ -652,7 +754,7 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
       { repo, rpName: "Test", rpID: "localhost", expectedOrigin: "http://localhost:5173" },
       mockWebAuthnClone as unknown as WebAuthnEngine
     );
-    cloneService.storeChallenge("login:clone_c", "clone_c");
+    await cloneService.storeChallenge("login:clone_c", "clone_c");
     const cloneClientData = btoa(JSON.stringify({ challenge: "clone_c" }))
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
