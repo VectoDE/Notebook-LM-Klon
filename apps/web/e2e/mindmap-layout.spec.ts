@@ -141,6 +141,49 @@ for (const design of DESIGNS) {
           longRoot.width - 32 + 0.5
         );
 
+        if (dir) {
+          // Beleg: die Wurzel kurz mit dem langen Titel zeichnen, genau wie die Komponente
+          // (Rahmen, Zeilen, Knopf), Bild aufnehmen, Original wiederherstellen
+          await page.evaluate(async (label) => {
+            const modulePath = "/src/MindmapViewer.tsx";
+            const viewer = await import(/* @vite-ignore */ modulePath);
+            const size = viewer.nodeSizeFor(label, true, viewer.createTextMeasure(document));
+            const original = document.querySelector<SVGGElement>('.rn-mm-node[data-kind="root"]');
+            if (!original) return;
+            const copy = original.cloneNode(true) as SVGGElement;
+            copy.dataset.probe = "lange-wurzel";
+            copy.querySelector(".rn-mm-box")?.setAttribute("width", String(size.width));
+            copy.querySelector(".rn-mm-box")?.setAttribute("height", String(size.height));
+            const text = copy.querySelector(".rn-mm-label");
+            if (text) {
+              const lines = size.lines as string[];
+              text.setAttribute("y", String(size.height / 2 + 5 - ((lines.length - 1) * 20) / 2));
+              text.replaceChildren(
+                ...lines.map((line, index) => {
+                  const span = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+                  span.setAttribute("x", "16");
+                  span.setAttribute("dy", index === 0 ? "0" : "20");
+                  span.textContent = line;
+                  return span;
+                })
+              );
+            }
+            copy
+              .querySelector(".rn-mm-toggle")
+              ?.setAttribute("transform", `translate(${size.width - 20}, ${size.height / 2})`);
+            original.style.display = "none";
+            original.after(copy);
+          }, title);
+          await page
+            .locator(".rn-mindmap")
+            .screenshot({ path: join(dir, `${design}-${lang}-${device}-lange-wurzel.png`) });
+          await page.evaluate(() => {
+            document.querySelector('[data-probe="lange-wurzel"]')?.remove();
+            const original = document.querySelector<SVGGElement>('.rn-mm-node[data-kind="root"]');
+            if (original) original.style.display = "";
+          });
+        }
+
         // Werkzeugknöpfe: 44 x 44 px, benachbarte Knöpfe mit mindestens 8 px Abstand
         const boxes = await page
           .getByTestId("mindmap-toolbar")
