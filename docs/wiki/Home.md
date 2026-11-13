@@ -29,7 +29,8 @@ Dieses Wiki dokumentiert die vollständige Systemarchitektur, die mathematischen
 | [**10. Datenschutz je KI-Modell**](10-Datenschutz-je-KI-Modell) | Training mit Eingaben | Angabe je Anbieter und Zugangsweg mit Quelle, Wortlaut und Abrufdatum; keine Rechtsberatung |
 | [**11. Lokale Verschlüsselung**](11-Lokale-Verschluesselung) | IndexedDB mit AES-GCM | Schlüssel aus der Konto-Sitzung, nicht exportierbar; Abmelden löscht die lokale Datenbank nachweisbar |
 | [**12. Offline-Synchronisation**](12-Offline-Synchronisation) | Yjs und Warteschlange | Offline bearbeiten, verschlüsselt puffern, bei Verbindung zusammenführen; sichtbarer Status DE/EN |
-| [**13. Offline-Chat**](13-Offline-Chat) | Lokales Modell im Browser | WebLLM mit Qwen2.5 1.5B (Apache-2.0), rund 0,9 GB nach Zustimmung, WebGPU nötig; offline ohne geprüfte Zitate |
+| [**13. Medienalternativen**](13-Medienalternativen) | WebVTT, Web Speech API | Untertitel, Transkript mit Download, Audiodeskription als Text oder vorgelesen, Gebärdensprach-Option und DGS-Konzept |
+| [**14. Offline-Chat**](14-Offline-Chat) | Lokales Modell im Browser | WebLLM mit Qwen2.5 1.5B (Apache-2.0), rund 0,9 GB nach Zustimmung, WebGPU nötig; offline ohne geprüfte Zitate |
 
 ---
 

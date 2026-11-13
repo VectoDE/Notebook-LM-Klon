@@ -285,6 +285,38 @@ const ENTRIES: readonly Entry[] = [
   ["videoChaptersLabel", "Kapitel:", "Chapters:"],
   ["videoChapterSr", ", Kapitel {n} von {total}", ", chapter {n} of {total}"],
 
+  // Medienalternativen (Issue #350)
+  ["videoAdSpeech", "Vorlesen", "Read aloud"],
+  [
+    "videoAdSpeechOn",
+    "Audiodeskription wird vorgelesen. Das Video hält dafür kurz an.",
+    "The audio description is read aloud. The video pauses briefly for it."
+  ],
+  ["videoAdSpeechOff", "Vorlesen aus.", "Read aloud off."],
+  ["videoAdVisible", "Bildbeschreibung:", "Visual description:"],
+  ["videoSignLanguage", "Gebärdensprache", "Sign language"],
+  [
+    "videoSignAria",
+    "Gebärdensprachvideo, läuft zeitgleich zur Übersicht",
+    "Sign language video, runs in sync with the overview"
+  ],
+  ["videoSignOn", "Gebärdensprachvideo an.", "Sign language video on."],
+  ["videoSignOff", "Gebärdensprachvideo aus.", "Sign language video off."],
+  [
+    "videoSignUnavailable",
+    "Gebärdensprache: Für diese Übersicht ist noch kein Video in Deutscher Gebärdensprache hinterlegt. Transkript und Untertitel enthalten den vollständigen Inhalt.",
+    "Sign language: no German Sign Language video is available for this overview yet. The transcript and subtitles contain the full content."
+  ],
+  ["mediaTranscript", "Transkript", "Transcript"],
+  ["mediaTranscriptShow", "Transkript zeigen", "Show transcript"],
+  ["mediaTranscriptHide", "Transkript ausblenden", "Hide transcript"],
+  ["mediaTranscriptList", "Abschnitte des Transkripts", "Transcript sections"],
+  ["mediaTranscriptJump", "– an diese Stelle springen", "– jump to this point"],
+  ["mediaTranscriptVisual", "Bild:", "Visual:"],
+  ["mediaDownloadText", "Transkript (.txt)", "Transcript (.txt)"],
+  ["mediaDownloadCaptions", "Untertitel (.vtt)", "Subtitles (.vtt)"],
+  ["mediaDownloadDescriptions", "Audiodeskription (.vtt)", "Audio description (.vtt)"],
+
   // Audio-Player
   ["audioDefaultTitle", "Audio Overview: Deep Dive Podcast", "Audio Overview: Deep Dive Podcast"],
   [
