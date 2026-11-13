@@ -211,6 +211,7 @@ Alle Endpunkte unter `/api/v1` sind in [`docs/openapi.json`](docs/openapi.json) 
 - **Kryptografisches Budget innerhalb von 10 ms CPU-Zeit:** Durch unseren Benchmark ([`apps/worker/src/crypto-benchmark.ts`](apps/worker/src/crypto-benchmark.ts)) ist nachgewiesen, dass `SHA-256` (`~0,01 ms`), `AES-256-GCM` Envelope-Roundtrip mit `AAD` (`~0,03 ms`) und `ECDSA P-256` Passkey-Verifikation (`~0,25 ms`) zusammen **`< 0,6 ms` CPU-Zeit** benötigen – über **94 % der 10-ms-Free-Tier-Reserve** bleiben frei für Fachlogik.
 - **Barrierefreiheit:** Jede der vier Oberflächen gibt es in Hell, Dunkel und AAA-Hochkontrast. Das Ziel für Text ist ein Kontrast von mindestens 7:1 (WCAG 2.2, 1.4.6), für Rahmen und Fokus mindestens 3:1. Die Vorgaben stehen in `apps/web/src/design-tokens.ts`, der Stand der Prüfung in [`docs/accessibility-wcag-aaa.md`](docs/accessibility-wcag-aaa.md).
 - **DSGVO-Rechte per 1-Klick:** Vollständiger maschinenlesbarer Datenexport (Art. 15 / Art. 20 DSGVO) sowie kryptografisch verifizierte Kaskadenlöschung über D1, R2 und Durable Objects (Art. 17 DSGVO).
+- **Training mit Eingaben je KI-Modell:** Ob ein Anbieter Eingaben zum Training nutzt, hängt vom Modell und vom Zugangsweg ab (bei Google Gemini etwa von kostenpflichtiger Nutzung und Region). Die App zeigt die Angabe beim gewählten Modell mit Quelle; Tabelle, Wortlaut und Abrufdatum stehen in [`docs/datenschutz-modelle.md`](docs/datenschutz-modelle.md). Das ist eine Zusammenfassung der Anbieterangaben, keine Rechtsberatung.
 - **EU AI Act Art. 50 Transparenz:** Jedes generierte Audio-, Video-, Text- oder Graph-Artefakt trägt ein sichtbares KI-Kennzeichen sowie ein maschinenlesbares Provenienz-Manifest (`ai_generated: true`, Modell-ID, Zeitstempel, SHA-256-Quell-Hashes).
 
 ---
@@ -329,6 +330,7 @@ Sämtliche Architekturentscheidungen (ADRs #1–#110) sind im Ordner [`docs/`](d
 8. [**Loom-Präsentations- & Bewerbungs-Leitfaden**](docs/loom-presentation-guide.md) – Drehbuch für eine überzeugende 10-Minuten-Vorführung.
 9. [**Anforderungs- & Entscheidungsregister (ADRs #1–#110)**](docs/anforderungen.md) – Lückenlose Dokumentation aller 110 Architektur- und Qualitätsentscheidungen.
 10. [**Lasttests (k6, lokal und Live-Rauchtest)**](docs/load-test.md) – 100 simulierte Nutzer, p95 31 ms, 0 % Fehler; Reports als HTML und JSON.
+11. [**Datenschutz je KI-Modell**](docs/datenschutz-modelle.md) – Training mit Eingaben je Anbieter und Zugangsweg, mit Quellen, Wortlaut und Abrufdatum.
 
 ---
 
