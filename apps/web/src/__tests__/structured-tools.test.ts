@@ -10,6 +10,7 @@ import {
 } from "@notebook-lm/shared";
 import { type ReactNode, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { prerenderToNodeStream } from "react-dom/static";
 import { describe, expect, it } from "vitest";
 import { DataTableViewer, InfographicViewer, TimelineViewer } from "../StructuredTools.js";
 import { StudioPanel, type StudioTool } from "../StudioPanel.js";
@@ -162,10 +163,25 @@ describe("Studio: drei Werkzeuge neben den anderen (Issue #239)", () => {
     expect(without).not.toContain("tool-card-timeline");
   });
 
-  it("jedes Werkzeug öffnet seine eigene Ansicht", () => {
-    expect(panel("timeline")).toContain('data-testid="timeline-viewer"');
-    expect(panel("table")).toContain('data-testid="datatable-viewer"');
-    expect(panel("infographic")).toContain('data-testid="infographic-viewer"');
-    expect(panel("table", false)).not.toContain("datatable-viewer");
+  /** Wartet auf die nachgeladenen Ansichten (lazy), anders als renderToStaticMarkup. */
+  const panelLoaded = async (activeTool: StudioTool, withData = true): Promise<string> => {
+    const { prelude } = await prerenderToNodeStream(
+      createElement(StudioPanel, {
+        activeTool,
+        structuredData: withData ? DEMO : undefined,
+        structuredSources: DEFAULT_SOURCES,
+        structuredLang: "en"
+      })
+    );
+    let html = "";
+    for await (const chunk of prelude) html += String(chunk);
+    return html;
+  };
+
+  it("jedes Werkzeug öffnet seine eigene Ansicht (nachgeladen)", async () => {
+    expect(await panelLoaded("timeline")).toContain('data-testid="timeline-viewer"');
+    expect(await panelLoaded("table")).toContain('data-testid="datatable-viewer"');
+    expect(await panelLoaded("infographic")).toContain('data-testid="infographic-viewer"');
+    expect(await panelLoaded("table", false)).not.toContain("datatable-viewer");
   });
 });

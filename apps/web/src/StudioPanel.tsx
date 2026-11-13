@@ -10,7 +10,7 @@ import {
   type VideoStoryboard,
   setReviewStatus
 } from "@notebook-lm/shared";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, Suspense, lazy, useEffect, useState } from "react";
 import { DeepDiveStage } from "./DeepDiveStage.js";
 import { EmptyState } from "./EmptyState.js";
 import { FlashcardsViewer } from "./FlashcardsViewer.js";
@@ -18,7 +18,6 @@ import { Icon, type IconName } from "./Icon.js";
 import { InteractiveAudioHostPlayer } from "./InteractiveAudioHostPlayer.js";
 import { MindmapViewer } from "./MindmapViewer.js";
 import { QuizViewer } from "./QuizViewer.js";
-import { DataTableViewer, InfographicViewer, TimelineViewer } from "./StructuredTools.js";
 import { VideoOverviewPlayer } from "./VideoOverviewPlayer.js";
 import {
   escapeHtmlText,
@@ -31,6 +30,18 @@ import {
 import type { StructuredData } from "./structured-demo.js";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, PanelFocusAttributes } from "./workspace-types.js";
+
+/** Timeline, Infografik und Tabelle erst beim Öffnen laden, damit der Start schlank bleibt. */
+const loadStructuredTools = () => import("./StructuredTools.js");
+const TimelineViewer = lazy(() =>
+  loadStructuredTools().then((m) => ({ default: m.TimelineViewer }))
+);
+const InfographicViewer = lazy(() =>
+  loadStructuredTools().then((m) => ({ default: m.InfographicViewer }))
+);
+const DataTableViewer = lazy(() =>
+  loadStructuredTools().then((m) => ({ default: m.DataTableViewer }))
+);
 
 export type StudioTool =
   | "overview"
@@ -498,27 +509,29 @@ export function StudioPanel({
         )}
 
         {/* Timeline, Infografik, Datentabelle (Issue #239) */}
-        {currentTool === "timeline" && structuredData && (
-          <TimelineViewer
-            entries={review.timeline}
-            onStatus={review.setTimelineStatus}
-            {...structuredCommon}
-          />
-        )}
-        {currentTool === "infographic" && structuredData && (
-          <InfographicViewer
-            facts={review.infographic}
-            onStatus={review.setInfographicStatus}
-            {...structuredCommon}
-          />
-        )}
-        {currentTool === "table" && structuredData && (
-          <DataTableViewer
-            table={review.table}
-            onStatus={review.setTableStatus}
-            {...structuredCommon}
-          />
-        )}
+        <Suspense fallback={null}>
+          {currentTool === "timeline" && structuredData && (
+            <TimelineViewer
+              entries={review.timeline}
+              onStatus={review.setTimelineStatus}
+              {...structuredCommon}
+            />
+          )}
+          {currentTool === "infographic" && structuredData && (
+            <InfographicViewer
+              facts={review.infographic}
+              onStatus={review.setInfographicStatus}
+              {...structuredCommon}
+            />
+          )}
+          {currentTool === "table" && structuredData && (
+            <DataTableViewer
+              table={review.table}
+              onStatus={review.setTableStatus}
+              {...structuredCommon}
+            />
+          )}
+        </Suspense>
       </div>
 
       {/* Deep-Dive Stage Overlay */}
