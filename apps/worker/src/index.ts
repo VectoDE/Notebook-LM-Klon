@@ -22,6 +22,7 @@ import { createDemoRoutes } from "./demo-routes.js";
 import { createGuestAndMagicLinkRoutes } from "./guest-magic-link-routes.js";
 import { registerJobRoutes } from "./job-routes.js";
 import { createKeyVaultFromEnv } from "./key-vault.js";
+import { registerLocalDataRoutes } from "./local-data-routes.js";
 import {
   CloudflareMailAdapter,
   type CloudflareSendEmailBinding,
@@ -224,6 +225,9 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
       isProduction
     })
   );
+
+  // Abmelden und Schlüssel der verschlüsselten lokalen Ablage (Issue #348)
+  registerLocalDataRoutes(app, { sessionManager, saltSecret, isProduction });
 
   // 4. Chat, search, audio (session + notebook role, LLM quota)
   const llmQuota = (): QuotaAction => ({ type: "llm_call" });
