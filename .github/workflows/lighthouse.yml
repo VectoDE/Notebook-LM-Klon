@@ -1,0 +1,83 @@
+name: Lighthouse CI – Core Web Vitals
+
+# Misst den Produktions-Build der Web-Oberfläche lokal im Runner (vite preview auf 127.0.0.1),
+# einmal mobil mit simulierter Drosselung und einmal Desktop. Budgets: LCP < 2,5 s,
+# TBT < 200 ms (Labor-Ersatz für INP), CLS < 0,1, Script-Größe. Reports bleiben als
+# Workflow-Artefakt im Repository; es wird nichts an externe Speicher hochgeladen.
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "apps/web/**"
+      - "packages/shared/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/lighthouse.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "apps/web/**"
+      - "packages/shared/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/lighthouse.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    name: Lighthouse (${{ matrix.profile }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [mobile, desktop]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "26"
+          cache: "pnpm"
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Web-Oberfläche bauen
+        run: pnpm --filter @notebook-lm/web build
+
+      - name: Lighthouse CI ausführen
+        env:
+          PROFILE: ${{ matrix.profile }}
+        run: npx --yes @lhci/cli@0.15.1 autorun --config="apps/web/lighthouse/lighthouserc.${PROFILE}.json"
+
+      - name: Messwerte zusammenfassen
+        if: ${{ always() }}
+        env:
+          PROFILE: ${{ matrix.profile }}
+        run: node apps/web/lighthouse/summarize.mjs ".lighthouseci/${PROFILE}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Reports als Artefakt ablegen
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lighthouse-${{ matrix.profile }}
+          path: .lighthouseci/${{ matrix.profile }}
+          if-no-files-found: warn
+          retention-days: 30
