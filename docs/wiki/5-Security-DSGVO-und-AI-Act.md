@@ -21,6 +21,36 @@ Nutzer können eigene API-Schlüssel für Google Gemini, OpenAI und Anthropic Cl
    $$\text{AAD} = \text{UTF8}(\texttt{user\_id} \mathbin{\Vert} \texttt{"|"} \mathbin{\Vert} \texttt{provider} \mathbin{\Vert} \texttt{"|v"} \mathbin{\Vert} \texttt{key\_version})$$
 4. **Maskierte Anzeige:** Die Datenbank speichert lediglich `ciphertext`, `iv`, `key_version` und die letzten 4 Zeichen (`last4`). Das Frontend sieht ausschließlich `••••1a2b`.
 
+### 1.1 Pflicht-Secrets (kein Ersatzwert im Code)
+
+Der Worker enthält für keines dieser Secrets einen eingebauten Standardwert. Fehlt eines, schaltet er die betroffene Funktion ab, statt mit einem unsicheren Ersatz weiterzulaufen.
+
+| Secret | Wofür | Fehlt oder ungültig |
+|---|---|---|
+| `KEK_V1` (optional `KEK_V2` … `KEK_V10` und `KEK_CURRENT_VERSION`; älterer Name `BYOK_MASTER_KEY`) | Master Key für die BYOK-Verschlüsselung | `/api/v1/keys*` antwortet mit `503 BYOK_NOT_CONFIGURED` und speichert nichts. Ein KEK unter 32 Zeichen gilt als ungültig. |
+| `SESSION_SALT_SECRET` | Salt für die Hashes von IP und User-Agent in Sitzungen | Anmeldung antwortet mit `503 SESSION_SALT_NOT_CONFIGURED` |
+| `TURNSTILE_SECRET_KEY` | Bot-Schutz für Gastzugang und Magic-Link | `503 TURNSTILE_NOT_CONFIGURED` |
+
+**KEK erzeugen:** 32 Zufallsbytes, als Hex (64 Zeichen) oder Base64 (44 Zeichen):
+
+```sh
+openssl rand -hex 32        # oder: openssl rand -base64 32
+```
+
+**KEK setzen:**
+
+- Cloudflare: `pnpm --filter @notebook-lm/worker exec wrangler secret put KEK_V1`, dann den Wert einfügen. Für `wrangler dev` gehört er in `apps/worker/.dev.vars`; die Datei ist per `.gitignore` ausgeschlossen.
+- Node/Docker: als Umgebungsvariable `KEK_V1` des Prozesses. `docker-compose.yml` reicht `KEK_V1`, `KEK_V2` und `KEK_CURRENT_VERSION` aus der Umgebung des Hosts durch. Vorlage: `apps/worker/.env.example` (nach `.env` im Projektordner kopieren und füllen, `docker compose` liest sie dort).
+
+Den KEK nie ins Repository, in Tickets oder in Logs schreiben. Geht er verloren, lassen sich gespeicherte BYOK-Schlüssel nicht mehr entschlüsseln, und die Nutzer müssen sie neu eingeben.
+
+**KEK rotieren:**
+
+1. Neuen Schlüssel als `KEK_V2` setzen und `KEK_V1` stehen lassen.
+2. `KEK_CURRENT_VERSION=2` setzen. Neue und geänderte BYOK-Schlüssel werden ab jetzt mit Version 2 verschlüsselt, alte bleiben mit Version 1 lesbar.
+3. Bestehende Einträge umschlüsseln: `POST /api/v1/keys/rekey` stellt die Einträge der angemeldeten Person auf die aktuelle Version um.
+4. `KEK_V1` erst entfernen, wenn `SELECT COUNT(*) FROM provider_keys WHERE key_version = 1;` in D1 `0` ergibt.
+
 ---
 
 ## 2. Authentifizierung, Session-Sicherheit & Bot-Schutz

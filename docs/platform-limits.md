@@ -77,3 +77,28 @@ Cloudflare D1 basiert auf SQLite und unterstützt virtuelle Volltext-Tabellen ü
 | Max. LLM-Aufrufe pro Nutzer/Tag | 50 | 2.000 |
 | Gast-Konto Lebensdauer (TTL) | 24 Stunden | 24 Stunden |
 | Demo-Notebook Lebensdauer (TTL) | 30 Tage | Unbegrenzt (`null`) |
+
+### 4.1 Durchsetzung und Fehlercodes
+
+Der Worker prüft die Grenzen serverseitig, bevor etwas gespeichert wird (`quotaGuardMiddleware` vor `POST /api/v1/notebooks/:id/sources`, Prüfung im URL-Import, Byte-Zählung beim Upload). Abgelehnte Anfragen erhalten eine Antwort nach RFC 9457 (`application/problem+json`). Das Feld `detail` ist deutsch; sendet der Client `Accept-Language: en…` an erster Stelle, kommt es auf Englisch.
+
+| Grenze | Wert | Genau am Limit | Ab +1 Byte bzw. +1 Quelle | HTTP | `code` |
+|---|---|---|---|---|---|
+| Dateigröße je Quelle | 50 MB (52.428.800 Byte) | erlaubt | abgelehnt | 403 bzw. 413 | `QUOTA_MAX_SOURCE_BYTES_EXCEEDED` (403, Kontingentprüfung, greift im API-Pfad zuerst), `FILE_TOO_LARGE` (413, Prüfung im Upload-Handler) |
+| Summe aller Quellen je Notebook | 200 MB (209.715.200 Byte) | erlaubt | abgelehnt | 413 | `NOTEBOOK_SIZE_LIMIT` |
+| Quellen je Notebook | 50 | die 50. Quelle ist erlaubt | die 51. wird abgelehnt | 403 | `QUOTA_MAX_SOURCES_PER_NOTEBOOK_EXCEEDED` |
+
+Beispiel für `NOTEBOOK_SIZE_LIMIT`:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Payload Too Large",
+  "status": 413,
+  "detail": "Notizbuch-Limit von 200 MB überschritten: aktuell 160 MB, die neue Quelle (40 MB) würde das Limit sprengen.",
+  "instance": "/api/v1/notebooks/nb_123/sources",
+  "code": "NOTEBOOK_SIZE_LIMIT"
+}
+```
+
+Die Grenzwerte stehen in [`apps/worker/src/config.ts`](../apps/worker/src/config.ts), die Prüfungen in [`apps/worker/src/quota-guard.ts`](../apps/worker/src/quota-guard.ts). Tests an den Grenzen (genau am Limit und 1 Byte darüber): `apps/worker/src/__tests__/security-headers-quotas.test.ts` und `apps/worker/src/__tests__/sources-upload.test.ts`.

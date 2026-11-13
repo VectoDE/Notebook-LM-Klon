@@ -152,7 +152,8 @@ describe("applyThemeToDocument", () => {
     expect(root.setAttribute).toHaveBeenCalledWith("data-color-mode", "aaa-contrast");
     expect(store.setItem).toHaveBeenCalledWith(STORAGE_KEYS.colorMode, "system");
     applyThemeToDocument(root, { ...prefs, colorMode: "system" });
-    expect(root.setAttribute).toHaveBeenLastCalledWith("lang", "en");
+    expect(root.setAttribute).toHaveBeenCalledWith("lang", "en");
+    expect(root.setAttribute).toHaveBeenLastCalledWith("dir", "ltr");
     expect(root.setAttribute).toHaveBeenCalledWith("data-color-mode", "light");
   });
 
@@ -165,7 +166,7 @@ describe("applyThemeToDocument", () => {
       }
     };
     expect(() => applyThemeToDocument(root, prefs, failing)).not.toThrow();
-    expect(root.setAttribute).toHaveBeenCalledTimes(6);
+    expect(root.setAttribute).toHaveBeenCalledTimes(8);
   });
 });
 

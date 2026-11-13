@@ -8,9 +8,9 @@ import { scheduled } from "../index.js";
 
 function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } {
   const db = new DatabaseSync(":memory:");
-  const migrationPath = resolve(process.cwd(), "apps/worker/migrations/0001_initial_core.sql");
-  const sql = readFileSync(migrationPath, "utf-8");
-  db.exec(sql);
+  for (const file of ["0001_initial_core.sql", "0003_webauthn_challenges.sql"]) {
+    db.exec(readFileSync(resolve(process.cwd(), "apps/worker/migrations", file), "utf-8"));
+  }
 
   const adapter: DatabaseAdapter = {
     async exec(sqlStr: string): Promise<void> {
@@ -205,6 +205,16 @@ describe("Scheduled Cron Cleanup (Sub-Issues #74, #75, #76)", () => {
       ["ml_active", "test@example.com", now, now + 15 * 60 * 1000, null]
     );
 
+    // 6. Expired (also exactly at expiry) and active WebAuthn challenges
+    const insertChallenge = (key: string, expiresAt: number) =>
+      adapter.run(
+        "INSERT INTO webauthn_challenges (challenge_key, challenge, user_id, created_at, expires_at) VALUES (?, ?, ?, ?, ?)",
+        [key, `c_${key}`, null, t0, expiresAt]
+      );
+    await insertChallenge("login:old", now - 1);
+    await insertChallenge("login:edge", now);
+    await insertChallenge("login:fresh", now + 60_000);
+
     // Run scheduled cleanup
     const metrics: CleanupMetrics = await runScheduledCleanup({
       db: adapter,
@@ -217,6 +227,12 @@ describe("Scheduled Cron Cleanup (Sub-Issues #74, #75, #76)", () => {
     expect(metrics.deletedNotebooks).toBe(2); // 1 guest notebook + 1 expired demo notebook
     expect(metrics.deletedSessions).toBe(1);
     expect(metrics.deletedMagicLinks).toBe(1);
+    expect(metrics.deletedChallenges).toBe(2);
+    expect(
+      await adapter.query<{ challenge_key: string }>(
+        "SELECT challenge_key FROM webauthn_challenges"
+      )
+    ).toEqual([{ challenge_key: "login:fresh" }]);
     expect(metrics.deletedR2Objects).toBe(3); // 2 from expired guest + 1 from demo notebook
 
     // Verify DB states
@@ -248,6 +264,7 @@ describe("Scheduled Cron Cleanup (Sub-Issues #74, #75, #76)", () => {
     expect(metrics.deletedGuests).toBe(0);
     expect(metrics.deletedSessions).toBe(0);
     expect(metrics.deletedMagicLinks).toBe(0);
+    expect(metrics.deletedChallenges).toBe(0);
     expect(metrics.deletedNotebooks).toBe(0);
     expect(metrics.deletedR2Objects).toBe(0);
     expect(metrics.durationMs).toBeGreaterThanOrEqual(0);

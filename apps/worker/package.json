@@ -15,7 +15,8 @@
     "@notebook-lm/shared": "workspace:*",
     "@simplewebauthn/server": "^13.3.3",
     "aws4fetch": "^1.0.20",
-    "hono": "4.13.17"
+    "hono": "4.13.17",
+    "nodemailer": "10.3.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20261109.1",
