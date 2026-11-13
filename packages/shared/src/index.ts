@@ -478,3 +478,4 @@ export * from "./video-storyboard.js";
 export * from "./sm2.js";
 export * from "./studio-artifacts.js";
 export * from "./comments.js";
+export * from "./entity-graph.js";

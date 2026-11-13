@@ -44,6 +44,7 @@ import {
   systemPrefersReducedMotion
 } from "./theme-preferences.js";
 import { AREA_DE, AREA_EN } from "./translations-areas.js";
+import { ENTITY_GRAPH_DE, ENTITY_GRAPH_EN } from "./translations-entity-graph.js";
 
 export { COLOR_MODES, COLOR_MODE_PREFERENCES, LANGUAGES, THEMES };
 export type { ColorMode, ColorModePreference, DesignTheme, Language };
@@ -53,6 +54,7 @@ export type { TranslationDictionary };
 export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   de: {
     ...AREA_DE,
+    ...ENTITY_GRAPH_DE,
     appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
     appSubtitle:
       "Bereit für Forschung, Quellenanalyse, Wissengraphen und barrierefreie Studio-Synthese.",
@@ -183,6 +185,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   },
   en: {
     ...AREA_EN,
+    ...ENTITY_GRAPH_EN,
     appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
     appSubtitle:
       "Ready for research, source grounding, knowledge graphs, and accessible synthesis.",

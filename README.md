@@ -483,7 +483,7 @@ Sämtliche Architekturentscheidungen (ADRs #1–#110) sind im Ordner [`docs/`](d
 7. [**Cloudflare Free-Tier-Limits & CPU-Budgets**](docs/platform-limits.md) – Empirische Benchmarks (`< 0,6 ms` WebCrypto) und Kapazitätsrechnung.
 8. [**Loom-Präsentations- & Bewerbungs-Leitfaden**](docs/loom-presentation-guide.md) – Drehbuch für eine überzeugende 10-Minuten-Vorführung.
 9. [**Anforderungs- & Entscheidungsregister (ADRs #1–#110)**](docs/anforderungen.md) – Lückenlose Dokumentation aller 110 Architektur- und Qualitätsentscheidungen.
-10. [**Lasttests (k6, lokal und Live-Rauchtest)**](docs/load-test.md) – 100 simulierte Nutzer, p95 31 ms, 0 % Fehler; Reports als HTML und JSON.
+10. [**Lasttests (k6, lokal und Live-Rauchtest)**](docs/load-test.md) – 200 gleichzeitige simulierte Nutzer mit Upload, Chat, Suche und Studio, p95 249 ms, 0 % Fehler; [HTML-Report](docs/load-test/report-local.html) und [JSON](docs/load-test/summary-local.json).
 11. [**Datenschutz je KI-Modell**](docs/datenschutz-modelle.md) – Training mit Eingaben je Anbieter und Zugangsweg, mit Quellen, Wortlaut und Abrufdatum.
 
 ---
