@@ -1903,6 +1903,13 @@ html[data-color-mode="aaa-contrast"] .rn-tool {
   border-color: var(--rn-color-error);
 }
 
+/* Aktionen der Einstellung „Eigener Endpunkt“ (Issue #247) */
+.rn-endpoint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rn-space-2);
+}
+
 /* ==========================================================================
    Quellen
    ========================================================================== */

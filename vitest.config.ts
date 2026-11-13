@@ -25,7 +25,9 @@ export default defineConfig({
         "apps/web/src/toast-timer.ts",
         "apps/web/src/EmptyState.tsx",
         "apps/web/src/diagram-i18n.ts",
-        "apps/web/src/turnstile-client.ts"
+        "apps/web/src/turnstile-client.ts",
+        "apps/web/src/custom-endpoint-client.ts",
+        "apps/web/src/custom-endpoint-i18n.ts"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {

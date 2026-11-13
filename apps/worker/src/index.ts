@@ -17,6 +17,12 @@ import { registerChunkIngestionRoutes } from "./chunk-ingestion.js";
 import { runScheduledCleanup } from "./cleanup.js";
 import { resolveAppConfig } from "./config.js";
 import { CoreRepository } from "./core-repository.js";
+import {
+  EndpointRepository,
+  loadCustomProvider,
+  registerCustomEndpointRoutes,
+  resolveAllowlist
+} from "./custom-endpoint-routes.js";
 import { createD1DatabaseAdapter } from "./d1-adapter.js";
 import { createDemoRoutes } from "./demo-routes.js";
 import { createGuestAndMagicLinkRoutes } from "./guest-magic-link-routes.js";
@@ -164,6 +170,8 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   const saltSecret = getConfiguredSessionSalt(env);
   const sessionManager = new SessionManager({ repo: coreRepo, saltSecret });
   const keyVault = hasConfiguredKek(env) ? createKeyVaultFromEnv(env) : undefined;
+  const endpointRepo = new EndpointRepository(dbAdapter);
+  const customEndpointDeps = { ragRepo, endpointRepo, keyVault };
 
   const app = new Hono<ApiEnv>();
 
@@ -227,7 +235,13 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
     recordQuotaUsage(llmQuota)
   );
   app.use("/api/v1/chats/:id/messages", requireAuth());
-  registerChatRoutes(app, { ragRepo, coreRepo, keyVault });
+  registerChatRoutes(app, {
+    ragRepo,
+    coreRepo,
+    keyVault,
+    resolveCustomProvider: (userId) =>
+      loadCustomProvider(customEndpointDeps, userId, resolveAllowlist({}, env))
+  });
 
   app.use(
     "/api/v1/notebooks/:id/search",
@@ -270,6 +284,10 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
 
   // 6. Providers: catalog and routing decision are public, the network probe needs a session
   app.use("/api/v1/providers/ollama/probe", requireAuth());
+  // Eigener OpenAI-kompatibler Endpunkt (BYOM, Issue #247): nur mit Sitzung
+  app.use("/api/v1/providers/custom", requireAuth());
+  app.use("/api/v1/providers/custom/*", requireAuth());
+  registerCustomEndpointRoutes(app, customEndpointDeps);
   registerProviderRoutes(app, { ragRepo, keyVault });
 
   // 7. Jobs: only endpoints with an access check are exposed

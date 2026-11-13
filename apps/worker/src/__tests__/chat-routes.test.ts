@@ -692,6 +692,53 @@ describe("Chat Routes & SSE Streaming (POST /api/v1/notebooks/:id/chat & GET /ap
     expect(sseText).toContain("Provider Stream Explosion");
   });
 
+  it("nutzt mit model=custom den eigenen Endpunkt und meldet fehlende Einrichtung mit 503 (Issue #247)", async () => {
+    const custom = new MockStreamingProvider(["Eigen [1]"]);
+    const seenUsers: string[] = [];
+    const build = (
+      resolveCustomProvider?: (userId: string) => Promise<LlmProvider | null>
+    ): Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }> => {
+      const a = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
+      a.use("*", async (c, next) => {
+        c.set("sessionUser", { id: testUserId });
+        await next();
+      });
+      registerChatRoutes(a, { ragRepo, coreRepo, autoRouter, keyVault, resolveCustomProvider });
+      return a;
+    };
+    const ask = (a: ReturnType<typeof build>) =>
+      a.request(`http://localhost/api/v1/notebooks/${testNotebookId}/chat`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message: "DSGVO", model: "custom" })
+      });
+
+    const ok = await ask(
+      build(async (userId) => {
+        seenUsers.push(userId);
+        return custom;
+      })
+    );
+    expect(ok.status).toBe(200);
+    const text = await ok.text();
+    expect(text).toContain("Eigen");
+    expect(text).toContain('"provider":"custom"');
+    expect(text).toContain('"model":"custom"');
+    expect(seenUsers).toEqual([testUserId]);
+
+    for (const resolver of [
+      undefined,
+      async () => null,
+      async () => {
+        throw new Error("kaputt");
+      }
+    ]) {
+      const res = await ask(build(resolver));
+      expect(res.status).toBe(503);
+      expect(((await res.json()) as { code: string }).code).toBe("CUSTOM_ENDPOINT_UNAVAILABLE");
+    }
+  });
+
   it("returns 503 when no active provider is registered", async () => {
     const emptyRouter = new AutoRouter();
     // Override getProvider to return undefined even if registered
