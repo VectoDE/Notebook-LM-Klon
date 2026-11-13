@@ -202,6 +202,9 @@ export function guestMember() {
     "search(fts): 200": (r) => r.status === 200 || r.status === 429
   });
   track(search, searchDuration, searchOk);
+  if (__VU === 1 && search.status !== 200) {
+    console.warn(`search: Status ${search.status} ${String(search.body).slice(0, 200)}`);
+  }
   sleep(0.8 + Math.random());
 
   const jobs = http.get(`${BASE_URL}/api/v1/jobs?notebookId=${memberState.notebookId}`, {
