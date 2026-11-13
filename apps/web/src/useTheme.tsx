@@ -25,6 +25,7 @@ import {
   type DesignTheme,
   THEMES
 } from "./design-tokens.js";
+import { applySeoLanguage, languageFromSearch } from "./seo.js";
 import {
   COLOR_MODE_PREFERENCES,
   type ColorModePreference,
@@ -313,13 +314,17 @@ export function ThemeProvider({
   defaultColorMode,
   defaultLanguage
 }: ThemeProviderProps) {
-  const [initial] = useState(() =>
-    resolveInitialPreferences(browserEnvironment(), {
+  const [initial] = useState(() => {
+    const prefs = resolveInitialPreferences(browserEnvironment(), {
       theme: defaultTheme,
       colorMode: defaultColorMode,
       language: defaultLanguage
-    })
-  );
+    });
+    // Ein Link mit ?lang=de|en (hreflang, Issue #263) hat Vorrang vor der gespeicherten Wahl.
+    const urlLanguage =
+      typeof window === "undefined" ? undefined : languageFromSearch(window.location.search);
+    return urlLanguage ? { ...prefs, language: urlLanguage } : prefs;
+  });
   const [theme, setThemeState] = useState<DesignTheme>(initial.theme);
   const [colorMode, setColorModeState] = useState<ColorModePreference>(initial.colorMode);
   const [language, setLanguageState] = useState<Language>(initial.language);
@@ -366,6 +371,7 @@ export function ThemeProvider({
       browserEnvironment().storage,
       systemMode
     );
+    applySeoLanguage(document, language);
   }, [theme, colorMode, language, systemMode]);
 
   useEffect(() => {

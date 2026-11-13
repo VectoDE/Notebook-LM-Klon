@@ -418,6 +418,8 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       mkdirSync(staticDir, { recursive: true });
       writeFileSync(join(staticDir, "index.html"), "<html><body>App Loaded</body></html>");
       writeFileSync(join(staticDir, "style.css"), "body { margin: 0; }");
+      mkdirSync(join(staticDir, "assets"), { recursive: true });
+      writeFileSync(join(staticDir, "assets", "app-1a2b3c.js"), "console.log(1);");
 
       const serverInstance = await startNodeServer({
         port: 0,
@@ -444,6 +446,21 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       // 2. Check static file serve
       const cssRes = await fetch(`http://localhost:${port}/style.css`);
       expect(cssRes.status).toBe(200);
+
+      // 2b. Cache-Control und ETag (Issue #263)
+      expect(cssRes.headers.get("cache-control")).toBe("public, max-age=0, must-revalidate");
+      const assetRes = await fetch(`http://localhost:${port}/assets/app-1a2b3c.js`);
+      expect(assetRes.status).toBe(200);
+      expect(assetRes.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+      const assetEtag = assetRes.headers.get("etag");
+      expect(assetEtag).toBeTruthy();
+      const revalidated = await fetch(`http://localhost:${port}/assets/app-1a2b3c.js`, {
+        headers: { "if-none-match": assetEtag ?? "" }
+      });
+      expect(revalidated.status).toBe(304);
+      expect(revalidated.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+      const healthCache = await fetch(`http://localhost:${port}/api/v1/health`);
+      expect(healthCache.headers.get("cache-control")).toBe("no-store");
 
       // 3. Check SPA html fallback on unknown route
       const spaRes = await fetch(`http://localhost:${port}/unknown/route`);
