@@ -18,6 +18,7 @@
 
 import { useEffect, useRef } from "react";
 import { MotionSetting } from "./AppearanceControls.js";
+import { CustomEndpointSettings } from "./CustomEndpointSettings.js";
 import { Icon } from "./Icon.js";
 import { trapTabKey } from "./focus-trap.js";
 import { DEFAULT_MODEL, MODEL_IDS, type ModelId } from "./theme-preferences.js";
@@ -169,6 +170,8 @@ export function SettingsDrawer({
             </h3>
             <p className="rn-drawer-text">{t("byokText")}</p>
           </section>
+
+          <CustomEndpointSettings />
 
           <section className="rn-drawer-notice" aria-labelledby="compliance-section-title">
             <h3 id="compliance-section-title" className="rn-drawer-section-title">
