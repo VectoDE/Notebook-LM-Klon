@@ -50,6 +50,15 @@ export const LazyVideoOverviewPlayer = lazyWithPreload(() =>
 export const LazyInteractiveAudioHostPlayer = lazyWithPreload(() =>
   import("./InteractiveAudioHostPlayer.js").then((m) => m.InteractiveAudioHostPlayer)
 );
+export const LazyTimelineViewer = lazyWithPreload(() =>
+  import("./StructuredTools.js").then((m) => m.TimelineViewer)
+);
+export const LazyInfographicViewer = lazyWithPreload(() =>
+  import("./StructuredTools.js").then((m) => m.InfographicViewer)
+);
+export const LazyDataTableViewer = lazyWithPreload(() =>
+  import("./StructuredTools.js").then((m) => m.DataTableViewer)
+);
 
 /** Lädt alle Studio-Viewer vorab, z. B. in Tests oder wenn der Browser untätig ist. */
 export async function preloadStudioViewers(): Promise<void> {
@@ -59,7 +68,10 @@ export async function preloadStudioViewers(): Promise<void> {
       LazyFlashcardsViewer,
       LazyQuizViewer,
       LazyVideoOverviewPlayer,
-      LazyInteractiveAudioHostPlayer
+      LazyInteractiveAudioHostPlayer,
+      LazyTimelineViewer,
+      LazyInfographicViewer,
+      LazyDataTableViewer
     ].map((viewer) => viewer.preload())
   );
 }

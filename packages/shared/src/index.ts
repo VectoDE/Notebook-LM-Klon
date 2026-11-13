@@ -479,3 +479,4 @@ export * from "./sm2.js";
 export * from "./studio-artifacts.js";
 export * from "./provenance.js";
 export * from "./entity-graph.js";
+export * from "./studio-structured.js";

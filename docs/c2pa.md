@@ -24,7 +24,7 @@ Das Manifest wird aus `packages/shared/src/provenance.ts` (`buildManifestDefinit
 | Formate, Manifest | `packages/shared/src/provenance.ts` | signierbare Medienarten, Manifest-Definition |
 | API | `apps/worker/src/provenance-routes.ts` | `GET /api/v1/provenance/status`, `POST /api/v1/provenance/sign` |
 | Signierer | `apps/worker/src/node/c2pa-signer.ts` | ruft `c2patool` im Node-Server auf |
-| Oberfläche | `apps/web/src/provenance-client.ts` | signiert vor dem Download, sonst ehrlicher Hinweis |
+| Oberfläche | `apps/web/src/provenance-client.ts` | signiert vor dem Download (Mindmap, Infografik), sonst ehrlicher Hinweis |
 
 `POST /api/v1/provenance/sign` braucht eine Sitzung, nimmt höchstens 64 MB und fällt unter
 das Ratenlimit für Uploads. Fehler kommen als Problem Details (RFC 9457): 503 ohne Zertifikat,
@@ -53,6 +53,7 @@ signiert ausgegeben.
 | --- | --- | --- | --- |
 | Mindmap als Bild | `image/png` | ja | CI, `c2pa-integration.test.ts` |
 | Mindmap als Vektorgrafik | `image/svg+xml` | ja | CI, `c2pa-integration.test.ts` |
+| Infografik als Bild / Vektorgrafik | `image/png`, `image/svg+xml` | ja | CI, `c2pa-integration.test.ts` (PNG, SVG) |
 | Audio | `audio/wav` (auch `audio/mpeg`, `audio/mp4`) | ja | CI, `c2pa-integration.test.ts` (WAV) |
 | Video Overview | `video/mp4` | ja | CI, `c2pa-integration.test.ts` (fragmentiertes MP4 wie aus `MediaRecorder`) |
 | Video Overview | `video/webm` | **nein** | CI: c2patool lehnt WebM eingebettet und als Sidecar ab |

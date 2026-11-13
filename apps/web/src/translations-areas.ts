@@ -451,6 +451,34 @@ const ENTRIES: readonly Entry[] = [
   ],
   ["accountOpenSettings", "Einstellungen öffnen", "Open settings"],
 
+  // Stand der Offline-Synchronisation (Issue #347)
+  ["syncSyncing", "Synchronisiert …", "Syncing …"],
+  ["syncSynced", "Alles synchronisiert", "All synced"],
+  ["syncPendingOne", "{n} Änderung wartet", "{n} change waiting"],
+  ["syncPendingMany", "{n} Änderungen warten", "{n} changes waiting"],
+  ["syncOfflineNone", "Offline", "Offline"],
+  [
+    "syncOfflineOne",
+    "Offline · {n} Änderung lokal gesichert",
+    "Offline · {n} change saved locally"
+  ],
+  [
+    "syncOfflineMany",
+    "Offline · {n} Änderungen lokal gesichert",
+    "Offline · {n} changes saved locally"
+  ],
+  ["syncErrorNone", "Synchronisierung fehlgeschlagen", "Sync failed"],
+  [
+    "syncErrorOne",
+    "Synchronisierung fehlgeschlagen · {n} Änderung lokal gesichert",
+    "Sync failed · {n} change saved locally"
+  ],
+  [
+    "syncErrorMany",
+    "Synchronisierung fehlgeschlagen · {n} Änderungen lokal gesichert",
+    "Sync failed · {n} changes saved locally"
+  ],
+
   // Abmelden mit Löschen der lokalen Daten (Issue #348)
   ["signOutWipe", "Abmelden und lokale Daten löschen", "Sign out and delete local data"],
   [

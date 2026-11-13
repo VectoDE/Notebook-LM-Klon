@@ -1,9 +1,14 @@
-import type {
-  FlashcardItem,
-  MindmapNode,
-  PodcastStateMachine,
-  QuizQuestion,
-  VideoStoryboard
+import {
+  type DataTable,
+  type FlashcardItem,
+  type InfographicFact,
+  type MindmapNode,
+  type PodcastStateMachine,
+  type QuizQuestion,
+  type ReviewStatus,
+  type TimelineEntry,
+  type VideoStoryboard,
+  setReviewStatus
 } from "@notebook-lm/shared";
 import { type ReactNode, useEffect, useState } from "react";
 import { DeepDiveStage } from "./DeepDiveStage.js";
@@ -18,10 +23,13 @@ import {
   triggerBrowserDownload
 } from "./artifact-exporters.js";
 import {
+  LazyDataTableViewer as DataTableViewer,
   LazyFlashcardsViewer as FlashcardsViewer,
+  LazyInfographicViewer as InfographicViewer,
   LazyInteractiveAudioHostPlayer as InteractiveAudioHostPlayer,
   LazyMindmapViewer as MindmapViewer,
   LazyQuizViewer as QuizViewer,
+  LazyTimelineViewer as TimelineViewer,
   LazyVideoOverviewPlayer as VideoOverviewPlayer
 } from "./lazy-viewers.js";
 import {
@@ -30,6 +38,7 @@ import {
   provenanceNoteKey,
   signExport
 } from "./provenance-client.js";
+import type { StructuredData } from "./structured-demo.js";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, PanelFocusAttributes } from "./workspace-types.js";
 
@@ -40,7 +49,10 @@ export type StudioTool =
   | "mindmap"
   | "flashcards"
   | "quiz"
-  | "briefing";
+  | "briefing"
+  | "timeline"
+  | "table"
+  | "infographic";
 
 interface StudioAction {
   readonly label: string;
@@ -102,6 +114,37 @@ export interface StudioPanelProps {
   readonly onNotify?: ((message: string) => void) | undefined;
   /** Abruf für die C2PA-Signatur der Exporte (Tests); Standard ist fetch. */
   readonly provenanceFetch?: FetchLike | undefined;
+  /**
+   * Timeline, Datentabelle und Infografik (Issue #239). Ohne Daten fehlen die drei Einträge.
+   * Der Prüfstand liegt hier im Studio und bleibt beim Wechsel zwischen Werkzeugen erhalten.
+   */
+  readonly structuredData?: StructuredData | undefined;
+  /** Quellen (id, Titel) für Belegzeilen, Quellenspalte und Fußnoten. */
+  readonly structuredSources?:
+    | readonly { readonly id: string; readonly title: string }[]
+    | undefined;
+  /** Sprache der Inhalte von Timeline, Tabelle und Infografik (BCP 47). */
+  readonly structuredLang?: string | undefined;
+}
+
+/** Prüfstand je Werkzeug: Status ändern, Rest unverändert. */
+function useStructuredReview(initial: StructuredData | undefined) {
+  const [timeline, setTimeline] = useState<readonly TimelineEntry[]>(initial?.timeline ?? []);
+  const [table, setTable] = useState<DataTable>(initial?.table ?? { columns: ["–"], rows: [] });
+  const [infographic, setInfographic] = useState<readonly InfographicFact[]>(
+    initial?.infographic ?? []
+  );
+  return {
+    timeline,
+    table,
+    infographic,
+    setTimelineStatus: (id: string, status: ReviewStatus) =>
+      setTimeline((items) => setReviewStatus(items, id, status)),
+    setTableStatus: (id: string, status: ReviewStatus) =>
+      setTable((current) => ({ ...current, rows: setReviewStatus(current.rows, id, status) })),
+    setInfographicStatus: (id: string, status: ReviewStatus) =>
+      setInfographic((items) => setReviewStatus(items, id, status))
+  };
 }
 
 const browserFetch: FetchLike = (input, init) => fetch(input, init);
@@ -123,6 +166,9 @@ export function StudioPanel({
   onOpenGraph,
   selectedSourceCount,
   onNotify,
+  structuredData,
+  structuredSources = [],
+  structuredLang,
   provenanceFetch = browserFetch
 }: StudioPanelProps) {
   const { t, tf } = useTheme();
@@ -130,6 +176,7 @@ export function StudioPanel({
   const [isDeepDiveOpen, setIsDeepDiveOpen] = useState(false);
   // Sichtbarer Herkunftshinweis zum letzten Medienexport (Issue #353)
   const [exportNote, setExportNote] = useState<{ key: string; signed: boolean } | null>(null);
+  const review = useStructuredReview(structuredData);
 
   useEffect(() => {
     if (toolRequest) setCurrentTool(toolRequest.tool);
@@ -301,8 +348,54 @@ export function StudioPanel({
         testId: "btn-export-briefing-md",
         run: () => handleExport("briefing")
       }
-    }
+    },
+    ...(structuredData
+      ? ([
+          {
+            id: "timeline",
+            icon: "list",
+            title: t("toolTimelineTitle"),
+            description: t("toolTimelineDesc"),
+            primary: {
+              label: t("toolTimelineOpen"),
+              testId: "btn-open-timeline-tool",
+              run: () => selectTool("timeline")
+            }
+          },
+          {
+            id: "infographic",
+            icon: "grid",
+            title: t("toolInfographicTitle"),
+            description: t("toolInfographicDesc"),
+            primary: {
+              label: t("toolInfographicOpen"),
+              testId: "btn-open-infographic-tool",
+              run: () => selectTool("infographic")
+            }
+          },
+          {
+            id: "table",
+            icon: "table",
+            title: t("toolTableTitle"),
+            description: t("toolTableDesc"),
+            primary: {
+              label: t("toolTableOpen"),
+              testId: "btn-open-table-tool",
+              run: () => selectTool("table")
+            }
+          }
+        ] satisfies StudioToolEntry[])
+      : [])
   ];
+
+  const structuredCommon = {
+    title: notebookTitle,
+    sources: structuredSources,
+    contentLang: structuredLang,
+    onCitationJump: onSourceJump,
+    onNotify,
+    provenanceFetch
+  };
 
   const [featureTool, ...listTools] = tools;
 
@@ -451,6 +544,29 @@ export function StudioPanel({
         {/* Tool Viewer: Quiz */}
         {currentTool === "quiz" && quizData && (
           <QuizViewer questions={quizData} title={notebookTitle} contentLang={contentLangs?.quiz} />
+        )}
+
+        {/* Timeline, Infografik, Datentabelle (Issue #239) */}
+        {currentTool === "timeline" && structuredData && (
+          <TimelineViewer
+            entries={review.timeline}
+            onStatus={review.setTimelineStatus}
+            {...structuredCommon}
+          />
+        )}
+        {currentTool === "infographic" && structuredData && (
+          <InfographicViewer
+            facts={review.infographic}
+            onStatus={review.setInfographicStatus}
+            {...structuredCommon}
+          />
+        )}
+        {currentTool === "table" && structuredData && (
+          <DataTableViewer
+            table={review.table}
+            onStatus={review.setTableStatus}
+            {...structuredCommon}
+          />
         )}
       </div>
 

@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { type Page, expect, test } from "@playwright/test";
-import { findLayoutProblems } from "./helpers.js";
+import { findLayoutProblems, openPanel } from "./helpers.js";
 
 /**
  * Sichtbarer C2PA-Herkunftshinweis nach dem Mindmap-Export (Issue #353).
@@ -88,5 +88,30 @@ test.describe("C2PA-Herkunftsnachweis beim Export (Issue #353)", () => {
     await expect(page.getByTestId("export-provenance-note")).toHaveText(
       "Exported without a C2PA signature: signing requires you to sign in."
     );
+  });
+  test("signiert auch den PNG-Export der Infografik", async ({ page }) => {
+    let sentType: string | undefined;
+    await page.route("**/api/v1/provenance/sign**", async (route) => {
+      const req = route.request();
+      sentType = req.headers()["content-type"];
+      await route.fulfill({
+        status: 200,
+        headers: { "content-type": "image/png", "x-c2pa-certificate": "production" },
+        body: req.postDataBuffer() ?? Buffer.alloc(0)
+      });
+    });
+    await page.goto("/");
+    await openPanel(page, "studio");
+    await page.getByTestId("btn-open-infographic-tool").click();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByTestId("btn-export-infographic-png").click();
+    const png = await readFile((await (await downloadPromise).path()) as string);
+    expect([...png.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+    expect(sentType).toBe("image/png");
+    const note = page.getByTestId("infographic-provenance-note");
+    await expect(note).toHaveText(
+      "Mit C2PA-Herkunftsnachweis signiert. Die KI-Herkunft ist in der Datei belegt."
+    );
+    await expect(note).toHaveAttribute("data-signed", "true");
   });
 });

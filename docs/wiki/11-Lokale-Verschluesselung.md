@@ -8,7 +8,7 @@ Diese Seite beschreibt, wie RelationNotes Daten im Browser ablegt, woher der Sch
 
 | Ablage | Inhalt | Schutz |
 | --- | --- | --- |
-| IndexedDB `rn-local-v1`, Store `records` | Nutzerinhalte, die ohne Netz gebraucht werden, z. B. die Offline-Warteschlange (Issue #347) | AES-GCM 256, nur Chiffrat |
+| IndexedDB `rn-local-v1`, Store `records` | Nutzerinhalte, die ohne Netz gebraucht werden: Offline-Warteschlange (`outbox:<notebook>`) und Dokumentstand (`doc:<notebook>`) aus Issue #347, siehe [Offline-Synchronisation](12-Offline-Synchronisation) | AES-GCM 256, nur Chiffrat |
 | IndexedDB `rn-local-v1`, Store `meta` | Salz der Schlüsselableitung (16 Byte, nicht geheim) und ein verschlüsselter Prüfwert | Salz im Klartext, Prüfwert verschlüsselt |
 | `localStorage` `rn_notebook_titles` | Notebook-Titel aus der Zeit vor der verschlüsselten Ablage | Klartext, wird beim Abmelden gelöscht |
 | `localStorage` `rn_design`, `rn_color_mode`, `rn_language` und weitere `rn_*` | Darstellung und Bedienung | Klartext, keine Inhalte; bleibt nach dem Abmelden erhalten |
