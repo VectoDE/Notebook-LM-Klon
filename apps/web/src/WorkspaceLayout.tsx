@@ -35,6 +35,7 @@ import {
   streamChat,
   technicalErrorDetail
 } from "./chat-client.js";
+import { DEMO_ENTITY_GRAPH } from "./entity-graph-view.js";
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
 import { buildKnowledgeGraph } from "./knowledge-graph.js";
 import {
@@ -634,8 +635,11 @@ export function WorkspaceLayout({
    * Sprung aus dem Graphen in die Quellen. Unter 900 px verschwindet der Graph dabei aus dem
    * Bild: dann geht der Fokus in die Quellen, sonst bliebe er auf einem unsichtbaren Knopf.
    */
-  const jumpToSourceFromGraph = (sourceId: string) => {
-    handleCitationClick({ sourceId });
+  const jumpToSourceFromGraph = (sourceId: string) => jumpToCitationFromGraph({ sourceId });
+
+  /** Wie oben, mit Zitat: Die Quelle zeigt die belegte Stelle markiert (Issue #238). */
+  const jumpToCitationFromGraph = (citation: CitationLocation) => {
+    handleCitationClick(citation);
     if (!isSinglePanel) return;
     requestAnimationFrame(() => {
       if (document.activeElement?.closest("[data-panel='sources']")) return;
@@ -1030,6 +1034,9 @@ export function WorkspaceLayout({
               graph={knowledgeGraph}
               contentLang={DEFAULT_CONTENT_LANGS.sources}
               onSourceJump={jumpToSourceFromGraph}
+              entityGraph={DEMO_ENTITY_GRAPH}
+              entitySources={sources}
+              onCitationJump={jumpToCitationFromGraph}
               onClose={isSinglePanel ? undefined : () => goToPanel("chat")}
               panelAttributes={panelAttributes("graph")}
             />
