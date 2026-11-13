@@ -12,6 +12,8 @@
 import type { EntityGraph } from "@notebook-lm/shared";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
+  Suspense,
+  lazy,
   useCallback,
   useEffect,
   useId,
@@ -20,8 +22,8 @@ import {
   useRef,
   useState
 } from "react";
-import { EntityGraphView } from "./EntityGraphView.js";
 import { Icon } from "./Icon.js";
+import "./entity-graph.css";
 import {
   GRAPH_FONT_SIZE,
   GRAPH_PADDING,
@@ -43,6 +45,10 @@ import {
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, PanelFocusAttributes } from "./workspace-types.js";
 
+/** Beziehungsgraph erst beim Umschalten laden, damit der Start schlank bleibt (LCP). */
+const EntityGraphView = lazy(() =>
+  import("./EntityGraphView.js").then((m) => ({ default: m.EntityGraphView }))
+);
 export interface GraphViewerProps {
   readonly graph: KnowledgeGraph;
   /** Sprache der Begriffe und Quellentitel (BCP 47), für lang (WCAG 3.1.2). */
@@ -510,12 +516,14 @@ export function GraphViewer({
         </div>
       </div>
       {entityGraph && graphMode === "entities" && (
-        <EntityGraphView
-          graph={entityGraph}
-          sources={entitySources}
-          contentLang={contentLang}
-          onCitationJump={onCitationJump}
-        />
+        <Suspense fallback={null}>
+          <EntityGraphView
+            graph={entityGraph}
+            sources={entitySources}
+            contentLang={contentLang}
+            onCitationJump={onCitationJump}
+          />
+        </Suspense>
       )}
     </section>
   );
