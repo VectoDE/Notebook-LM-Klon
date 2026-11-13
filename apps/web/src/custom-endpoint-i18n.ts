@@ -50,7 +50,7 @@ const ENTRIES: readonly Entry[] = [
   ["testFail", "Verbindung fehlgeschlagen: {msg}", "Connection failed: {msg}"],
   [
     "signInNeeded",
-    "Bitte melde dich an, um einen eigenen Endpunkt zu nutzen.",
+    "Bitte melden Sie sich an, um einen eigenen Endpunkt zu nutzen.",
     "Please sign in to use your own endpoint."
   ],
   ["error", "Fehler: {msg}", "Error: {msg}"],
