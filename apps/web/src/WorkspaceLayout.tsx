@@ -1232,7 +1232,7 @@ export function WorkspaceLayout({
                 offlineChat ? (
                   <offlineChat.Control online={online} onNotify={notify} />
                 ) : (
-                  <div className="rn-offline-chat">
+                  <div className="rn-offline-chat rn-offline-chat--start">
                     <output
                       className="rn-chat-mode"
                       data-testid="chat-mode"
@@ -1243,12 +1243,13 @@ export function WorkspaceLayout({
                     </output>
                     <button
                       type="button"
-                      className="rn-btn rn-btn--ghost rn-btn--compact"
+                      className="rn-btn rn-btn--ghost rn-btn--compact rn-offline-setup"
                       data-testid="btn-offline-chat-setup"
                       disabled={!online}
                       onClick={loadOfflineChat}
                     >
-                      {t("offlineChatSetup")}
+                      <Icon name="download" size={18} />
+                      <span className="rn-offline-setup-label">{t("offlineChatSetup")}</span>
                     </button>
                   </div>
                 )

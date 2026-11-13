@@ -460,8 +460,10 @@ export function ChatPanel({
               <Icon name="send" />
             </button>
           )}
+
+          {/* Im Eingabefeld: schmal neben Modell und Senden, breit als eigene Zeile (#346) */}
+          {modeSlot ? <div className="rn-composer-mode">{modeSlot}</div> : null}
         </form>
-        {modeSlot}
       </footer>
     </section>
   );

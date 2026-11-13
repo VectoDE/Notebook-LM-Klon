@@ -1641,10 +1641,10 @@ html[data-color-mode="aaa-contrast"] .rn-chip {
 
 .rn-composer {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-areas:
-    "input input"
-    "model send";
+    "input input input"
+    "model . send";
   align-items: center;
   gap: var(--rn-space-2);
   max-width: 72ch;
@@ -1667,6 +1667,77 @@ html[data-color-mode="aaa-contrast"] .rn-chip {
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas: "model input send";
     padding-left: var(--rn-space-2);
+  }
+  .rn-composer:has(.rn-composer-mode) {
+    grid-template-areas:
+      "model input send"
+      "mode mode mode";
+  }
+}
+
+/*
+ * Modus-Anzeige des Chats (Issue #346). Eigene Zeile im Eingabefeld; schmal belegt die
+ * Startfassung keine zusätzliche Höhe: der Status sitzt in der freien Mitte der zweiten
+ * Zeile, „Offline-Chat einrichten“ als 44-px-Symbolknopf neben dem Eingabefeld.
+ */
+.rn-composer-mode {
+  grid-area: mode;
+  min-width: 0;
+}
+
+.rn-composer:has(.rn-composer-mode) {
+  grid-template-areas:
+    "input input input"
+    "model . send"
+    "mode mode mode";
+}
+
+.rn-offline-setup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rn-space-2);
+}
+
+@container (max-width: 559.98px) {
+  .rn-composer:has(.rn-offline-chat--start) {
+    grid-template-areas:
+      "input input setup"
+      "model mode send";
+  }
+  /* Offline ist der Text länger: dann eigene Zeile statt schmaler Mitte */
+  .rn-composer:has(.rn-offline-chat--start .rn-chat-mode:not([data-mode="online"])) {
+    grid-template-areas:
+      "input input setup"
+      "model . send"
+      "mode mode mode";
+  }
+  .rn-composer-mode:has(.rn-offline-chat--start),
+  .rn-composer-mode .rn-offline-chat--start {
+    display: contents;
+  }
+  .rn-offline-chat--start .rn-chat-mode {
+    grid-area: mode;
+    justify-self: end;
+  }
+  .rn-offline-chat--start .rn-chat-mode:not([data-mode="online"]) {
+    justify-self: start;
+  }
+  .rn-offline-chat--start .rn-offline-setup {
+    grid-area: setup;
+    justify-content: center;
+    width: 44px;
+    padding: 0;
+  }
+  .rn-offline-chat--start .rn-offline-setup-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
   }
 }
 
@@ -5158,8 +5229,7 @@ html[data-reduce-motion="true"][data-design] .rn-tool:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--rn-space-2);
-  margin-top: var(--rn-space-2);
+  gap: 0 var(--rn-space-2);
   color: var(--rn-color-text-secondary);
   font-size: var(--rn-text-small);
   line-height: 1.4;
