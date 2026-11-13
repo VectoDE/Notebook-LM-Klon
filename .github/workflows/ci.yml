@@ -115,3 +115,43 @@ jobs:
 
       - name: Build Docker image
         run: docker build -f apps/worker/Dockerfile -t notebook-lm-worker:test .
+
+  worker-dry-run:
+    name: Worker Bundle & Bindings (wrangler deploy --dry-run)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web assets (assets directory of the Worker)
+        run: pnpm build
+
+      - name: Bundle Worker without Cloudflare credentials and report size and bindings
+        run: |
+          set -euo pipefail
+          out="${RUNNER_TEMP}/worker-dry-run"
+          pnpm --filter @notebook-lm/worker exec wrangler deploy --dry-run --outdir "${out}" | tee "${RUNNER_TEMP}/dry-run.log"
+          echo "--- Bundle-Dateien ---"
+          ls -l "${out}"
+          {
+            echo "### Worker Dry-Run"
+            echo '```'
+            cat "${RUNNER_TEMP}/dry-run.log"
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
