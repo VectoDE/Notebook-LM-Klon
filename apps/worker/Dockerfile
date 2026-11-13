@@ -1,7 +1,8 @@
 # Multi-stage reproducible Dockerfile for NotebookLM Clone (Node.js runtime)
 # Target architecture: linux/amd64, linux/arm64
-# Base image pinned with sha256 digest
-FROM node:22-alpine AS base
+# Base image pinned with sha256 digest: multi-arch OCI index of node:22-alpine,
+# read from registry-1.docker.io on 2026-11-13. Renovate (config:best-practices) keeps it current.
+FROM node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
