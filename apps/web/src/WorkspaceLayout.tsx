@@ -48,6 +48,7 @@ import {
   storeNotebookTitle
 } from "./layout-preferences.js";
 import { signOutAndWipe } from "./local-session.js";
+import { buildStructuredDemo } from "./structured-demo.js";
 import { browserStorage, readStoredModel, storeModel } from "./theme-preferences.js";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, PanelFocusAttributes, WorkspaceSource } from "./workspace-types.js";
@@ -141,6 +142,9 @@ export const DEFAULT_SOURCES: WorkspaceSource[] = [
     lang: "en"
   }
 ];
+
+/** Timeline, Datentabelle und Infografik der Demo, geprüft gegen die Demo-Quellen (Issue #239). */
+const DEFAULT_STRUCTURED = buildStructuredDemo(DEFAULT_SOURCES);
 
 /**
  * Sprache der Demo-Inhalte (Issue #323): Zusammenfassung, Lernkarten und Quiz sind deutsch,
@@ -1117,6 +1121,9 @@ export function WorkspaceLayout({
               contentLangs={DEFAULT_CONTENT_LANGS}
               selectedSourceCount={sources.filter((s) => s.isSelected !== false).length}
               onNotify={notify}
+              structuredData={DEFAULT_STRUCTURED}
+              structuredSources={sources}
+              structuredLang="en"
               panelAttributes={panelAttributes("studio")}
               headerAction={
                 <PanelToggle

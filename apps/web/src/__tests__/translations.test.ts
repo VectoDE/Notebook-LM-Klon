@@ -54,7 +54,7 @@ describe("Oberfläche auf Englisch", () => {
     expect(html).toContain("Skip to content");
     expect(html).toContain('<span class="rn-tab-label">Sources</span>');
     expect(html).toContain('aria-label="Chat &amp; citations"');
-    expect(html).toContain('aria-label="Studio (7 tools)"');
+    expect(html).toContain('aria-label="Studio (10 tools)"');
     expect(html).not.toContain("Einstellungen");
     expect(html).not.toContain("Menü öffnen");
   });
