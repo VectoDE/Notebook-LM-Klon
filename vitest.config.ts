@@ -22,6 +22,7 @@ export default defineConfig({
         "apps/web/src/layout-preferences.ts",
         "apps/web/src/knowledge-graph.ts",
         "apps/web/src/entity-graph-view.ts",
+        "apps/web/src/structured-demo.ts",
         "apps/web/src/view-preferences.ts",
         "apps/web/src/toast-timer.ts",
         "apps/web/src/EmptyState.tsx",
@@ -34,7 +35,10 @@ export default defineConfig({
         "apps/web/src/locale-registry.ts",
         "apps/web/src/local-crypto.ts",
         "apps/web/src/encrypted-store.ts",
-        "apps/web/src/local-session.ts"
+        "apps/web/src/local-session.ts",
+        "apps/web/src/offline-sync.ts",
+        "apps/web/src/notebook-sync.ts",
+        "apps/web/src/sync-status-text.ts"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {
