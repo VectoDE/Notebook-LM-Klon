@@ -40,7 +40,8 @@ import {
   listMembers,
   updateComment
 } from "./comments-client.js";
-import { useTheme } from "./useTheme.js";
+import { commentTexts } from "./translations-comments.js";
+import { fill, useTheme } from "./useTheme.js";
 
 export interface CommentThreadProps {
   readonly notebookId: string;
@@ -54,6 +55,16 @@ export interface CommentThreadProps {
 }
 
 type LoadState = "idle" | "loading" | "ready" | "error";
+
+/** Texte der Kommentare in der Sprache der Oberfläche (eigener Katalog, siehe translations-comments.ts). */
+function useCommentText() {
+  const { language } = useTheme();
+  const texts = commentTexts(language);
+  const t = (key: string): string => texts[key] ?? key;
+  const tf = (key: string, vars: Readonly<Record<string, string | number>>): string =>
+    fill(t(key), vars);
+  return { t, tf, language };
+}
 
 const defaultFetch: FetchLike = (input, init) => fetch(input, init);
 
@@ -120,7 +131,7 @@ function MentionField({
   onEscape,
   testId
 }: MentionFieldProps) {
-  const { t, tf } = useTheme();
+  const { t, tf } = useCommentText();
   const listId = `${id}-mentions`;
   const [mention, setMention] = useState<MentionQuery | null>(null);
   const [active, setActive] = useState(0);
@@ -252,7 +263,7 @@ export function CommentThread({
   fetchFn = defaultFetch,
   defaultOpen = false
 }: CommentThreadProps) {
-  const { t, tf, language } = useTheme();
+  const { t, tf, language } = useCommentText();
   const baseId = useId();
   const regionId = `${baseId}-region`;
   const hintId = `${baseId}-hint`;

@@ -3,7 +3,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 import { CommentThread, renderCommentBody } from "../CommentThread.js";
 import { SourcesPanel } from "../SourcesPanel.js";
+import { commentErrorKey } from "../comments-client.js";
 import { LazyCommentThread } from "../lazy-viewers.js";
+import { COMMENTS_DE, COMMENTS_EN, commentTexts } from "../translations-comments.js";
 import { ThemeProvider, type ThemeProviderProps } from "../useTheme.js";
 
 function inTheme(language: "de" | "en", child: ReturnType<typeof createElement>): string {
@@ -95,5 +97,28 @@ describe("CommentThread (Issue #353)", () => {
     expect(texts).toEqual(["Hi ", "[@Bob Berg]", " und ", "[@Bo]", ", <b>x</b> ", "[@Bob Berg]"]);
     expect(renderCommentBody("ohne", [])).toEqual(["ohne"]);
     expect(renderCommentBody("ende @Bo", [{ id: "o", displayName: "Bo" }]).length).toBe(2);
+  });
+
+  it("has every comment text in German and English, chosen by UI language", () => {
+    expect(Object.keys(COMMENTS_EN)).toEqual(Object.keys(COMMENTS_DE));
+    for (const [key, text] of Object.entries(COMMENTS_DE)) {
+      expect(text, key).not.toBe("");
+      expect(COMMENTS_EN[key], key).not.toBe("");
+    }
+    for (const kind of [
+      "unauthorized",
+      "forbidden",
+      "not-found",
+      "invalid",
+      "rate-limited",
+      "network",
+      "server"
+    ] as const) {
+      expect(COMMENTS_DE[commentErrorKey(kind)]).toBeDefined();
+    }
+    expect(commentTexts("en")).toBe(COMMENTS_EN);
+    expect(commentTexts("en-GB")).toBe(COMMENTS_EN);
+    expect(commentTexts("de")).toBe(COMMENTS_DE);
+    expect(commentTexts("fr")).toBe(COMMENTS_DE);
   });
 });
