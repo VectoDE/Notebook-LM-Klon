@@ -26,6 +26,8 @@ export default defineConfig({
         "apps/web/src/EmptyState.tsx",
         "apps/web/src/diagram-i18n.ts",
         "apps/web/src/turnstile-client.ts",
+        "apps/web/src/i18n.ts",
+        "apps/web/src/locale-registry.ts",
         "apps/web/src/audio-overview-speech.ts",
         "apps/web/src/audio-overview-i18n.ts",
         "apps/web/src/audio-overview-sources.ts"
