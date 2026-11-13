@@ -31,6 +31,7 @@ export default defineConfig({
         "apps/web/src/seo.ts",
         "apps/web/src/lazy-viewers.tsx",
         "apps/web/src/passkey-client.ts",
+        "apps/web/src/comments-client.ts",
         "apps/web/src/i18n.ts",
         "apps/web/src/locale-registry.ts",
         "apps/web/src/local-crypto.ts",
@@ -39,7 +40,8 @@ export default defineConfig({
         "apps/web/src/offline-sync.ts",
         "apps/web/src/notebook-sync.ts",
         "apps/web/src/sync-status-text.ts",
-        "apps/web/src/provenance-client.ts"
+        "apps/web/src/provenance-client.ts",
+        "apps/web/src/chat-export.ts"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {

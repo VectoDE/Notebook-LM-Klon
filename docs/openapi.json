@@ -51,6 +51,10 @@
       "name": "Synchronisation"
     },
     {
+      "name": "Kommentare",
+      "description": "Kommentare an Quellen und Notizen mit Erwähnungen (Issue #353). Lesen: viewer, Schreiben: editor, Bearbeiten: Verfasser, Löschen: Verfasser oder owner."
+    },
+    {
       "name": "Herkunft",
       "description": "C2PA-Herkunftsnachweis für exportierte Medien (Issue #353). Signiert wird nur in der Node-Laufzeit mit c2patool; auf Cloudflare Workers antwortet /sign mit 503. Details: docs/c2pa.md."
     }
@@ -637,6 +641,28 @@
               "type": "string",
               "minLength": 1
             }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Nachrichten je Seite (Standard 100, höchstens 200); die Seite ist aufsteigend sortiert",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 100
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "description": "nextCursor der vorigen Antwort; liefert die nächstälteren Nachrichten",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         ],
         "responses": {
@@ -655,6 +681,9 @@
           },
           "404": {
             "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
           },
           "429": {
             "$ref": "#/components/responses/Problem429"
@@ -2028,6 +2057,380 @@
         }
       }
     },
+    "/api/v1/notebooks/{id}/members": {
+      "get": {
+        "operationId": "listNotebookMembers",
+        "tags": ["Kommentare"],
+        "summary": "Personen mit Zugriff auf das Notebook (für Erwähnungen)",
+        "description": "Nur ID und Anzeigename, keine E-Mail-Adressen. Mindestrolle: viewer.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["members"],
+                  "properties": {
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CommentPerson"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/comments": {
+      "get": {
+        "operationId": "listComments",
+        "tags": ["Kommentare"],
+        "summary": "Kommentare zu einer Quelle oder Notiz",
+        "description": "Älteste zuerst, höchstens 200. Mindestrolle: viewer.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "targetType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CommentTargetType"
+            }
+          },
+          {
+            "name": "targetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["comments"],
+                  "properties": {
+                    "comments": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Comment"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createComment",
+        "tags": ["Kommentare"],
+        "summary": "Kommentar anlegen",
+        "description": "Ziel muss im selben Notebook liegen; erwähnt werden können nur Personen mit Zugriff. Mindestrolle: editor.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Angelegt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/comments/{commentId}": {
+      "patch": {
+        "operationId": "updateComment",
+        "tags": ["Kommentare"],
+        "summary": "Eigenen Kommentar bearbeiten",
+        "description": "Nur die verfassende Person mit Rolle editor oder höher. Erwähnungen werden ersetzt.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "description": "Kommentar-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCommentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteComment",
+        "tags": ["Kommentare"],
+        "summary": "Kommentar löschen",
+        "description": "Verfasser oder Eigentümer (owner) des Notebooks.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "description": "Kommentar-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Gelöscht"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/notebooks/{id}/mentions": {
+      "get": {
+        "operationId": "listMyMentions",
+        "tags": ["Kommentare"],
+        "summary": "Kommentare, in denen ich erwähnt werde",
+        "description": "Neueste zuerst, höchstens 50. Mindestrolle: viewer.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["comments"],
+                  "properties": {
+                    "comments": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Comment"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
     "/api/v1/provenance/status": {
       "get": {
         "operationId": "getProvenanceStatus",
@@ -2573,6 +2976,11 @@
             "minimum": 0,
             "maximum": 2
           },
+          "language": {
+            "type": "string",
+            "enum": ["de", "en"],
+            "description": "Sprache der Oberfläche; bestimmt die ehrliche Antwort, wenn die Quellen nichts hergeben"
+          },
           "maxChunks": {
             "type": "integer",
             "minimum": 1,
@@ -2632,6 +3040,11 @@
             "items": {
               "$ref": "#/components/schemas/ChatMessage"
             }
+          },
+          "nextCursor": {
+            "type": ["string", "null"],
+            "minLength": 1,
+            "description": "Cursor für die nächstältere Seite (Parameter before); null, wenn es keine ältere Seite gibt"
           }
         }
       },
@@ -3295,6 +3708,133 @@
           "newKeyVersion": {
             "type": "integer",
             "minimum": 1
+          }
+        }
+      },
+      "CommentTargetType": {
+        "type": "string",
+        "enum": ["source", "note"]
+      },
+      "CommentPerson": {
+        "type": "object",
+        "required": ["id", "displayName"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateCommentRequest": {
+        "type": "object",
+        "required": ["targetType", "targetId", "body"],
+        "properties": {
+          "targetType": {
+            "$ref": "#/components/schemas/CommentTargetType"
+          },
+          "targetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "description": "Klartext, wird getrimmt; keine Steuerzeichen außer Tab und Zeilenumbruch."
+          },
+          "mentions": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "Nutzer-IDs erwähnter Personen (Doppelte werden entfernt)."
+          }
+        }
+      },
+      "UpdateCommentRequest": {
+        "type": "object",
+        "required": ["body"],
+        "properties": {
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "description": "Klartext, wird getrimmt; keine Steuerzeichen außer Tab und Zeilenumbruch."
+          },
+          "mentions": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "Nutzer-IDs erwähnter Personen (Doppelte werden entfernt)."
+          }
+        }
+      },
+      "Comment": {
+        "type": "object",
+        "required": [
+          "id",
+          "notebookId",
+          "targetType",
+          "targetId",
+          "author",
+          "body",
+          "mentions",
+          "createdAt",
+          "updatedAt",
+          "edited",
+          "canEdit",
+          "canDelete"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "notebookId": {
+            "type": "string"
+          },
+          "targetType": {
+            "$ref": "#/components/schemas/CommentTargetType"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/CommentPerson"
+          },
+          "body": {
+            "type": "string"
+          },
+          "mentions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentPerson"
+            }
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "Unix-Zeit in ms"
+          },
+          "updatedAt": {
+            "type": "integer"
+          },
+          "edited": {
+            "type": "boolean"
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canDelete": {
+            "type": "boolean"
           }
         }
       },

@@ -90,6 +90,18 @@ const ENTRIES: readonly Entry[] = [
   ["chatSendAria", "Frage absenden", "Send question"],
   ["chatCitationAria", "Zitat {n} in Quelle anzeigen", "Show citation {n} in source"],
   ["chatCitationQuote", "Zitat [{n}]", "Citation [{n}]"],
+  // Markdown-Export des Verlaufs (Issue #243)
+  ["chatExport", "Als Markdown sichern", "Save as Markdown"],
+  [
+    "chatExportAria",
+    "Als Markdown sichern: Chatverlauf mit Quellenangaben herunterladen",
+    "Save as Markdown: download the chat history with citations"
+  ],
+  ["chatExportFile", "Chat", "Chat"],
+  ["chatExportedAt", "Exportiert am", "Exported on"],
+  ["chatExportSources", "Quellen", "Sources"],
+  ["chatExportPage", "S.", "p."],
+  ["chatExportAiLabel", "KI-generiert", "AI-generated"],
 
   // Studio
   ["studioPanelLabel", "Studio-Panel", "Studio panel"],

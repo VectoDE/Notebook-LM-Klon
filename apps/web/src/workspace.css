@@ -4992,3 +4992,163 @@ html[data-reduce-motion="true"][data-design] .rn-tool:hover {
     height: 24px;
   }
 }
+
+/* ==========================================================================
+   Kommentare an Quellen und Notizen (Issue #353)
+   ========================================================================== */
+.rn-comments {
+  margin-top: var(--rn-space-3);
+  padding-top: var(--rn-space-3);
+  border-top: 1px solid var(--rn-color-panel-border);
+}
+
+.rn-comments-region {
+  display: grid;
+  gap: var(--rn-space-3);
+  margin-top: var(--rn-space-2);
+}
+
+.rn-comments-region[hidden] {
+  display: none;
+}
+
+.rn-comments-note,
+.rn-comments-hint {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-comments-error {
+  margin: 0;
+  padding: var(--rn-space-2) var(--rn-space-3);
+  border-radius: var(--rn-radius-sm);
+  background: var(--rn-color-error-surface);
+  color: var(--rn-color-error);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+}
+
+.rn-comments-error p {
+  margin: 0 0 var(--rn-space-2);
+}
+
+.rn-comment-list {
+  display: grid;
+  gap: var(--rn-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-comment {
+  padding: var(--rn-space-2) var(--rn-space-3);
+  border-radius: var(--rn-radius-sm);
+  background: var(--rn-color-panel);
+  border: 1px solid var(--rn-color-panel-border);
+}
+
+.rn-comment-head {
+  font-size: var(--rn-text-small);
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-comment-author {
+  font-weight: 600;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-comment-body {
+  margin: var(--rn-space-1) 0 0;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rn-comment-mention {
+  font-weight: 600;
+  color: var(--rn-color-accent-text);
+}
+
+.rn-comment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2);
+  margin-top: var(--rn-space-2);
+}
+
+.rn-comment-confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2);
+  font-size: var(--rn-text-small);
+}
+
+.rn-comment-form {
+  display: grid;
+  gap: var(--rn-space-2);
+  justify-items: start;
+}
+
+.rn-comment-field {
+  position: relative;
+  width: 100%;
+}
+
+.rn-comment-input {
+  min-height: 88px;
+  padding: var(--rn-space-2) var(--rn-space-3);
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.rn-comment-mentions {
+  margin: 0;
+  padding: var(--rn-space-1);
+  list-style: none;
+  border-radius: var(--rn-radius-sm);
+  border: 1px solid var(--rn-color-border);
+  background: var(--rn-color-panel);
+  box-shadow: var(--rn-color-panel-shadow);
+}
+
+.rn-comment-mentions[hidden] {
+  display: none;
+}
+
+.rn-comment-mention-option,
+.rn-comment-mention-none {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--rn-space-3);
+  border-radius: var(--rn-radius-sm);
+}
+
+.rn-comment-mention-option {
+  cursor: pointer;
+}
+
+.rn-comment-mention-option[aria-selected="true"] {
+  background: var(--rn-color-highlight);
+  outline: 2px solid var(--rn-color-focus-ring);
+  outline-offset: -2px;
+}
+
+.rn-comment-mention-none {
+  color: var(--rn-color-text-secondary);
+}
+
+/* Mit geöffnetem Faden wächst der Inspektor mit, gescrollt wird im Panel */
+.rn-inspector:has(.rn-comments-region:not([hidden])) {
+  max-height: none;
+}
+
+/* Chat: Verlauf als Markdown sichern (Issue #243) */
+.rn-chat-tools {
+  display: flex;
+  justify-content: flex-end;
+}
