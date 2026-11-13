@@ -24,7 +24,7 @@ Ziel: 9:30 Minuten, harte Obergrenze 10:00.
 | 0:00 – 0:40 | Einstieg | Startseite der Live-App | „Hallo zusammen. Ich zeige kurz, wie ich die Aufgabe angegangen bin, und führe dann durch meinen NotebookLM-Klon. Zum Schluss gehe ich darauf ein, wie er sich an RelationFlow anschließen lässt.“ |
 | 0:40 – 2:00 | Vorgehen | GitHub Project Board, ein Issue mit Aufgabenliste, ein gemergter Pull Request mit grünen Checks | „Ich habe zuerst die Anforderungen aufgeschrieben und daraus Issues gemacht. Jede Änderung läuft über einen Pull Request. Gemergt wird erst, wenn Lint, Typprüfung, Tests mit 100 Prozent Abdeckung und die Sicherheits-Scans grün sind. KI-Werkzeuge habe ich dabei genutzt. Architektur und Abnahme lagen bei mir. Das steht auch offen in der README.“ |
 | 2:00 – 3:30 | Demo-Einstieg und Chat | Gastzugang, Demo-Notebook „RelationFlow & KI im Mittelstand“, eine Frage im Chat, Klick auf ein Zitat | „Ohne Registrierung bin ich im Demo-Notebook. Ich stelle eine Frage. Jede Aussage trägt ein Zitat. Ein Klick darauf springt zur Textstelle in der Quelle.“ |
-| 3:30 – 5:30 | Studio-Werkzeuge | Audio-Overview mit Rückfrage („Beitreten / Frage stellen“), Video-Overview mit `.webm`-Export, Mindmap, Lernkarten, Quiz | „Das Studio hat sechs Werkzeuge. Beim Audio kann ich mitten im Gespräch eine Frage stellen. Der Host antwortet aus den Quellen. Das Video wird im Browser gebaut und lässt sich als WebM speichern. Die Mindmap gibt es auch als Baumliste für Screenreader.“ |
+| 3:30 – 5:30 | Studio-Werkzeuge | Audio-Overview mit Rückfrage („Beitreten / Frage stellen“), Video-Overview (ohne WebM-Export, der ist in der Oberfläche nicht eingebunden), Mindmap, Lernkarten, Quiz | „Das Studio hat sechs Werkzeuge. Beim Audio kann ich mitten im Gespräch eine Frage stellen. Der Host antwortet aus den Quellen. Das Video wird im Browser aus Folien und Kapiteln gebaut. Die Mindmap gibt es auch als Baumliste für Screenreader.“ |
 | 5:30 – 6:30 | Designs | Umschalter für die vier Designs, dann Hell, Dunkel, Hochkontrast | „Vier Designs, jedes mit eigener Farbwelt und Schrift. Dazu Hochkontrast. Das Ziel für Text ist ein Kontrast von mindestens 7:1. Das ist als Test hinterlegt.“ |
 | 6:30 – 8:00 | Code-Walkthrough | VS Code: `apps/worker/src/search-routes.ts`, `packages/shared/src/index.ts` (Zod-Schemas), `docs/openapi.json` | „Der Worker ist ein einziger Cloudflare Worker mit D1, R2 und Durable Objects. Das Parsen der Dateien passiert im Browser, weil das CPU-Limit im Free-Plan knapp ist. Die Schemas liegen geteilt in `packages/shared`. Die API ist als OpenAPI 3.1 beschrieben, und ein Test prüft, dass keine Route fehlt.“ |
 | 8:00 – 9:15 | Andocken an RelationFlow | README-Kapitel „Andocken an RelationFlow“, Beispielaufruf der Such-API | „Für RelationFlow gibt es eine eigene Such-API: `POST /api/v1/notebooks/:id/search`. Ein Agent bekommt Fundstellen mit Quelle, Seite und Score. Rollen und Modell-Router sind dafür vorbereitet. Offen ist der Austausch von Entitäten und Kanten. Das Format ist beschrieben, aber noch nicht gebaut.“ |
@@ -37,7 +37,7 @@ Ziel: 9:30 Minuten, harte Obergrenze 10:00.
 | Zitate verweisen auf die Textstelle | Chat-Antworten mit Zitaten, Suche liefert `page`, `startOffset`, `endOffset` (`openapi.json`, `SearchCitation`) |
 | Sechs Studio-Werkzeuge | `apps/web/src/StudioPanel.tsx` (`StudioTool`) |
 | Audio-Rückfrage | `POST /api/v1/notebooks/:id/audio-interject` |
-| Video als WebM | `apps/web/src/video-exporter.ts` |
+| Video-Overview (WebM-Export nur als Modul, nicht in der Oberfläche) | `apps/web/src/video-exporter.ts` |
 | Vier Designs, drei Farbmodi | `apps/web/src/design-tokens.ts` |
 | 100 % Testabdeckung als Schwelle | `vitest.config.ts`, Pflicht-Check `Lint, Typecheck, Coverage & Build` |
 | OpenAPI-Abdeckung aller Routen | `packages/shared/src/__tests__/openapi.test.ts` |
@@ -46,29 +46,6 @@ Ziel: 9:30 Minuten, harte Obergrenze 10:00.
 
 Nicht sagen, solange es nicht geprüft ist: Zahlen zu Issues oder Pull Requests (vorher am Project Board nachzählen), „WCAG 2.2 AAA erreicht“ (belegt ist das Ziel und die Kontrast-Tests, nicht eine Zertifizierung), Lastwerte, Scorecard-Wert (zeigt sich im Badge, der Stand steht in [`docs/openssf.md`](openssf.md)).
 
-## Entwurf der Antwort-E-Mail an Everlast Consulting
+## Antwort-E-Mail
 
-Nicht versendet. Der Inhaber prüft, ersetzt die Platzhalter und schickt sie selbst ab. Anrede und Betreff an die Original-Mail anpassen.
-
-**Betreff:** Re: Testprojekt Junior Entwickler (m/w/d), Abgabe RelationNotes
-
-Hallo Yassmine,
-
-hier ist meine Abgabe zum Testprojekt. Ich habe einen NotebookLM-Klon gebaut und ihn so geschnitten, dass er sich an RelationFlow anschließen lässt.
-
-- Live-Test: {{LIVE_URL}} (Gastzugang auf der Startseite, ohne Registrierung)
-- Code: https://github.com/VectoDE/Notebook-LM-Klon
-- Video (10 Minuten): {{LOOM_URL}}
-
-**Was drin ist:** Quellen hochladen oder per URL importieren, Chat mit Zitaten, und sechs Studio-Werkzeuge: Audio-Overview mit Rückfrage, Video-Overview, Mindmap, Lernkarten, Quiz und Briefing. Die Oberfläche gibt es in vier Designs, jeweils in Hell, Dunkel und Hochkontrast.
-
-**Zu RelationFlow:** Für Agenten gibt es eine eigene Such-API (`POST /api/v1/notebooks/:id/search`). Sie liefert Fundstellen mit Quelle, Seite und Score. Rollen (Owner, Editor, Viewer) und ein Modell-Router mit Datenschutzmodus sind vorhanden. Noch nicht gebaut ist der Austausch von Entitäten und Kanten. Das steht so auch in der README unter „Andocken an RelationFlow“.
-
-**Zum Vorgehen:** Ich habe die Anforderungen zuerst als Issues aufgeschrieben. Jede Änderung ging über einen Pull Request und musste Lint, Typprüfung, Tests (100 Prozent Abdeckung) und Sicherheits-Scans bestehen. KI-Werkzeuge habe ich dabei eingesetzt. Architektur, Entscheidungen und Abnahme habe ich selbst gemacht. Die Details stehen in der README.
-
-Zur Einordnung: Barrierefreiheit nach WCAG 2.2 AAA ist mein Ziel, der Stand der Prüfung steht in `docs/accessibility-wcag-aaa.md`. Zertifiziert ist sie nicht.
-
-Über Rückmeldungen freue ich mich.
-
-Viele Grüße
-Tim Hauke
+Der Entwurf der Abgabe-Mail mit Belegliste steht in [`abgabe-mail-entwurf.md`](abgabe-mail-entwurf.md). Nicht versendet: Der Inhaber ersetzt `{{LIVE_URL}}` und `{{LOOM_URL}}` und schickt sie selbst ab.
