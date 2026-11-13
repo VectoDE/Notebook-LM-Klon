@@ -30,6 +30,7 @@ import {
 } from "./mail-adapter.js";
 import { createPasskeyRoutes } from "./passkey-routes.js";
 import { PasskeyService } from "./passkey-service.js";
+import { registerProvenanceRoutes } from "./provenance-routes.js";
 import { registerProviderRoutes } from "./provider-routes.js";
 import { type QuotaAction, quotaGuardMiddleware } from "./quota-guard.js";
 import { RagRepository } from "./rag-repository.js";
@@ -280,6 +281,10 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   // 6. Providers: catalog and routing decision are public, the network probe needs a session
   app.use("/api/v1/providers/ollama/probe", requireAuth());
   registerProviderRoutes(app, { ragRepo, keyVault });
+
+  // 6b. C2PA provenance for exports: status is public, signing needs a session. The signer
+  // only exists in the Node runtime (PROVENANCE_SIGNER); on Workers signing answers 503.
+  registerProvenanceRoutes(app);
 
   // 7. Jobs: status and cancel live under the notebook, so the notebook role is checked
   // and the job must belong to that notebook (IDOR protection, see fetchNotebookJob).

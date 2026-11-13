@@ -24,6 +24,12 @@ import {
   LazyQuizViewer as QuizViewer,
   LazyVideoOverviewPlayer as VideoOverviewPlayer
 } from "./lazy-viewers.js";
+import {
+  type FetchLike,
+  addSvgProvenanceMetadata,
+  provenanceNoteKey,
+  signExport
+} from "./provenance-client.js";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, PanelFocusAttributes } from "./workspace-types.js";
 
@@ -94,7 +100,11 @@ export interface StudioPanelProps {
   readonly selectedSourceCount?: number | undefined;
   /** Kurze Rückmeldung in der Hinweis-Leiste, z. B. nach einem Export. */
   readonly onNotify?: ((message: string) => void) | undefined;
+  /** Abruf für die C2PA-Signatur der Exporte (Tests); Standard ist fetch. */
+  readonly provenanceFetch?: FetchLike | undefined;
 }
+
+const browserFetch: FetchLike = (input, init) => fetch(input, init);
 
 export function StudioPanel({
   notebookTitle = "RelationNotes Studio",
@@ -112,11 +122,14 @@ export function StudioPanel({
   toolRequest,
   onOpenGraph,
   selectedSourceCount,
-  onNotify
+  onNotify,
+  provenanceFetch = browserFetch
 }: StudioPanelProps) {
   const { t, tf } = useTheme();
   const [currentTool, setCurrentTool] = useState<StudioTool>(activeTool);
   const [isDeepDiveOpen, setIsDeepDiveOpen] = useState(false);
+  // Sichtbarer Herkunftshinweis zum letzten Medienexport (Issue #353)
+  const [exportNote, setExportNote] = useState<{ key: string; signed: boolean } | null>(null);
 
   useEffect(() => {
     if (toolRequest) setCurrentTool(toolRequest.tool);
@@ -132,13 +145,35 @@ export function StudioPanel({
     onNotify?.(tf("toastDownload", { file: filename }));
   };
 
+  /** Medienexport: erst C2PA-Signatur versuchen, dann laden und offen sagen, was geschah. */
+  const downloadWithProvenance = async (
+    filename: string,
+    content: Blob,
+    mimeType: string,
+    title: string
+  ) => {
+    const outcome = await signExport(provenanceFetch, content, { mimeType, title });
+    download(filename, outcome.blob, mimeType);
+    setExportNote({ key: provenanceNoteKey(outcome), signed: outcome.signed });
+  };
+
   const handleExport = (type: "anki" | "mindmap" | "quiz" | "briefing") => {
     if (type === "anki" && flashcardsData) {
       const result = exportFlashcardsToAnkiCsv(flashcardsData);
       download(result.filename, result.content, result.mimeType);
     } else if (type === "mindmap" && mindmapData) {
-      const svg = exportMindmapToSvgString(`<svg><text>${mindmapData.label}</text></svg>`);
-      download(`${notebookTitle}_mindmap.svg`, svg, "image/svg+xml");
+      const label = escapeHtmlText(mindmapData.label);
+      const svg = addSvgProvenanceMetadata(
+        exportMindmapToSvgString(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="120" viewBox="0 0 640 120"><title>${label}</title><text x="24" y="68" font-family="sans-serif" font-size="24">${label}</text></svg>`
+        )
+      );
+      void downloadWithProvenance(
+        `${notebookTitle}_mindmap.svg`,
+        new Blob([svg], { type: "image/svg+xml" }),
+        "image/svg+xml",
+        `${notebookTitle} – Mindmap`
+      );
     } else if (type === "quiz" && quizData) {
       const json = exportQuizToJson(quizData);
       download(`${notebookTitle}_quiz.json`, json, "application/json");
@@ -361,6 +396,15 @@ export function StudioPanel({
                 </li>
               ))}
             </ul>
+            {exportNote && (
+              <output
+                className="rn-export-note"
+                data-testid="export-provenance-note"
+                data-signed={String(exportNote.signed)}
+              >
+                {t(exportNote.key)}
+              </output>
+            )}
           </div>
         )}
 

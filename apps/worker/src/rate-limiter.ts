@@ -129,7 +129,12 @@ export function resolveCategoryFromPath(path: string): RateLimitCategory {
   ) {
     return "chat";
   }
-  if (path.includes("/upload") || path.includes("/sources/file") || path.includes("/media")) {
+  if (
+    path.includes("/upload") ||
+    path.includes("/sources/file") ||
+    path.includes("/media") ||
+    path.includes("/provenance/sign")
+  ) {
     return "uploads";
   }
   return "general";

@@ -30,7 +30,8 @@ export default defineConfig({
         "apps/web/src/lazy-viewers.tsx",
         "apps/web/src/passkey-client.ts",
         "apps/web/src/i18n.ts",
-        "apps/web/src/locale-registry.ts"
+        "apps/web/src/locale-registry.ts",
+        "apps/web/src/provenance-client.ts"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {
