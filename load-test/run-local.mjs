@@ -118,6 +118,31 @@ async function preflightChat() {
   if (chat.status !== 200 || !chat.body.includes("event: token")) {
     throw new Error("Vorprüfung Chat fehlgeschlagen");
   }
+  // Wie im Lastprofil: eigene Client-Adresse, Suche vor dem Chat.
+  const xff = { "x-forwarded-for": "10.9.9.7" };
+  const diagnose = async (label, path, init) => {
+    try {
+      await step(label, path, init);
+    } catch (error) {
+      console.log(String(error));
+    }
+  };
+  await diagnose("Suche (XFF)", `/api/v1/notebooks/${demoNotebookId}/search`, {
+    method: "POST",
+    headers: xff,
+    body: JSON.stringify({ query: "Volltext Vektoren", mode: "fts", limit: 5 })
+  });
+  await diagnose("Chat nach Suche (XFF)", `/api/v1/notebooks/${demoNotebookId}/chat`, {
+    method: "POST",
+    headers: { ...xff, accept: "text/event-stream" },
+    body: JSON.stringify({ message: "Wie arbeitet die Suche?", model: "llama3", maxChunks: 5 })
+  });
+  await diagnose("Chat nach Suche (ohne XFF)", `/api/v1/notebooks/${demoNotebookId}/chat`, {
+    method: "POST",
+    headers: { accept: "text/event-stream" },
+    body: JSON.stringify({ message: "Wie arbeitet die Suche?", model: "llama3", maxChunks: 5 })
+  });
+  console.log(`Test-LLM-Aufrufe nach Diagnose: ${fakeLlm.requests()}`);
 }
 
 let worker;
