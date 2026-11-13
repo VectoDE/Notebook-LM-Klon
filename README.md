@@ -16,8 +16,7 @@
 [![CI – Quality, Security & Checklist Gate](https://github.com/VectoDE/Notebook-LM-Klon/actions/workflows/ci.yml/badge.svg)](https://github.com/VectoDE/Notebook-LM-Klon/actions/workflows/ci.yml)
 [![CodeQL SAST](https://github.com/VectoDE/Notebook-LM-Klon/actions/workflows/codeql.yml/badge.svg)](https://github.com/VectoDE/Notebook-LM-Klon/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/VectoDE/Notebook-LM-Klon/badge)](https://scorecard.dev/viewer/?uri=github.com/VectoDE/Notebook-LM-Klon)
-[![Test Coverage: 100%](https://img.shields.io/badge/Coverage-100%25-10B981?style=flat&logo=vitest&logoColor=white)](vitest.config.ts)
-[![Accessibility: WCAG 2.2 AAA](https://img.shields.io/badge/Accessibility-WCAG_2.2_AAA-2563EB?style=flat)](docs/accessibility-wcag-aaa.md)
+[![Release](https://img.shields.io/github/v/release/VectoDE/Notebook-LM-Klon?display_name=tag)](https://github.com/VectoDE/Notebook-LM-Klon/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-F59E0B.svg)](LICENSE)
 
 [**Offizielles GitHub Wiki**](https://github.com/VectoDE/Notebook-LM-Klon/wiki) · [**Systemarchitektur**](docs/architecture.md) · [**Hybrid-RAG & Vektoren**](docs/rag-and-vectors.md) · [**RelationFlow-Brücke**](docs/relationflow-integration.md) · [**Security & DSGVO**](docs/security-and-compliance.md) · [**WCAG 2.2 AAA**](docs/accessibility-wcag-aaa.md)
