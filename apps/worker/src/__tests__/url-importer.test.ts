@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { MAX_WORDS_PER_SOURCE, countUniqueWords } from "@notebook-lm/shared";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it } from "vitest";
 import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
@@ -600,14 +601,67 @@ describe("URL Import Route - POST /api/v1/notebooks/:id/sources/url", () => {
   });
 });
 
+/**
+ * Routen-Test der Wortgrenze (Issue #277).
+ *
+ * Zählweise (countWords aus @notebook-lm/shared): Ein Wort ist eine maximale Folge von
+ * Zeichen, die nicht auf den JavaScript-Ausdruck \s passen. Trennzeichen sind damit alle
+ * Unicode-Leerraumzeichen (Leerzeichen, Tab, Zeilenumbrüche, U+00A0, U+2000 bis U+200A,
+ * U+2028/U+2029, U+3000, U+FEFF). Satzzeichen, Bindestriche, Zero-Width-Space (U+200B) und
+ * Schriften ohne Leerzeichen (z. B. Japanisch) trennen nicht. Die Grenze gilt inklusive:
+ * genau MAX_WORDS_PER_SOURCE Wörter sind erlaubt, ein Wort mehr wird mit 413 abgelehnt.
+ * Die gespeicherte Wortzahl wird aus den in D1 abgelegten Chunks über countUniqueWords
+ * (Überlappungen nur einmal gezählt) nachgerechnet.
+ */
 describe("URL Import Route - Wortgrenze (SOURCE_WORD_LIMIT)", () => {
-  async function importWords(words: number): Promise<Response> {
+  const notebookId = "nb_wortgrenze";
+  const routePath = `/api/v1/notebooks/${notebookId}/sources/url`;
+
+  interface StoredChunk {
+    chunk_index: number;
+    text: string;
+    start_offset: number | null;
+    end_offset: number | null;
+  }
+
+  async function importWords(words: number): Promise<{
+    res: Response;
+    body: Record<string, unknown>;
+    sources: { id: string; status: string }[];
+    chunks: StoredChunk[];
+    r2Keys: string[];
+  }> {
     const sqlite = createMockD1();
+    const r2 = createMockR2();
+    const core = new CoreRepository(sqlite.adapter);
     const ragRepo = new RagRepository(sqlite.adapter);
+    const now = Date.now();
+    await core.createUser({
+      id: "usr_wg",
+      email: "wortgrenze@example.com",
+      display_name: "Wortgrenze",
+      locale: "de",
+      is_guest: 0,
+      created_at: now,
+      expires_at: null,
+      deleted_at: null
+    });
+    await core.createWorkspace({ id: "ws_wg", name: "WS", owner_id: "usr_wg", created_at: now });
+    await core.createNotebook({
+      id: notebookId,
+      workspace_id: "ws_wg",
+      title: "Wortgrenze",
+      emoji: "notebook",
+      created_by: "usr_wg",
+      created_at: now,
+      updated_at: now,
+      expires_at: null
+    });
+
     const app = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
     app.use("*", async (c, next) => {
-      c.env = { DB: sqlite.db, APP_PROFILE: "demo" } as unknown as Env;
-      c.set("sessionUser", { id: "usr" });
+      c.env = { DB: sqlite.db, MEDIA: r2, APP_PROFILE: "demo" } as unknown as Env;
+      c.set("sessionUser", { id: "usr_wg" });
       await next();
     });
     registerUrlImportRoutes(app, {
@@ -621,25 +675,73 @@ describe("URL Import Route - Wortgrenze (SOURCE_WORD_LIMIT)", () => {
         maxByteSize: 10 * 1024 * 1024
       }
     });
-    const res = await app.request("http://localhost/api/v1/notebooks/nb/sources/url", {
+    const res = await app.request(`http://localhost${routePath}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ url: "https://example.com/gross" })
     });
+    const body = (await res.json()) as Record<string, unknown>;
+    const sources = await sqlite.adapter.query<{ id: string; status: string }>(
+      "SELECT id, status FROM sources WHERE notebook_id = ?",
+      [notebookId]
+    );
+    const chunks = await sqlite.adapter.query<StoredChunk>(
+      "SELECT chunk_index, text, start_offset, end_offset FROM chunks WHERE notebook_id = ? ORDER BY chunk_index",
+      [notebookId]
+    );
+    const r2Keys: string[] = [];
+    for (const source of sources) {
+      const key = `notebooks/${notebookId}/sources/${source.id}.txt`;
+      if (await r2.get(key)) r2Keys.push(key);
+    }
     sqlite.close();
-    return res;
+    return { res, body, sources, chunks, r2Keys };
   }
 
-  it("lehnt 500.001 Wörter mit 413 und SOURCE_WORD_LIMIT ab", async () => {
-    const res = await importWords(500_001);
-    expect(res.status).toBe(413);
-    expect(res.headers.get("content-type")).toContain("application/problem+json");
-    const json = (await res.json()) as { code: string };
-    expect(json.code).toBe("SOURCE_WORD_LIMIT");
+  it("nimmt genau 500.000 Wörter an und speichert die volle Wortzahl", async () => {
+    expect(MAX_WORDS_PER_SOURCE).toBe(500_000);
+    const { res, body, sources, chunks, r2Keys } = await importWords(MAX_WORDS_PER_SOURCE);
+
+    expect(res.status).toBe(201);
+    expect(res.headers.get("content-type")).toContain("application/json");
+    expect(body.status).toBe("ready");
+    expect(body.notebookId).toBe(notebookId);
+    expect(body.wordCount).toBe(500_000);
+    expect(body.chunksCount).toBe(chunks.length);
+    expect(chunks.length).toBeGreaterThan(1);
+
+    expect(sources).toHaveLength(1);
+    expect(sources[0]?.id).toBe(body.sourceId);
+    expect(sources[0]?.status).toBe("ready");
+    expect(r2Keys).toHaveLength(1);
+
+    const storedWords = countUniqueWords(
+      chunks.map((row) => ({
+        chunkIndex: row.chunk_index,
+        text: row.text,
+        startOffset: row.start_offset,
+        endOffset: row.end_offset
+      }))
+    );
+    expect(storedWords).toBe(500_000);
   });
 
-  it("nimmt 500.000 Wörter nicht wegen der Wortgrenze ab", async () => {
-    const res = await importWords(500_000);
-    expect(res.status).not.toBe(413);
+  it("lehnt 500.001 Wörter mit 413 und vollständigem RFC-9457-Körper ab und speichert nichts", async () => {
+    const { res, body, sources, chunks, r2Keys } = await importWords(MAX_WORDS_PER_SOURCE + 1);
+
+    expect(res.status).toBe(413);
+    expect(res.headers.get("content-type")).toBe("application/problem+json; charset=utf-8");
+    expect(body).toEqual({
+      type: "about:blank",
+      title: "Payload Too Large",
+      status: 413,
+      detail:
+        "Die Quelle hat 500.001 Wörter und überschreitet das Limit von 500.000 Wörtern pro Quelle.",
+      instance: routePath,
+      code: "SOURCE_WORD_LIMIT"
+    });
+    expect(sources).toHaveLength(0);
+    expect(chunks).toHaveLength(0);
+    expect(r2Keys).toHaveLength(0);
   });
 });

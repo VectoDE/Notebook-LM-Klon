@@ -28,26 +28,36 @@ import { SignInDialog } from "./SignInDialog.js";
 import { SOURCE_FILE_ACCEPT, SourcesPanel } from "./SourcesPanel.js";
 import { StudioPanel, type StudioTool } from "./StudioPanel.js";
 import { Toast, type ToastMessage } from "./Toast.js";
+import { triggerBrowserDownload } from "./artifact-exporters.js";
 import {
   ChatApiError,
   errorKeyForStatus,
+  fetchChatHistory,
   mapCitations,
   streamChat,
   technicalErrorDetail
 } from "./chat-client.js";
+import { chatToMarkdown } from "./chat-export.js";
+import { wipeLocalData } from "./encrypted-store.js";
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
 import { buildKnowledgeGraph } from "./knowledge-graph.js";
 import {
   type CollapsedPanels,
   type CollapsiblePanel,
   matchPanelShortcut,
+  readChatId,
   readCollapsedPanels,
   readNotebookTitle,
+  storeChatId,
   storeCollapsedPanels,
   storeNotebookTitle
 } from "./layout-preferences.js";
+import { signOutAndWipe } from "./local-session.js";
+import { buildStructuredDemo } from "./structured-demo.js";
+import { describeSyncStatus } from "./sync-status-text.js";
 import { browserStorage, readStoredModel, storeModel } from "./theme-preferences.js";
-import { useTheme } from "./useTheme.js";
+import { useNotebookSync } from "./useNotebookSync.js";
+import { documentLanguage, useTheme } from "./useTheme.js";
 import type { CitationLocation, PanelFocusAttributes, WorkspaceSource } from "./workspace-types.js";
 
 export const DEFAULT_MINDMAP: MindmapNode = {
@@ -110,6 +120,9 @@ export const DEFAULT_QUIZ: QuizQuestion[] = [
   }
 ];
 
+/** Demo-Beziehungsgraph (Issue #238), erst beim Umschalten geladen. */
+const loadDemoEntityGraph = () => import("./entity-graph-view.js").then((m) => m.DEMO_ENTITY_GRAPH);
+
 export const DEFAULT_SOURCES: WorkspaceSource[] = [
   {
     id: "src_1",
@@ -136,6 +149,9 @@ export const DEFAULT_SOURCES: WorkspaceSource[] = [
     lang: "en"
   }
 ];
+
+/** Timeline, Datentabelle und Infografik der Demo, geprüft gegen die Demo-Quellen (Issue #239). */
+const DEFAULT_STRUCTURED = buildStructuredDemo(DEFAULT_SOURCES);
 
 /**
  * Sprache der Demo-Inhalte (Issue #323): Zusammenfassung, Lernkarten und Quiz sind deutsch,
@@ -335,7 +351,7 @@ export function WorkspaceLayout({
   notebookId = "nb_active",
   chatFetch
 }: WorkspaceLayoutProps) {
-  const { theme, setTheme, colorMode, setColorMode, t, tf } = useTheme();
+  const { theme, setTheme, colorMode, setColorMode, t, tf, language } = useTheme();
   const isNarrowHeader = useMediaQuery(NARROW_HEADER_QUERY);
   const isSinglePanel = useMediaQuery(SINGLE_PANEL_QUERY);
 
@@ -360,6 +376,12 @@ export function WorkspaceLayout({
   );
   const [notebookTitle, setNotebookTitle] = useState(() =>
     readNotebookTitle(browserStorage(), notebookId, DEFAULT_NOTEBOOK_TITLE)
+  );
+  // Offline-Bearbeiten mit Synchronisation (Issue #347): aktiv, sobald eine Sitzung besteht
+  const notebookSync = useNotebookSync(
+    notebookId,
+    notebookTitle === DEFAULT_NOTEBOOK_TITLE ? undefined : notebookTitle,
+    setNotebookTitle
   );
   const [studioToolRequest, setStudioToolRequest] = useState<{ readonly tool: StudioTool }>();
   // Kurze Meldung für Screenreader (Spalte ein- oder ausgeklappt, Titel gespeichert)
@@ -481,9 +503,23 @@ export function WorkspaceLayout({
     tabIndex: -1
   });
 
+  /** Abmelden (Issue #348): lokale Daten löschen, dann die Sitzung am Server beenden. */
+  const signOut = async () => {
+    notebookSync.stop();
+    const result = await signOutAndWipe({
+      fetchFn: (input, init) => fetch(input, init),
+      wipe: () => wipeLocalData(),
+      storage: browserStorage()
+    });
+    setNotebookTitle(DEFAULT_NOTEBOOK_TITLE);
+    if (!result.localWiped) notify(t("signOutFailed"));
+    else notify(t(result.serverSignedOut ? "signOutDone" : "signOutLocalOnly"));
+  };
+
   const renameNotebook = (title: string) => {
     setNotebookTitle(title);
-    storeNotebookTitle(browserStorage(), notebookId, title);
+    // Mit Sitzung übernimmt die Synchronisation (verschlüsselt), sonst wie bisher lokal
+    if (!notebookSync.rename(title)) storeNotebookTitle(browserStorage(), notebookId, title);
     notify(tf("titleSaved", { title }));
   };
 
@@ -581,6 +617,29 @@ export function WorkspaceLayout({
   // Laufende Anfrage beim Verlassen abbrechen
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  // Gespeicherten Verlauf vollständig laden, Seite für Seite (Issue #243). Ohne Server
+  // (Vorschau, Offline) bleibt es still bei der Begrüßung.
+  useEffect(() => {
+    const storedChatId = readChatId(browserStorage(), notebookId);
+    if (!storedChatId) return;
+    const controller = new AbortController();
+    fetchChatHistory({ chatId: storedChatId, signal: controller.signal, fetchImpl: chatFetch })
+      .then((items) => {
+        chatIdRef.current = storedChatId;
+        const restored: ChatMessage[] = items
+          .filter((item) => item.role !== "system")
+          .map((item) => ({
+            id: item.id,
+            role: item.role,
+            content: item.content,
+            citations: mapCitations(item.citations ?? [])
+          }));
+        if (restored.length > 0) setMessages((prev) => [...prev.slice(0, 1), ...restored]);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [notebookId, chatFetch]);
+
   // Source selection toggles
   const handleToggleSelectSource = (id: string) => {
     setSources((prev) => prev.map((s) => (s.id === id ? { ...s, isSelected: !s.isSelected } : s)));
@@ -634,8 +693,11 @@ export function WorkspaceLayout({
    * Sprung aus dem Graphen in die Quellen. Unter 900 px verschwindet der Graph dabei aus dem
    * Bild: dann geht der Fokus in die Quellen, sonst bliebe er auf einem unsichtbaren Knopf.
    */
-  const jumpToSourceFromGraph = (sourceId: string) => {
-    handleCitationClick({ sourceId });
+  const jumpToSourceFromGraph = (sourceId: string) => jumpToCitationFromGraph({ sourceId });
+
+  /** Wie oben, mit Zitat: Die Quelle zeigt die belegte Stelle markiert (Issue #238). */
+  const jumpToCitationFromGraph = (citation: CitationLocation) => {
+    handleCitationClick(citation);
     if (!isSinglePanel) return;
     requestAnimationFrame(() => {
       if (document.activeElement?.closest("[data-panel='sources']")) return;
@@ -680,11 +742,16 @@ export function WorkspaceLayout({
         chatId: chatIdRef.current,
         model: activeModel,
         sourceIds: selectedIds,
+        // Antworten der KI: Leichte Sprache gilt für die Oberfläche, die Antwort kommt auf Deutsch.
+        language: documentLanguage(language),
         signal: controller.signal,
         fetchImpl: chatFetch
       })) {
         if (ev.type === "token") {
-          if (ev.chatId) chatIdRef.current = ev.chatId;
+          if (ev.chatId && ev.chatId !== chatIdRef.current) {
+            chatIdRef.current = ev.chatId;
+            storeChatId(browserStorage(), notebookId, ev.chatId);
+          }
           updateMessage(assistantId, (m) => ({ ...m, content: m.content + ev.delta }));
         } else if (ev.type === "citations") {
           const citations = mapCitations(ev.citations);
@@ -723,6 +790,32 @@ export function WorkspaceLayout({
     () => messages.map((m) => (m.id === "msg_intro" ? { ...m, content: t("chatWelcome") } : m)),
     [messages, t]
   );
+
+  // Verlauf mit Zitaten als Markdown sichern (Issue #243)
+  const handleExportChat = () => {
+    const titles = new Map(sources.map((s) => [s.id, s.title]));
+    const markdown = chatToMarkdown(
+      chatMessages.filter((m) => m.id !== "msg_intro"),
+      {
+        title: notebookTitle,
+        date: new Date(),
+        labels: {
+          exportedAt: t("chatExportedAt"),
+          user: t("chatUser"),
+          assistant: t("chatAssistant"),
+          sources: t("chatExportSources"),
+          page: t("chatExportPage"),
+          aborted: t("chatStatusAborted"),
+          aiLabel: t("chatExportAiLabel")
+        },
+        sourceTitle: (id) => titles.get(id)
+      }
+    );
+    const file = `${notebookTitle}_${t("chatExportFile")}.md`;
+    if (triggerBrowserDownload(file, markdown, "text/markdown;charset=utf-8")) {
+      notify(tf("toastDownload", { file }));
+    }
+  };
 
   const handleRetryChat = () => {
     if (lastPromptRef.current) void handleSendMessage(lastPromptRef.current, { isRetry: true });
@@ -767,6 +860,25 @@ export function WorkspaceLayout({
           </span>
           <span className="workspace-version">v{WORKSPACE_VERSION}</span>
           <NotebookTitle id="notebook-title" title={notebookTitle} onRename={renameNotebook} />
+          <output
+            data-testid="sync-status"
+            data-state={notebookSync.status?.state}
+            className="rn-sync-status"
+            title={notebookSync.status ? describeSyncStatus(notebookSync.status, tf) : undefined}
+            hidden={!notebookSync.status}
+          >
+            {notebookSync.status && (
+              <>
+                <span className="rn-sync-dot" aria-hidden="true" />
+                <span className="rn-sync-text">{describeSyncStatus(notebookSync.status, tf)}</span>
+                {notebookSync.status.pending > 0 && (
+                  <span className="rn-sync-count" aria-hidden="true">
+                    {notebookSync.status.pending}
+                  </span>
+                )}
+              </>
+            )}
+          </output>
         </div>
 
         <div className="rn-header-end">
@@ -887,6 +999,17 @@ export function WorkspaceLayout({
                   <Icon name="settings" size={18} />
                   {t("accountOpenSettings")}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closePopover(true);
+                    void signOut();
+                  }}
+                  data-testid="account-sign-out"
+                  className="rn-btn rn-btn--secondary rn-btn--block"
+                >
+                  {t("signOutWipe")}
+                </button>
               </dialog>
             )}
           </div>
@@ -985,6 +1108,7 @@ export function WorkspaceLayout({
           <div id={COLUMN_IDS.sources} className="rn-panel-slot" hidden={sourcesCollapsed}>
             <SourcesPanel
               sources={sources}
+              notebookId={notebookId}
               activeCitation={activeCitation}
               onToggleSelect={handleToggleSelectSource}
               onToggleSelectAll={handleToggleSelectAllSources}
@@ -1020,6 +1144,7 @@ export function WorkspaceLayout({
               onSendMessage={(text) => handleSendMessage(text)}
               onStop={handleStopChat}
               onRetry={handleRetryChat}
+              onExport={handleExportChat}
               onCitationClick={handleCitationClick}
               isGenerating={isGenerating}
               panelAttributes={panelAttributes("chat")}
@@ -1030,6 +1155,9 @@ export function WorkspaceLayout({
               graph={knowledgeGraph}
               contentLang={DEFAULT_CONTENT_LANGS.sources}
               onSourceJump={jumpToSourceFromGraph}
+              entityGraph={loadDemoEntityGraph}
+              entitySources={sources}
+              onCitationJump={jumpToCitationFromGraph}
               onClose={isSinglePanel ? undefined : () => goToPanel("chat")}
               panelAttributes={panelAttributes("graph")}
             />
@@ -1083,6 +1211,9 @@ export function WorkspaceLayout({
               contentLangs={DEFAULT_CONTENT_LANGS}
               selectedSourceCount={sources.filter((s) => s.isSelected !== false).length}
               onNotify={notify}
+              structuredData={DEFAULT_STRUCTURED}
+              structuredSources={sources}
+              structuredLang="en"
               panelAttributes={panelAttributes("studio")}
               headerAction={
                 <PanelToggle
@@ -1216,6 +1347,17 @@ export function WorkspaceLayout({
                 className="rn-btn rn-btn--primary rn-btn--block"
               >
                 {t("signInOpen")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  closeMenu(false);
+                  void signOut();
+                }}
+                data-testid="sheet-sign-out"
+                className="rn-btn rn-btn--secondary rn-btn--block"
+              >
+                {t("signOutWipe")}
               </button>
             </section>
 

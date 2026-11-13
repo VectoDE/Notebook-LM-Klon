@@ -41,6 +41,7 @@ Alle Kontrastwerte werden in `packages/shared/src/__tests__/a11y-baseline.test.t
    - Keine Pfad-Gesten-Pflicht (WCAG 2.5.1): Zoom, Pan und Knotenauswahl besitzen dedizierte `+`/`-`/`Reset`-Buttons.
 3. **Video-Overview / Narrated Slides:**
    - Synchronisierte Untertitel (`WebVTT`), komplettes Sprecher-Skript und Folientexte als barrierefreie HTML-Struktur.
+   - Transkript mit Bildbeschreibung und Download (`.txt`, `.vtt`), Audiodeskription als Text oder vorgelesen (WebVTT `kind="descriptions"`), Option für ein Gebärdensprachvideo. Details, Prüfung und DGS-Konzept: [`medienalternativen.md`](medienalternativen.md) (Issue #350).
 
 ---
 
