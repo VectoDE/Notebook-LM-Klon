@@ -13,7 +13,7 @@ Dieses Wiki dokumentiert die vollständige Systemarchitektur, die mathematischen
 
 ---
 
-## Die 9 Kapitel des Projekthandbuchs
+## Die 10 Kapitel des Projekthandbuchs
 
 | Kapitel | Thema | Schwerpunkt |
 | :--- | :--- | :--- |
@@ -26,6 +26,7 @@ Dieses Wiki dokumentiert die vollständige Systemarchitektur, die mathematischen
 | [**7. Cloudflare-Free-Limits**](7-Cloudflare-Free-Limits) | Empirische Benchmarks & Kontingente | Nachweis des 10-ms-CPU-Budgets (`< 0,6 ms` WebCrypto), `node:sqlite` FTS5-Probe, `demo`- vs. `full`-Profile |
 | [**8. Loom-Präsentations-Leitfaden**](8-Loom-Praesentations-Leitfaden) | 10-Minuten-Walkthrough | Minutenplan und Sprechpunkte mit eingebetteten Architektur-Schaubildern für das Bewerbungs-Review |
 | [**9. Lasttests**](9-Lasttests) | k6 lokal und Live-Rauchtest | 100 gleichzeitige simulierte Nutzer, p50/p95/p99, Fehlerquote, HTML- und JSON-Report |
+| [**10. Datenschutz je KI-Modell**](10-Datenschutz-je-KI-Modell) | Training mit Eingaben | Angabe je Anbieter und Zugangsweg mit Quelle, Wortlaut und Abrufdatum; keine Rechtsberatung |
 
 ---
 

@@ -64,7 +64,8 @@ test.describe("Einstellungen: Sprache zuerst", () => {
 });
 
 test.describe("Darstellung an einem Ort, gleicher Inhalt", () => {
-  const GROUPS = ["Design", "Farbschema", "Bewegung", "Rolle"];
+  // Rolle als Vorschau gekennzeichnet (Issue #302)
+  const GROUPS = ["Design", "Farbschema", "Bewegung", "Rolle (Vorschau)"];
 
   test("Kopfmenü (1440 px) und Menü-Sheet (390 px) zeigen dieselben Gruppen", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });

@@ -4392,6 +4392,43 @@ html[data-color-mode="aaa-contrast"] .rn-stage-btn.rn-video-toggle[aria-pressed=
   color: var(--rn-color-text-primary);
 }
 
+/* Training-Angabe zum gewählten Modell mit Quelle (Issue #302) */
+.rn-model-policy {
+  display: grid;
+  gap: var(--rn-space-2);
+  margin-top: var(--rn-space-3);
+  padding: var(--rn-space-3) var(--rn-space-4);
+  border-radius: var(--rn-radius-md);
+  border: 1px solid var(--rn-color-panel-border);
+  background: var(--rn-color-canvas);
+}
+
+.rn-model-policy strong {
+  color: var(--rn-color-text-primary);
+}
+
+.rn-model-policy-sources {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--rn-text-small);
+  line-height: 1.55;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-model-policy-sources a {
+  display: inline-block;
+  min-height: 24px;
+  color: var(--rn-color-text-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  overflow-wrap: anywhere;
+}
+
+.rn-appearance-group > .rn-setting-hint {
+  margin-top: var(--rn-space-2);
+}
+
 @media (max-width: 599.98px) {
   .rn-drawer {
     width: 100%;
