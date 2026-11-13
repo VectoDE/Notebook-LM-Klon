@@ -15,6 +15,7 @@ import { registerBYOKRoutes } from "./byok-routes.js";
 import { registerChatRoutes } from "./chat-routes.js";
 import { registerChunkIngestionRoutes } from "./chunk-ingestion.js";
 import { runScheduledCleanup } from "./cleanup.js";
+import { registerCommentRoutes } from "./comments-routes.js";
 import { resolveAppConfig } from "./config.js";
 import { CoreRepository } from "./core-repository.js";
 import { createD1DatabaseAdapter } from "./d1-adapter.js";
@@ -294,6 +295,10 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   registerUrlImportRoutes(app, { ragRepo });
   registerSourcesUploadRoutes(app, { coreRepo, ragRepo });
   registerChunkIngestionRoutes(app, { ragRepo, coreRepo });
+
+  // 5b. Comments on sources and notes with mentions (guards inside registerCommentRoutes:
+  // viewer reads, editor writes, author edits, author or owner deletes)
+  registerCommentRoutes(app, { coreRepo });
 
   // 6. Providers: catalog and routing decision are public, the network probe needs a session
   app.use("/api/v1/providers/ollama/probe", requireAuth());

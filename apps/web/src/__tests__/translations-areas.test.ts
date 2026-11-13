@@ -17,6 +17,7 @@ import { VideoOverviewPlayer } from "../VideoOverviewPlayer.js";
 import { preloadStudioViewers } from "../lazy-viewers.js";
 import { podcastStateKey } from "../stage-visuals.js";
 import { AREA_DE, AREA_EN } from "../translations-areas.js";
+import { COMMENTS_DE, COMMENTS_EN } from "../translations-comments.js";
 import {
   TRANSLATIONS,
   ThemeProvider,
@@ -37,7 +38,7 @@ function usedKeys(): Map<string, string> {
   for (const file of readdirSync(SRC).filter((f) => /\.tsx?$/.test(f))) {
     const text = readFileSync(join(SRC, file), "utf8");
     for (const m of text.matchAll(/\bt[f]?\(\s*"([A-Za-z0-9]+)"/g)) {
-      if (m[1]) found.set(m[1], file);
+      if (m[1]) found.set(`${file}|${m[1]}`, file);
     }
   }
   return found;
@@ -45,9 +46,13 @@ function usedKeys(): Map<string, string> {
 
 describe("Bedientexte der Bereiche (Issue #320)", () => {
   it("jeder im Quelltext benutzte Schlüssel steht in Deutsch und Englisch", () => {
-    for (const [key, file] of usedKeys()) {
-      expect(TRANSLATIONS.de[key], `${file}: ${key} (de)`).toBeTruthy();
-      expect(TRANSLATIONS.en[key], `${file}: ${key} (en)`).toBeTruthy();
+    for (const [entry, file] of usedKeys()) {
+      const key = entry.slice(file.length + 1);
+      // Die Kommentar-Oberfläche hat einen eigenen, nachgeladenen Katalog (#353).
+      const de = file === "CommentThread.tsx" ? COMMENTS_DE : TRANSLATIONS.de;
+      const en = file === "CommentThread.tsx" ? COMMENTS_EN : TRANSLATIONS.en;
+      expect(de[key], `${file}: ${key} (de)`).toBeTruthy();
+      expect(en[key], `${file}: ${key} (en)`).toBeTruthy();
     }
   });
 

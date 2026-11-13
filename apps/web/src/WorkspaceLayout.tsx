@@ -1107,6 +1107,7 @@ export function WorkspaceLayout({
           <div id={COLUMN_IDS.sources} className="rn-panel-slot" hidden={sourcesCollapsed}>
             <SourcesPanel
               sources={sources}
+              notebookId={notebookId}
               activeCitation={activeCitation}
               onToggleSelect={handleToggleSelectSource}
               onToggleSelectAll={handleToggleSelectAllSources}

@@ -31,6 +31,7 @@ export default defineConfig({
         "apps/web/src/seo.ts",
         "apps/web/src/lazy-viewers.tsx",
         "apps/web/src/passkey-client.ts",
+        "apps/web/src/comments-client.ts",
         "apps/web/src/i18n.ts",
         "apps/web/src/locale-registry.ts",
         "apps/web/src/local-crypto.ts",

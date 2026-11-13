@@ -481,6 +481,7 @@ export * from "./podcast-state-machine.js";
 export * from "./video-storyboard.js";
 export * from "./sm2.js";
 export * from "./studio-artifacts.js";
+export * from "./comments.js";
 export * from "./quiz-mixed.js";
 export * from "./entity-graph.js";
 export * from "./studio-structured.js";
