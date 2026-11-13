@@ -125,7 +125,8 @@ export function registerProvenanceRoutes(
         "PROVENANCE_NOT_CONFIGURED"
       );
     }
-    const userId = c.get("sessionUser")?.id ?? "";
+    // requireAuth() hat den Nutzer bereits geprüft und gesetzt.
+    const { id: userId } = c.get("sessionUser") as { id: string };
     if (!signerUserIds(c.env).has(userId)) {
       return problem(
         c,
