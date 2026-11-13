@@ -415,15 +415,18 @@ export function graphOffset(
  * bzw. letzten Knoten. Liefert die id des Ziels, die aktuelle id, wenn es in der Richtung
  * keinen Knoten gibt, oder undefined für andere Tasten.
  */
+/** Was die Pfeiltasten-Suche von einem Knoten braucht (auch für den Beziehungsgraphen). */
+export type NavigableNode = Pick<PositionedNode, "id" | "x" | "y" | "width" | "height">;
+
 export function nodeInDirection(
-  nodes: readonly PositionedNode[],
+  nodes: readonly NavigableNode[],
   currentId: string,
   key: string
 ): string | undefined {
   const current = nodes.find((n) => n.id === currentId);
   if (!current) return undefined;
-  if (key === "Home") return (nodes[0] as PositionedNode).id;
-  if (key === "End") return (nodes[nodes.length - 1] as PositionedNode).id;
+  if (key === "Home") return (nodes[0] as NavigableNode).id;
+  if (key === "End") return (nodes[nodes.length - 1] as NavigableNode).id;
   const axis: Readonly<Record<string, { dx: number; dy: number }>> = {
     ArrowRight: { dx: 1, dy: 0 },
     ArrowLeft: { dx: -1, dy: 0 },
