@@ -6,9 +6,13 @@ import type {
 } from "@notebook-lm/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { DeepDiveStage } from "../DeepDiveStage.js";
 import { StudioPanel } from "../StudioPanel.js";
+import { preloadStudioViewers } from "../lazy-viewers.js";
+
+// Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
+beforeAll(() => preloadStudioViewers());
 
 const MOCK_MINDMAP: MindmapNode = {
   id: "mm_1",

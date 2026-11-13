@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { PodcastStateMachine, PodcastStateMachineContext } from "@notebook-lm/shared";
 import { type ReactNode, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { ChatPanel } from "../ChatPanel.js";
 import { DeepDiveStage } from "../DeepDiveStage.js";
 import { FlashcardsViewer, describeNextReview, describeRepetitions } from "../FlashcardsViewer.js";
@@ -14,6 +14,7 @@ import { QuizViewer } from "../QuizViewer.js";
 import { SourcesPanel } from "../SourcesPanel.js";
 import { StudioPanel } from "../StudioPanel.js";
 import { VideoOverviewPlayer } from "../VideoOverviewPlayer.js";
+import { preloadStudioViewers } from "../lazy-viewers.js";
 import { podcastStateKey } from "../stage-visuals.js";
 import { AREA_DE, AREA_EN } from "../translations-areas.js";
 import {
@@ -24,6 +25,9 @@ import {
   translate,
   useTheme
 } from "../useTheme.js";
+
+// Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
+beforeAll(() => preloadStudioViewers());
 
 const SRC = join(__dirname, "..");
 
