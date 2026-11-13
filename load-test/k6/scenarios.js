@@ -233,6 +233,9 @@ export function handleSummary(data) {
     rateLimited: metricValue(data, "rate_limited", "count") ?? 0,
     guestLoginFailed: metricValue(data, "guest_login_failed", "count") ?? 0,
     checksPassRate: metricValue(data, "checks", "rate"),
+    checks: Object.fromEntries(
+      (data.root_group?.checks || []).map((c) => [c.name, { passes: c.passes, fails: c.fails }])
+    ),
     peakVus: metricValue(data, "vus_max", "max"),
     durationMs: {
       avg: metricValue(data, "http_req_duration", "avg"),
@@ -251,6 +254,9 @@ export function handleSummary(data) {
       Object.values(m.thresholds || {}).every((t) => t.ok)
     )
   };
+  const checkLines = (data.root_group?.checks || []).map(
+    (c) => `  ${c.name}: ${c.passes} ok, ${c.fails} fehlgeschlagen`
+  );
   const round = (n) => (typeof n === "number" ? Math.round(n * 100) / 100 : n);
   const text = [
     `Profil: ${summary.profile}  VUs (Spitze): ${summary.peakVus}`,
@@ -258,6 +264,8 @@ export function handleSummary(data) {
     `Fehlerquote: ${round(summary.failedRate * 100)} %  Unerwartete Status: ${round(summary.unexpectedStatusRate * 100)} %  429: ${summary.rateLimited}`,
     `Latenz ms  p50: ${round(summary.durationMs.p50)}  p95: ${round(summary.durationMs.p95)}  p99: ${round(summary.durationMs.p99)}  max: ${round(summary.durationMs.max)}`,
     `Schwellenwerte: ${summary.thresholdsPassed ? "erfüllt" : "VERLETZT"}`,
+    "Checks:",
+    ...checkLines,
     ""
   ].join("\n");
   return {
