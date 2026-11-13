@@ -402,14 +402,16 @@ test.describe("Konto-Menü: Gast", () => {
 
     await trigger.focus();
     await page.keyboard.press("Enter");
-    // Fokusfalle mit zwei Knöpfen: Anmelden, Einstellungen (Issue #233)
+    // Fokusfalle mit drei Knöpfen: Anmelden, Einstellungen (Issue #233), Abmelden (Issue #348)
     await expect(page.getByTestId("account-open-sign-in")).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(page.getByTestId("account-open-settings")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.getByTestId("account-sign-out")).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(page.getByTestId("account-open-sign-in")).toBeFocused();
     await page.keyboard.press("Shift+Tab");
-    await expect(page.getByTestId("account-open-settings")).toBeFocused();
+    await expect(page.getByTestId("account-sign-out")).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(menu).toBeHidden();
     await expect(trigger).toBeFocused();
