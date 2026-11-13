@@ -320,7 +320,14 @@ test.describe("Teilen-Dialog (nur Oberfläche)", () => {
     await page.goto("/");
     const requests: string[] = [];
     page.on("request", (request) => {
-      if (!request.url().includes("/@") && !request.url().includes("/src/")) {
+      const url = request.url();
+      // Der Schlüsselabruf der Offline-Synchronisation (#347/#348) läuft beim Laden im
+      // Hintergrund und hat mit dem Dialog nichts zu tun.
+      if (
+        !url.includes("/@") &&
+        !url.includes("/src/") &&
+        !url.endsWith("/api/v1/auth/local-key")
+      ) {
         requests.push(`${request.method()} ${request.url()}`);
       }
     });

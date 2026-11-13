@@ -14,7 +14,8 @@
     "@notebook-lm/shared": "workspace:*",
     "pdfjs-dist": "^6.5.438",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "yjs": "13.6.33"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
