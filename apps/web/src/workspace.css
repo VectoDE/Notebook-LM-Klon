@@ -233,6 +233,88 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   font-weight: 600;
 }
 
+/* --- Stand der Synchronisation (Issue #347), nur mit Sitzung sichtbar --- */
+.rn-sync-status {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--rn-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 2px 10px;
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.rn-sync-status[hidden] {
+  display: none;
+}
+
+.rn-sync-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Form statt nur Farbe: offen bei Warten/Offline, Ring bei Fehler */
+.rn-sync-status[data-state="pending"] .rn-sync-dot,
+.rn-sync-status[data-state="offline"] .rn-sync-dot,
+.rn-sync-status[data-state="syncing"] .rn-sync-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+/* Offline: Ring mit Schrägstrich */
+.rn-sync-status[data-state="offline"] .rn-sync-dot {
+  background: linear-gradient(
+    135deg,
+    transparent 42%,
+    currentColor 42%,
+    currentColor 58%,
+    transparent 58%
+  );
+}
+
+.rn-sync-status[data-state="error"] {
+  color: var(--rn-color-text-primary);
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.rn-sync-count {
+  display: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* Unter 900 px hat der Titel Vorrang: sichtbar bleiben Symbol und Anzahl wartender
+   Änderungen, der volle Text steht im Tooltip und wird weiterhin angesagt. */
+@media (max-width: 899.98px) {
+  .rn-sync-status {
+    flex: none;
+    padding: 2px 8px;
+  }
+
+  .rn-sync-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .rn-sync-count {
+    display: inline;
+  }
+}
+
 /* --- Bereiche 600 bis 899 px: Reiterleiste unter der Anwendungsleiste --- */
 .rn-topnav {
   display: none;

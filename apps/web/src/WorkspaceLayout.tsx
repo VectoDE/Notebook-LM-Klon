@@ -53,7 +53,10 @@ import {
   storeNotebookTitle
 } from "./layout-preferences.js";
 import { signOutAndWipe } from "./local-session.js";
+import { buildStructuredDemo } from "./structured-demo.js";
+import { describeSyncStatus } from "./sync-status-text.js";
 import { browserStorage, readStoredModel, storeModel } from "./theme-preferences.js";
+import { useNotebookSync } from "./useNotebookSync.js";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, PanelFocusAttributes, WorkspaceSource } from "./workspace-types.js";
 
@@ -146,6 +149,9 @@ export const DEFAULT_SOURCES: WorkspaceSource[] = [
     lang: "en"
   }
 ];
+
+/** Timeline, Datentabelle und Infografik der Demo, geprüft gegen die Demo-Quellen (Issue #239). */
+const DEFAULT_STRUCTURED = buildStructuredDemo(DEFAULT_SOURCES);
 
 /**
  * Sprache der Demo-Inhalte (Issue #323): Zusammenfassung, Lernkarten und Quiz sind deutsch,
@@ -371,6 +377,12 @@ export function WorkspaceLayout({
   const [notebookTitle, setNotebookTitle] = useState(() =>
     readNotebookTitle(browserStorage(), notebookId, DEFAULT_NOTEBOOK_TITLE)
   );
+  // Offline-Bearbeiten mit Synchronisation (Issue #347): aktiv, sobald eine Sitzung besteht
+  const notebookSync = useNotebookSync(
+    notebookId,
+    notebookTitle === DEFAULT_NOTEBOOK_TITLE ? undefined : notebookTitle,
+    setNotebookTitle
+  );
   const [studioToolRequest, setStudioToolRequest] = useState<{ readonly tool: StudioTool }>();
   // Kurze Meldung für Screenreader (Spalte ein- oder ausgeklappt, Titel gespeichert)
   const [announcement, setAnnouncement] = useState("");
@@ -493,6 +505,7 @@ export function WorkspaceLayout({
 
   /** Abmelden (Issue #348): lokale Daten löschen, dann die Sitzung am Server beenden. */
   const signOut = async () => {
+    notebookSync.stop();
     const result = await signOutAndWipe({
       fetchFn: (input, init) => fetch(input, init),
       wipe: () => wipeLocalData(),
@@ -505,7 +518,8 @@ export function WorkspaceLayout({
 
   const renameNotebook = (title: string) => {
     setNotebookTitle(title);
-    storeNotebookTitle(browserStorage(), notebookId, title);
+    // Mit Sitzung übernimmt die Synchronisation (verschlüsselt), sonst wie bisher lokal
+    if (!notebookSync.rename(title)) storeNotebookTitle(browserStorage(), notebookId, title);
     notify(tf("titleSaved", { title }));
   };
 
@@ -845,6 +859,25 @@ export function WorkspaceLayout({
           </span>
           <span className="workspace-version">v{WORKSPACE_VERSION}</span>
           <NotebookTitle id="notebook-title" title={notebookTitle} onRename={renameNotebook} />
+          <output
+            data-testid="sync-status"
+            data-state={notebookSync.status?.state}
+            className="rn-sync-status"
+            title={notebookSync.status ? describeSyncStatus(notebookSync.status, tf) : undefined}
+            hidden={!notebookSync.status}
+          >
+            {notebookSync.status && (
+              <>
+                <span className="rn-sync-dot" aria-hidden="true" />
+                <span className="rn-sync-text">{describeSyncStatus(notebookSync.status, tf)}</span>
+                {notebookSync.status.pending > 0 && (
+                  <span className="rn-sync-count" aria-hidden="true">
+                    {notebookSync.status.pending}
+                  </span>
+                )}
+              </>
+            )}
+          </output>
         </div>
 
         <div className="rn-header-end">
@@ -1176,6 +1209,9 @@ export function WorkspaceLayout({
               contentLangs={DEFAULT_CONTENT_LANGS}
               selectedSourceCount={sources.filter((s) => s.isSelected !== false).length}
               onNotify={notify}
+              structuredData={DEFAULT_STRUCTURED}
+              structuredSources={sources}
+              structuredLang="en"
               panelAttributes={panelAttributes("studio")}
               headerAction={
                 <PanelToggle
