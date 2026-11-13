@@ -17,6 +17,7 @@
 * [**10. Datenschutz je KI-Modell**](10-Datenschutz-je-KI-Modell)
 * [**11. Lokale Verschlüsselung**](11-Lokale-Verschluesselung)
 * [**12. Offline-Synchronisation**](12-Offline-Synchronisation)
+* [**13. Offline-Chat (lokales Modell)**](13-Offline-Chat)
 
 ---
 * [**Haupt-Repository**](https://github.com/VectoDE/Notebook-LM-Klon)

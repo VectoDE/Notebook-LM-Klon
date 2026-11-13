@@ -491,6 +491,21 @@ const ENTRIES: readonly Entry[] = [
     "Sync failed · {n} changes saved locally"
   ],
 
+  // Offline-Chat (Issue #346): nur die Texte vor dem Nachladen; der Rest steht in
+  // translations-offline-chat.ts und kommt mit dem nachgeladenen Teil
+  ["chatModeOnlineShort", "Online", "Online"],
+  [
+    "chatModeOfflineNoModel",
+    "Offline · kein lokales Modell geladen",
+    "Offline · no local model loaded"
+  ],
+  ["offlineChatSetup", "Offline-Chat einrichten", "Set up offline chat"],
+  [
+    "errorOfflineNoModel",
+    "Ohne Verbindung kann nur das lokale Modell antworten, und es ist noch nicht geladen. Laden Sie es, sobald Sie wieder online sind.",
+    "Without a connection only the local model can answer, and it is not loaded yet. Load it once you are back online."
+  ],
+
   // Abmelden mit Löschen der lokalen Daten (Issue #348)
   ["signOutWipe", "Abmelden und lokale Daten löschen", "Sign out and delete local data"],
   [

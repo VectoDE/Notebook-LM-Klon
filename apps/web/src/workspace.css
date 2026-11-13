@@ -5152,3 +5152,98 @@ html[data-reduce-motion="true"][data-design] .rn-tool:hover {
   display: flex;
   justify-content: flex-end;
 }
+
+/* --- Offline-Chat mit lokalem Modell (Issue #346) --- */
+.rn-offline-chat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2);
+  margin-top: var(--rn-space-2);
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  line-height: 1.4;
+}
+
+.rn-chat-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rn-space-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rn-chat-mode-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Form statt nur Farbe: offline als Ring mit Schrägstrich wie beim Synchronisationsstand */
+.rn-chat-mode:not([data-mode="online"]) .rn-chat-mode-dot {
+  background: linear-gradient(
+    135deg,
+    transparent 42%,
+    currentColor 42%,
+    currentColor 58%,
+    transparent 58%
+  );
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+.rn-offline-hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.rn-offline-progress,
+.rn-offline-ready {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2);
+}
+
+.rn-offline-progress label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rn-space-2);
+}
+
+.rn-consent-card {
+  max-width: 34rem;
+}
+
+.rn-consent-title {
+  margin: 0 0 var(--rn-space-3);
+  font-size: var(--rn-text-h3);
+}
+
+.rn-consent-list {
+  margin: var(--rn-space-3) 0;
+  padding-inline-start: 1.25rem;
+}
+
+.rn-consent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--rn-space-2);
+}
+
+.rn-offline-passages {
+  margin: var(--rn-space-2) 0 0;
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+}
+
+.rn-offline-passages ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rn-space-2);
+  margin: var(--rn-space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}

@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { EmptyState } from "./EmptyState.js";
 import { Icon } from "./Icon.js";
 import { shouldReduceMotion } from "./theme-preferences.js";
@@ -19,6 +19,19 @@ export interface ChatMessage {
   readonly aborted?: boolean | undefined;
   /** Modell, das die Antwort erzeugt hat (EU AI Act Art. 50). */
   readonly modelUsed?: string | undefined;
+  /**
+   * Antwort des lokalen Modells ohne Netz (Issue #346): keine geprüften Zitate, stattdessen
+   * die verwendeten Auszüge als Sprungziele in die Quellen.
+   */
+  readonly offline?:
+    | {
+        readonly note: string;
+        readonly passages: readonly {
+          readonly location: CitationLocation;
+          readonly label: string;
+        }[];
+      }
+    | undefined;
 }
 
 export interface ChatPanelProps {
@@ -39,6 +52,8 @@ export interface ChatPanelProps {
   readonly isGenerating?: boolean | undefined;
   /** Fokusziel für die Bereichsnavigation (data-panel, tabIndex). */
   readonly panelAttributes?: PanelFocusAttributes | undefined;
+  /** Modus-Anzeige und Offline-Steuerung unter dem Eingabefeld (Issue #346). */
+  readonly modeSlot?: ReactNode | undefined;
 }
 
 export function ChatPanel({
@@ -55,7 +70,8 @@ export function ChatPanel({
   onRetry,
   onExport,
   isGenerating = false,
-  panelAttributes
+  panelAttributes,
+  modeSlot
 }: ChatPanelProps) {
   const { t, tf, language } = useTheme();
   // Vorschlagsfragen sind Bedientext und folgen der Sprache; eigene Fragen bleiben unverändert
@@ -268,7 +284,9 @@ export function ChatPanel({
                 <div data-testid={`message-content-${msg.id}`} className="rn-msg-body">
                   {msg.isStreaming && msg.content.length === 0
                     ? t("chatCreating")
-                    : renderMessageContent(msg.id, msg.content, msg.citations)}
+                    : msg.offline
+                      ? msg.content
+                      : renderMessageContent(msg.id, msg.content, msg.citations)}
                   {msg.isStreaming && (
                     <span
                       aria-live="polite"
@@ -302,6 +320,30 @@ export function ChatPanel({
                       >
                         {t("chatRetry")}
                       </button>
+                    )}
+                  </div>
+                )}
+
+                {msg.offline && !msg.isStreaming && (
+                  <div data-testid={`chat-offline-note-${msg.id}`} className="rn-offline-passages">
+                    <p className="rn-msg-note">{msg.offline.note}</p>
+                    {msg.offline.passages.length > 0 && (
+                      <ol>
+                        {msg.offline.passages.map(({ location, label }, i) => (
+                          <li key={`${msg.id}-p-${location.sourceId}-${location.startOffset}`}>
+                            <button
+                              type="button"
+                              className="citation-pill rn-cite"
+                              data-testid={`offline-passage-${i + 1}`}
+                              aria-label={label}
+                              title={location.quote}
+                              onClick={() => onCitationClick?.(location)}
+                            >
+                              {i + 1}
+                            </button>
+                          </li>
+                        ))}
+                      </ol>
                     )}
                   </div>
                 )}
@@ -419,6 +461,7 @@ export function ChatPanel({
             </button>
           )}
         </form>
+        {modeSlot}
       </footer>
     </section>
   );

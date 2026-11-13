@@ -41,7 +41,13 @@ export default defineConfig({
         "apps/web/src/notebook-sync.ts",
         "apps/web/src/sync-status-text.ts",
         "apps/web/src/provenance-client.ts",
-        "apps/web/src/chat-export.ts"
+        "apps/web/src/chat-export.ts",
+        "apps/web/src/local-llm-config.ts",
+        "apps/web/src/local-llm.ts",
+        "apps/web/src/local-llm-webllm.ts",
+        "apps/web/src/offline-chat.ts",
+        "apps/web/src/offline-chat-flag.ts",
+        "apps/web/src/translations-offline-chat.ts"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {

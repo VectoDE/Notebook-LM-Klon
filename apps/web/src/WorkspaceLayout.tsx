@@ -53,6 +53,8 @@ import {
   storeNotebookTitle
 } from "./layout-preferences.js";
 import { signOutAndWipe } from "./local-session.js";
+import { hasLocalModelFlag } from "./offline-chat-flag.js";
+import type { OfflineChat } from "./offline-chat-ui.js";
 import { buildStructuredDemo } from "./structured-demo.js";
 import { describeSyncStatus } from "./sync-status-text.js";
 import { browserStorage, readStoredModel, storeModel } from "./theme-preferences.js";
@@ -352,6 +354,32 @@ export function WorkspaceLayout({
   chatFetch
 }: WorkspaceLayoutProps) {
   const { theme, setTheme, colorMode, setColorMode, t, tf, language } = useTheme();
+  // Offline-Chat mit lokalem Modell (Issue #346): der Teil kommt erst beim Einrichten oder,
+  // nach früherer Zustimmung, gleich beim Start; nichts davon im Start-Bundle
+  const [offlineChat, setOfflineChat] = useState<OfflineChat | null>(null);
+  const offlineChatRef = useRef<OfflineChat | null>(null);
+  const [online, setOnline] = useState(() =>
+    typeof navigator === "undefined" ? true : navigator.onLine
+  );
+  const loadOfflineChat = useCallback(() => {
+    if (offlineChatRef.current) return;
+    void import("./offline-chat-ui.js")
+      .then((module) => {
+        offlineChatRef.current ??= module.createOfflineChat();
+        setOfflineChat(offlineChatRef.current);
+      })
+      .catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    if (hasLocalModelFlag(browserStorage())) loadOfflineChat();
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, [loadOfflineChat]);
   const isNarrowHeader = useMediaQuery(NARROW_HEADER_QUERY);
   const isSinglePanel = useMediaQuery(SINGLE_PANEL_QUERY);
 
@@ -735,7 +763,54 @@ export function WorkspaceLayout({
     setIsGenerating(true);
 
     const selectedIds = sources.filter((s) => s.isSelected).map((s) => s.id);
+    const isAbort = (err: unknown) => err instanceof DOMException && err.name === "AbortError";
+
+    // Ohne Netz oder ohne erreichbaren Server: lokales Modell (Issue #346)
+    const answerOffline = async (fallback: boolean) => {
+      const local = offlineChatRef.current;
+      if (!local) {
+        updateMessage(assistantId, (m) => ({ ...m, error: t("errorOfflineNoModel") }));
+        return;
+      }
+      if (fallback) notify(local.text("chatOfflineFallback", language));
+      try {
+        const result = await local.answer({
+          question: text,
+          sources,
+          language,
+          history: messages
+            .filter((m) => m.id !== "msg_intro" && !m.error && m.role !== "system")
+            .map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+          signal: controller.signal,
+          onStart: (offline) =>
+            updateMessage(assistantId, (m) => ({
+              ...m,
+              content: "",
+              error: undefined,
+              errorDetail: undefined,
+              modelUsed: offline.modelLabel,
+              offline
+            })),
+          onText: (content) => updateMessage(assistantId, (m) => ({ ...m, content }))
+        });
+        if (result !== "answered") {
+          const error = local.errorText(result, language);
+          updateMessage(assistantId, (m) => ({ ...m, error, errorDetail: undefined }));
+        }
+      } catch (err) {
+        if (isAbort(err)) updateMessage(assistantId, (m) => ({ ...m, aborted: true }));
+        else {
+          const error = local.errorText("failed", language);
+          updateMessage(assistantId, (m) => ({ ...m, error, errorDetail: undefined }));
+        }
+      }
+    };
+
     try {
+      if (!navigator.onLine) {
+        await answerOffline(false);
+        return;
+      }
       for await (const ev of streamChat({
         notebookId,
         message: text,
@@ -764,8 +839,14 @@ export function WorkspaceLayout({
         }
       }
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
+      if (isAbort(err)) {
         updateMessage(assistantId, (m) => ({ ...m, aborted: true }));
+      } else if (
+        err instanceof ChatApiError &&
+        err.status === 0 &&
+        offlineChatRef.current?.canAnswer()
+      ) {
+        await answerOffline(true);
       } else {
         // Klartext mit Handlungshinweis; Statuscode und Servertext nur als Detail (Issue #315)
         const error = t(
@@ -1147,6 +1228,31 @@ export function WorkspaceLayout({
               onCitationClick={handleCitationClick}
               isGenerating={isGenerating}
               panelAttributes={panelAttributes("chat")}
+              modeSlot={
+                offlineChat ? (
+                  <offlineChat.Control online={online} onNotify={notify} />
+                ) : (
+                  <div className="rn-offline-chat">
+                    <output
+                      className="rn-chat-mode"
+                      data-testid="chat-mode"
+                      data-mode={online ? "online" : "offline-no-model"}
+                    >
+                      <span className="rn-chat-mode-dot" aria-hidden="true" />
+                      {t(online ? "chatModeOnlineShort" : "chatModeOfflineNoModel")}
+                    </output>
+                    <button
+                      type="button"
+                      className="rn-btn rn-btn--ghost rn-btn--compact"
+                      data-testid="btn-offline-chat-setup"
+                      disabled={!online}
+                      onClick={loadOfflineChat}
+                    >
+                      {t("offlineChatSetup")}
+                    </button>
+                  </div>
+                )
+              }
             />
           </div>
           {isGraphOpen && (
