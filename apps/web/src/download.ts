@@ -47,8 +47,14 @@ export function triggerBrowserDownload(
 
   const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
+  // Nur blob:-URLs zulassen; die Prüfung macht die Adresse aus der DOM-Quelle unabhängig.
+  const parsed = new URL(url);
+  if (parsed.protocol !== "blob:") {
+    URL.revokeObjectURL(url);
+    return false;
+  }
   const anchor = document.createElement("a");
-  anchor.setAttribute("href", url);
+  anchor.setAttribute("href", parsed.href);
   anchor.setAttribute("download", toSafeFilename(filename));
   document.body.appendChild(anchor);
   anchor.click();

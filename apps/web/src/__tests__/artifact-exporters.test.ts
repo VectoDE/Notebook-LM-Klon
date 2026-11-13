@@ -62,6 +62,7 @@ describe("Artifact Exporters (Sub-Issue #124)", () => {
     it("triggers DOM anchor click and revokes object URL in browser environment", () => {
       const originalDoc = globalThis.document;
       const originalWindow = globalThis.window;
+      const OriginalURL = globalThis.URL;
 
       const clickMock = vi.fn();
       const appendChildMock = vi.fn();
@@ -92,10 +93,12 @@ describe("Artifact Exporters (Sub-Issue #124)", () => {
 
       (globalThis as unknown as { document: unknown }).document = fakeDoc;
       (globalThis as unknown as { window: unknown }).window = {};
-      (globalThis as unknown as { URL: unknown }).URL = {
-        createObjectURL: createObjectURLMock,
-        revokeObjectURL: revokeObjectURLMock
-      };
+      // Echte URL-Klasse behalten (der Helfer parst die Blob-URL), nur die Blob-Funktionen ersetzen.
+      class FakeURL extends OriginalURL {
+        static override createObjectURL = createObjectURLMock;
+        static override revokeObjectURL = revokeObjectURLMock;
+      }
+      (globalThis as unknown as { URL: unknown }).URL = FakeURL;
 
       try {
         const success = triggerBrowserDownload("export.csv", "a,b,c", "text/csv");
@@ -109,6 +112,35 @@ describe("Artifact Exporters (Sub-Issue #124)", () => {
       } finally {
         (globalThis as unknown as { document: unknown }).document = originalDoc;
         (globalThis as unknown as { window: unknown }).window = originalWindow;
+        (globalThis as unknown as { URL: unknown }).URL = OriginalURL;
+      }
+    });
+
+    it("lehnt URLs ab, die kein blob: sind, und räumt die Objekt-URL auf", () => {
+      const originalDoc = globalThis.document;
+      const originalWindow = globalThis.window;
+      const OriginalURL = globalThis.URL;
+      const clickMock = vi.fn();
+      const revokeObjectURLMock = vi.fn();
+      const fakeDoc = {
+        createElement: () => ({ click: clickMock, setAttribute: vi.fn() }),
+        body: { appendChild: vi.fn(), removeChild: vi.fn() }
+      };
+      class FakeURL extends OriginalURL {
+        static override createObjectURL = () => "https://example.org/x";
+        static override revokeObjectURL = revokeObjectURLMock;
+      }
+      (globalThis as unknown as { document: unknown }).document = fakeDoc;
+      (globalThis as unknown as { window: unknown }).window = {};
+      (globalThis as unknown as { URL: unknown }).URL = FakeURL;
+      try {
+        expect(triggerBrowserDownload("x.csv", "a", "text/csv")).toBe(false);
+        expect(clickMock).not.toHaveBeenCalled();
+        expect(revokeObjectURLMock).toHaveBeenCalledWith("https://example.org/x");
+      } finally {
+        (globalThis as unknown as { document: unknown }).document = originalDoc;
+        (globalThis as unknown as { window: unknown }).window = originalWindow;
+        (globalThis as unknown as { URL: unknown }).URL = OriginalURL;
       }
     });
   });
