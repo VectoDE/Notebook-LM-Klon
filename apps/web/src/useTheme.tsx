@@ -27,6 +27,7 @@ import {
 } from "./design-tokens.js";
 import { type TranslationDictionary, fill } from "./i18n.js";
 import { LOCALE_FILES, buildI18n } from "./locale-registry.js";
+import { applySeoLanguage, languageFromSearch } from "./seo.js";
 import {
   COLOR_MODE_PREFERENCES,
   type ColorModePreference,
@@ -43,6 +44,7 @@ import {
   systemPrefersReducedMotion
 } from "./theme-preferences.js";
 import { AREA_DE, AREA_EN } from "./translations-areas.js";
+import { ENTITY_GRAPH_DE, ENTITY_GRAPH_EN } from "./translations-entity-graph.js";
 
 export { COLOR_MODES, COLOR_MODE_PREFERENCES, LANGUAGES, THEMES };
 export type { ColorMode, ColorModePreference, DesignTheme, Language };
@@ -52,6 +54,7 @@ export type { TranslationDictionary };
 export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   de: {
     ...AREA_DE,
+    ...ENTITY_GRAPH_DE,
     appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
     appSubtitle:
       "Bereit für Forschung, Quellenanalyse, Wissengraphen und barrierefreie Studio-Synthese.",
@@ -182,6 +185,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   },
   en: {
     ...AREA_EN,
+    ...ENTITY_GRAPH_EN,
     appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
     appSubtitle:
       "Ready for research, source grounding, knowledge graphs, and accessible synthesis.",
@@ -365,13 +369,17 @@ export function ThemeProvider({
   defaultColorMode,
   defaultLanguage
 }: ThemeProviderProps) {
-  const [initial] = useState(() =>
-    resolveInitialPreferences(browserEnvironment(), {
+  const [initial] = useState(() => {
+    const prefs = resolveInitialPreferences(browserEnvironment(), {
       theme: defaultTheme,
       colorMode: defaultColorMode,
       language: defaultLanguage
-    })
-  );
+    });
+    // Ein Link mit ?lang=de|en (hreflang, Issue #263) hat Vorrang vor der gespeicherten Wahl.
+    const urlLanguage =
+      typeof window === "undefined" ? undefined : languageFromSearch(window.location?.search ?? "");
+    return urlLanguage ? { ...prefs, language: urlLanguage } : prefs;
+  });
   const [theme, setThemeState] = useState<DesignTheme>(initial.theme);
   const [colorMode, setColorModeState] = useState<ColorModePreference>(initial.colorMode);
   const [language, setLanguageState] = useState<Language>(initial.language);
@@ -418,6 +426,7 @@ export function ThemeProvider({
       browserEnvironment().storage,
       systemMode
     );
+    applySeoLanguage(document, language);
   }, [theme, colorMode, language, systemMode]);
 
   useEffect(() => {

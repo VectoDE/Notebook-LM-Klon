@@ -3061,7 +3061,7 @@ html[data-color-mode="aaa-contrast"] .rn-btn--unavailable {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--rn-space-2);
+  gap: var(--rn-space-3);
 }
 
 .rn-seg-tabs {
@@ -3098,11 +3098,12 @@ html[data-color-mode="aaa-contrast"] .rn-btn--unavailable {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px;
+  /* 8 px zwischen den Knöpfen: getrennte Ziele, auch mit dem Daumen (Issue #279) */
+  gap: var(--rn-space-2);
   min-width: 0;
   max-width: 100%;
   margin: 0;
-  padding: 0 0 0 2px;
+  padding: 0 0 0 var(--rn-space-1);
   border: 1px solid var(--rn-color-border);
   border-radius: var(--rn-radius-pill);
   background: var(--rn-color-panel);
@@ -3208,6 +3209,10 @@ html[data-color-mode="aaa-contrast"] .rn-btn--unavailable {
 
 .rn-mm-toggle {
   cursor: pointer;
+}
+
+.rn-mm-toggle-hit {
+  fill: transparent;
 }
 
 .rn-mm-toggle-dot {
