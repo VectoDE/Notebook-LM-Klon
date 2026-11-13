@@ -13,6 +13,7 @@ import { Icon, type IconName } from "./Icon.js";
 import { InteractiveAudioHostPlayer } from "./InteractiveAudioHostPlayer.js";
 import { MindmapViewer } from "./MindmapViewer.js";
 import { QuizViewer } from "./QuizViewer.js";
+import { VideoExportPanel } from "./VideoExportPanel.js";
 import { VideoOverviewPlayer } from "./VideoOverviewPlayer.js";
 import {
   escapeHtmlText,
@@ -374,6 +375,9 @@ export function StudioPanel({
         {/* Tool Viewer: Video */}
         {currentTool === "video" && videoStoryboard && (
           <VideoOverviewPlayer storyboard={videoStoryboard} />
+        )}
+        {currentTool === "video" && videoStoryboard && (
+          <VideoExportPanel storyboard={videoStoryboard} />
         )}
 
         {/* Tool Viewer: Mindmap */}

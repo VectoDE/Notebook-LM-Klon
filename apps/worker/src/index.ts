@@ -51,6 +51,7 @@ import { SessionManager } from "./session.js";
 import { registerSourcesUploadRoutes } from "./sources-upload.js";
 import { registerUrlImportRoutes } from "./url-importer.js";
 import { WORKER_VERSION } from "./version.js";
+import { createByokGeminiKeyResolver, registerVideoTtsRoutes } from "./video-tts-routes.js";
 
 declare module "hono" {
   interface ContextVariableMap {
@@ -244,6 +245,16 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
     recordQuotaUsage(llmQuota)
   );
   registerAudioRoutes(app, { ragRepo, coreRepo, keyVault });
+
+  // Sprecherton für den Video-Export (#241): BYOK, sonst Demo-Schlüssel nur für Demo-Notebooks
+  app.use(
+    "/api/v1/notebooks/:id/video-tts",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "viewer", "id"),
+    quotaGuardMiddleware(llmQuota),
+    recordQuotaUsage(llmQuota)
+  );
+  registerVideoTtsRoutes(app, { resolveUserKey: createByokGeminiKeyResolver(ragRepo, keyVault) });
 
   // 5. Sources (editor for writes, viewer for download)
   app.use(

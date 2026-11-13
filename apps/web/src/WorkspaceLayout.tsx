@@ -156,8 +156,8 @@ export const DEFAULT_VIDEO_STORYBOARD: VideoStoryboard = {
   title: "Cloudflare Edge Stack Video Overview",
   durationMs: 30000,
   aspectRatio: "16:9",
-  fps: 60,
-  resolution: { width: 1280, height: 720 },
+  fps: 30,
+  resolution: { width: 1920, height: 1080 },
   chapters: [
     {
       id: "ch_1",

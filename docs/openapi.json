@@ -629,6 +629,96 @@
         }
       }
     },
+    "/api/v1/notebooks/{id}/video-tts": {
+      "post": {
+        "operationId": "videoNarrationTts",
+        "tags": ["Studio"],
+        "summary": "Sprecherton für den Video-Export (Gemini TTS)",
+        "description": "Mindestrolle: viewer. Zählt auf das LLM-Kontingent. Nutzt zuerst den eigenen Gemini-Schlüssel (BYOK), sonst bei Demo-Notebooks den Demo-Schlüssel mit Ratenlimit. Antwort ist WAV (24 kHz, mono, 16 Bit).",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5000,
+                    "description": "Sprechertext"
+                  },
+                  "lang": {
+                    "type": "string",
+                    "enum": ["de", "en"],
+                    "default": "de"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "WAV-Audio",
+            "content": {
+              "audio/wav": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "description": "Kein Gemini-Schlüssel verfügbar (TTS_KEY_MISSING)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "502": {
+            "$ref": "#/components/responses/Problem502"
+          }
+        }
+      }
+    },
     "/api/v1/notebooks/{id}/audio-interject": {
       "post": {
         "operationId": "audioInterject",

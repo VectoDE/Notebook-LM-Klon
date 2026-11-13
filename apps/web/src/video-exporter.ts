@@ -1,5 +1,6 @@
 import type { VideoSlide, VideoStoryboard } from "@notebook-lm/shared";
 import { drawSlideToCanvas } from "./VideoOverviewPlayer.js";
+import { type VideoExportPlan, planVideoExport } from "./video-export-plan.js";
 
 export interface ExportProgressEvent {
   readonly phase: "preparing" | "rendering" | "encoding" | "complete" | "error";
@@ -11,7 +12,8 @@ export interface ExportProgressEvent {
 
 export interface VideoExportOptions {
   readonly storyboard: VideoStoryboard;
-  readonly fps?: number;
+  /** Sprecherton als Audiodatei (WAV aus Gemini-TTS); ohne Angabe entsteht ein stummes Video. */
+  readonly narration?: ArrayBuffer | undefined;
   readonly mimeType?: string;
   readonly onProgress?: (event: ExportProgressEvent) => void;
   readonly signal?: AbortSignal;
@@ -23,16 +25,23 @@ export interface VideoExportResult {
   readonly filename: string;
   readonly mimeType: string;
   readonly sizeBytes: number;
+  readonly plan: VideoExportPlan;
+  readonly hasAudio: boolean;
 }
 
-/**
- * Determine supported video MIME type in current browser.
- */
-export function getSupportedVideoMimeType(): string {
-  if (typeof MediaRecorder === "undefined") {
-    return "video/webm";
+/** Der Browser kann nicht aufnehmen (kein MediaRecorder oder keine Canvas-Aufnahme). */
+export class VideoExportUnsupportedError extends Error {
+  constructor() {
+    super("Video-Export wird von diesem Browser nicht unterstützt.");
+    this.name = "VideoExportUnsupportedError";
   }
+}
 
+export const VIDEO_EXPORT_ABORTED = "Video-Export wurde abgebrochen.";
+
+/** WebM mit Opus-Ton bevorzugen, sonst was der Browser kann. */
+export function getSupportedVideoMimeType(): string {
+  if (typeof MediaRecorder === "undefined") return "video/webm";
   const candidateTypes = [
     "video/webm;codecs=vp9,opus",
     "video/webm;codecs=vp8,opus",
@@ -40,26 +49,57 @@ export function getSupportedVideoMimeType(): string {
     "video/mp4;codecs=avc1,mp4a.40.2",
     "video/mp4"
   ];
+  return candidateTypes.find((type) => MediaRecorder.isTypeSupported(type)) ?? "video/webm";
+}
 
-  for (const type of candidateTypes) {
-    if (MediaRecorder.isTypeSupported(type)) {
-      return type;
-    }
+/** Aktive Folie zu einem Zeitpunkt; nach dem Ende bleibt die letzte stehen. */
+export function slideAt(slides: readonly VideoSlide[], timeMs: number): VideoSlide | undefined {
+  return (
+    slides.find((s) => timeMs >= s.startTimeMs && timeMs < s.endTimeMs) ?? slides[slides.length - 1]
+  );
+}
+
+interface NarrationTrack {
+  readonly track: MediaStreamTrack;
+  readonly durationMs: number;
+  readonly start: () => void;
+  readonly close: () => void;
+}
+
+async function prepareNarration(narration: ArrayBuffer): Promise<NarrationTrack> {
+  const audioCtx = new AudioContext();
+  const buffer = await audioCtx.decodeAudioData(narration.slice(0));
+  const destination = audioCtx.createMediaStreamDestination();
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(destination);
+  const track = destination.stream.getAudioTracks()[0];
+  if (!track) {
+    await audioCtx.close();
+    throw new Error("Audiospur konnte nicht erzeugt werden.");
   }
-
-  return "video/webm";
+  return {
+    track,
+    durationMs: buffer.duration * 1000,
+    start: () => {
+      void audioCtx.resume();
+      source.start();
+    },
+    close: () => {
+      void audioCtx.close();
+    }
+  };
 }
 
 /**
- * Client-side in-browser video exporter using Canvas captureStream & MediaRecorder.
- * Synthesizes slides, chapters, and audio into a downloadable WebM / MP4 video file.
+ * Video im Browser aufnehmen: Canvas 1920 × 1080, captureStream(30), MediaRecorder.
+ * Mit Sprecherton wird die WAV-Datei über die Web Audio API dekodiert und als Audiospur in
+ * denselben Stream gelegt, sodass MediaRecorder Bild und Ton in eine WebM-Datei schreibt.
+ * Die Aufnahme läuft in Echtzeit; die Bildfolge richtet sich nach der vergangenen Zeit.
  */
 export async function exportVideoOverview(options: VideoExportOptions): Promise<VideoExportResult> {
-  const { storyboard, fps = 30, onProgress, signal } = options;
-
-  if (signal?.aborted) {
-    throw new Error("Video-Export wurde abgebrochen.");
-  }
+  const { storyboard, onProgress, signal } = options;
+  if (signal?.aborted) throw new Error(VIDEO_EXPORT_ABORTED);
 
   onProgress?.({
     phase: "preparing",
@@ -69,173 +109,118 @@ export async function exportVideoOverview(options: VideoExportOptions): Promise<
     message: "Initialisiere Video-Render-Pipeline..."
   });
 
-  const width = storyboard.resolution?.width ?? 1920;
-  const height = storyboard.resolution?.height ?? 1080;
-
-  // Create off-screen canvas
-  let canvas: HTMLCanvasElement;
-  if (typeof document !== "undefined" && document.createElement) {
-    canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-  } else {
-    // Fallback for mock/test environments
-    canvas = {
-      width,
-      height,
-      getContext: () => null,
-      captureStream: () => ({}) as MediaStream
-    } as unknown as HTMLCanvasElement;
+  if (typeof MediaRecorder === "undefined" || typeof document === "undefined") {
+    throw new VideoExportUnsupportedError();
   }
+  const canvas = document.createElement("canvas");
+  if (typeof canvas.captureStream !== "function") throw new VideoExportUnsupportedError();
 
-  const ctx = canvas.getContext ? canvas.getContext("2d") : null;
+  const narration = options.narration ? await prepareNarration(options.narration) : null;
+  const plan = planVideoExport(storyboard, narration?.durationMs ?? null);
+  canvas.width = plan.width;
+  canvas.height = plan.height;
+  const ctx = canvas.getContext("2d");
+  const stream = canvas.captureStream(plan.fps);
+  if (narration) stream.addTrack(narration.track);
 
   const mimeType = options.mimeType ?? getSupportedVideoMimeType();
-  const totalDurationSec = storyboard.durationMs / 1000;
-  const totalFrames = Math.max(1, Math.round(totalDurationSec * fps));
-
-  // If captureStream or MediaRecorder is unavailable, return synthesized fallback blob
-  if (typeof MediaRecorder === "undefined" || typeof canvas.captureStream !== "function") {
-    onProgress?.({
-      phase: "complete",
-      progressPercent: 100,
-      currentFrame: totalFrames,
-      totalFrames,
-      message: "Export abgeschlossen (Simulationsmodus)."
-    });
-
-    const fallbackBlob = new Blob([storyboard.subtitlesVtt], {
-      type: "video/webm"
-    });
-    return {
-      blob: fallbackBlob,
-      downloadUrl: "blob:mock-video-url",
-      filename: `video-overview-${storyboard.notebookId}.webm`,
-      mimeType: "video/webm",
-      sizeBytes: fallbackBlob.size
-    };
-  }
-
-  const stream = canvas.captureStream(fps);
-
-  // Setup AudioContext & MediaStreamAudioDestinationNode if audioUrl or narration track is present
-  if (typeof AudioContext !== "undefined") {
-    try {
-      const audioCtx = new AudioContext();
-      const dest = audioCtx.createMediaStreamDestination();
-      const audioTracks = dest.stream.getAudioTracks();
-      if (audioTracks[0]) {
-        stream.addTrack(audioTracks[0]);
-      }
-    } catch {
-      // Audio stream optional in test or restricted context
-    }
-  }
-
   const recorder = new MediaRecorder(stream, { mimeType });
   const recordedChunks: Blob[] = [];
-
   recorder.ondataavailable = (e) => {
-    if (e.data && e.data.size > 0) {
-      recordedChunks.push(e.data);
-    }
+    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
   };
 
   return new Promise<VideoExportResult>((resolve, reject) => {
+    let aborted = false;
+    let stopped = false;
+    const finish = () => {
+      stopped = true;
+      narration?.close();
+      for (const track of stream.getTracks?.() ?? []) track.stop();
+    };
+
     recorder.onstop = () => {
+      finish();
+      if (aborted) return;
       const blob = new Blob(recordedChunks, { type: mimeType });
-      const downloadUrl =
-        typeof URL !== "undefined" && URL.createObjectURL
-          ? URL.createObjectURL(blob)
-          : "blob:mock-url";
-
       const extension = mimeType.includes("mp4") ? "mp4" : "webm";
-      const filename = `video-overview-${storyboard.notebookId}.${extension}`;
-
       onProgress?.({
         phase: "complete",
         progressPercent: 100,
-        currentFrame: totalFrames,
-        totalFrames,
+        currentFrame: plan.totalFrames,
+        totalFrames: plan.totalFrames,
         message: "Video erfolgreich generiert."
       });
-
       resolve({
         blob,
-        downloadUrl,
-        filename,
+        downloadUrl: URL.createObjectURL(blob),
+        filename: `video-overview-${storyboard.notebookId}.${extension}`,
         mimeType,
-        sizeBytes: blob.size
+        sizeBytes: blob.size,
+        plan,
+        hasAudio: narration !== null
       });
     };
 
     recorder.onerror = (err) => {
+      finish();
       onProgress?.({
         phase: "error",
         progressPercent: 0,
         currentFrame: 0,
-        totalFrames,
+        totalFrames: plan.totalFrames,
         message: `Fehler beim Video-Export: ${String(err)}`
       });
       reject(err);
     };
 
-    recorder.start(100);
-
-    // Frame rendering loop
-    let currentFrame = 0;
-    const intervalMs = 1000 / fps;
+    const intervalMs = 1000 / plan.fps;
+    let startedAt = 0;
+    let drawnFrame = -1;
 
     const renderNextFrame = () => {
+      if (stopped) return;
       if (signal?.aborted) {
+        aborted = true;
         recorder.stop();
-        reject(new Error("Video-Export wurde abgebrochen."));
+        reject(new Error(VIDEO_EXPORT_ABORTED));
         return;
       }
-
-      if (currentFrame >= totalFrames) {
+      const elapsedMs = performance.now() - startedAt;
+      if (elapsedMs >= plan.durationMs) {
         onProgress?.({
           phase: "encoding",
           progressPercent: 95,
-          currentFrame,
-          totalFrames,
+          currentFrame: plan.totalFrames,
+          totalFrames: plan.totalFrames,
           message: "Finalisiere Video-Encoding..."
         });
         recorder.stop();
         return;
       }
-
-      const frameTimeMs = (currentFrame / fps) * 1000;
-
-      // Find active slide
-      let slide = storyboard.slides[0] as VideoSlide;
-      for (const s of storyboard.slides) {
-        if (frameTimeMs >= s.startTimeMs && frameTimeMs < s.endTimeMs) {
-          slide = s;
-          break;
+      const frame = Math.min(plan.totalFrames - 1, Math.floor((elapsedMs / 1000) * plan.fps));
+      if (frame !== drawnFrame) {
+        drawnFrame = frame;
+        const frameTimeMs = (frame / plan.fps) * 1000;
+        const slide = slideAt(storyboard.slides, frameTimeMs);
+        if (ctx && slide) {
+          const progress = Math.min(1, (frameTimeMs - slide.startTimeMs) / 400);
+          drawSlideToCanvas(ctx, slide, plan.width, plan.height, progress, false);
         }
+        onProgress?.({
+          phase: "rendering",
+          progressPercent: Math.min(90, Math.round(((frame + 1) / plan.totalFrames) * 90)),
+          currentFrame: frame + 1,
+          totalFrames: plan.totalFrames,
+          message: `Rendere Frame ${frame + 1} von ${plan.totalFrames}...`
+        });
       }
-
-      if (ctx && slide) {
-        const elapsed = frameTimeMs - slide.startTimeMs;
-        const progress = Math.min(1.0, elapsed / 400);
-        drawSlideToCanvas(ctx, slide, width, height, progress, false);
-      }
-
-      currentFrame++;
-      const percent = Math.min(90, Math.round((currentFrame / totalFrames) * 90));
-
-      onProgress?.({
-        phase: "rendering",
-        progressPercent: percent,
-        currentFrame,
-        totalFrames,
-        message: `Rendere Frame ${currentFrame} von ${totalFrames}...`
-      });
-
       setTimeout(renderNextFrame, intervalMs);
     };
 
+    recorder.start(250);
+    narration?.start();
+    startedAt = performance.now();
     renderNextFrame();
   });
 }

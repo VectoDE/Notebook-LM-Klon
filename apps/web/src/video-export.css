@@ -1,0 +1,65 @@
+/* Video-Export (Issue #241): Bühnenmaterial wie der Player darüber.
+   Nur geprüfte Paare: stage-text, stage-muted, stage-accent auf stage-bg. */
+
+.rn-video-export {
+  --rn-stage-line: color-mix(in srgb, var(--rn-color-stage-muted) 28%, transparent);
+  --rn-color-focus-ring: var(--rn-color-stage-accent);
+  display: grid;
+  gap: var(--rn-space-3);
+  margin-top: var(--rn-space-4);
+  padding: var(--rn-space-4) var(--rn-space-5);
+  border-radius: var(--rn-radius-lg);
+  background: var(--rn-color-stage-bg);
+  color: var(--rn-color-stage-text);
+}
+
+.rn-video-export-title {
+  margin: 0;
+  font-size: var(--rn-text-base);
+  color: var(--rn-color-stage-text);
+}
+
+.rn-video-export-format,
+.rn-video-export-status,
+.rn-video-export-result {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+  color: var(--rn-color-stage-muted);
+}
+
+.rn-video-export-status {
+  display: grid;
+  gap: var(--rn-space-2);
+}
+
+.rn-video-export-status:empty {
+  display: none;
+}
+
+.rn-video-export-status progress {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--rn-color-stage-accent);
+}
+
+.rn-video-export-actions,
+.rn-video-export-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2);
+}
+
+.rn-video-export-result a {
+  text-decoration: none;
+}
+
+.rn-video-export-error {
+  margin: 0;
+  padding-left: var(--rn-space-3);
+  border-left: 3px solid var(--rn-color-stage-accent);
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+  color: var(--rn-color-stage-text);
+}
