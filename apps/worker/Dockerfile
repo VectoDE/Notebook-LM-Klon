@@ -12,7 +12,9 @@ FROM node:26.13.1-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43dd
 FROM base AS build
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+# Node 25+ no longer ships corepack, so pnpm is installed at the exact version from
+# package.json "packageManager" (build stage only).
+RUN npm install --global --no-fund --no-audit pnpm@11.23.0
 WORKDIR /app
 
 # Public Turnstile site key for the browser widget. Vite bakes it into the web bundle at
