@@ -7,8 +7,13 @@ import {
 import type { FunctionComponent } from "react";
 import { FlashcardsViewer } from "./FlashcardsViewer.js";
 import { MindmapViewer } from "./MindmapViewer.js";
+import { PrivacyCenter } from "./PrivacyCenter.js";
 import { QuizViewer } from "./QuizViewer.js";
 import { WorkspaceLayout } from "./WorkspaceLayout.js";
+import { readGtmId } from "./analytics-config.js";
+
+/** Einwilligung nur abfragen, wenn ein optionaler Dienst eingerichtet ist (Issue #261). */
+const OPTIONAL_SERVICES_CONFIGURED = readGtmId(import.meta.env.VITE_GTM_ID) !== null;
 
 const DEFAULT_MINDMAP: MindmapNode = {
   id: "cf_root",
@@ -81,7 +86,12 @@ export const App: FunctionComponent<AppProps> = ({
 }: AppProps = {}) => {
   if (mode === "workspace") {
     // WorkspaceLayout bringt Kopfzeile (banner) und main selbst mit
-    return <WorkspaceLayout initialTool={initialTool} />;
+    return (
+      <>
+        <PrivacyCenter optionalServicesConfigured={OPTIONAL_SERVICES_CONFIGURED} />
+        <WorkspaceLayout initialTool={initialTool} />
+      </>
+    );
   }
 
   const currentTool = initialTool;

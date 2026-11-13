@@ -27,7 +27,11 @@ export default defineConfig({
         "apps/web/src/diagram-i18n.ts",
         "apps/web/src/turnstile-client.ts",
         "apps/web/src/i18n.ts",
-        "apps/web/src/locale-registry.ts"
+        "apps/web/src/locale-registry.ts",
+        "apps/web/src/usage-beacon.ts",
+        "apps/web/src/consent.ts",
+        "apps/web/src/analytics-config.ts",
+        "apps/web/src/privacy-texts.ts"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {
