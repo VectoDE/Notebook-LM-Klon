@@ -13,7 +13,7 @@ Dieses Wiki dokumentiert die vollständige Systemarchitektur, die mathematischen
 
 ---
 
-## Die 8 Kapitel des Projekthandbuchs
+## Die 9 Kapitel des Projekthandbuchs
 
 | Kapitel | Thema | Schwerpunkt |
 | :--- | :--- | :--- |
@@ -25,6 +25,7 @@ Dieses Wiki dokumentiert die vollständige Systemarchitektur, die mathematischen
 | [**6. Barrierefreiheit (WCAG 2.2 AAA)**](6-Barrierefreiheit-WCAG-AAA) | Inklusive Forschungsoberfläche | Kontrastverhältnisse `>= 7:1`, `3 px` Fokus-Ringe, ARIA-Treegrid für Mindmaps, WebVTT-Synchron-Transkripte, reduzierte Bewegung |
 | [**7. Cloudflare-Free-Limits**](7-Cloudflare-Free-Limits) | Empirische Benchmarks & Kontingente | Nachweis des 10-ms-CPU-Budgets (`< 0,6 ms` WebCrypto), `node:sqlite` FTS5-Probe, `demo`- vs. `full`-Profile |
 | [**8. Loom-Präsentations-Leitfaden**](8-Loom-Praesentations-Leitfaden) | 10-Minuten-Walkthrough | Minutenplan und Sprechpunkte mit eingebetteten Architektur-Schaubildern für das Bewerbungs-Review |
+| [**9. Datenschutz je KI-Modell**](9-Datenschutz-je-KI-Modell) | Training mit Eingaben | Angabe je Anbieter und Zugangsweg mit Quelle, Wortlaut und Abrufdatum; keine Rechtsberatung |
 
 ---
 
