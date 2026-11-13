@@ -7,9 +7,14 @@ import {
   fill,
   parentLocales
 } from "../i18n.js";
-import { LOCALE_FILES, buildI18n, localeFromPath } from "../locale-registry.js";
+import {
+  LOCALE_LOADERS,
+  buildI18n,
+  createLocaleRegistry,
+  localeFromPath
+} from "../locale-registry.js";
 import { LANGUAGES } from "../theme-preferences.js";
-import { I18N, TRANSLATIONS, translate } from "../useTheme.js";
+import { LOCALES, TRANSLATIONS, translate } from "../useTheme.js";
 
 /** Test-Locales: zusätzliche Sprachen nur als Daten, ohne dass i18n.ts davon weiß (Issue #351). */
 const catalogs: CatalogMap = {
@@ -195,10 +200,12 @@ describe("Katalogdateien ohne Codeänderung", () => {
     expect(built.coverage("cs", "de")).toBeCloseTo(3 / 4);
   });
 
-  it("lädt die Katalogdateien dieses Builds ohne Fehler und mit Text je Schlüssel", () => {
-    for (const [path, file] of Object.entries(LOCALE_FILES)) {
+  it("lädt die Katalogdateien dieses Builds ohne Fehler und mit Text je Schlüssel", async () => {
+    expect(Object.keys(LOCALE_LOADERS).length).toBeGreaterThan(0);
+    for (const [path, load] of Object.entries(LOCALE_LOADERS)) {
       const locale = localeFromPath(path);
-      expect(I18N.locales(), path).toContain(locale);
+      expect(LOCALES.available(), path).toContain(locale);
+      const file = await load();
       for (const [key, value] of Object.entries(file)) {
         if (key !== "$meta") expect(typeof value, `${locale}.${key}`).toBe("string");
       }
@@ -206,13 +213,61 @@ describe("Katalogdateien ohne Codeänderung", () => {
   });
 });
 
-describe("Sichtbare Sprachauswahl bleibt Deutsch und Englisch", () => {
-  it("bietet nur de und en an, auch wenn weitere Kataloge geladen werden", () => {
-    expect(LANGUAGES).toEqual(["de", "en"]);
+describe("Nachgeladene Kataloge (Issue #349)", () => {
+  const builtin: CatalogMap = { de: { a: "Eins", b: "Zwei" }, en: { a: "One", b: "Two" } };
+
+  it("lädt einen Katalog erst bei Bedarf, einmal, und fällt bis dahin je Schlüssel zurück", async () => {
+    let calls = 0;
+    const registry = createLocaleRegistry(builtin, {
+      "./locales/de-x-ls.json": async () => {
+        calls++;
+        return { $meta: { fallback: ["de"] }, a: "Eins. Leicht." };
+      }
+    });
+    expect(registry.available()).toEqual(["de", "en", "de-x-ls"]);
+    expect(registry.isLoaded("de-x-ls")).toBe(false);
+    expect(registry.texts("de-x-ls")).toEqual({});
+    expect(registry.i18n.translate("de-x-ls", "a")).toBe("Eins");
+    const [first, second] = await Promise.all([registry.load("de-x-ls"), registry.load("de-x-ls")]);
+    expect([first, second, calls]).toEqual([true, true, 1]);
+    expect(registry.isLoaded("de-x-ls")).toBe(true);
+    expect(registry.i18n.translate("de-x-ls", "a")).toBe("Eins. Leicht.");
+    expect(registry.i18n.translate("de-x-ls", "b")).toBe("Zwei");
+    expect(registry.texts("de-x-ls")).toEqual({ a: "Eins. Leicht." });
+    expect(await registry.load("de-x-ls")).toBe(true);
+    expect(calls).toBe(1);
+  });
+
+  it("meldet eingebaute Sprachen als geladen und unbekannte als nicht ladbar", async () => {
+    const registry = createLocaleRegistry(builtin, {});
+    expect(await registry.load("de")).toBe(true);
+    expect(await registry.load("xx")).toBe(false);
+    expect(registry.isLoaded("xx")).toBe(false);
+  });
+
+  it("erlaubt nach einem Ladefehler einen neuen Versuch", async () => {
+    let fail = true;
+    const registry = createLocaleRegistry(builtin, {
+      "./locales/cs.json": async () => {
+        if (fail) throw new Error("offline");
+        return { a: "Jedna" };
+      }
+    });
+    expect(await registry.load("cs")).toBe(false);
+    expect(registry.i18n.translate("cs", "a")).toBe("Eins");
+    fail = false;
+    expect(await registry.load("cs")).toBe(true);
+    expect(registry.i18n.translate("cs", "a")).toBe("Jedna");
+  });
+});
+
+describe("Sichtbare Sprachauswahl (Issue #349)", () => {
+  it("bietet Deutsch, Leichte Sprache und Englisch an; eingebaut bleiben nur de und en", () => {
+    expect(LANGUAGES).toEqual(["de", "de-x-ls", "en"]);
     expect(Object.keys(TRANSLATIONS).sort()).toEqual(["de", "en"]);
   });
 
-  it("übersetzt wie bisher mit Rückfall auf Deutsch und den Schlüssel", () => {
+  it("übersetzt mit Rückfall auf Deutsch und den Schlüssel, Leichte Sprache vor dem Laden deutsch", () => {
     expect(translate("en", "skipToContent")).toBe("Skip to content");
     expect(translate("de", "skipToContent")).toBe("Zum Inhalt springen");
     expect(translate("en", "unbekannt")).toBe("unbekannt");

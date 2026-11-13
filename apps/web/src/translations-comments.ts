@@ -90,8 +90,18 @@ export const COMMENTS_EN: Readonly<Record<string, string>> = pick(2);
 
 /**
  * Katalog zur Sprache: Englisch für en und en-*, sonst Deutsch. Das entspricht dem Rückfall
- * des Hauptkatalogs (erst die Sprache selbst, dann de, dann en), da es nur DE und EN gibt.
+ * des Hauptkatalogs (erst die Sprache selbst, dann de, dann en). Eine nachgeladene Variante wie
+ * Leichte Sprache (de-x-ls, Issue #349) reicht ihre eigenen Texte als `own` herein; sie
+ * ersetzen einzeln die deutschen, fehlende Schlüssel bleiben deutsch.
  */
-export function commentTexts(language: string): Readonly<Record<string, string>> {
-  return language === "en" || language.startsWith("en-") ? COMMENTS_EN : COMMENTS_DE;
+export function commentTexts(
+  language: string,
+  own: Readonly<Record<string, string>> = {}
+): Readonly<Record<string, string>> {
+  if (language === "en" || language.startsWith("en-")) return COMMENTS_EN;
+  const keys = Object.keys(COMMENTS_DE).filter((key) => own[key] !== undefined);
+  if (keys.length === 0) return COMMENTS_DE;
+  const merged: Record<string, string> = { ...COMMENTS_DE };
+  for (const key of keys) merged[key] = own[key] as string;
+  return merged;
 }
