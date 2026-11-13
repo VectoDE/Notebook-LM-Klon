@@ -4,7 +4,7 @@
  * Implements Sub-Issue #128 & #129:
  * - 4 Design Systems: pure, immersive-cinema, editorial-calm, fusion
  * - 3 Color Modes: light, dark, aaa-contrast, dazu "system" (Standard, folgt dem Gerät live)
- * - 2 Languages: de, en
+ * - 3 Languages: de, de-x-ls (Leichte Sprache, Katalog lädt bei Bedarf, Issue #349), en
  * - Persistence in localStorage and html attributes (data-design, data-color-mode, lang)
  */
 
@@ -25,6 +25,9 @@ import {
   type DesignTheme,
   THEMES
 } from "./design-tokens.js";
+import { type TranslationDictionary, fill } from "./i18n.js";
+import { LOCALE_LOADERS, createLocaleRegistry } from "./locale-registry.js";
+import { applySeoLanguage, languageFromSearch } from "./seo.js";
 import {
   COLOR_MODE_PREFERENCES,
   type ColorModePreference,
@@ -34,6 +37,7 @@ import {
   SYSTEM_COLOR_QUERIES,
   applyReduceMotion,
   applyThemeToDocument,
+  documentLanguage,
   readReduceMotion,
   resolveColorMode,
   resolveInitialPreferences,
@@ -41,17 +45,22 @@ import {
   systemPrefersReducedMotion
 } from "./theme-preferences.js";
 import { AREA_DE, AREA_EN } from "./translations-areas.js";
+import { ENTITY_GRAPH_DE, ENTITY_GRAPH_EN } from "./translations-entity-graph.js";
+import { STRUCTURED_DE, STRUCTURED_EN } from "./translations-structured.js";
 
-export { COLOR_MODES, COLOR_MODE_PREFERENCES, LANGUAGES, THEMES };
+export { COLOR_MODES, COLOR_MODE_PREFERENCES, LANGUAGES, THEMES, documentLanguage };
 export type { ColorMode, ColorModePreference, DesignTheme, Language };
 
-export interface TranslationDictionary {
-  readonly [key: string]: string;
-}
+export type { TranslationDictionary };
 
-export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
+/** Eingebaute Kataloge; weitere Sprachen (z. B. Leichte Sprache) kommen aus locales/*.json. */
+export type BuiltinLanguage = "de" | "en";
+
+export const TRANSLATIONS: Record<BuiltinLanguage, TranslationDictionary> = {
   de: {
     ...AREA_DE,
+    ...ENTITY_GRAPH_DE,
+    ...STRUCTURED_DE,
     appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
     appSubtitle:
       "Bereit für Forschung, Quellenanalyse, Wissengraphen und barrierefreie Studio-Synthese.",
@@ -86,7 +95,32 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     byokText:
       "Bald können Sie hier eigene Schlüssel für Modellanbieter hinterlegen (BYOK steht für „Bring Your Own Key“). Sie werden verschlüsselt gespeichert.",
     gdprTitle: "DSGVO & Datenschutz",
-    gdprText: "Alle Verarbeitungen erfolgen datensparsam und EU-DSGVO-konform ohne Training.",
+    gdprText:
+      "Ob ein Anbieter Ihre Eingaben zum Training nutzt, hängt vom Modell ab. Die Angabe mit Quelle steht beim gewählten Modell unter „KI-Modell“.",
+    modelGeminiFlash: "Google Gemini 2.5 Flash (Standard)",
+    modelOllama: "Ollama Llama 3 (auf dem Server)",
+    policyTitle: "Training mit Ihren Eingaben",
+    policyStatusNoTraining: "Laut Anbieter kein Training",
+    policyStatusConditional: "Kein Training nur unter Bedingungen",
+    policyStatusLocal: "Lokal, kein externer Anbieter",
+    policyGemini:
+      "Google nutzt Eingaben und Antworten nicht zur Verbesserung seiner Produkte, wenn die Gemini API kostenpflichtig genutzt wird oder Sie sich im EWR, in der Schweiz oder im Vereinigten Königreich befinden. In der kostenlosen Stufe außerhalb dieser Regionen kann Google sie dafür nutzen und von Menschen prüfen lassen.",
+    policyAnthropic:
+      "Anthropic verwendet Eingaben und Ausgaben über die API standardmäßig nicht zum Training. Ausnahmen: Sie melden Feedback oder stimmen ausdrücklich zu.",
+    policyOpenai:
+      "OpenAI verwendet Daten aus der API seit dem 1. März 2023 nicht zum Training, außer Sie stimmen zu. Protokolle zur Missbrauchserkennung werden bis zu 30 Tage aufbewahrt.",
+    policyGroq:
+      "Laut Groq-Dienstvertrag (Ziffer 4.2) darf Groq Eingaben und Ausgaben nicht zum Training verwenden, außer Sie erlauben es.",
+    policyOllama:
+      "Ollama läuft auf dem Server dieser Installation. Eingaben gehen an keinen externen KI-Anbieter. Laut Ollama sieht Ollama bei lokaler Nutzung keine Eingaben.",
+    policyNotConnected:
+      "Noch nicht angebunden: Anfragen mit diesem Modell schlagen derzeit fehl, es werden keine Daten an den Anbieter gesendet.",
+    policyRoutedToGemini:
+      "Noch nicht angebunden: Anfragen gehen derzeit an Google Gemini 2.5 Flash, es gelten die Angaben von Google.",
+    policySource: "Quelle",
+    policyNewWindow: "(öffnet in neuem Fenster)",
+    policyRetrieved: "Stand der Anbieterangaben:",
+    policyDisclaimer: "Zusammenfassung, keine Rechtsberatung.",
     aiActTitle: "EU AI Act",
     aiActBadge: "Transparenzpflicht Art. 50 erfüllt (Kennzeichnung KI-generierter Inhalte).",
     cinemaStageClose: "Bühne schließen",
@@ -135,14 +169,16 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navChat: "Chat",
     navChatAria: "Chat & Zitate",
     navStudio: "Studio",
-    navStudioAria: "Studio (7 Werkzeuge)",
+    navStudioAria: "Studio (10 Werkzeuge)",
     navSettings: "Einstellungen",
     navSettingsHint: "Sprache, KI-Modell, Datenschutz",
     menuOpen: "Menü öffnen",
     menuTitle: "Menü",
     menuClose: "Menü schließen",
     settingsAppearanceHint: "Design und Farbschema stellen Sie unter „Darstellung“ ein.",
-    roleLabel: "Rolle",
+    roleLabel: "Rolle (Vorschau)",
+    roleHint:
+      "Nur Vorschau: Die Auswahl ändert derzeit nichts. Ihre Rechte in einem Arbeitsbereich legt der Server fest.",
     roleOwner: "Inhaber",
     roleEditor: "Bearbeiter",
     roleViewer: "Betrachter",
@@ -155,6 +191,8 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   },
   en: {
     ...AREA_EN,
+    ...ENTITY_GRAPH_EN,
+    ...STRUCTURED_EN,
     appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
     appSubtitle:
       "Ready for research, source grounding, knowledge graphs, and accessible synthesis.",
@@ -188,7 +226,32 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     byokText:
       "Soon you can add your own keys for model providers here (BYOK stands for “bring your own key”). They will be stored encrypted.",
     gdprTitle: "GDPR & Privacy",
-    gdprText: "All processing complies strictly with EU GDPR standards with zero model training.",
+    gdprText:
+      "Whether a provider uses your input for training depends on the model. See the details with source for the selected model under “AI model”.",
+    modelGeminiFlash: "Google Gemini 2.5 Flash (default)",
+    modelOllama: "Ollama Llama 3 (on the server)",
+    policyTitle: "Training on your input",
+    policyStatusNoTraining: "No training, per provider",
+    policyStatusConditional: "No training only under conditions",
+    policyStatusLocal: "Local, no external provider",
+    policyGemini:
+      "Google does not use prompts and responses to improve its products when the Gemini API is used as a paid service or when you are in the EEA, Switzerland or the UK. On the free tier outside these regions, Google may use them for that purpose and have humans review them.",
+    policyAnthropic:
+      "By default, Anthropic does not use API inputs and outputs for training. Exceptions: you send feedback or explicitly opt in.",
+    policyOpenai:
+      "Since 1 March 2023, OpenAI has not used API data for training unless you opt in. Abuse-monitoring logs are kept for up to 30 days.",
+    policyGroq:
+      "Under the Groq services agreement (section 4.2), Groq may not use inputs or outputs for training unless you permit it.",
+    policyOllama:
+      "Ollama runs on the server of this installation. Your input is not sent to an external AI provider. According to Ollama, it does not see prompts when run locally.",
+    policyNotConnected:
+      "Not connected yet: requests with this model currently fail, and no data is sent to the provider.",
+    policyRoutedToGemini:
+      "Not connected yet: requests currently go to Google Gemini 2.5 Flash, so Google's terms apply.",
+    policySource: "Source",
+    policyNewWindow: "(opens in a new window)",
+    policyRetrieved: "Provider terms as of:",
+    policyDisclaimer: "Summary, not legal advice.",
     aiActTitle: "EU AI Act",
     aiActBadge: "Article 50 Transparency standard fulfilled (labeled AI-generated content).",
     cinemaStageClose: "Close Stage",
@@ -232,14 +295,16 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navChat: "Chat",
     navChatAria: "Chat & citations",
     navStudio: "Studio",
-    navStudioAria: "Studio (7 tools)",
+    navStudioAria: "Studio (10 tools)",
     navSettings: "Settings",
     navSettingsHint: "Language, AI model, privacy",
     menuOpen: "Open menu",
     menuTitle: "Menu",
     menuClose: "Close menu",
     settingsAppearanceHint: "Design and color scheme are set under “Appearance”.",
-    roleLabel: "Role",
+    roleLabel: "Role (preview)",
+    roleHint:
+      "Preview only: this choice changes nothing yet. Your permissions in a workspace are set by the server.",
     roleOwner: "Owner",
     roleEditor: "Editor",
     roleViewer: "Viewer",
@@ -252,17 +317,19 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   }
 };
 
-/** Text zum Schlüssel in der Sprache; fehlt er, Deutsch, sonst der Schlüssel selbst. */
-export function translate(language: Language, key: string): string {
-  return TRANSLATIONS[language][key] ?? TRANSLATIONS.de[key] ?? key;
+/**
+ * Alle Kataloge mit Rückfall pro Schlüssel: Deutsch und Englisch eingebaut, weitere aus
+ * locales/*.json werden erst bei Wahl der Sprache geladen (LOCALES.load).
+ */
+export const LOCALES = createLocaleRegistry(TRANSLATIONS, LOCALE_LOADERS);
+export const I18N = LOCALES.i18n;
+
+/** Text zum Schlüssel in der Sprache; fehlt er, folgt die Rückfallkette, zuletzt der Schlüssel selbst. */
+export function translate(language: string, key: string): string {
+  return I18N.translate(language, key);
 }
 
-/** Setzt Werte für Platzhalter wie {n} ein; unbekannte Platzhalter bleiben stehen. */
-export function fill(text: string, vars: Readonly<Record<string, string | number>>): string {
-  return text.replace(/\{(\w+)\}/g, (whole, name: string) =>
-    name in vars ? String(vars[name]) : whole
-  );
-}
+export { fill };
 
 export interface ThemeContextValue {
   readonly theme: DesignTheme;
@@ -313,16 +380,23 @@ export function ThemeProvider({
   defaultColorMode,
   defaultLanguage
 }: ThemeProviderProps) {
-  const [initial] = useState(() =>
-    resolveInitialPreferences(browserEnvironment(), {
+  const [initial] = useState(() => {
+    const prefs = resolveInitialPreferences(browserEnvironment(), {
       theme: defaultTheme,
       colorMode: defaultColorMode,
       language: defaultLanguage
-    })
-  );
+    });
+    // Ein Link mit ?lang=de|en (hreflang, Issue #263) hat Vorrang vor der gespeicherten Wahl.
+    const urlLanguage =
+      typeof window === "undefined" ? undefined : languageFromSearch(window.location?.search ?? "");
+    return urlLanguage ? { ...prefs, language: urlLanguage } : prefs;
+  });
   const [theme, setThemeState] = useState<DesignTheme>(initial.theme);
   const [colorMode, setColorModeState] = useState<ColorModePreference>(initial.colorMode);
   const [language, setLanguageState] = useState<Language>(initial.language);
+  // Sprache, deren Katalog bereitsteht. Bis eine nachgeladene Sprache da ist, gilt ihr Rückfall.
+  const [loadedLanguage, setLoadedLanguage] = useState<Language>(initial.language);
+  const textLanguage = LOCALES.isLoaded(language) ? language : loadedLanguage;
   const [reduceMotion, setReduceMotion] = useState<boolean>(() =>
     readReduceMotion(browserEnvironment().storage)
   );
@@ -357,6 +431,17 @@ export function ThemeProvider({
 
   const resolvedColorMode = resolveColorMode(colorMode, systemMode);
 
+  // Katalog der gewählten Sprache nachladen (eigener Chunk); danach neu rendern.
+  useEffect(() => {
+    let active = true;
+    void LOCALES.load(language).then(() => {
+      if (active) setLoadedLanguage(language);
+    });
+    return () => {
+      active = false;
+    };
+  }, [language]);
+
   // Zustand in DOM-Attribute und localStorage spiegeln
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -366,6 +451,7 @@ export function ThemeProvider({
       browserEnvironment().storage,
       systemMode
     );
+    applySeoLanguage(document, documentLanguage(language));
   }, [theme, colorMode, language, systemMode]);
 
   useEffect(() => {
@@ -385,12 +471,12 @@ export function ThemeProvider({
     setLanguageState(newLang);
   }, []);
 
-  const t = useCallback((key: string): string => translate(language, key), [language]);
+  const t = useCallback((key: string): string => translate(textLanguage, key), [textLanguage]);
 
   const tf = useCallback(
     (key: string, vars: Readonly<Record<string, string | number>>): string =>
-      fill(translate(language, key), vars),
-    [language]
+      fill(translate(textLanguage, key), vars),
+    [textLanguage]
   );
 
   const value = useMemo<ThemeContextValue>(

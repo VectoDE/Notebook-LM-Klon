@@ -1,8 +1,12 @@
 import { WORKSPACE_VERSION } from "@notebook-lm/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { WorkspaceLayout } from "../WorkspaceLayout.js";
+import { preloadStudioViewers } from "../lazy-viewers.js";
+
+// Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
+beforeAll(() => preloadStudioViewers());
 
 describe("WorkspaceLayout Component (Issue #31)", () => {
   it("renders 3-panel workspace layout with header, 3 panels and mobile navigation", () => {
@@ -37,7 +41,7 @@ describe("WorkspaceLayout Component (Issue #31)", () => {
     expect(html).not.toContain('aria-label="Quellen (2)"');
     expect(html).toContain('<span class="rn-visually-hidden"> (2)</span>');
     expect(html).toContain('aria-label="Chat &amp; Zitate"');
-    expect(html).toContain('aria-label="Studio (7 Werkzeuge)"');
+    expect(html).toContain('aria-label="Studio (10 Werkzeuge)"');
     expect(html).toContain('<span class="rn-tab-count">2</span>');
     expect(html).toContain('<span class="rn-tab-label">Studio</span>');
     // Reiter oben gibt es nur 600 bis 899 px (ein Bereich sichtbar): ohne Fenster kein aria-current

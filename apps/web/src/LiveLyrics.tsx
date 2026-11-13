@@ -26,6 +26,8 @@ export interface LiveLyricsProps {
   readonly onSeek?: ((targetMs: number) => void) | undefined;
   readonly isPlaying?: boolean | undefined;
   readonly reducedMotion?: boolean | undefined;
+  /** Sprache des Transkripts (BCP 47); Bedientexte bleiben in der Oberflächensprache. */
+  readonly contentLang?: string | undefined;
 }
 
 /** Gerät oder App-Schalter „Bewegung reduzieren“; ohne window (Server-Rendering) false. */
@@ -41,7 +43,8 @@ export function LiveLyrics({
   currentTimeMs,
   onSeek,
   isPlaying: _isPlaying = false,
-  reducedMotion = false
+  reducedMotion = false,
+  contentLang
 }: LiveLyricsProps) {
   const { t } = useTheme();
   const containerRef = useRef<HTMLElement | null>(null);
@@ -95,9 +98,13 @@ export function LiveLyrics({
             data-state={state}
             data-speaker={line.speaker}
           >
-            <span className="rn-lyrics-speaker">{line.speakerName}</span>
+            <span className="rn-lyrics-speaker" lang={contentLang}>
+              {line.speakerName}
+            </span>
             {/* Kein aria-label: der Name ist der sichtbare Text (WCAG 2.5.3, #314) */}
-            <span className="rn-lyrics-text">{line.text}</span>
+            <span className="rn-lyrics-text" lang={contentLang}>
+              {line.text}
+            </span>
           </button>
         );
       })}

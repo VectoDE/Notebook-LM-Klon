@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "wrangler dev",
     "types": "wrangler types ./src/worker-configuration.d.ts",
-    "build": "tsc --noEmit",
-    "start:node": "tsx src/node-server.ts",
+    "build": "tsc --noEmit && node scripts/build-node.mjs",
+    "build:node": "node scripts/build-node.mjs",
+    "dev:node": "tsx src/node-server.ts",
+    "start:node": "node dist/node-server.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -15,10 +17,13 @@
     "@notebook-lm/shared": "workspace:*",
     "@simplewebauthn/server": "^13.3.3",
     "aws4fetch": "^1.0.20",
-    "hono": "4.13.17"
+    "hono": "4.13.17",
+    "nodemailer": "10.3.1",
+    "yjs": "13.6.33"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20261109.1",
+    "esbuild": "0.28.2",
     "tsx": "4.23.15",
     "wrangler": "4.158.0"
   }

@@ -13,7 +13,8 @@ export interface CollapsedPanels {
 
 export const LAYOUT_STORAGE_KEYS = {
   collapsed: "rn_collapsed_panels",
-  titles: "rn_notebook_titles"
+  titles: "rn_notebook_titles",
+  chats: "rn_chat_ids"
 } as const;
 
 export const NO_PANELS_COLLAPSED: CollapsedPanels = { sources: false, studio: false };
@@ -153,4 +154,23 @@ export function storeNotebookTitle(
 ): void {
   const titles = parseObject(safeGet(storage, LAYOUT_STORAGE_KEYS.titles));
   safeSet(storage, LAYOUT_STORAGE_KEYS.titles, JSON.stringify({ ...titles, [notebookId]: title }));
+}
+
+/** Zuletzt genutzter Chat eines Notebooks, damit der Verlauf nach dem Neuladen zurückkommt. */
+export function readChatId(
+  storage: Pick<Storage, "getItem"> | undefined,
+  notebookId: string
+): string | undefined {
+  const stored = parseObject(safeGet(storage, LAYOUT_STORAGE_KEYS.chats))[notebookId];
+  return typeof stored === "string" && stored.length > 0 ? stored : undefined;
+}
+
+/** Speichert die Chat-Kennung eines Notebooks neben denen anderer Notebooks. */
+export function storeChatId(
+  storage: Pick<Storage, "getItem" | "setItem"> | undefined,
+  notebookId: string,
+  chatId: string
+): void {
+  const chats = parseObject(safeGet(storage, LAYOUT_STORAGE_KEYS.chats));
+  safeSet(storage, LAYOUT_STORAGE_KEYS.chats, JSON.stringify({ ...chats, [notebookId]: chatId }));
 }

@@ -10,3 +10,13 @@ paths = [
   '''packages/shared/src/__tests__/.*''',
   '''apps/worker/src/__tests__/.*'''
 ]
+# C2PA (Issue #353): names of the variable that holds the *path* to the signing key, and the
+# SHA-256 checksum of the public C2PA test key in CI. No key material matches these lines;
+# an assignment with a value (other than a path variable) is still reported.
+regexTarget = "line"
+regexes = [
+  '''(?m)^\s*"C2PA_PRIVATE_KEY",$''',
+  '''(?m)^C2PA_PRIVATE_KEY=$''',
+  '''^\s*const keyPath = vars\.C2PA_PRIVATE_KEY;\s*$''',
+  '''^\s*C2PA_KEY_SHA256: "[0-9a-f]{64}"\s*$'''
+]
