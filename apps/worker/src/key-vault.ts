@@ -286,9 +286,45 @@ export class KeyVault {
 }
 
 /**
+ * Minimum length of a KEK secret taken from the environment. 32 characters cover the
+ * documented formats (64 hex chars or 44 base64 chars for 32 random bytes) and reject
+ * short, guessable passphrases that SHA-256 would otherwise silently stretch.
+ */
+export const MIN_KEK_SECRET_LENGTH = 32;
+
+/** Names of the environment variables that may hold a KEK. */
+export const KEK_ENV_NAMES: readonly string[] = [
+  ...Array.from({ length: 10 }, (_, i) => `KEK_V${i + 1}`),
+  "BYOK_MASTER_KEY"
+];
+
+/** Returns true when the value is a string that is long enough to be used as a KEK. */
+export function isUsableKekSecret(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length >= MIN_KEK_SECRET_LENGTH;
+}
+
+/**
+ * Reads one KEK variable. Blank or absent → undefined. Present but too short → throws,
+ * so a weak secret is never used and never silently skipped.
+ */
+function readKekSecret(envRecord: Record<string, unknown>, name: string): string | undefined {
+  const value = envRecord[name];
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return undefined;
+  }
+  if (!isUsableKekSecret(value)) {
+    throw new Error(
+      `KEK ${name} is too short: use at least ${MIN_KEK_SECRET_LENGTH} characters (e.g. 32 random bytes as 64 hex or 44 base64 characters).`
+    );
+  }
+  return value.trim();
+}
+
+/**
  * Creates a KeyVault from Worker environment bindings or process.env.
  * Checks KEK_V1, KEK_V2, KEK_V3, ..., and BYOK_MASTER_KEY as fallback.
- * Throws if no KEK is configured (no built-in default, in any environment).
+ * Throws if no KEK is configured (no built-in default, in any environment)
+ * and if a configured KEK is shorter than MIN_KEK_SECRET_LENGTH.
  */
 export function createKeyVaultFromEnv(env: Record<string, unknown> | Env): KeyVault {
   const envRecord = env as Record<string, unknown>;
@@ -296,17 +332,17 @@ export function createKeyVaultFromEnv(env: Record<string, unknown> | Env): KeyVa
 
   // Check versioned KEKs (KEK_V1, KEK_V2, ...)
   for (let v = 1; v <= 10; v++) {
-    const key = envRecord[`KEK_V${v}`];
-    if (typeof key === "string" && key.trim().length > 0) {
-      keks[v] = key.trim();
+    const key = readKekSecret(envRecord, `KEK_V${v}`);
+    if (key !== undefined) {
+      keks[v] = key;
     }
   }
 
   // Fallback to BYOK_MASTER_KEY as v1 if no versioned KEKs found
   if (Object.keys(keks).length === 0) {
-    const master = envRecord.BYOK_MASTER_KEY;
-    if (typeof master === "string" && master.trim().length > 0) {
-      keks[1] = master.trim();
+    const master = readKekSecret(envRecord, "BYOK_MASTER_KEY");
+    if (master !== undefined) {
+      keks[1] = master;
     }
   }
 
@@ -321,7 +357,8 @@ export function createKeyVaultFromEnv(env: Record<string, unknown> | Env): KeyVa
 
   const activeVersionStr = envRecord.KEK_CURRENT_VERSION;
   const currentVersion =
-    typeof activeVersionStr === "string" || typeof activeVersionStr === "number"
+    (typeof activeVersionStr === "string" && activeVersionStr.trim().length > 0) ||
+    typeof activeVersionStr === "number"
       ? Number(activeVersionStr)
       : undefined;
 
