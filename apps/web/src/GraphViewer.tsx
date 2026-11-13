@@ -23,7 +23,7 @@ import {
   useState
 } from "react";
 import { Icon } from "./Icon.js";
-import "./entity-graph.css";
+import "./entity-graph-mode.css";
 import {
   GRAPH_FONT_SIZE,
   GRAPH_PADDING,
