@@ -8,6 +8,9 @@ export type UserRole = "owner" | "editor" | "viewer";
 /**
  * Darstellung: Design, Farbschema, Bewegung und (am Ende) Rolle. Eine Komponente mit gleichem
  * Inhalt im Kopfmenü (Desktop) und im Menü-Sheet (Telefon), Issue #319.
+ *
+ * Die Rolle ist eine Vorschau ohne Wirkung (Issue #302): Rechte prüft der Server
+ * (requireWorkspaceRole/requireNotebookRole im Worker). Der Hinweistext sagt das offen.
  */
 export interface AppearanceControlsProps {
   /** Ohne Rolle entfällt das Auswahlfeld. */
@@ -171,6 +174,7 @@ export function AppearanceControls({
               id={`${idPrefix}-role`}
               value={role}
               onChange={(e) => onRoleChange?.(e.target.value as UserRole)}
+              aria-describedby={`${idPrefix}-role-hint`}
               data-testid="role-switcher-select"
               className="rn-control-input"
             >
@@ -182,6 +186,10 @@ export function AppearanceControls({
             </select>
             <Icon name="chevron" size={16} className="rn-control-chevron" />
           </div>
+          {/* Die Auswahl wirkt noch nicht; Rechte prüft der Server (Entscheidung #302: im Text klären) */}
+          <p id={`${idPrefix}-role-hint`} className="rn-setting-hint" data-testid="role-hint">
+            {t("roleHint")}
+          </p>
         </div>
       )}
 
