@@ -12,6 +12,8 @@
 import type { EntityGraph } from "@notebook-lm/shared";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
+  Suspense,
+  lazy,
   useCallback,
   useEffect,
   useId,
@@ -20,8 +22,8 @@ import {
   useRef,
   useState
 } from "react";
-import { EntityGraphView } from "./EntityGraphView.js";
 import { Icon } from "./Icon.js";
+import "./entity-graph-mode.css";
 import {
   GRAPH_FONT_SIZE,
   GRAPH_PADDING,
@@ -43,6 +45,10 @@ import {
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, PanelFocusAttributes } from "./workspace-types.js";
 
+/** Beziehungsgraph erst beim Umschalten laden, damit der Start schlank bleibt (LCP). */
+const EntityGraphView = lazy(() =>
+  import("./EntityGraphView.js").then((m) => ({ default: m.EntityGraphView }))
+);
 export interface GraphViewerProps {
   readonly graph: KnowledgeGraph;
   /** Sprache der Begriffe und Quellentitel (BCP 47), für lang (WCAG 3.1.2). */
@@ -51,8 +57,11 @@ export interface GraphViewerProps {
   /** Nur ab 900 px: Rückweg zum Chat, der in derselben Spalte liegt. */
   readonly onClose?: (() => void) | undefined;
   readonly panelAttributes?: PanelFocusAttributes | undefined;
-  /** Beziehungsgraph (Issue #238): Personen, Organisationen, Themen mit Beleg je Kante. */
-  readonly entityGraph?: EntityGraph | undefined;
+  /**
+   * Beziehungsgraph (Issue #238): Personen, Organisationen, Themen mit Beleg je Kante.
+   * Als Funktion wird er erst beim Umschalten geladen, damit der Start schlank bleibt.
+   */
+  readonly entityGraph?: EntityGraph | (() => Promise<EntityGraph>) | undefined;
   /** Quellen (id, Titel) für die Belegzeile des Beziehungsgraphen. */
   readonly entitySources?: readonly { readonly id: string; readonly title: string }[] | undefined;
   /** Sprung zur markierten Zitatstelle in der Quelle. */
@@ -81,6 +90,18 @@ export function GraphViewer({
   const tabRefs = useRef<Record<GraphTab, HTMLButtonElement | null>>({ visual: null, list: null });
   const [tab, setTab] = useState<GraphTab>("visual");
   const [graphMode, setGraphMode] = useState<GraphMode>("concepts");
+  const [loadedEntityGraph, setLoadedEntityGraph] = useState<EntityGraph | undefined>();
+  const shownEntityGraph = typeof entityGraph === "function" ? loadedEntityGraph : entityGraph;
+  useEffect(() => {
+    if (graphMode !== "entities" || typeof entityGraph !== "function") return;
+    let active = true;
+    void entityGraph().then((graph) => {
+      if (active) setLoadedEntityGraph(graph);
+    });
+    return () => {
+      active = false;
+    };
+  }, [graphMode, entityGraph]);
   const [canvas, setCanvas] = useState({ width: 0, height: 0 });
   /** null: eingepasst (folgt der Fläche); sonst der gewählte Zoom. */
   const [zoom, setZoom] = useState<number | null>(null);
@@ -509,13 +530,15 @@ export function GraphViewer({
             ))}
         </div>
       </div>
-      {entityGraph && graphMode === "entities" && (
-        <EntityGraphView
-          graph={entityGraph}
-          sources={entitySources}
-          contentLang={contentLang}
-          onCitationJump={onCitationJump}
-        />
+      {shownEntityGraph && graphMode === "entities" && (
+        <Suspense fallback={null}>
+          <EntityGraphView
+            graph={shownEntityGraph}
+            sources={entitySources}
+            contentLang={contentLang}
+            onCitationJump={onCitationJump}
+          />
+        </Suspense>
       )}
     </section>
   );

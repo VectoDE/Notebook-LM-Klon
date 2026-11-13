@@ -19,6 +19,8 @@ import {
 import { type ReactNode, useId } from "react";
 import { Icon } from "./Icon.js";
 import { triggerBrowserDownload } from "./artifact-exporters.js";
+// Beleg- und Prüfstile teilt sich das Werkzeug mit dem Beziehungsgraphen (nachgeladen)
+import "./entity-graph.css";
 import "./structured-tools.css";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation } from "./workspace-types.js";
@@ -28,7 +30,7 @@ interface Evidence {
   readonly quote: string;
 }
 
-interface CommonProps {
+export interface CommonProps {
   readonly title: string;
   readonly sources: readonly { readonly id: string; readonly title: string }[];
   readonly contentLang?: string | undefined;

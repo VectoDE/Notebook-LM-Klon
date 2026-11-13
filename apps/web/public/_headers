@@ -1,0 +1,4 @@
+# Cloudflare Workers Static Assets: Cache-Header (ETag setzt Cloudflare selbst).
+# Gehashte Build-Dateien ändern nie ihren Inhalt und dürfen ein Jahr gecacht werden.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

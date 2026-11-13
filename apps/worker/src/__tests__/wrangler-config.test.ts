@@ -37,10 +37,12 @@ describe("Wrangler Single-Worker Configuration", () => {
   it("schedules the hourly cleanup cron handled by the worker's scheduled() export (#334)", () => {
     const parsed = JSON.parse(readFileSync(WRANGLER_PATH, "utf-8")) as {
       main: string;
+      compatibility_flags?: string[];
       triggers?: { crons?: string[] };
     };
 
     expect(parsed.triggers?.crons).toEqual(["0 * * * *"]);
+    expect(parsed.compatibility_flags).toContain("nodejs_compat");
     expect(parsed.main).toBe("src/index.ts");
     expect(typeof worker.scheduled).toBe("function");
   });

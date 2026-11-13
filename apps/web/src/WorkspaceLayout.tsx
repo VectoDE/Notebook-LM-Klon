@@ -35,7 +35,6 @@ import {
   streamChat,
   technicalErrorDetail
 } from "./chat-client.js";
-import { DEMO_ENTITY_GRAPH } from "./entity-graph-view.js";
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
 import { buildKnowledgeGraph } from "./knowledge-graph.js";
 import {
@@ -111,6 +110,9 @@ export const DEFAULT_QUIZ: QuizQuestion[] = [
     sourceCitation: "WCAG 2.2 AAA Leitfaden"
   }
 ];
+
+/** Demo-Beziehungsgraph (Issue #238), erst beim Umschalten geladen. */
+const loadDemoEntityGraph = () => import("./entity-graph-view.js").then((m) => m.DEMO_ENTITY_GRAPH);
 
 export const DEFAULT_SOURCES: WorkspaceSource[] = [
   {
@@ -1038,7 +1040,7 @@ export function WorkspaceLayout({
               graph={knowledgeGraph}
               contentLang={DEFAULT_CONTENT_LANGS.sources}
               onSourceJump={jumpToSourceFromGraph}
-              entityGraph={DEMO_ENTITY_GRAPH}
+              entityGraph={loadDemoEntityGraph}
               entitySources={sources}
               onCitationJump={jumpToCitationFromGraph}
               onClose={isSinglePanel ? undefined : () => goToPanel("chat")}

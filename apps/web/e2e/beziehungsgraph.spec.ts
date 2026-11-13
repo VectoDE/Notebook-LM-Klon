@@ -43,11 +43,12 @@ test.describe("Desktop 1440 px", () => {
     await expect(details.getByRole("blockquote")).toHaveText(
       "FTS5 tables with BM25 ranking for hybrid lexical and vector search."
     );
+    expect(await findLayoutProblems(page)).toEqual([]);
+    // Der Sprung klappt die Quellenspalte wieder auf; geprüft wird die markierte Stelle
     await details.getByRole("button", { name: /Zitat in der Quelle/ }).click();
     await expect(page.getByTestId("highlighted-citation-passage")).toHaveText(
       "FTS5 tables with BM25 ranking for hybrid lexical and vector search."
     );
-    expect(await findLayoutProblems(page)).toEqual([]);
   });
 
   test("Zoom und Einpassen", async ({ page }) => {
