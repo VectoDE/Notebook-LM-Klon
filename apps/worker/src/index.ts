@@ -37,7 +37,6 @@ import { rateLimiterMiddleware } from "./rate-limiter.js";
 import {
   getConfiguredSessionSalt,
   hasConfiguredKek,
-  notExposed,
   recordQuotaUsage,
   requireConfiguredKek,
   requireConfiguredSessionSalt,
@@ -272,14 +271,20 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   app.use("/api/v1/providers/ollama/probe", requireAuth());
   registerProviderRoutes(app, { ragRepo, keyVault });
 
-  // 7. Jobs: only endpoints with an access check are exposed
+  // 7. Jobs: status and cancel live under the notebook, so the notebook role is checked
+  // and the job must belong to that notebook (IDOR protection, see fetchNotebookJob).
   app.use("/api/v1/jobs/enqueue", requireAuth());
   app.get("/api/v1/jobs", requireNotebookRoleFromQuery(coreRepo, "viewer"));
-  const jobNotExposed = notExposed(
-    "Job-Status und -Abbruch sind noch nicht freigegeben (Besitzprüfung fehlt)."
+  app.get(
+    "/api/v1/notebooks/:id/jobs/:jobId",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "viewer", "id")
   );
-  app.get("/api/v1/jobs/:id", jobNotExposed);
-  app.post("/api/v1/jobs/:id/cancel", jobNotExposed);
+  app.post(
+    "/api/v1/notebooks/:id/jobs/:jobId/cancel",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "editor", "id")
+  );
   registerJobRoutes(app, { coreRepo });
 
   // 8. BYOK key management (last: its router adds its own same-origin CSRF check)

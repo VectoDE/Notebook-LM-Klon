@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const WORKSPACE_VERSION = "0.1.0" as const;
+export { WORKSPACE_VERSION } from "./version.js";
 
 export const DeploymentProfileSchema = z.enum(["demo", "full"]);
 export type DeploymentProfile = z.infer<typeof DeploymentProfileSchema>;
