@@ -74,7 +74,12 @@ export function mergeIntoState(state: Uint8Array | null, update: Uint8Array): Ui
   return merged;
 }
 
-const EMPTY_STATE = Y.encodeStateAsUpdate(new Y.Doc());
+/**
+ * Kodiertes Update eines leeren Dokuments: 0 Structs, leere Löschmenge. Bewusst als Konstante
+ * statt `encodeStateAsUpdate(new Y.Doc())`: Der Doc-Konstruktor erzeugt eine Zufalls-GUID, und
+ * Zufallswerte sind im globalen Scope von Cloudflare Workers verboten (Start bricht ab).
+ */
+export const EMPTY_STATE: Uint8Array = new Uint8Array([0, 0]);
 
 /** Was dem Client mit Zustandsvektor `stateVector` fehlt, dazu der Zustandsvektor des Servers. */
 export function diffFromState(

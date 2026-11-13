@@ -8,6 +8,7 @@ import { CoreRepository } from "../core-repository.js";
 import { createD1DatabaseAdapter } from "../d1-adapter.js";
 import {
   DocSyncError,
+  EMPTY_STATE,
   MAX_DOC_BYTES,
   MAX_UPDATE_BYTES,
   diffFromState,
@@ -36,6 +37,12 @@ function titleOf(update: Uint8Array): unknown {
   Y.applyUpdate(doc, update);
   return doc.getMap("meta").get("title");
 }
+
+describe("doc-sync: Konstanten", () => {
+  it("EMPTY_STATE entspricht dem Update eines leeren Dokuments", () => {
+    expect(EMPTY_STATE).toEqual(Y.encodeStateAsUpdate(new Y.Doc()));
+  });
+});
 
 describe("doc-sync: Hilfsfunktionen (Issue #347)", () => {
   it("base64url hin und zurück, ungültige Kodierung ist 400", () => {
