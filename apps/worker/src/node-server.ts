@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
+import { JobDO, NotebookDO } from "./durable-objects.js";
 import { createApp } from "./index.js";
 import {
   type EnvSource,
@@ -12,7 +13,10 @@ import {
   PASSTHROUGH_VARS,
   loadNodeConfig
 } from "./node/config.js";
+import { type InProcessNamespace, createInProcessNamespace } from "./node/do-namespace.js";
 import { createLocalR2Adapter } from "./node/fs-r2.js";
+import { type CleanupScheduler, runCleanupOnce, startCleanupScheduler } from "./node/scheduler.js";
+import { type SmtpSettings, createSmtpBinding } from "./node/smtp.js";
 import { createSqliteD1Adapter, openNodeDatabase, runSqliteMigrations } from "./node/sqlite-d1.js";
 import { registerSocketAddress } from "./rate-limiter.js";
 
@@ -23,6 +27,7 @@ export {
   runSqliteMigrations
 } from "./node/sqlite-d1.js";
 export { NodeConfigError, loadNodeConfig } from "./node/config.js";
+export { createInProcessNamespace } from "./node/do-namespace.js";
 
 export interface NodeServerOptions {
   /** Environment to read the configuration from. Defaults to process.env. */
@@ -39,6 +44,8 @@ export interface NodeServerOptions {
   trustedProxyHeader?: string | undefined;
   /** Receives startup warnings (missing optional features). Defaults to console.warn. */
   onWarning?: ((message: string) => void) | undefined;
+  /** Overrides CLEANUP_INTERVAL_MINUTES (0 disables the in-process cleanup). */
+  cleanupIntervalMinutes?: number | undefined;
 }
 
 export interface NodeServerInstance {
@@ -47,41 +54,10 @@ export interface NodeServerInstance {
   db: DatabaseSync;
   dataDir: string;
   warnings: readonly string[];
+  env: Env;
+  /** In-process cron replacement, undefined when CLEANUP_INTERVAL_MINUTES=0. */
+  scheduler: CleanupScheduler | undefined;
   close: () => Promise<void>;
-}
-
-export function createMockDurableObjectNamespace(namePrefix: string) {
-  return {
-    idFromName: (name: string) => ({
-      toString: () => `${namePrefix}-${name}`,
-      equals: () => false,
-      name
-    }),
-    newUniqueId: () => ({
-      toString: () => `${namePrefix}-${Date.now()}`,
-      equals: () => false
-    }),
-    idFromString: (idStr: string) => ({
-      toString: () => idStr,
-      equals: () => false
-    }),
-    get: (_id: unknown) => ({
-      fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
-        const req = input instanceof Request ? input : new Request(input, init);
-        const url = new URL(req.url);
-        if (url.pathname === "/health") {
-          return new Response(JSON.stringify({ ok: true, className: namePrefix }), {
-            status: 200,
-            headers: { "content-type": "application/json; charset=utf-8" }
-          });
-        }
-        return new Response(JSON.stringify({ ok: true }), {
-          status: 200,
-          headers: { "content-type": "application/json; charset=utf-8" }
-        });
-      }
-    })
-  } as unknown as DurableObjectNamespace;
 }
 
 /** Picks the PASSTHROUGH_VARS from an environment source, dropping blank values. */
@@ -94,6 +70,16 @@ export function pickPassthroughVars(source: EnvSource): Record<string, string> {
     }
   }
   return vars;
+}
+
+export interface NodeEnvHandle {
+  env: Env;
+  db: DatabaseSync;
+  dataDir: string;
+  notebookNamespace: InProcessNamespace;
+  jobNamespace: InProcessNamespace;
+  /** Stops alarm timers and closes the Durable Object databases (not `db`). */
+  close: () => void;
 }
 
 export function createNodeEnv(options?: {
@@ -109,12 +95,14 @@ export function createNodeEnv(options?: {
    * KEK_V1 …). Defaults to the matching entries of process.env.
    */
   vars?: Readonly<Record<string, string>> | undefined;
-}): { env: Env; db: DatabaseSync; dataDir: string } {
+  /** SMTP delivery. When set it is used for all mail and Resend stays unused. */
+  smtp?: SmtpSettings | undefined;
+}): NodeEnvHandle {
   const dataDir = options?.dataDir ?? resolve(".data");
   const db = options?.db ?? openNodeDatabase(join(dataDir, "local.sqlite"));
-  const vars = options?.vars ?? pickPassthroughVars(process.env);
+  const { RESEND_API_KEY, ...vars } = options?.vars ?? pickPassthroughVars(process.env);
 
-  const env = {
+  const env: Record<string, unknown> = {
     ...vars,
     DB: createSqliteD1Adapter(db),
     MEDIA: createLocalR2Adapter(join(dataDir, "media")),
@@ -124,12 +112,41 @@ export function createNodeEnv(options?: {
     TRUSTED_PROXY_HEADER: options?.trustedProxyHeader ?? vars.TRUSTED_PROXY_HEADER,
     ASSETS: {
       fetch: async () => new Response("Not Found", { status: 404 })
-    } as unknown as Fetcher,
-    NOTEBOOK_DO: createMockDurableObjectNamespace("NotebookDO"),
-    JOB_DO: createMockDurableObjectNamespace("JobDO")
-  } as unknown as Env;
+    } as unknown as Fetcher
+  };
+  if (options?.smtp) {
+    // Handed over as the SEND_EMAIL binding: the app sends through it as on Cloudflare,
+    // and because RESEND_API_KEY is left out, SMTP is the only mail path.
+    env.SEND_EMAIL = createSmtpBinding(options.smtp);
+  } else if (RESEND_API_KEY !== undefined) {
+    env.RESEND_API_KEY = RESEND_API_KEY;
+  }
 
-  return { env, db, dataDir };
+  // The real Durable Object classes, run in this process (see node/do-namespace.ts).
+  const notebookNamespace = createInProcessNamespace(
+    "NotebookDO",
+    join(dataDir, "do", "NotebookDO"),
+    (ctx) => new NotebookDO(ctx, env as unknown as Env)
+  );
+  const jobNamespace = createInProcessNamespace(
+    "JobDO",
+    join(dataDir, "do", "JobDO"),
+    (ctx) => new JobDO(ctx, env as unknown as Env)
+  );
+  env.NOTEBOOK_DO = notebookNamespace;
+  env.JOB_DO = jobNamespace;
+
+  return {
+    env: env as unknown as Env,
+    db,
+    dataDir,
+    notebookNamespace,
+    jobNamespace,
+    close: () => {
+      notebookNamespace.close();
+      jobNamespace.close();
+    }
+  };
 }
 
 /**
@@ -151,14 +168,25 @@ export function startNodeServer(options?: NodeServerOptions): Promise<NodeServer
   const currentDir = dirname(fileURLToPath(import.meta.url));
   runSqliteMigrations(db, resolve(currentDir, "../migrations"));
 
-  const { env } = createNodeEnv({
+  const handle = createNodeEnv({
     db,
     dataDir,
     appProfile: options?.appProfile ?? config.appProfile,
     appOrigin: options?.appOrigin ?? config.appOrigin,
     trustedProxyHeader: options?.trustedProxyHeader ?? config.trustedProxyHeader,
-    vars: config.vars
+    vars: config.vars,
+    smtp: config.smtp
   });
+  const { env } = handle;
+  // Jobs that were waiting for their alarm when the previous process stopped run again.
+  handle.jobNamespace.restoreAlarms();
+  handle.notebookNamespace.restoreAlarms();
+
+  const intervalMinutes = options?.cleanupIntervalMinutes ?? config.cleanupIntervalMinutes;
+  const scheduler =
+    intervalMinutes > 0
+      ? startCleanupScheduler({ env, intervalMs: intervalMinutes * 60_000 })
+      : undefined;
 
   const rootApp = new Hono();
   rootApp.route("/", createApp());
@@ -191,9 +219,13 @@ export function startNodeServer(options?: NodeServerOptions): Promise<NodeServer
           db,
           dataDir,
           warnings,
+          env,
+          scheduler,
           close: () =>
             new Promise<void>((res) => {
+              scheduler?.stop();
               server.close(() => {
+                handle.close();
                 db.close();
                 res();
               });
@@ -205,15 +237,51 @@ export function startNodeServer(options?: NodeServerOptions): Promise<NodeServer
 }
 
 /**
- * CLI entry: start the server, or print the configuration problems and exit with code 1.
- * Returns the exit code instead of exiting, so it can be tested.
+ * One cleanup run for an external cron (host cron, Kubernetes CronJob): the same
+ * runScheduledCleanup() as the Cloudflare cron trigger and the in-process scheduler.
+ */
+export async function runCleanupCommand(
+  options: { env?: EnvSource | undefined; dataDir?: string | undefined } = {},
+  log: Pick<Console, "info" | "error"> = console
+): Promise<void> {
+  const { config } = loadNodeConfig(options.env ?? process.env);
+  const dataDir = options.dataDir ?? config.dataDir;
+  const db = openNodeDatabase(join(dataDir, "local.sqlite"));
+  const handle = createNodeEnv({ db, dataDir, vars: config.vars });
+  try {
+    runSqliteMigrations(db, resolve(dirname(fileURLToPath(import.meta.url)), "../migrations"));
+    await runCleanupOnce(handle.env, undefined, log);
+  } finally {
+    handle.close();
+    db.close();
+  }
+}
+
+/**
+ * CLI entry: `node-server.js` starts the server, `node-server.js cleanup` runs one cleanup.
+ * Configuration problems are printed and give exit code 1. Returns the exit code, so it can
+ * be tested without exiting the process.
  */
 export async function runNodeServerCli(
-  start: () => Promise<NodeServerInstance> = () => startNodeServer(),
-  log: Pick<Console, "info" | "error"> = console
+  args: readonly string[] = process.argv.slice(2),
+  deps: {
+    start?: () => Promise<NodeServerInstance>;
+    cleanup?: () => Promise<void>;
+    log?: Pick<Console, "info" | "error">;
+  } = {}
 ): Promise<number> {
+  const log = deps.log ?? console;
+  const command = args[0] ?? "serve";
   try {
-    const instance = await start();
+    if (command === "cleanup") {
+      await (deps.cleanup ?? (() => runCleanupCommand({}, log)))();
+      return 0;
+    }
+    if (command !== "serve") {
+      log.error(`[node-server] Unbekannter Befehl "${command}". Erlaubt: serve, cleanup.`);
+      return 2;
+    }
+    const instance = await (deps.start ?? (() => startNodeServer()))();
     log.info(`[node-server] RelationNotes läuft auf http://localhost:${instance.port}`);
     return 0;
   } catch (err) {
@@ -234,7 +302,7 @@ const isDirectRun =
 
 if (isDirectRun) {
   runNodeServerCli().then((code) => {
-    if (code !== 0) {
+    if (code !== 0 || process.argv[2] === "cleanup") {
       process.exit(code);
     }
   });

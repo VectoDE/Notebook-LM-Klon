@@ -1,5 +1,7 @@
 import { resolve } from "node:path";
 import { TURNSTILE_TEST_SECRET_ALWAYS_PASSES } from "../turnstile.js";
+import { DEFAULT_CLEANUP_INTERVAL_MINUTES } from "./scheduler.js";
+import { type SmtpSettings, readSmtpSettings } from "./smtp.js";
 
 /**
  * Configuration of the Node runtime, read from environment variables.
@@ -38,6 +40,10 @@ export interface NodeRuntimeConfig {
   readonly appProfile: "demo" | "full";
   readonly appOrigin: string;
   readonly trustedProxyHeader: string | undefined;
+  /** Interval of the in-process cleanup (cron replacement); 0 disables it for an external cron. */
+  readonly cleanupIntervalMinutes: number;
+  /** SMTP delivery, when SMTP_HOST is set. Takes precedence over Resend. */
+  readonly smtp: SmtpSettings | undefined;
   /** Values for the app `env`, only the names from PASSTHROUGH_VARS, blank values dropped. */
   readonly vars: Readonly<Record<string, string>>;
 }
@@ -160,9 +166,40 @@ export function loadNodeConfig(source: EnvSource = process.env): {
     );
   }
 
-  if (vars.RESEND_API_KEY === undefined || vars.MAIL_FROM === undefined) {
+  const smtp = readSmtpSettings(source);
+  if (smtp) {
+    if (!Number.isInteger(smtp.port) || smtp.port < 1 || smtp.port > 65_535) {
+      problems.push(
+        `SMTP_PORT muss eine ganze Zahl zwischen 1 und 65535 sein (ist: "${source.SMTP_PORT}").`
+      );
+    }
+    if (smtp.from === "") {
+      problems.push("MAIL_FROM fehlt: Für den Versand per SMTP ist eine Absenderadresse nötig.");
+    }
+    if (smtp.user !== undefined && smtp.pass === undefined) {
+      problems.push("SMTP_PASS fehlt: SMTP_USER ist gesetzt, das Passwort nicht.");
+    }
+    if (vars.RESEND_API_KEY !== undefined) {
+      warnings.push(
+        "SMTP_HOST und RESEND_API_KEY sind gesetzt: Mails gehen per SMTP, Resend bleibt ungenutzt."
+      );
+    }
+  } else if (vars.RESEND_API_KEY === undefined || vars.MAIL_FROM === undefined) {
     warnings.push(
-      "Kein Mailversand konfiguriert (RESEND_API_KEY und MAIL_FROM): Magic-Link-Mails können nicht zugestellt werden."
+      "Kein Mailversand konfiguriert (SMTP_HOST oder RESEND_API_KEY, jeweils mit MAIL_FROM): Magic-Link-Mails können nicht zugestellt werden."
+    );
+  }
+
+  const intervalRaw = present(source, "CLEANUP_INTERVAL_MINUTES");
+  const cleanupIntervalMinutes =
+    intervalRaw === undefined ? DEFAULT_CLEANUP_INTERVAL_MINUTES : Number(intervalRaw);
+  if (!Number.isInteger(cleanupIntervalMinutes) || cleanupIntervalMinutes < 0) {
+    problems.push(
+      `CLEANUP_INTERVAL_MINUTES muss eine ganze Zahl >= 0 sein, 0 schaltet den internen Zeitplan ab (ist: "${intervalRaw}").`
+    );
+  } else if (cleanupIntervalMinutes === 0) {
+    warnings.push(
+      'CLEANUP_INTERVAL_MINUTES=0: Der interne Aufräumlauf ist aus. Externen Cron mit "node apps/worker/dist/node-server.js cleanup" einrichten.'
     );
   }
 
@@ -178,6 +215,8 @@ export function loadNodeConfig(source: EnvSource = process.env): {
       appProfile,
       appOrigin,
       trustedProxyHeader: vars.TRUSTED_PROXY_HEADER,
+      cleanupIntervalMinutes,
+      smtp,
       vars
     },
     warnings

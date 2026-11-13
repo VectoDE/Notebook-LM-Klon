@@ -1412,12 +1412,12 @@
         }
       }
     },
-    "/api/v1/jobs/{id}": {
+    "/api/v1/notebooks/{id}/jobs/{jobId}": {
       "get": {
         "operationId": "getJob",
         "tags": ["Jobs"],
-        "summary": "Job-Status (derzeit nicht freigegeben)",
-        "description": "Antwortet bewusst mit einem Problem-Detail, bis die Besitzprüfung vorhanden ist.",
+        "summary": "Job-Status eines Notebooks",
+        "description": "Rolle viewer am Notebook. Der Job muss zu diesem Notebook gehören, sonst 404 `JOB_NOT_FOUND` (auch für Jobs anderer Notebooks). Antwort mit `Cache-Control: no-store`.",
         "security": [
           {
             "sessionCookie": []
@@ -1426,6 +1426,16 @@
         "parameters": [
           {
             "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "jobId",
             "in": "path",
             "required": true,
             "description": "Job-ID",
@@ -1461,12 +1471,12 @@
         }
       }
     },
-    "/api/v1/jobs/{id}/cancel": {
+    "/api/v1/notebooks/{id}/jobs/{jobId}/cancel": {
       "post": {
         "operationId": "cancelJob",
         "tags": ["Jobs"],
-        "summary": "Job abbrechen (derzeit nicht freigegeben)",
-        "description": "Antwortet bewusst mit einem Problem-Detail, bis die Besitzprüfung vorhanden ist.",
+        "summary": "Job eines Notebooks abbrechen",
+        "description": "Rolle editor am Notebook, viewer erhält 403. Der Job muss zu diesem Notebook gehören, sonst 404 `JOB_NOT_FOUND`.",
         "security": [
           {
             "sessionCookie": []
@@ -1475,6 +1485,16 @@
         "parameters": [
           {
             "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notebook-ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "jobId",
             "in": "path",
             "required": true,
             "description": "Job-ID",
@@ -1497,6 +1517,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
           },
           "404": {
             "$ref": "#/components/responses/Problem404"
