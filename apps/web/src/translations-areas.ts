@@ -733,7 +733,44 @@ const ENTRIES: readonly Entry[] = [
   ["toastClose", "Hinweis schließen", "Dismiss notice"],
   ["toastSourceAdded", "Quelle hinzugefügt: {title}", "Source added: {title}"],
   ["toastSourcesAdded", "{n} Quellen hinzugefügt", "{n} sources added"],
-  ["toastDownload", "Download gestartet: {file}", "Download started: {file}"]
+  ["toastDownload", "Download gestartet: {file}", "Download started: {file}"],
+
+  // Herkunftsnachweis (C2PA) für Exporte, Issue #353
+  [
+    "provSignedTest",
+    "Mit C2PA-Herkunftsnachweis signiert, Testzertifikat: Prüfwerkzeuge zeigen es als nicht vertrauenswürdig.",
+    "Signed with C2PA Content Credentials using a test certificate: verifiers show it as untrusted."
+  ],
+  [
+    "provSignedProduction",
+    "Mit C2PA-Herkunftsnachweis signiert. Die KI-Herkunft ist in der Datei belegt.",
+    "Signed with C2PA Content Credentials. The AI origin is recorded in the file."
+  ],
+  [
+    "provUnsignedFormat",
+    "Ohne C2PA-Signatur exportiert: Dieses Format unterstützt C2PA nicht.",
+    "Exported without a C2PA signature: this format does not support C2PA."
+  ],
+  [
+    "provUnsignedTooLarge",
+    "Ohne C2PA-Signatur exportiert: Die Datei ist größer als 64 MB.",
+    "Exported without a C2PA signature: the file is larger than 64 MB."
+  ],
+  [
+    "provUnsignedNotConfigured",
+    "Ohne C2PA-Signatur exportiert: Auf diesem Server ist kein Signaturzertifikat eingerichtet. Die KI-Herkunft steht in den Metadaten.",
+    "Exported without a C2PA signature: no signing certificate is set up on this server. The AI origin is in the metadata."
+  ],
+  [
+    "provUnsignedSignIn",
+    "Ohne C2PA-Signatur exportiert: Signiert wird nur nach der Anmeldung.",
+    "Exported without a C2PA signature: signing requires you to sign in."
+  ],
+  [
+    "provUnsignedFailed",
+    "Ohne C2PA-Signatur exportiert: Der Signaturdienst war nicht erreichbar.",
+    "Exported without a C2PA signature: the signing service could not be reached."
+  ]
 
   // Rollen
 ];

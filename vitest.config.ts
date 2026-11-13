@@ -40,6 +40,7 @@ export default defineConfig({
         "apps/web/src/offline-sync.ts",
         "apps/web/src/notebook-sync.ts",
         "apps/web/src/sync-status-text.ts",
+        "apps/web/src/provenance-client.ts",
         "apps/web/src/chat-export.ts"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
