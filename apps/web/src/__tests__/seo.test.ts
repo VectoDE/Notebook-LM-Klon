@@ -78,7 +78,7 @@ describe("SEO und GEO der öffentlichen Seite (#263)", () => {
 
   it("schreibt Description, Open Graph, Twitter und JSON-LD auch ohne Basis-URL", () => {
     const head = buildHeadTags(undefined);
-    expect(head).toContain('<meta name="description" content="RelationNotes ist');
+    expect(head).toContain('<meta name="description" content="Quellen hochladen');
     expect(head).toContain('<meta property="og:title"');
     expect(head).toContain('<meta property="og:locale:alternate" content="en_US" />');
     expect(head).toContain('<meta name="twitter:card" content="summary_large_image" />');
@@ -96,6 +96,11 @@ describe("SEO und GEO der öffentlichen Seite (#263)", () => {
     expect(head).toContain(`<link rel="alternate" hreflang="en" href="${BASE}?lang=en" />`);
     expect(head).toContain(`<link rel="alternate" hreflang="x-default" href="${BASE}" />`);
     expect(head).toContain(`<meta property="og:image" content="${BASE}og-image.png" />`);
+    expect(head).toContain('<meta property="og:image:type" content="image/png" />');
+    expect(head).toContain('<meta name="twitter:image:alt" content="RelationNotes: Quellen,');
+    for (const lang of ["de", "en"] as const) {
+      expect(SEO_TEXT[lang].description.length).toBeLessThanOrEqual(160);
+    }
 
     const jsonLd = head.slice(head.indexOf(">{") + 1, head.lastIndexOf("</script>"));
     const data = JSON.parse(jsonLd) as Record<string, unknown>;

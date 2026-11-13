@@ -11,6 +11,9 @@ export type SeoLanguage = "de" | "en";
 
 export const SEO_LANGUAGES: readonly SeoLanguage[] = ["de", "en"];
 
+/** Alternativtext des Vorschaubilds (public/og-image.png). */
+const OG_IMAGE_ALT = "RelationNotes: Quellen, Chat mit Belegstellen und Studio-Werkzeuge";
+
 export const REPOSITORY_URL = "https://github.com/VectoDE/Notebook-LM-Klon";
 
 export const SEO_TEXT: Record<
@@ -20,13 +23,13 @@ export const SEO_TEXT: Record<
   de: {
     title: "RelationNotes – Quellen verstehen, mit Belegen chatten",
     description:
-      "RelationNotes ist ein datensparsamer NotebookLM-Klon: Quellen hochladen, Fragen mit Belegstellen beantworten lassen und daraus Audio, Video, Mindmap, Lernkarten, Quiz und Briefing erstellen.",
+      "Quellen hochladen, Antworten mit Belegstellen bekommen und daraus Audio, Video, Mindmap, Lernkarten, Quiz und Briefing machen. Datensparsam und quelloffen.",
     locale: "de_DE"
   },
   en: {
     title: "RelationNotes – Understand your sources, chat with citations",
     description:
-      "RelationNotes is a privacy-first NotebookLM clone: upload sources, get answers with citations, and turn them into audio, video, a mind map, flashcards, quizzes and a briefing.",
+      "Upload sources, get answers with citations and turn them into audio, video, a mind map, flashcards, quizzes and a briefing. Privacy-first and open source.",
     locale: "en_US"
   }
 };
@@ -108,8 +111,10 @@ export function buildHeadTags(baseUrl: string | undefined): string {
       `<meta property="og:image" content="${base}og-image.png" />`,
       `<meta property="og:image:width" content="1200" />`,
       `<meta property="og:image:height" content="630" />`,
-      `<meta property="og:image:alt" content="RelationNotes" />`,
-      `<meta name="twitter:image" content="${base}og-image.png" />`
+      `<meta property="og:image:type" content="image/png" />`,
+      `<meta property="og:image:alt" content="${OG_IMAGE_ALT}" />`,
+      `<meta name="twitter:image" content="${base}og-image.png" />`,
+      `<meta name="twitter:image:alt" content="${OG_IMAGE_ALT}" />`
     );
   }
   const jsonLd = JSON.stringify(buildJsonLd(baseUrl)).replace(/</g, "\\u003c");
