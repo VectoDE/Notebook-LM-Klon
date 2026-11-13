@@ -98,7 +98,15 @@ function registerHealthAndDemoRoutes(app: Hono<ApiEnv>): void {
     const dynamicRoutes = createDemoRoutes({ db, demoGeminiKey: demoKey });
     const subPath = c.req.path.slice("/api/v1/demo".length);
     const subUrl = new URL(subPath, "https://local.worker");
-    const subReq = new Request(subUrl.toString(), c.req.raw);
+    // Explicit init instead of passing the request itself: on Node 26 undici brand-checks
+    // init getters, and the request object of @hono/node-server is not a native Request.
+    const raw = c.req.raw;
+    const hasBody = raw.method !== "GET" && raw.method !== "HEAD";
+    const subReq = new Request(subUrl.toString(), {
+      method: raw.method,
+      headers: raw.headers,
+      ...(hasBody ? { body: await raw.arrayBuffer() } : {})
+    });
     return dynamicRoutes.fetch(subReq, c.env, safeExecutionCtx(c));
   });
 
