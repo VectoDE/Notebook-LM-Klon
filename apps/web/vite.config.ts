@@ -113,6 +113,16 @@ export default defineConfig(({ mode }) => {
     worker: {
       format: "es"
     },
+    // Die Ingest-Abhängigkeiten werden nur im Worker und erst beim ersten Upload importiert.
+    // Ohne Vorab-Bündelung entdeckt der Dev-Server sie erst dann und lädt die Seite neu.
+    optimizeDeps: {
+      include: [
+        "mammoth",
+        "tesseract.js",
+        "pdfjs-dist/legacy/build/pdf.mjs",
+        "pdfjs-dist/legacy/build/pdf.worker.mjs"
+      ]
+    },
     build: {
       outDir: "dist",
       sourcemap: false,
