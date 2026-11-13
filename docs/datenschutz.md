@@ -1,6 +1,6 @@
 # Datenschutzhinweise (Entwurf)
 
-Stand: 2026-11-13 · Issues #258, #259
+Stand: 2026-11-13 · Issues #258, #259, #262
 
 > Entwurf aus Sicht der Technik, keine Rechtsberatung. Bitte vor Veröffentlichung von einer Anwältin oder einem Anwalt prüfen lassen. Angaben in eckigen Klammern ergänzt der Betreiber.
 
@@ -15,6 +15,19 @@ Stand: 2026-11-13 · Issues #258, #259
 - **Sitzung:** Ein technisch notwendiges Cookie (`__Host-sid`) hält Sie angemeldet. Im Speicher steht nur ein Hash des Tokens, IP-Adresse und Browserkennung nur als tagesweise gesalzener Hash.
 - **Sicherheitsprotokoll:** Anmeldungen sowie das Löschen von Quellen und Konten werden mit Zeitpunkt, Art des Ereignisses und der betroffenen ID protokolliert. Die IP-Adresse steht dort nur als tagesweise gesalzener Hash, Inhalte von Quellen nie. Die Einträge werden nach 90 Tagen gelöscht.
 - **Einstellungen im Browser:** Design, Farbmodus, Sprache, Spaltenlayout und Ihre Einwilligungsentscheidung liegen im lokalen Speicher Ihres Browsers und verlassen das Gerät nicht.
+
+## Reichweitenmessung ohne Cookies
+
+Wir zählen, wie oft die App am Tag geöffnet wird. Dazu schickt der Browser beim Laden eine Anfrage an unseren eigenen Server (`POST /api/v1/metrics`, Inhalt nur `{"metric":"page_view"}`). Der Server erhöht einen Tageszähler und speichert nur Datum, Messgröße und Anzahl.
+
+- Kein Cookie, kein lokaler Speicher, keine Kennung von Gerät, Sitzung oder Person.
+- Die Anfrage wird ohne Cookies gesendet. Der Server liest dafür weder IP-Adresse noch Browserkennung aus, prüft keine Sitzung und schreibt nichts in die Rate-Limit-Tabelle.
+- Browser mit „Global Privacy Control“ oder „Do Not Track“ werden gar nicht gezählt.
+- Es fließen keine Daten an Dritte. Die Zähler enthalten keine personenbezogenen Daten und haben deshalb keine feste Löschfrist.
+
+**Warum diese Lösung:** Sie ist kostenlos, läuft im vorhandenen Worker und braucht keinen weiteren Dienstleister. Selbst gehostete Werkzeuge wie Plausible oder Umami bräuchten einen eigenen Server mit Datenbank; Cloudflare Web Analytics wäre ein weiterer Dienst mit eigenem Skript. Ein Tageszähler reicht, um Nutzung und Trends zu sehen. Was er nicht kann: einzelne Besuche, Wege durch die App oder wiederkehrende Personen unterscheiden. Das ist gewollt.
+
+Ob für diese Zählung eine Einwilligung nötig ist, hängt von § 25 TDDDG und Art. 6 DSGVO ab. Da nichts auf dem Gerät gespeichert oder ausgelesen wird und keine personenbezogenen Daten entstehen, gehen wir von keiner Einwilligungspflicht aus. Das ist eine technische Einschätzung, keine Rechtsberatung.
 
 ## Löschung
 

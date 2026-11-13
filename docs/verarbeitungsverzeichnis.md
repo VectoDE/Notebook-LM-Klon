@@ -20,5 +20,6 @@ Stand: 2026-11-13 · Issue #258
 | 8 | Audit-Log | Aktion (Login, Quellen- und Kontolöschung), Ziel-ID, tagesweise gesalzener IP-Hash, Zeitpunkt; keine Inhalte, Titel, E-Mail-Adressen | Nutzer | Sicherheit, Nachweis | D1 `audit_log` | 90 Tage (stündlicher Cron); `user_id` wird bei Kontolöschung `NULL` |
 | 9 | Missbrauchsmeldungen | Ziel-ID, Grund, meldende Person | Nutzer | Moderation (AI Act) | D1 `abuse_reports` | [Frist festlegen] |
 | 10 | Backups | alle Daten aus D1 | alle oben | Wiederherstellung | D1 Time Travel | 30 Tage (Workers Paid), 7 Tage (Free) |
+| 11 | Reichweitenmessung | Tageszähler je Messgröße (Datum, Name, Anzahl); keine IP, keine Kennung, kein Cookie | keine (anonym) | Nutzung messen | D1 `usage_counters` | keine Frist nötig, kein Personenbezug |
 
 **Technische und organisatorische Maßnahmen:** TLS, HSTS, strenge CSP, CSRF-Prüfung, Hashes statt Klartext für Tokens und IPs, AES-256-GCM für API-Schlüssel, Rollenprüfung je Notebook, Rate-Limits, automatische Löschung per Cron. Details in [security-and-compliance.md](./security-and-compliance.md) und im [Löschkonzept](./loeschkonzept.md).
