@@ -140,7 +140,14 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
       app.use("*", sessionMiddleware(sessionManager));
       app.route(
         "/api/v1/auth/passkey",
-        createPasskeyRoutes({ repo, passkeyService, sessionManager, isProduction: false })
+        createPasskeyRoutes({
+          repo,
+          passkeyService,
+          sessionManager,
+          isProduction: false,
+          turnstileSecretKey: TURNSTILE_TEST_SECRET_ALWAYS_PASSES,
+          customFetch: (async () => Response.json({ success: true })) as unknown as typeof fetch
+        })
       );
 
       const now = Date.now();
@@ -165,7 +172,13 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
             cookie: `${SESSION_COOKIE_NAME}=${token}`,
             "content-type": "application/json"
           },
-          body: JSON.stringify({ id: "x", rawId: "x", type: "public-key", response: {} })
+          body: JSON.stringify({
+            id: "x",
+            rawId: "x",
+            type: "public-key",
+            response: {},
+            turnstileToken: "passing_token"
+          })
         });
 
       expect((await post("/register/options", alice.rawToken)).status).toBe(200);

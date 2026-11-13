@@ -17,9 +17,9 @@ import { TURNSTILE_TEST_SECRET_ALWAYS_PASSES } from "../turnstile.js";
 
 function createDb(): { adapter: DatabaseAdapter; close: () => void } {
   const db = new DatabaseSync(":memory:");
-  db.exec(
-    readFileSync(resolve(process.cwd(), "apps/worker/migrations/0001_initial_core.sql"), "utf-8")
-  );
+  for (const migration of ["0001_initial_core.sql", "0003_webauthn_challenges.sql"]) {
+    db.exec(readFileSync(resolve(process.cwd(), "apps/worker/migrations", migration), "utf-8"));
+  }
   const params = (p: unknown[]) => p as (string | number | bigint | null)[];
   const adapter: DatabaseAdapter = {
     async exec(sql: string) {
