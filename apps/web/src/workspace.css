@@ -7,6 +7,15 @@
  * Verläufe und Lichtakzente sind reine Dekoration hinter oder neben dem Text.
  */
 
+/*
+ * Code-Schrift (JetBrains Mono, rund 40 KB) erst nach dem Laden (Issue #257, LCP mobil):
+ * Schon das Modell-Abzeichen im ersten Bild würde sie sonst vor dem ersten Inhalt holen.
+ * main.tsx setzt rn-mono-ready, sobald die Seite fertig ist; bis dahin gilt die Systemschrift.
+ */
+:root:not(.rn-mono-ready) {
+  --rn-font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
 /* ==========================================================================
    Grundgerüst
    ========================================================================== */
