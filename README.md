@@ -50,9 +50,9 @@ Klassische KI-Chats halluzinieren Zusammenhänge und verlieren nach dem Gespräc
 3. **Multimodales Studio (Audio-Overview, Video-Slides, Mindmap, Lernkarten, Quiz):**
    - **Zwei-Host-Audio-Overview:** Generiert natürliche Dialog-Skripte zwischen *Host A* (analytisch) und *Host B* (synthetisierend), synthetisiert diese zu einer abspielbaren Episode in Cloudflare R2 und liefert ein **wortgenaues, barrierefreies Synchron-Transkript**.
    - **Interaktive Mindmap & Lernwerkzeuge:** Automatische Konzeptgraphen (`@xyflow/react` + parallele ARIA-Treegrid-Gliederung), Spaced-Repetition-Lernkarten (`SM-2`) und Multiple-Choice-Quizzes mit Zitat-Begründung.
-4. **Bidirektionale RelationFlow-Brücke (`relationflow/export/v1`):**
-   - Extrahiert typisierte Entitäten und gerichtete Kanten samt Quellbelegen als kanonisches `RelationFlowExportBundleV1` (JSON-Download, Zwischenablage oder direkter `postMessage`-Deep-Link).
-   - Importiert bestehende RelationFlow-Wissensgraphen als abfragbare Strukturquelle zurück in das Notebook.
+4. **Andock-Konzept für RelationFlow:**
+   - Heute umgesetzt: die eigenständige Such-API `POST /api/v1/notebooks/:id/search` (Agenten können Notebook-Wissen als Tool abfragen), die Rollen `owner`, `editor` und `viewer` sowie der Auto-Modell-Router mit Datenschutzmodus.
+   - Noch nicht umgesetzt: der Austausch von Entitäten und Kanten als `relationflow/export/v1`-Bundle. Das Format ist beschrieben, im Code gibt es dafür noch keine Implementierung. Details im Kapitel [Andocken an RelationFlow](#andocken-an-relationflow).
 5. **Zwei Betriebsprofile (`APP_PROFILE=demo` vs. `full`) & BYOK:**
    - **Öffentlicher Demo-Showcase (`demo`):** Sofortiger 1-Klick-Gastzugang mit 2 kuratierten deutschen Beispiel-Notebooks (*„EU AI Act & DSGVO in der Praxis“* und *„Cloudflare Edge-Architektur & Hybrid-RAG“*), vorab berechneten Studio-Artefakten und Bring-Your-Own-Key (BYOK).
    - **Vollbetrieb (`full`):** Selbst-gehosteter Produktivmodus für Teams mit großzügigen Kontingenten (`100 Notebooks`, `50 Quellen`, `50.000 Chunks`).
@@ -117,6 +117,70 @@ flowchart TB
 
 ---
 
+## Die vier Designs
+
+Die Oberfläche lässt sich im laufenden Betrieb zwischen vier eigenständigen Designs umschalten. Jedes hat eigene Farben, eine eigene Schrift und eine eigene Anmutung. Dazu kommen die Farbmodi Hell, Dunkel und AAA-Hochkontrast. Die Token stehen in [`apps/web/src/design-tokens.ts`](apps/web/src/design-tokens.ts).
+
+| Design | Idee | Schrift |
+| :--- | :--- | :--- |
+| **Pure NotebookLM** | Ruhige, helle Arbeitsfläche mit weichen Panels, Anmutung wie NotebookLM, eigene Farbe in Indigo und Lavendel. Standard. | Inter |
+| **Immersive Cinema** | Nacht-Violett mit Fuchsia- und Cyan-Licht, eigene Bewegungssprache (abgeschaltet bei `prefers-reduced-motion`). | Space Grotesk |
+| **Editorial Calm** | Farbwelt von Everlast und RelationFlow: Everlast-Blau für Flächen, Slate-Neutraltöne. | Source Serif 4 |
+| **Fusion** | Petrol und Teal mit Bernstein, eigenständige Palette. | Geist |
+
+---
+
+## Die sechs Studio-Werkzeuge
+
+Das Studio-Panel bietet sechs Werkzeuge. Sie arbeiten mit den Quellen des Notebooks und zeigen ihre Belege an.
+
+| Werkzeug | Was es tut |
+| :--- | :--- |
+| **Audio-Overview** | Zwei-Host-Gespräch mit mitlaufendem Transkript. Per Rückfrage (`POST /api/v1/notebooks/:id/audio-interject`) lässt sich mitten im Gespräch nachfragen. |
+| **Video-Overview** | Folien mit Kapiteln, im Browser abspielbar, Export als `.webm`. |
+| **Mindmap** | Konzeptgraph als SVG, zusätzlich als ARIA-Baumansicht, mit Export. |
+| **Lernkarten** | Karten zum Umdrehen, mit Export. |
+| **Quiz** | Fragen mit Begründung aus der Quelle, mit Export. |
+| **Briefing** | Kurzfassung des Notebooks. |
+
+---
+
+## Andocken an RelationFlow
+
+[RelationFlow](https://github.com/VectoDE/RelationFlow) ist der Wissens-Workspace, an den RelationNotes sich anschließen soll. Die Beschreibung steht in [`docs/relationflow-integration.md`](docs/relationflow-integration.md). Hier der ehrliche Stand:
+
+| Baustein | Stand | Wo |
+| :--- | :--- | :--- |
+| Such-API für Agenten: Hybrid-Suche (Vektor und FTS5, RRF) mit Zitaten, Seite und Offsets | Umgesetzt | `POST /api/v1/notebooks/:id/search`, siehe [`docs/openapi.json`](docs/openapi.json) |
+| Rollen `owner`, `editor`, `viewer` je Notebook | Umgesetzt | `apps/worker/src/auth-middleware.ts` |
+| Auto-Modell-Router, im Datenschutzmodus lokal (Ollama) | Umgesetzt | `GET /api/v1/providers`, `POST /api/v1/providers/route` |
+| Studio-Jobs per API einreihen | Teilweise | `POST /api/v1/jobs/enqueue`. Status und Abbruch einzelner Jobs sind noch gesperrt, bis die Besitzprüfung steht. |
+| Austausch von Entitäten und Kanten (`relationflow/export/v1`) | Noch nicht umgesetzt | Format nur beschrieben |
+
+**Beispiel:** Ein Agent fragt ein Notebook ab. Er braucht eine Sitzung (Cookie) und mindestens die Rolle `viewer`.
+
+```bash
+curl -s -X POST "http://localhost:8787/api/v1/notebooks/<notebook-id>/search"   -H "content-type: application/json"   -b "sid=<sitzungs-token>"   -d '{"query":"Was verlangt Artikel 50 des EU AI Act?","mode":"hybrid","limit":5}'
+```
+
+Die Antwort enthält `results` mit `sourceTitle`, `page`, `score` und `snippet` je Fundstelle. Eine Anbindung von RelationFlow-Agenten braucht noch einen Weg, eine Sitzung für den Agenten zu erzeugen. Der steht nicht in dieser Version.
+
+---
+
+## API-Referenz (OpenAPI 3.1)
+
+Alle Endpunkte unter `/api/v1` sind in [`docs/openapi.json`](docs/openapi.json) beschrieben, Fehler nach RFC 9457. Ein Test (`packages/shared/src/__tests__/openapi.test.ts`) liest die Routen aus dem Worker-Code und schlägt fehl, wenn eine Route in der Spezifikation fehlt. Neue Routen gehören also immer in diese Datei.
+
+---
+
+## Ehrlicher KI-Einsatz
+
+- **Bei der Entwicklung:** Dieses Projekt entsteht mit KI-Coding-Assistenten. Der Inhaber legt Anforderungen, Architektur und Abnahme fest und prüft die Ergebnisse. Jede Änderung muss durch Typprüfung, Linter, Tests mit 100 % Abdeckung und Sicherheits-Scans, bevor sie in `main` kommt. Commits und Pull Requests tragen keine KI-Kennzeichnung (Entscheidung #38). Die Offenlegung steht deshalb hier.
+- **Im Produkt:** Antworten, Audio, Video und Studio-Artefakte kommen von einem Sprachmodell und sind als KI-generiert markiert (`aiGenerated: true`, Anbieter, Modell, Zeitstempel). Welches Modell antwortet, bestimmt der Nutzer oder der Auto-Router. Mit Datenschutzmodus bleibt die Anfrage bei einem lokalen Modell. Bei Cloud-Modellen gehen Frage und Textausschnitte an den gewählten Anbieter. API-Schlüssel gehören dem Nutzer (BYOK) und liegen verschlüsselt (AES-256-GCM).
+- **Grenzen:** Zitate verweisen auf Textstellen, die das Modell gelesen hat. Ob das Modell sie richtig deutet, bleibt zu prüfen.
+
+---
+
 ## Technologie-Stack & Architekturentscheidungen
 
 | Schicht | Eingesetzte Technologie | Version | Begründung & Mehrwert im Projekt |
@@ -135,7 +199,7 @@ flowchart TB
 
 ---
 
-## Defense-in-Depth, DSGVO & EU AI Act (Art. 50)
+## Sicherheit, Barrierefreiheit & DSGVO
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/security-layers-dark.svg">
@@ -145,12 +209,13 @@ flowchart TB
 <sub>Grafik in <a href="docs/assets/security-layers-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="docs/assets/security-layers-en.svg" hreflang="en" lang="en">English</a></sub>
 
 - **Kryptografisches Budget innerhalb von 10 ms CPU-Zeit:** Durch unseren Benchmark ([`apps/worker/src/crypto-benchmark.ts`](apps/worker/src/crypto-benchmark.ts)) ist nachgewiesen, dass `SHA-256` (`~0,01 ms`), `AES-256-GCM` Envelope-Roundtrip mit `AAD` (`~0,03 ms`) und `ECDSA P-256` Passkey-Verifikation (`~0,25 ms`) zusammen **`< 0,6 ms` CPU-Zeit** benötigen – über **94 % der 10-ms-Free-Tier-Reserve** bleiben frei für Fachlogik.
+- **Barrierefreiheit:** Jede der vier Oberflächen gibt es in Hell, Dunkel und AAA-Hochkontrast. Das Ziel für Text ist ein Kontrast von mindestens 7:1 (WCAG 2.2, 1.4.6), für Rahmen und Fokus mindestens 3:1. Die Vorgaben stehen in `apps/web/src/design-tokens.ts`, der Stand der Prüfung in [`docs/accessibility-wcag-aaa.md`](docs/accessibility-wcag-aaa.md).
 - **DSGVO-Rechte per 1-Klick:** Vollständiger maschinenlesbarer Datenexport (Art. 15 / Art. 20 DSGVO) sowie kryptografisch verifizierte Kaskadenlöschung über D1, R2 und Durable Objects (Art. 17 DSGVO).
 - **EU AI Act Art. 50 Transparenz:** Jedes generierte Audio-, Video-, Text- oder Graph-Artefakt trägt ein sichtbares KI-Kennzeichen sowie ein maschinenlesbares Provenienz-Manifest (`ai_generated: true`, Modell-ID, Zeitstempel, SHA-256-Quell-Hashes).
 
 ---
 
-## Lokale Einrichtung, 1-Klick-Tests & Verifikation
+## Schnellstart – Einrichtung, Tests & Verifikation
 
 ### Voraussetzungen
 - **Node.js** `>= 22.0.0`
@@ -217,7 +282,7 @@ Alle Community-, Sicherheits- und Automatisierungs-Konfigurationen sind im Ordne
 ```text
 Notebook-LM-Klon/
 ├── .github/                        # Governance, Security, CI/CD & Templates
-│   ├── workflows/                  # SHA-gepinnte Workflows (ci, codeql, scorecard, verify-issue-checklists, wiki-sync)
+│   ├── workflows/                  # SHA-gepinnte Workflows (ci, codeql, scorecard, deploy, release, verify-issue-checklists, wiki-sync)
 │   ├── ISSUE_TEMPLATE/             # Strukturierte Formulare (Bug, Feature, Security, Config)
 │   ├── CITATION.cff                # Wissenschaftliche Zitier-Metadaten
 │   ├── CODE_OF_CONDUCT.md          # Contributor Covenant v2.1
