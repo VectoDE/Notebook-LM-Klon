@@ -4,7 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
   type ProvenanceSigner,
   registerProvenanceRoutes,
-  signerFromEnv
+  signerFromEnv,
+  signerUserIdsFromEnv
 } from "../provenance-routes.js";
 import { WORKER_VERSION } from "../version.js";
 
@@ -23,16 +24,27 @@ function fakeSigner(overrides: Partial<ProvenanceSigner> = {}): ProvenanceSigner
 
 function buildApp(
   signer: ProvenanceSigner | undefined,
-  options: { loggedIn?: boolean; maxBytes?: number } = {}
+  options: {
+    loggedIn?: boolean;
+    maxBytes?: number;
+    signerIds?: ReadonlySet<string>;
+    audit?: (entry: unknown) => void;
+    userId?: string;
+  } = {}
 ) {
   const app: App = new Hono();
   if (options.loggedIn !== false) {
     app.use("*", async (c, next) => {
-      c.set("sessionUser", { id: "u_1" });
+      c.set("sessionUser", { id: options.userId ?? "u_1" });
       await next();
     });
   }
-  registerProvenanceRoutes(app, { resolveSigner: () => signer, maxBytes: options.maxBytes });
+  registerProvenanceRoutes(app, {
+    resolveSigner: () => signer,
+    maxBytes: options.maxBytes,
+    signerUserIds: () => options.signerIds ?? new Set(["u_1"]),
+    audit: options.audit
+  });
   return app;
 }
 
@@ -162,7 +174,7 @@ describe("POST /api/v1/provenance/sign (Issue #353)", () => {
       format: "video/mp4",
       claim_generator_info: [{ name: "RelationNotes", version: WORKER_VERSION }]
     });
-    expect(JSON.stringify(manifest)).toContain("digitalCreation");
+    expect(JSON.stringify(manifest)).toContain(DIGITAL_SOURCE_TYPE_TRAINED_ALGORITHMIC);
   });
 
   it("kennzeichnet ohne ai-Parameter als KI-erzeugt und setzt einen Ersatztitel", async () => {
@@ -171,6 +183,95 @@ describe("POST /api/v1/provenance/sign (Issue #353)", () => {
     const manifest = signer.sign.mock.calls[0]?.[2] as Record<string, unknown>;
     expect(manifest.title).toBe("Export");
     expect(JSON.stringify(manifest)).toContain(DIGITAL_SOURCE_TYPE_TRAINED_ALGORITHMIC);
+  });
+});
+
+describe("POST /api/v1/provenance/sign: Freigabe, Protokoll, Größe (Sicherheitsbefund)", () => {
+  it("verweigert Konten, die nicht auf der Freigabeliste stehen (403), ohne zu signieren", async () => {
+    const signer = fakeSigner();
+    const res = await sign(buildApp(signer, { signerIds: new Set(["u_other"]) }), "x", {
+      "content-type": "image/png"
+    });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ code: "PROVENANCE_FORBIDDEN" });
+    expect(signer.sign).not.toHaveBeenCalled();
+  });
+
+  it("verweigert allen, wenn die Freigabeliste leer ist (fail closed)", async () => {
+    const signer = fakeSigner();
+    const res = await sign(buildApp(signer, { signerIds: new Set() }), "x", {
+      "content-type": "image/png"
+    });
+    expect(res.status).toBe(403);
+    expect(signer.sign).not.toHaveBeenCalled();
+  });
+
+  it("protokolliert jede Signatur mit Konto, Format, Größe und Zertifikat", async () => {
+    const entries: unknown[] = [];
+    const signer = fakeSigner({ certificate: "production" });
+    const res = await sign(
+      buildApp(signer, { userId: "u_1", audit: (e) => entries.push(e) }),
+      new Uint8Array([1, 2, 3]),
+      { "content-type": "image/png" }
+    );
+    expect(res.status).toBe(200);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      event: "provenance.sign",
+      userId: "u_1",
+      mimeType: "image/png",
+      bytes: 3,
+      certificate: "production"
+    });
+  });
+
+  it("kennzeichnet jede Signatur als KI-erzeugt, auch mit ai=0 vom Client", async () => {
+    const signer = fakeSigner();
+    await sign(buildApp(signer), "x", { "content-type": "image/png" }, "?ai=0");
+    const manifest = signer.sign.mock.calls[0]?.[2] as Record<string, unknown>;
+    expect(JSON.stringify(manifest)).toContain(DIGITAL_SOURCE_TYPE_TRAINED_ALGORITHMIC);
+  });
+
+  it("begrenzt den Körper beim Lesen, auch ohne Content-Length", async () => {
+    const signer = fakeSigner();
+    const app = buildApp(signer, { maxBytes: 4 });
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(3));
+        controller.enqueue(new Uint8Array(3));
+        controller.close();
+      }
+    });
+    const res = await app.request(
+      "/api/v1/provenance/sign",
+      {
+        method: "POST",
+        body: stream,
+        headers: { "content-type": "image/png" },
+        duplex: "half"
+      } as RequestInit,
+      ENV
+    );
+    expect(res.status).toBe(413);
+    expect(signer.sign).not.toHaveBeenCalled();
+  });
+
+  it("schreibt je Aufruf einen eigenen Audit-Eintrag", async () => {
+    const entries: unknown[] = [];
+    const app = buildApp(fakeSigner(), { audit: (e) => entries.push(e) });
+    await sign(app, new Uint8Array([9]), { "content-type": "image/png" });
+    await sign(app, new Uint8Array([9, 9]), { "content-type": "image/png" });
+    expect(entries).toHaveLength(2);
+  });
+});
+
+describe("signerUserIdsFromEnv", () => {
+  it("liest die kommagetrennte Freigabeliste und ignoriert Leerzeichen", () => {
+    expect([
+      ...signerUserIdsFromEnv({ PROVENANCE_SIGN_USER_IDS: " u_1, u_2 ,," } as unknown as Env)
+    ]).toEqual(["u_1", "u_2"]);
+    expect(signerUserIdsFromEnv({} as Env).size).toBe(0);
+    expect(signerUserIdsFromEnv({ PROVENANCE_SIGN_USER_IDS: 5 } as unknown as Env).size).toBe(0);
   });
 });
 

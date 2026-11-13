@@ -1,6 +1,7 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import type { Context, Hono } from "hono";
 import * as Y from "yjs";
+import { readBodyLimited } from "./body-limit.js";
 
 /**
  * Yjs-Stand eines Notebooks (Issue #347): der Server hält je Notebook einen zusammengeführten
@@ -172,9 +173,14 @@ export function registerDocSyncRoutes(app: Hono<any>): void {
     if (declared > MAX_UPDATE_BYTES * 2) {
       return problem(c, 413, "UPDATE_TOO_LARGE", "Yjs-Update ist zu groß.");
     }
+    // Gezählt beim Lesen: der Header allein ist nicht bindend (Client kann ihn weglassen oder lügen).
+    const raw = await readBodyLimited(c.req.raw, MAX_UPDATE_BYTES * 2);
+    if (raw === null) {
+      return problem(c, 413, "UPDATE_TOO_LARGE", "Yjs-Update ist zu groß.");
+    }
     let update: Uint8Array;
     try {
-      const body = (await c.req.json()) as { update?: unknown };
+      const body = JSON.parse(new TextDecoder().decode(raw)) as { update?: unknown };
       if (typeof body?.update !== "string")
         throw new DocSyncError(400, "INVALID_BODY", "Feld update fehlt.");
       update = fromBase64Url(body.update);
