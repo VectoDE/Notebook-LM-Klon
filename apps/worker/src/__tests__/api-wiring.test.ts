@@ -645,15 +645,78 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       );
     });
 
-    it("does not expose job status/cancel without an ownership check", async () => {
-      const status = await call("/api/v1/jobs/job_1", { cookie: fx.cookies.alice });
-      expect(status.status).toBe(501);
-      expect(((await status.json()) as { code: string }).code).toBe("ENDPOINT_NOT_EXPOSED");
-      const cancel = await call("/api/v1/jobs/job_1/cancel", {
-        method: "POST",
-        cookie: fx.cookies.alice
+    it("status/cancel only under the notebook, with role and job ownership checks", async () => {
+      const jobsByNotebook: Record<string, Record<string, { id: string; notebookId: string }>> = {
+        nb_a: {
+          job_a: { id: "job_a", notebookId: "nb_a" },
+          // A record of another notebook must never be served under nb_a.
+          job_foreign: { id: "job_foreign", notebookId: "nb_b" }
+        }
+      };
+      const cancelled: string[] = [];
+      const jobFx = await createFixture({
+        JOB_DO: {
+          idFromName: (name: string) => name,
+          get: (notebookId: string) => ({
+            fetch: async (req: Request) => {
+              const match = new URL(req.url).pathname.match(/^\/jobs\/([^/]+)(\/cancel)?$/);
+              const job = match?.[1] ? jobsByNotebook[notebookId]?.[match[1]] : undefined;
+              if (!job) {
+                return Response.json({ code: "JOB_NOT_FOUND" }, { status: 404 });
+              }
+              if (match?.[2]) {
+                cancelled.push(`${notebookId}/${job.id}`);
+                return Response.json({ ...job, status: "cancelled" });
+              }
+              return Response.json({ ...job, status: "running" });
+            }
+          })
+        }
       });
-      expect(cancel.status).toBe(501);
+      const get = (path: string, cookie?: string) =>
+        call(path, cookie ? { cookie } : {}, jobFx.env);
+      const cancel = (path: string, cookie?: string) =>
+        call(path, cookie ? { method: "POST", cookie } : { method: "POST" }, jobFx.env);
+
+      // Old, notebook-less routes are gone.
+      expect((await get("/api/v1/jobs/job_a", jobFx.cookies.alice)).status).toBe(404);
+      expect((await cancel("/api/v1/jobs/job_a/cancel", jobFx.cookies.alice)).status).toBe(404);
+
+      expect((await get("/api/v1/notebooks/nb_a/jobs/job_a")).status).toBe(401);
+      expect((await get("/api/v1/notebooks/nb_a/jobs/job_a", jobFx.cookies.mallory)).status).toBe(
+        404
+      );
+
+      const own = await get("/api/v1/notebooks/nb_a/jobs/job_a", jobFx.cookies.bob);
+      expect(own.status).toBe(200);
+      expect(((await own.json()) as { notebookId: string }).notebookId).toBe("nb_a");
+
+      const foreign = await get("/api/v1/notebooks/nb_a/jobs/job_foreign", jobFx.cookies.alice);
+      expect(foreign.status).toBe(404);
+      expect(((await foreign.json()) as { code: string }).code).toBe("JOB_NOT_FOUND");
+      expect((await get("/api/v1/notebooks/nb_a/jobs/job_none", jobFx.cookies.alice)).status).toBe(
+        404
+      );
+
+      // Cancel needs the editor role and an own job.
+      expect((await cancel("/api/v1/notebooks/nb_a/jobs/job_a/cancel")).status).toBe(401);
+      expect(
+        (await cancel("/api/v1/notebooks/nb_a/jobs/job_a/cancel", jobFx.cookies.mallory)).status
+      ).toBe(404);
+      expect(
+        (await cancel("/api/v1/notebooks/nb_a/jobs/job_a/cancel", jobFx.cookies.bob)).status
+      ).toBe(403);
+      expect(
+        (await cancel("/api/v1/notebooks/nb_a/jobs/job_foreign/cancel", jobFx.cookies.alice)).status
+      ).toBe(404);
+      expect(cancelled).toEqual([]);
+      expect(
+        (await cancel("/api/v1/notebooks/nb_a/jobs/job_a/cancel", jobFx.cookies.carol)).status
+      ).toBe(200);
+      expect(cancelled).toEqual(["nb_a/job_a"]);
+
+      jobFx.sqlite.close();
+      rmSync(jobFx.dataDir, { recursive: true, force: true });
     });
   });
 
@@ -664,6 +727,18 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       const noKek = await call("/api/v1/keys", { cookie: fx.cookies.alice });
       expect(noKek.status).toBe(503);
       expect(((await noKek.json()) as { code: string }).code).toBe("BYOK_NOT_CONFIGURED");
+    });
+
+    it("keeps BYOK off (503, app still starts) when a configured KEK is too short", async () => {
+      for (const weak of [{ KEK_V1: "short" }, { KEK_V1: KEK, KEK_V2: "short" }]) {
+        const weakFx = await createFixture(weak);
+        const res = await call("/api/v1/keys", { cookie: weakFx.cookies.alice }, weakFx.env);
+        expect(res.status).toBe(503);
+        expect(((await res.json()) as { code: string }).code).toBe("BYOK_NOT_CONFIGURED");
+        expect((await call("/api/v1/health", {}, weakFx.env)).status).toBe(200);
+        weakFx.sqlite.close();
+        rmSync(weakFx.dataDir, { recursive: true, force: true });
+      }
     });
 
     it("lists keys for an authenticated user when a KEK is configured", async () => {
