@@ -156,6 +156,27 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       const env = handle.env as unknown as Record<string, unknown>;
       expect(env.RESEND_API_KEY).toBe("re_test");
       expect(env.SEND_EMAIL).toBeUndefined();
+      expect(env.PROVENANCE_SIGNER).toBeUndefined();
+      handle.close();
+      db.close();
+    });
+
+    it("sets the C2PA signer only when tool, certificate and key are configured (#353)", () => {
+      const db = new DatabaseSync(":memory:");
+      const handle = createNodeEnv({
+        db,
+        dataDir: TEST_DATA_DIR,
+        vars: {
+          C2PATOOL_PATH: "/opt/c2patool/c2patool",
+          C2PA_SIGN_CERT: "/run/secrets/c2pa-chain.pem",
+          C2PA_PRIVATE_KEY: "/run/secrets/c2pa-key.pem"
+        }
+      });
+      const env = handle.env as unknown as Record<string, unknown>;
+      expect(env.PROVENANCE_SIGNER).toMatchObject({
+        certificate: "test",
+        sign: expect.any(Function)
+      });
       handle.close();
       db.close();
     });

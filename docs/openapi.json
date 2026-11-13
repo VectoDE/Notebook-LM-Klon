@@ -53,6 +53,10 @@
     {
       "name": "Kommentare",
       "description": "Kommentare an Quellen und Notizen mit Erwähnungen (Issue #353). Lesen: viewer, Schreiben: editor, Bearbeiten: Verfasser, Löschen: Verfasser oder owner."
+    },
+    {
+      "name": "Herkunft",
+      "description": "C2PA-Herkunftsnachweis für exportierte Medien (Issue #353). Signiert wird nur in der Node-Laufzeit mit c2patool; auf Cloudflare Workers antwortet /sign mit 503. Details: docs/c2pa.md."
     }
   ],
   "security": [
@@ -2426,6 +2430,191 @@
           }
         }
       }
+    },
+    "/api/v1/provenance/status": {
+      "get": {
+        "operationId": "getProvenanceStatus",
+        "tags": ["Herkunft"],
+        "summary": "Kann dieser Server Exporte signieren?",
+        "description": "Öffentlich. Liefert, ob ein Signaturzertifikat eingerichtet ist, ob es das öffentliche C2PA-Testzertifikat oder ein eigenes ist, und welche Medienarten signiert werden können.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvenanceStatus"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/provenance/sign": {
+      "post": {
+        "operationId": "signExport",
+        "tags": ["Herkunft"],
+        "summary": "Export mit C2PA-Manifest signieren",
+        "description": "Nimmt die exportierte Datei als Rohdaten (Content-Type = Medienart, höchstens 64 MB) und gibt sie mit eingebettetem C2PA-Manifest zurück: Erzeuger RelationNotes mit Version, Titel und Aktion c2pa.created mit IPTC digitalSourceType (trainedAlgorithmicMedia, mit ai=0 digitalCreation). WebM, Ogg und Opus unterstützt C2PA nicht (415).",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "description": "Titel im Manifest (Steuerzeichen werden entfernt, höchstens 200 Zeichen).",
+            "schema": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          },
+          {
+            "name": "ai",
+            "in": "query",
+            "required": false,
+            "description": "0 = nicht KI-erzeugt; sonst gilt die Datei als KI-erzeugt.",
+            "schema": {
+              "type": "string",
+              "enum": ["0", "1"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/svg+xml": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/wav": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/mpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/mp4": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "video/mp4": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signierte Datei in derselben Medienart.",
+            "headers": {
+              "x-c2pa-certificate": {
+                "description": "test = öffentliches C2PA-Testzertifikat, production = eigenes Zertifikat.",
+                "schema": {
+                  "type": "string",
+                  "enum": ["test", "production"]
+                }
+              }
+            },
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/svg+xml": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "audio/wav": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "audio/mpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "audio/mp4": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/mp4": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Problem415"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          },
+          "502": {
+            "$ref": "#/components/responses/Problem502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2520,6 +2709,16 @@
       },
       "Problem503": {
         "description": "Dienst nicht konfiguriert oder nicht verfügbar (fail-closed).",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "Problem415": {
+        "description": "Medienart wird nicht unterstützt.",
         "content": {
           "application/problem+json": {
             "schema": {
@@ -3636,6 +3835,25 @@
           },
           "canDelete": {
             "type": "boolean"
+          }
+        }
+      },
+      "ProvenanceStatus": {
+        "type": "object",
+        "required": ["available", "certificate", "formats"],
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "certificate": {
+            "type": ["string", "null"],
+            "enum": ["test", "production", null]
+          },
+          "formats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }
