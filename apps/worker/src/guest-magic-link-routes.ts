@@ -3,6 +3,7 @@ import { type Context, Hono } from "hono";
 import type { CoreRepository } from "./core-repository.js";
 import { seedDemoNotebooks } from "./demo-seeder.js";
 import type { MailAdapter } from "./mail-adapter.js";
+import { resolveClientIp } from "./rate-limiter.js";
 import {
   type SessionManager,
   buildSessionCookie,
@@ -92,7 +93,7 @@ export function createGuestAndMagicLinkRoutes(
     if (botCheck) {
       return botCheck;
     }
-    const ip = c.req.header("cf-connecting-ip") || null;
+    const ip = resolveClientIp(c) ?? null;
 
     const now = Date.now();
     const guestId = `usr_guest_${now.toString(36)}_${generateSecureSuffix()}`;
@@ -359,7 +360,7 @@ export function createGuestAndMagicLinkRoutes(
       throw new Error("Fehler beim Erstellen des Nutzers.");
     }
 
-    const ip = c.req.header("cf-connecting-ip") || null;
+    const ip = resolveClientIp(c) ?? null;
     const ua = c.req.header("user-agent") || null;
     const session = await opts.sessionManager.createSession(user.id, ip, ua);
 
