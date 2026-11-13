@@ -1,8 +1,9 @@
 import { createElement, isValidElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { CommentThread, renderCommentBody } from "../CommentThread.js";
 import { SourcesPanel } from "../SourcesPanel.js";
+import { LazyCommentThread } from "../lazy-viewers.js";
 import { ThemeProvider, type ThemeProviderProps } from "../useTheme.js";
 
 function inTheme(language: "de" | "en", child: ReturnType<typeof createElement>): string {
@@ -54,6 +55,11 @@ describe("CommentThread (Issue #353)", () => {
     expect(html).toContain("Hide comments");
     expect(html).toContain('aria-label="Comments on Plan"');
     expect(html).toContain('data-testid="comments-note-n1"');
+  });
+
+  // Im Inspektor wird die Komponente nachgeladen (lazy-viewers); vorab laden, damit sie rendert.
+  beforeAll(async () => {
+    await LazyCommentThread.preload();
   });
 
   it("is shown in the source inspector only when a notebook id is known", () => {

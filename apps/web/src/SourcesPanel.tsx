@@ -7,12 +7,12 @@ import {
   useRef,
   useState
 } from "react";
-import { CommentThread } from "./CommentThread.js";
 import { EmptyState } from "./EmptyState.js";
 import { Icon } from "./Icon.js";
 import { ViewToggle } from "./ViewToggle.js";
 import type { FetchLike } from "./comments-client.js";
 import { trapTabKey } from "./focus-trap.js";
+import { LazyCommentThread } from "./lazy-viewers.js";
 import { browserStorage, shouldReduceMotion } from "./theme-preferences.js";
 import { type SourceUrlError, validateSourceUrl } from "./url-validation.js";
 import { useReturnFocus } from "./useReturnFocus.js";
@@ -464,7 +464,7 @@ export function SourcesPanel({
           </div>
 
           {notebookId && (
-            <CommentThread
+            <LazyCommentThread
               key={inspectedSource.id}
               notebookId={notebookId}
               targetType="source"

@@ -59,6 +59,10 @@ export const LazyInfographicViewer = lazyWithPreload(() =>
 export const LazyDataTableViewer = lazyWithPreload(() =>
   import("./StructuredTools.js").then((m) => m.DataTableViewer)
 );
+/** Kommentare im Quellen-Inspektor (Issue #353): erst beim Öffnen einer Quelle nötig. */
+export const LazyCommentThread = lazyWithPreload(() =>
+  import("./CommentThread.js").then((m) => m.CommentThread)
+);
 
 /** Lädt alle Studio-Viewer vorab, z. B. in Tests oder wenn der Browser untätig ist. */
 export async function preloadStudioViewers(): Promise<void> {
@@ -71,7 +75,8 @@ export async function preloadStudioViewers(): Promise<void> {
       LazyInteractiveAudioHostPlayer,
       LazyTimelineViewer,
       LazyInfographicViewer,
-      LazyDataTableViewer
+      LazyDataTableViewer,
+      LazyCommentThread
     ].map((viewer) => viewer.preload())
   );
 }
