@@ -108,17 +108,24 @@ interface TextSegment {
  * Splits text into segments while preserving offsets and boundaries.
  */
 function splitIntoUnits(text: string): TextSegment[] {
-  // First split by paragraphs (\n\n+)
+  // Absätze an Leerzeilen (\n\n+) trennen; Offsets zeigen exakt in den Originaltext,
+  // auch bei mehreren Leerzeilen hintereinander oder Leerzeilen am Anfang (Issue #86)
   const paragraphs: { text: string; start: number; end: number }[] = [];
   let currentOffset = 0;
 
-  for (const part of text.split(/\n{2,}/).filter(Boolean)) {
+  for (const separator of text.matchAll(/\n{2,}/g)) {
+    const end = separator.index;
+    if (end > currentOffset) {
+      paragraphs.push({ text: text.slice(currentOffset, end), start: currentOffset, end });
+    }
+    currentOffset = end + separator[0].length;
+  }
+  if (currentOffset < text.length) {
     paragraphs.push({
-      text: part,
+      text: text.slice(currentOffset),
       start: currentOffset,
-      end: currentOffset + part.length
+      end: text.length
     });
-    currentOffset += part.length + 2; // Approximate/boundary offset
   }
 
   const units: TextSegment[] = [];

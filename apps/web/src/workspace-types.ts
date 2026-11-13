@@ -12,7 +12,21 @@ export interface WorkspaceSource {
    * zeichnen die Bereiche den Inhalt mit lang aus (WCAG 3.1.2, Issue #323).
    */
   readonly lang?: string | undefined;
+  /**
+   * Stand der lokalen Verarbeitung (Issue #154). Fehlt der Wert, gilt die Quelle als bereit.
+   */
+  readonly status?: SourceStatus | undefined;
+  /** Fortschritt 0–100 während "processing". */
+  readonly progress?: number | undefined;
+  /** Aktuelle Phase während "processing". */
+  readonly stage?: SourceStage | undefined;
+  /** Fehlerart bei "error". */
+  readonly errorCode?: SourceErrorCode | undefined;
 }
+
+export type SourceStatus = "processing" | "ready" | "error";
+export type SourceStage = "reading" | "pdf" | "docx" | "ocr" | "chunking";
+export type SourceErrorCode = "unsupported" | "unreadable" | "too_large" | "failed";
 
 /**
  * Fokusziel eines Bereichs (Issue #323): sitzt auf der benannten Region des Panels, nicht

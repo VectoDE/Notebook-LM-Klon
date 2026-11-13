@@ -1,9 +1,17 @@
+import { readFileSync } from "node:fs";
+import { TextTooLargeError } from "@notebook-lm/shared";
 import { describe, expect, it } from "vitest";
 import {
+  DOCX_MIME_TYPE,
   type IngestParserWorkerRequest,
   type IngestParserWorkerResponse,
+  type ParserOverrides,
+  UnsupportedFormatError,
   extractMarkdownSections,
+  extractPdfTextByPages,
   handleParserMessage,
+  ingestErrorCode,
+  parseDocument,
   parseDocumentToChunks
 } from "../workers/ingest-parser.js";
 
@@ -107,8 +115,8 @@ The ingestion layer parses markdown and text directly in the Web Worker.`;
     await expect(
       parseDocumentToChunks({
         fileData: new Uint8Array([0x00]),
-        fileName: "image.png",
-        mimeType: "image/png"
+        fileName: "animation.gif",
+        mimeType: "image/gif"
       })
     ).rejects.toThrow(/Unsupported mime type/);
   });
@@ -167,6 +175,277 @@ describe("Worker Event Protocol (#88)", () => {
     expect(errorMsg).toBeDefined();
     if (errorMsg && errorMsg.type === "ERROR") {
       expect(errorMsg.error).toContain("Unsupported mime type");
+      expect(errorMsg.code).toBe("unsupported");
     }
+  });
+});
+
+const fixture = (name: string) =>
+  new Uint8Array(readFileSync(new URL(`./fixtures/${name}`, import.meta.url)));
+
+describe("PDF-Auszug aus einer echten mehrseitigen Datei (#87)", () => {
+  it("liest jede Seite mit ihrer Seitenzahl aus", { timeout: 180_000 }, async () => {
+    const data = fixture("three-pages.pdf");
+    const pages = await extractPdfTextByPages(data);
+    expect(pages).toEqual([
+      { pageNumber: 1, text: "Seite eins: Einleitung in die Architektur des Klons." },
+      { pageNumber: 2, text: "Seite zwei: Vektoren und hybride Suche im Durable Object." },
+      { pageNumber: 3, text: "Seite drei: Zusammenfassung und Ausblick." }
+    ]);
+    // Die Datei des Aufrufers bleibt unverändert nutzbar (PDF.js bekommt eine Kopie)
+    expect(await extractPdfTextByPages(data)).toHaveLength(3);
+  });
+
+  it("ordnet jedem Chunk die Seitenzahl seiner Seite zu", { timeout: 180_000 }, async () => {
+    const { chunks, text } = await parseDocument({
+      fileData: fixture("three-pages.pdf"),
+      fileName: "three-pages.pdf",
+      mimeType: "application/pdf"
+    });
+    expect(chunks).toHaveLength(3);
+    const pageOf = (needle: string) => chunks.find((c) => c.text.includes(needle))?.pageNumber;
+    expect(pageOf("Einleitung")).toBe(1);
+    expect(pageOf("Vektoren")).toBe(2);
+    expect(pageOf("Ausblick")).toBe(3);
+    expect(new Set(chunks.map((c) => c.pageNumber))).toEqual(new Set([1, 2, 3]));
+    chunks.forEach((chunk, index) => {
+      expect(chunk.chunkIndex).toBe(index);
+    });
+    expect(text.split("\n\n")).toHaveLength(3);
+  });
+
+  it("überspringt leere Seiten und lehnt PDFs ganz ohne Text ab", async () => {
+    const chunks = await parseDocumentToChunks({
+      fileData: new Uint8Array([1]),
+      fileName: "scan.pdf",
+      mimeType: "",
+      customPdfExtractor: async () => [
+        { pageNumber: 1, text: "  " },
+        { pageNumber: 2, text: "Nur Seite zwei hat Text." }
+      ]
+    });
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]?.pageNumber).toBe(2);
+
+    await expect(
+      parseDocument({
+        fileData: new Uint8Array([1]),
+        fileName: "leer.pdf",
+        mimeType: "application/pdf",
+        customPdfExtractor: async () => [{ pageNumber: 1, text: "" }]
+      })
+    ).rejects.toThrow(/keinen auslesbaren Text/);
+  });
+
+  it("weist eine beschädigte PDF-Datei zurück", { timeout: 180_000 }, async () => {
+    await expect(extractPdfTextByPages(new TextEncoder().encode("kein pdf"))).rejects.toThrow();
+  });
+});
+
+describe("Markdown und TXT mit exakten Offsets (#86, #88)", () => {
+  it("behält Überschriften-Kontext und zeigt mit Offsets exakt in die Originaldatei", async () => {
+    const md = [
+      "Vorwort ohne Überschrift.",
+      "",
+      "# Kapitel 1",
+      "Erster Absatz im Kapitel.",
+      "",
+      "## Abschnitt 1.1",
+      "Text im Abschnitt.",
+      ""
+    ].join("\r\n");
+    const { chunks, text } = await parseDocument({
+      fileData: new TextEncoder().encode(md),
+      fileName: "notizen.markdown",
+      mimeType: ""
+    });
+    expect(text).toBe(md);
+    expect(chunks.map((c) => c.chunkIndex)).toEqual([0, 1, 2]);
+    expect(chunks[1]?.text.startsWith("# Kapitel 1")).toBe(true);
+    expect(chunks[2]?.text.startsWith("## Abschnitt 1.1")).toBe(true);
+    for (const chunk of chunks) {
+      expect(md.slice(chunk.startOffset, chunk.endOffset)).toBe(chunk.text);
+    }
+  });
+
+  it("liefert Abschnittsgrenzen und überspringt leeren Vorspann", () => {
+    const md = "\n\n# Titel\nInhalt";
+    expect(extractMarkdownSections(md)).toEqual([
+      { header: "Titel", level: 1, content: "Inhalt", startOffset: 2, endOffset: md.length }
+    ]);
+    expect(extractMarkdownSections("")).toEqual([
+      { header: null, level: 0, content: "", startOffset: 0, endOffset: 0 }
+    ]);
+  });
+
+  it("zerlegt TXT-Dateien auch ohne MIME-Typ anhand der Endung", async () => {
+    const { chunks } = await parseDocument({
+      fileData: new TextEncoder().encode("Einfacher Text."),
+      fileName: "LIESMICH.TXT",
+      mimeType: ""
+    });
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]?.text).toBe("Einfacher Text.");
+  });
+});
+
+describe("DOCX und Bilder im Parser (#152, #153)", () => {
+  it(
+    "verarbeitet eine echte .docx-Datei mit Überschriften-Kontext",
+    { timeout: 180_000 },
+    async () => {
+      const stages: string[] = [];
+      const { chunks, text } = await parseDocument({
+        fileData: fixture("structured.docx"),
+        fileName: "bericht.docx",
+        mimeType: DOCX_MIME_TYPE,
+        maxTokens: 30,
+        overlapTokens: 5,
+        onProgress: (stage) => stages.push(stage)
+      });
+      expect(stages).toEqual(["docx", "chunking"]);
+      expect(text.startsWith("# Projektbericht Quellen")).toBe(true);
+      expect(chunks.find((c) => c.text.includes("Datei hochladen"))?.text).toContain("## Schritte");
+      for (const chunk of chunks) {
+        expect(text.slice(chunk.startOffset, chunk.endOffset)).toBe(chunk.text);
+      }
+    }
+  );
+
+  it("erkennt DOCX auch nur an der Endung und nutzt einen eingeschleusten Konverter", async () => {
+    const { text } = await parseDocument({
+      fileData: new Uint8Array([1]),
+      fileName: "Notiz.DOCX",
+      mimeType: "application/octet-stream",
+      customDocxConverter: async () => "<h2>Kurz</h2><p>Inhalt</p>"
+    });
+    expect(text).toBe("## Kurz\n\nInhalt");
+  });
+
+  it("führt Bilder durch die OCR-Pipeline und skaliert deren Fortschritt auf 0–90 %", async () => {
+    const progress: Array<[string, number]> = [];
+    const { chunks, text } = await parseDocument({
+      fileData: new Uint8Array([1, 2]),
+      fileName: "foto.jpeg",
+      mimeType: "image/jpeg",
+      onProgress: (stage, value) => progress.push([stage, value]),
+      customOcrRecognizer: async (_image, onLog) => {
+        onLog({ status: "recognizing text", progress: 0.5 });
+        return { text: "Text aus dem Bild", confidence: 90 };
+      }
+    });
+    expect(text).toBe("Text aus dem Bild");
+    expect(chunks).toHaveLength(1);
+    expect(progress).toEqual([
+      ["ocr", 0],
+      ["ocr", 59],
+      ["ocr", 90],
+      ["chunking", 95]
+    ]);
+  });
+
+  it("leitet den Bildtyp aus der Endung ab, wenn der Browser keinen liefert", async () => {
+    const seen: string[] = [];
+    for (const name of ["a.png", "b.webp", "c.jpg"]) {
+      await parseDocument({
+        fileData: new Uint8Array([1]),
+        fileName: name,
+        mimeType: "",
+        customOcrRecognizer: async () => {
+          seen.push(name);
+          return { text: "ok", confidence: 99 };
+        }
+      });
+    }
+    expect(seen).toEqual(["a.png", "b.webp", "c.jpg"]);
+  });
+});
+
+describe("Worker-Pipeline progress → chunks_ready / error (#88)", () => {
+  it(
+    "meldet steigenden Fortschritt mit Phase und zum Schluss Chunks samt Volltext",
+    { timeout: 180_000 },
+    async () => {
+      const messages: IngestParserWorkerResponse[] = [];
+      await handleParserMessage(
+        {
+          type: "PARSE_DOCUMENT",
+          payload: {
+            fileData: fixture("three-pages.pdf"),
+            fileName: "three-pages.pdf",
+            mimeType: "application/pdf"
+          }
+        },
+        (m) => messages.push(m)
+      );
+      const types = messages.map((m) => m.type);
+      expect(types.at(-1)).toBe("CHUNKS_EXTRACTED");
+      expect(types.slice(0, -1).every((t) => t === "PROGRESS")).toBe(true);
+      const progress = messages.flatMap((m) => (m.type === "PROGRESS" ? [m] : []));
+      expect(progress.map((m) => m.stage)).toEqual(["reading", "pdf", "chunking", "chunking"]);
+      expect(progress.map((m) => m.progress)).toEqual([5, 10, 70, 100]);
+      const done = messages.at(-1);
+      if (done?.type !== "CHUNKS_EXTRACTED") throw new Error("missing result");
+      expect(done.chunks.map((c) => c.pageNumber)).toEqual([1, 2, 3]);
+      expect(done.text).toContain("Seite drei");
+    }
+  );
+
+  it("meldet Fehler mit Code: unlesbares Bild, zu viel Text, unbekannte Anfrage", async () => {
+    const run = async (request: IngestParserWorkerRequest, overrides: ParserOverrides = {}) => {
+      const messages: IngestParserWorkerResponse[] = [];
+      await handleParserMessage(request, (m) => messages.push(m), overrides);
+      return messages.at(-1);
+    };
+
+    expect(
+      await run(
+        {
+          type: "PARSE_DOCUMENT",
+          payload: { fileData: new Uint8Array([1]), fileName: "x.png", mimeType: "image/png" }
+        },
+        { customOcrRecognizer: async () => ({ text: "", confidence: 0 }) }
+      )
+    ).toMatchObject({ type: "ERROR", code: "unreadable" });
+
+    expect(
+      await run({
+        type: "PARSE_DOCUMENT",
+        payload: {
+          fileData: new TextEncoder().encode("wort ".repeat(500_001)),
+          fileName: "riesig.txt",
+          mimeType: "text/plain"
+        }
+      })
+    ).toMatchObject({ type: "ERROR", code: "too_large" });
+
+    expect(await run({ type: "UNKNOWN" } as unknown as IngestParserWorkerRequest)).toMatchObject({
+      type: "ERROR",
+      code: "failed",
+      error: "Unknown request type: UNKNOWN"
+    });
+  });
+
+  it("ordnet Fehlerarten Codes zu, auch für Nicht-Error-Werte", () => {
+    expect(ingestErrorCode(new UnsupportedFormatError("a/b", "c"))).toBe("unsupported");
+    expect(ingestErrorCode(new TextTooLargeError(2, 1))).toBe("too_large");
+    expect(ingestErrorCode("kaputt")).toBe("failed");
+  });
+
+  it("wandelt geworfene Nicht-Error-Werte in eine Fehlermeldung um", async () => {
+    const messages: IngestParserWorkerResponse[] = [];
+    await handleParserMessage(
+      {
+        type: "PARSE_DOCUMENT",
+        payload: { fileData: new Uint8Array([1]), fileName: "x.pdf", mimeType: "application/pdf" }
+      },
+      (m) => messages.push(m),
+      {
+        customPdfExtractor: async () => {
+          throw "kein Error-Objekt";
+        }
+      }
+    );
+    expect(messages.at(-1)).toEqual({ type: "ERROR", error: "kein Error-Objekt", code: "failed" });
   });
 });
