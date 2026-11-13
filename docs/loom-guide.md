@@ -48,4 +48,4 @@ Nicht sagen, solange es nicht geprüft ist: Zahlen zu Issues oder Pull Requests 
 
 ## Antwort-E-Mail
 
-Die Abgabe-Mail wird nicht im Repository gepflegt. Der Inhaber schreibt sie selbst und schickt sie selbst ab.
+Die Abgabe-Mail wird nicht im Repository gepflegt. Nicht versendet: Der Inhaber setzt `{{LIVE_URL}}` und `{{LOOM_URL}}` selbst ein und schickt die Mail selbst ab.
