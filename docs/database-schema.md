@@ -169,3 +169,15 @@ Damit Abfragen im Cloudflare Free-Plan (Limit: 5 Mio. gelesene Zeilen pro Tag) k
 | `idx_sessions_expires` | `sessions(expires_at)` | Effiziente stündliche Cron-Bereinigung abgelaufener Sitzungen. |
 | `idx_users_guest_expires` | `users(is_guest, expires_at)` | Automatische 24-Stunden-Löschung abgelaufener Gastkonten inkl. Kaskadierung. |
 | `idx_notebooks_expires` | `notebooks(expires_at)` | Automatische 30-Tage-Bereinigung temporärer Demo-Notebooks. |
+| `idx_webauthn_challenges_expires_at` | `webauthn_challenges(expires_at)` | Löschen abgelaufener WebAuthn-Challenges (bei jeder neuen Challenge und im stündlichen Cron). |
+
+### WebAuthn-Challenges (`0003_webauthn_challenges.sql`)
+
+Passkey-Challenges liegen in D1, nicht im Speicher einer einzelnen Worker-Instanz. Jede Challenge gilt fünf Minuten und lässt sich genau einmal verwenden: `consumeChallenge` holt sie mit `DELETE … RETURNING` in einer einzigen Anweisung heraus, eine zweite Verwendung findet nichts mehr (Replay-Schutz). Registrierungs-Challenges tragen die `user_id` und gelten nur für diese Person.
+
+| Spalte | Typ | Bedeutung |
+|---|---|---|
+| `challenge_key` | `TEXT PRIMARY KEY` | `reg:<user_id>` oder `login:<challenge>` |
+| `challenge` | `TEXT` | Die an den Browser ausgegebene Challenge |
+| `user_id` | `TEXT NULL` | Bei Registrierung die angemeldete Person, beim Login leer |
+| `created_at`, `expires_at` | `INTEGER` | Zeitstempel in ms, Ablauf nach 5 Minuten |

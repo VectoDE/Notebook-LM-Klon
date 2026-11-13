@@ -13,7 +13,8 @@
 * [**6. Barrierefreiheit (WCAG AAA)**](6-Barrierefreiheit-WCAG-AAA)
 * [**7. Cloudflare-Free-Limits**](7-Cloudflare-Free-Limits)
 * [**8. Loom-Präsentations-Leitfaden**](8-Loom-Praesentations-Leitfaden)
-* [**9. Datenschutz je KI-Modell**](9-Datenschutz-je-KI-Modell)
+* [**9. Lasttests**](9-Lasttests)
+* [**10. Datenschutz je KI-Modell**](10-Datenschutz-je-KI-Modell)
 
 ---
 * [**Haupt-Repository**](https://github.com/VectoDE/Notebook-LM-Klon)

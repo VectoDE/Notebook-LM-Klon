@@ -26,7 +26,7 @@ const REQUIRED_DOCS = [
   "docs/wiki/6-Barrierefreiheit-WCAG-AAA.md",
   "docs/wiki/7-Cloudflare-Free-Limits.md",
   "docs/wiki/8-Loom-Praesentations-Leitfaden.md",
-  "docs/wiki/9-Datenschutz-je-KI-Modell.md"
+  "docs/wiki/10-Datenschutz-je-KI-Modell.md"
 ];
 
 const REQUIRED_SVGS = [

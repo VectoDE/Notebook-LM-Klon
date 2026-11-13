@@ -17,7 +17,7 @@ import { TRANSLATIONS, ThemeProvider, type ThemeProviderProps } from "../useThem
 
 const REPO_ROOT = join(import.meta.dirname, "../../../..");
 const DOC = readFileSync(join(REPO_ROOT, "docs/datenschutz-modelle.md"), "utf-8");
-const WIKI = readFileSync(join(REPO_ROOT, "docs/wiki/9-Datenschutz-je-KI-Modell.md"), "utf-8");
+const WIKI = readFileSync(join(REPO_ROOT, "docs/wiki/10-Datenschutz-je-KI-Modell.md"), "utf-8");
 
 function renderDrawer(model: string, language: "de" | "en" = "de"): string {
   return renderToStaticMarkup(
