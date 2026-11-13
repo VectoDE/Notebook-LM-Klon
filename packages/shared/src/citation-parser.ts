@@ -26,6 +26,17 @@ export interface CitationValidationResult {
 }
 
 /**
+ * Largest number of indices a single range marker such as `[3-7]` may expand to.
+ * Wider ranges (e.g. `[1-999999999]` in model output) are ignored instead of expanded,
+ * so a single marker cannot block the worker in a loop of millions of iterations.
+ */
+export const MAX_CITATION_RANGE_SPAN = 100;
+
+function isExpandableRange(startNum: number, endNum: number): boolean {
+  return startNum <= endNum && endNum - startNum < MAX_CITATION_RANGE_SPAN;
+}
+
+/**
  * Parses inline citation markers in text.
  * Supports:
  * - Single: `[1]`, `[12]`
@@ -63,7 +74,7 @@ export function extractCitationIndices(text: string): {
         const [startStr, endStr] = trimmedPart.split("-").map((s) => s.trim());
         const startNum = Number.parseInt(startStr as string, 10);
         const endNum = Number.parseInt(endStr as string, 10);
-        if (startNum <= endNum) {
+        if (isExpandableRange(startNum, endNum)) {
           for (let i = startNum; i <= endNum; i++) {
             indicesSet.add(i);
             markers.push({ raw, index: i, startIndex, endIndex });
@@ -125,6 +136,9 @@ export function validateAndCleanCitations(
         const [startStr, endStr] = trimmedPart.split("-").map((s) => s.trim());
         const startNum = Number.parseInt(startStr as string, 10);
         const endNum = Number.parseInt(endStr as string, 10);
+        if (!isExpandableRange(startNum, endNum)) {
+          continue;
+        }
         for (let i = startNum; i <= endNum; i++) {
           if (sourceMap[i]) {
             validIndicesSet.add(i);
