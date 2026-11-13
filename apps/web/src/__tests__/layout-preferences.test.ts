@@ -7,8 +7,10 @@ import {
   defaultCollapsedPanels,
   matchPanelShortcut,
   normalizeNotebookTitle,
+  readChatId,
   readCollapsedPanels,
   readNotebookTitle,
+  storeChatId,
   storeCollapsedPanels,
   storeNotebookTitle
 } from "../layout-preferences.js";
@@ -135,5 +137,22 @@ describe("Notebook-Titel", () => {
     expect(readNotebookTitle(failing, "nb_1", "Standard")).toBe("Standard");
     expect(readNotebookTitle(undefined, "nb_1", "Standard")).toBe("Standard");
     expect(() => storeNotebookTitle(failing, "nb_1", "x")).not.toThrow();
+  });
+
+  it("merkt sich die Chat-Kennung je Notebook (Verlauf nach dem Neuladen, Issue #243)", () => {
+    const storage = memoryStorage();
+    expect(readChatId(storage, "nb_1")).toBeUndefined();
+    storeChatId(storage, "nb_1", "chat_a");
+    storeChatId(storage, "nb_2", "chat_b");
+    expect(readChatId(storage, "nb_1")).toBe("chat_a");
+    expect(readChatId(storage, "nb_2")).toBe("chat_b");
+    const odd = memoryStorage({
+      [LAYOUT_STORAGE_KEYS.chats]: JSON.stringify({ nb_1: 7, nb_2: "" })
+    });
+    expect(readChatId(odd, "nb_1")).toBeUndefined();
+    expect(readChatId(odd, "nb_2")).toBeUndefined();
+    expect(readChatId(failing, "nb_1")).toBeUndefined();
+    expect(readChatId(undefined, "nb_1")).toBeUndefined();
+    expect(() => storeChatId(failing, "nb_1", "x")).not.toThrow();
   });
 });

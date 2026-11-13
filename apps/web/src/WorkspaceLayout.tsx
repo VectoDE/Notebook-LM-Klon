@@ -28,13 +28,16 @@ import { SignInDialog } from "./SignInDialog.js";
 import { SOURCE_FILE_ACCEPT, SourcesPanel } from "./SourcesPanel.js";
 import { StudioPanel, type StudioTool } from "./StudioPanel.js";
 import { Toast, type ToastMessage } from "./Toast.js";
+import { triggerBrowserDownload } from "./artifact-exporters.js";
 import {
   ChatApiError,
   errorKeyForStatus,
+  fetchChatHistory,
   mapCitations,
   streamChat,
   technicalErrorDetail
 } from "./chat-client.js";
+import { chatToMarkdown } from "./chat-export.js";
 import { wipeLocalData } from "./encrypted-store.js";
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
 import { buildKnowledgeGraph } from "./knowledge-graph.js";
@@ -42,8 +45,10 @@ import {
   type CollapsedPanels,
   type CollapsiblePanel,
   matchPanelShortcut,
+  readChatId,
   readCollapsedPanels,
   readNotebookTitle,
+  storeChatId,
   storeCollapsedPanels,
   storeNotebookTitle
 } from "./layout-preferences.js";
@@ -346,7 +351,7 @@ export function WorkspaceLayout({
   notebookId = "nb_active",
   chatFetch
 }: WorkspaceLayoutProps) {
-  const { theme, setTheme, colorMode, setColorMode, t, tf } = useTheme();
+  const { theme, setTheme, colorMode, setColorMode, t, tf, language } = useTheme();
   const isNarrowHeader = useMediaQuery(NARROW_HEADER_QUERY);
   const isSinglePanel = useMediaQuery(SINGLE_PANEL_QUERY);
 
@@ -612,6 +617,29 @@ export function WorkspaceLayout({
   // Laufende Anfrage beim Verlassen abbrechen
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  // Gespeicherten Verlauf vollständig laden, Seite für Seite (Issue #243). Ohne Server
+  // (Vorschau, Offline) bleibt es still bei der Begrüßung.
+  useEffect(() => {
+    const storedChatId = readChatId(browserStorage(), notebookId);
+    if (!storedChatId) return;
+    const controller = new AbortController();
+    fetchChatHistory({ chatId: storedChatId, signal: controller.signal, fetchImpl: chatFetch })
+      .then((items) => {
+        chatIdRef.current = storedChatId;
+        const restored: ChatMessage[] = items
+          .filter((item) => item.role !== "system")
+          .map((item) => ({
+            id: item.id,
+            role: item.role,
+            content: item.content,
+            citations: mapCitations(item.citations ?? [])
+          }));
+        if (restored.length > 0) setMessages((prev) => [...prev.slice(0, 1), ...restored]);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [notebookId, chatFetch]);
+
   // Source selection toggles
   const handleToggleSelectSource = (id: string) => {
     setSources((prev) => prev.map((s) => (s.id === id ? { ...s, isSelected: !s.isSelected } : s)));
@@ -714,11 +742,15 @@ export function WorkspaceLayout({
         chatId: chatIdRef.current,
         model: activeModel,
         sourceIds: selectedIds,
+        language,
         signal: controller.signal,
         fetchImpl: chatFetch
       })) {
         if (ev.type === "token") {
-          if (ev.chatId) chatIdRef.current = ev.chatId;
+          if (ev.chatId && ev.chatId !== chatIdRef.current) {
+            chatIdRef.current = ev.chatId;
+            storeChatId(browserStorage(), notebookId, ev.chatId);
+          }
           updateMessage(assistantId, (m) => ({ ...m, content: m.content + ev.delta }));
         } else if (ev.type === "citations") {
           const citations = mapCitations(ev.citations);
@@ -757,6 +789,32 @@ export function WorkspaceLayout({
     () => messages.map((m) => (m.id === "msg_intro" ? { ...m, content: t("chatWelcome") } : m)),
     [messages, t]
   );
+
+  // Verlauf mit Zitaten als Markdown sichern (Issue #243)
+  const handleExportChat = () => {
+    const titles = new Map(sources.map((s) => [s.id, s.title]));
+    const markdown = chatToMarkdown(
+      chatMessages.filter((m) => m.id !== "msg_intro"),
+      {
+        title: notebookTitle,
+        date: new Date(),
+        labels: {
+          exportedAt: t("chatExportedAt"),
+          user: t("chatUser"),
+          assistant: t("chatAssistant"),
+          sources: t("chatExportSources"),
+          page: t("chatExportPage"),
+          aborted: t("chatStatusAborted"),
+          aiLabel: t("chatExportAiLabel")
+        },
+        sourceTitle: (id) => titles.get(id)
+      }
+    );
+    const file = `${notebookTitle}_${t("chatExportFile")}.md`;
+    if (triggerBrowserDownload(file, markdown, "text/markdown;charset=utf-8")) {
+      notify(tf("toastDownload", { file }));
+    }
+  };
 
   const handleRetryChat = () => {
     if (lastPromptRef.current) void handleSendMessage(lastPromptRef.current, { isRetry: true });
@@ -1084,6 +1142,7 @@ export function WorkspaceLayout({
               onSendMessage={(text) => handleSendMessage(text)}
               onStop={handleStopChat}
               onRetry={handleRetryChat}
+              onExport={handleExportChat}
               onCitationClick={handleCitationClick}
               isGenerating={isGenerating}
               panelAttributes={panelAttributes("chat")}

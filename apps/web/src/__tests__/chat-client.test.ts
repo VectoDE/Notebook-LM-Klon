@@ -3,6 +3,7 @@ import {
   ChatApiError,
   type ChatStreamEvent,
   errorKeyForStatus,
+  fetchChatHistory,
   mapCitations,
   parseSseStream,
   streamChat,
@@ -218,5 +219,75 @@ describe("Fehlertexte in Klartext (Issue #315)", () => {
     expect(technicalErrorDetail(404, "Anfrage fehlgeschlagen (HTTP 404).")).toBe("HTTP 404");
     expect(technicalErrorDetail(409, "Notebook gesperrt")).toBe("HTTP 409 · Notebook gesperrt");
     expect(technicalErrorDetail(0, "Netzwerkfehler")).toBe("Netzwerkfehler");
+  });
+});
+
+describe("fetchChatHistory (Issue #243)", () => {
+  it("lädt alle Seiten über den Cursor, älteste zuerst", async () => {
+    const urls: string[] = [];
+    const pages: Record<string, { messages: unknown[]; nextCursor: string | null }> = {
+      "": { messages: [{ id: "m3", role: "user", content: "3" }], nextCursor: "2~m2" },
+      "2~m2": { messages: [{ id: "m2", role: "assistant", content: "2" }], nextCursor: "1~m1" },
+      "1~m1": { messages: [{ id: "m1", role: "user", content: "1" }], nextCursor: null }
+    };
+    const fetchImpl = asFetch(async (url) => {
+      urls.push(url);
+      const before = new URL(url, "http://x").searchParams.get("before") ?? "";
+      return new Response(JSON.stringify(pages[before]), { status: 200 });
+    });
+    const items = await fetchChatHistory({ chatId: "chat/1", pageSize: 1, fetchImpl });
+    expect(items.map((m) => m.content)).toEqual(["1", "2", "3"]);
+    expect(urls[0]).toBe("/api/v1/chats/chat%2F1/messages?limit=1");
+    expect(urls[1]).toBe("/api/v1/chats/chat%2F1/messages?limit=1&before=2%7Em2");
+  });
+
+  it("Standardgröße 100, Signal wird durchgereicht", async () => {
+    const controller = new AbortController();
+    let seen: RequestInit | undefined;
+    const fetchImpl = asFetch(async (url, init) => {
+      seen = init;
+      expect(url).toContain("limit=100");
+      return new Response(JSON.stringify({ messages: [] }), { status: 200 });
+    });
+    await expect(
+      fetchChatHistory({ chatId: "c", signal: controller.signal, fetchImpl })
+    ).resolves.toEqual([]);
+    expect(seen?.signal).toBe(controller.signal);
+  });
+
+  it("Fehler: Problem Details, Netzwerk, Abbruch, falsche Antwort", async () => {
+    const problem = asFetch(
+      async () =>
+        new Response(JSON.stringify({ detail: "weg", code: "CHAT_NOT_FOUND" }), { status: 404 })
+    );
+    await expect(fetchChatHistory({ chatId: "c", fetchImpl: problem })).rejects.toMatchObject({
+      status: 404,
+      code: "CHAT_NOT_FOUND"
+    });
+    const offline = asFetch(async () => {
+      throw new TypeError("offline");
+    });
+    await expect(fetchChatHistory({ chatId: "c", fetchImpl: offline })).rejects.toMatchObject({
+      status: 0,
+      code: "NETWORK_ERROR"
+    });
+    const aborted = asFetch(async () => {
+      throw new DOMException("stop", "AbortError");
+    });
+    await expect(fetchChatHistory({ chatId: "c", fetchImpl: aborted })).rejects.toThrow("stop");
+    const odd = asFetch(async () => new Response(JSON.stringify({ items: [] }), { status: 200 }));
+    await expect(fetchChatHistory({ chatId: "c", fetchImpl: odd })).rejects.toBeInstanceOf(
+      ChatApiError
+    );
+  });
+
+  it("streamChat schickt die Sprache der Oberfläche mit", async () => {
+    let body = "";
+    const fetchImpl = asFetch(async (_url, init) => {
+      body = String(init.body);
+      return new Response(streamOf([sse("done", { chatId: "c" })]), { status: 200 });
+    });
+    await collect(streamChat({ notebookId: "nb", message: "m", language: "en", fetchImpl }));
+    expect(JSON.parse(body)).toMatchObject({ message: "m", language: "en" });
   });
 });
