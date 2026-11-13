@@ -788,6 +788,8 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
         "fetch",
         vi.fn(async () => Response.json({ success: true }))
       );
+      // cf-connecting-ip is only trusted inside the Cloudflare runtime (#342)
+      vi.stubGlobal("navigator", { userAgent: "Cloudflare-Workers" });
       const saltFx = await createFixture({
         SESSION_SALT_SECRET: "configured-secret-salt",
         TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA"
