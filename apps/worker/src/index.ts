@@ -97,7 +97,15 @@ function registerHealthAndDemoRoutes(app: Hono<ApiEnv>): void {
     const dynamicRoutes = createDemoRoutes({ db, demoGeminiKey: demoKey });
     const subPath = c.req.path.slice("/api/v1/demo".length);
     const subUrl = new URL(subPath, "https://local.worker");
-    const subReq = new Request(subUrl.toString(), c.req.raw);
+    // Explicit init instead of passing the request itself: on Node 26 undici brand-checks
+    // init getters, and the request object of @hono/node-server is not a native Request.
+    const raw = c.req.raw;
+    const hasBody = raw.method !== "GET" && raw.method !== "HEAD";
+    const subReq = new Request(subUrl.toString(), {
+      method: raw.method,
+      headers: raw.headers,
+      ...(hasBody ? { body: await raw.arrayBuffer() } : {})
+    });
     return dynamicRoutes.fetch(subReq, c.env, safeExecutionCtx(c));
   });
 
@@ -182,7 +190,8 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   registerHealthAndDemoRoutes(app);
 
   // 3. Auth (public, rate-limit category "auth")
-  // Guest login and magic-link fail closed (503) when TURNSTILE_SECRET_KEY is missing.
+  // Guest login, magic-link and passkey registration fail closed (503) when
+  // TURNSTILE_SECRET_KEY is missing.
   // Every route that creates a session fails closed (503) when SESSION_SALT_SECRET is missing.
   const requireSalt = requireConfiguredSessionSalt();
   app.use("/api/v1/auth/guest", requireSalt);
@@ -211,6 +220,7 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
         expectedOrigin: config.origin
       }),
       sessionManager,
+      turnstileSecretKey: secrets.TURNSTILE_SECRET_KEY,
       isProduction
     })
   );
