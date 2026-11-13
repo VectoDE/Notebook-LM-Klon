@@ -451,6 +451,24 @@ const ENTRIES: readonly Entry[] = [
   ],
   ["accountOpenSettings", "Einstellungen öffnen", "Open settings"],
 
+  // Abmelden mit Löschen der lokalen Daten (Issue #348)
+  ["signOutWipe", "Abmelden und lokale Daten löschen", "Sign out and delete local data"],
+  [
+    "signOutDone",
+    "Abgemeldet. Die lokalen Daten auf diesem Gerät sind gelöscht.",
+    "Signed out. The local data on this device has been deleted."
+  ],
+  [
+    "signOutLocalOnly",
+    "Lokale Daten sind gelöscht. Der Server war nicht erreichbar, die Sitzung endet spätestens mit ihrem Ablauf.",
+    "Local data has been deleted. The server could not be reached, so the session ends when it expires at the latest."
+  ],
+  [
+    "signOutFailed",
+    "Die lokalen Daten ließen sich nicht vollständig löschen. Schließen Sie andere Tabs dieser Seite und versuchen Sie es erneut.",
+    "The local data could not be fully deleted. Close other tabs of this site and try again."
+  ],
+
   // Anmelden mit Turnstile (Issue #233)
   ["signInOpen", "Anmelden", "Sign in"],
   ["signInTitle", "Anmelden", "Sign in"],

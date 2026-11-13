@@ -15,6 +15,7 @@
 * [**8. Loom-Präsentations-Leitfaden**](8-Loom-Praesentations-Leitfaden)
 * [**9. Lasttests**](9-Lasttests)
 * [**10. Datenschutz je KI-Modell**](10-Datenschutz-je-KI-Modell)
+* [**11. Lokale Verschlüsselung**](11-Lokale-Verschluesselung)
 
 ---
 * [**Haupt-Repository**](https://github.com/VectoDE/Notebook-LM-Klon)

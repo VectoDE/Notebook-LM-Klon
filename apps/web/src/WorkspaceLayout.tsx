@@ -35,6 +35,7 @@ import {
   streamChat,
   technicalErrorDetail
 } from "./chat-client.js";
+import { wipeLocalData } from "./encrypted-store.js";
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
 import { buildKnowledgeGraph } from "./knowledge-graph.js";
 import {
@@ -46,6 +47,7 @@ import {
   storeCollapsedPanels,
   storeNotebookTitle
 } from "./layout-preferences.js";
+import { signOutAndWipe } from "./local-session.js";
 import { browserStorage, readStoredModel, storeModel } from "./theme-preferences.js";
 import { useTheme } from "./useTheme.js";
 import type { CitationLocation, PanelFocusAttributes, WorkspaceSource } from "./workspace-types.js";
@@ -484,6 +486,18 @@ export function WorkspaceLayout({
     tabIndex: -1
   });
 
+  /** Abmelden (Issue #348): lokale Daten löschen, dann die Sitzung am Server beenden. */
+  const signOut = async () => {
+    const result = await signOutAndWipe({
+      fetchFn: (input, init) => fetch(input, init),
+      wipe: () => wipeLocalData(),
+      storage: browserStorage()
+    });
+    setNotebookTitle(DEFAULT_NOTEBOOK_TITLE);
+    if (!result.localWiped) notify(t("signOutFailed"));
+    else notify(t(result.serverSignedOut ? "signOutDone" : "signOutLocalOnly"));
+  };
+
   const renameNotebook = (title: string) => {
     setNotebookTitle(title);
     storeNotebookTitle(browserStorage(), notebookId, title);
@@ -893,6 +907,17 @@ export function WorkspaceLayout({
                   <Icon name="settings" size={18} />
                   {t("accountOpenSettings")}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closePopover(true);
+                    void signOut();
+                  }}
+                  data-testid="account-sign-out"
+                  className="rn-btn rn-btn--secondary rn-btn--block"
+                >
+                  {t("signOutWipe")}
+                </button>
               </dialog>
             )}
           </div>
@@ -1225,6 +1250,17 @@ export function WorkspaceLayout({
                 className="rn-btn rn-btn--primary rn-btn--block"
               >
                 {t("signInOpen")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  closeMenu(false);
+                  void signOut();
+                }}
+                data-testid="sheet-sign-out"
+                className="rn-btn rn-btn--secondary rn-btn--block"
+              >
+                {t("signOutWipe")}
               </button>
             </section>
 
