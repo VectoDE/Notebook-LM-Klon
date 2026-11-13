@@ -22,6 +22,7 @@ können also nicht mehr mit dem festen Wert verschlüsselt werden.
 | GitHub-Läufe | Nur CI, CodeQL, Scorecard, Checklisten-Prüfung und Wiki-Sync, kein Deploy-Lauf | `gh run list --limit 200` |
 | GitHub-Deployments und Environments | 0 Deployments, 0 Environments | `gh api repos/VectoDE/Notebook-LM-Klon/deployments`, `.../environments` |
 | Repository-Secrets und -Variablen | Keine (also auch kein `CLOUDFLARE_API_TOKEN` für automatische Deploys) | `gh secret list`, `gh variable list` |
+| Neuer Deploy-Workflow (PR #370, nach der ersten Prüfung gemergt) | `.github/workflows/deploy.yml` startet nur von Hand mit Freigabe und bricht bei Platzhalter-`database_id` ab. Bisher kein Lauf, weiterhin 0 Deployments | `gh run list --workflow deploy.yml`, `gh api .../deployments` |
 | Cloudflare-Konto (Worker `notebook-lm-klon`, D1 `notebook-lm-db`) | **Nicht prüfbar**: kein Lesezugriff auf das Konto aus dieser Umgebung | Inhaber-Schritt, siehe unten |
 
 **Einschätzung:** Aus dem Repository heraus gibt es keinen Hinweis auf eine Live-Umgebung. Die
