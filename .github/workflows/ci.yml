@@ -72,8 +72,8 @@ jobs:
       - name: Install dependencies (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
-      - name: Install Chromium for Playwright
-        run: pnpm --filter @notebook-lm/web exec playwright install --with-deps chromium
+      - name: Install Chromium, Firefox and WebKit for Playwright
+        run: pnpm --filter @notebook-lm/web exec playwright install --with-deps chromium firefox webkit
 
       - name: Run Playwright E2E
         run: pnpm --filter @notebook-lm/web test:e2e
