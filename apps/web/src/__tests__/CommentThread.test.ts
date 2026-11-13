@@ -3,11 +3,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { CommentThread, renderCommentBody } from "../CommentThread.js";
 import { SourcesPanel } from "../SourcesPanel.js";
-import { ThemeProvider } from "../useTheme.js";
+import { ThemeProvider, type ThemeProviderProps } from "../useTheme.js";
 
 function inTheme(language: "de" | "en", child: ReturnType<typeof createElement>): string {
   return renderToStaticMarkup(
-    createElement(ThemeProvider, { defaultLanguage: language, children: child })
+    createElement(ThemeProvider, { defaultLanguage: language } as ThemeProviderProps, child)
   );
 }
 
