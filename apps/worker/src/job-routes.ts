@@ -39,12 +39,68 @@ export async function forwardToJobDO(
   });
 }
 
+const PROBLEM_HEADERS = { "content-type": "application/problem+json; charset=utf-8" } as const;
+
+function unauthorized(instance: string): Response {
+  return Response.json(
+    createProblemDetails({
+      status: 401,
+      title: "Unauthorized",
+      detail: "Authentifizierung erforderlich.",
+      instance,
+      code: "UNAUTHORIZED"
+    }),
+    { status: 401, headers: PROBLEM_HEADERS }
+  );
+}
+
+function jobNotFound(jobId: string, instance: string): Response {
+  return Response.json(
+    createProblemDetails({
+      status: 404,
+      title: "Not Found",
+      detail: `Job '${jobId}' wurde in diesem Notebook nicht gefunden.`,
+      instance,
+      code: "JOB_NOT_FOUND"
+    }),
+    { status: 404, headers: PROBLEM_HEADERS }
+  );
+}
+
+/**
+ * Loads a job from the notebook's own JobDO and checks that it belongs to that notebook.
+ * A job of another notebook (or an unknown id) yields 404, so job ids cannot be probed
+ * across notebooks (IDOR). Errors of the JobDO itself (503) are passed through.
+ */
+export async function fetchNotebookJob(
+  env: Env | undefined,
+  notebookId: string,
+  jobId: string,
+  instance: string
+): Promise<Record<string, unknown> | Response> {
+  const doRequest = new Request(`http://internal/jobs/${encodeURIComponent(jobId)}`, {
+    method: "GET"
+  });
+  const res = await forwardToJobDO(env, doRequest, notebookId);
+  if (res.status === 404) {
+    return jobNotFound(jobId, instance);
+  }
+  if (!res.ok) {
+    return res;
+  }
+  const job = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!job || job.notebookId !== notebookId) {
+    return jobNotFound(jobId, instance);
+  }
+  return job;
+}
+
 /**
  * Creates a standalone Hono router for Job Queue & Status API:
  * - POST /api/v1/jobs/enqueue
  * - GET /api/v1/jobs
- * - GET /api/v1/jobs/:id
- * - POST /api/v1/jobs/:id/cancel
+ * - GET /api/v1/notebooks/:id/jobs/:jobId
+ * - POST /api/v1/notebooks/:id/jobs/:jobId/cancel
  */
 export function createJobRoutes(
   deps: JobRoutesDependencies = {}
@@ -58,8 +114,8 @@ export function createJobRoutes(
  * Registers the Job Queue & Status API routes:
  * - POST /api/v1/jobs/enqueue (Enqueue new job)
  * - GET /api/v1/jobs (List jobs, filterable by status/kind/notebookId)
- * - GET /api/v1/jobs/:id (Get job status & progress)
- * - POST /api/v1/jobs/:id/cancel (Cancel job)
+ * - GET /api/v1/notebooks/:id/jobs/:jobId (Job status & progress, only jobs of that notebook)
+ * - POST /api/v1/notebooks/:id/jobs/:jobId/cancel (Cancel a job of that notebook)
  */
 export function registerJobRoutes(
   app: Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>,
@@ -225,45 +281,42 @@ export function registerJobRoutes(
     return forwardToJobDO(c.env, doRequest, notebookId || "global");
   });
 
-  // 3. GET /api/v1/jobs/:id
-  app.get("/api/v1/jobs/:id", async (c) => {
-    const sessionUser = c.get("sessionUser");
-    if (!sessionUser) {
-      const problem = createProblemDetails({
-        status: 401,
-        title: "Unauthorized",
-        detail: "Authentifizierung erforderlich.",
-        instance: c.req.path,
-        code: "UNAUTHORIZED"
-      });
-      return c.json(problem, 401, {
-        "content-type": "application/problem+json; charset=utf-8"
-      });
+  // 3. GET /api/v1/notebooks/:id/jobs/:jobId
+  // Notebook role (viewer) is enforced by the API app before this handler runs.
+  app.get("/api/v1/notebooks/:id/jobs/:jobId", async (c) => {
+    if (!c.get("sessionUser")) {
+      return unauthorized(c.req.path);
     }
-
-    const jobId = c.req.param("id");
-    const doRequest = new Request(`http://internal/jobs/${jobId}`, { method: "GET" });
-    return forwardToJobDO(c.env, doRequest, jobId);
+    const lookup = await fetchNotebookJob(
+      c.env,
+      c.req.param("id"),
+      c.req.param("jobId"),
+      c.req.path
+    );
+    if (lookup instanceof Response) {
+      return lookup;
+    }
+    return Response.json(lookup, {
+      status: 200,
+      headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
+    });
   });
 
-  // 4. POST /api/v1/jobs/:id/cancel
-  app.post("/api/v1/jobs/:id/cancel", async (c) => {
-    const sessionUser = c.get("sessionUser");
-    if (!sessionUser) {
-      const problem = createProblemDetails({
-        status: 401,
-        title: "Unauthorized",
-        detail: "Authentifizierung erforderlich.",
-        instance: c.req.path,
-        code: "UNAUTHORIZED"
-      });
-      return c.json(problem, 401, {
-        "content-type": "application/problem+json; charset=utf-8"
-      });
+  // 4. POST /api/v1/notebooks/:id/jobs/:jobId/cancel
+  // Notebook role (editor) is enforced by the API app before this handler runs.
+  app.post("/api/v1/notebooks/:id/jobs/:jobId/cancel", async (c) => {
+    if (!c.get("sessionUser")) {
+      return unauthorized(c.req.path);
     }
-
-    const jobId = c.req.param("id");
-    const doRequest = new Request(`http://internal/jobs/${jobId}/cancel`, { method: "POST" });
-    return forwardToJobDO(c.env, doRequest, jobId);
+    const notebookId = c.req.param("id");
+    const jobId = c.req.param("jobId");
+    const lookup = await fetchNotebookJob(c.env, notebookId, jobId, c.req.path);
+    if (lookup instanceof Response) {
+      return lookup;
+    }
+    const doRequest = new Request(`http://internal/jobs/${encodeURIComponent(jobId)}/cancel`, {
+      method: "POST"
+    });
+    return forwardToJobDO(c.env, doRequest, notebookId);
   });
 }
