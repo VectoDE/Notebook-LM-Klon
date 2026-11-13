@@ -28,6 +28,9 @@ function fakeFetch(responses: Array<Response | Error>) {
   return { fn, calls };
 }
 
+/** Platzhalter ohne Entropie, damit der Secret-Scan nicht anschlägt. */
+const SAMPLE_KEY = "x".repeat(12);
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
@@ -58,7 +61,7 @@ describe("custom-endpoint-client (Issue #247)", () => {
         baseUrl: " https://x.example/v1 ",
         chatModel: " m ",
         embedModel: " e ",
-        apiKey: " key123456789 "
+        apiKey: ` ${SAMPLE_KEY} `
       },
       a.fn
     );
@@ -68,7 +71,7 @@ describe("custom-endpoint-client (Issue #247)", () => {
       embedModel: "e"
     });
     expect(a.calls[1]?.url).toBe("/api/v1/keys/custom");
-    expect(JSON.parse(String(a.calls[1]?.init.body))).toEqual({ apiKey: "key123456789" });
+    expect(JSON.parse(String(a.calls[1]?.init.body))).toEqual({ apiKey: SAMPLE_KEY });
 
     const b = fakeFetch([ok()]);
     await saveCustomEndpoint(
