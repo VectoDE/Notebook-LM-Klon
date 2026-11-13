@@ -592,6 +592,118 @@ describe("Chat Routes & SSE Streaming (POST /api/v1/notebooks/:id/chat & GET /ap
     await resAgain.text();
   });
 
+  it("does not write into an existing chat that belongs to another notebook", async () => {
+    const foreignChatId = "chat_foreign_notebook";
+    const now = Date.now();
+    await coreRepo.createNotebook({
+      id: "nb_foreign_chat",
+      workspace_id: testWorkspaceId,
+      title: "Fremdes Notebook",
+      emoji: "chat",
+      created_by: testUserId,
+      created_at: now,
+      updated_at: now,
+      expires_at: null
+    });
+    await ragRepo.createChat({
+      id: foreignChatId,
+      notebook_id: "nb_foreign_chat",
+      user_id: testUserId,
+      title: "Fremd",
+      model_used: "auto",
+      created_at: now,
+      updated_at: now
+    });
+
+    const res = await app.request(`http://localhost/api/v1/notebooks/${testNotebookId}/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "Einbruchsversuch", chatId: foreignChatId })
+    });
+
+    expect(res.status).toBe(404);
+    expect(await res.json()).toMatchObject({ code: "CHAT_NOT_FOUND" });
+    expect(await ragRepo.getMessagesByChat(foreignChatId)).toHaveLength(0);
+  });
+
+  it("does not write into another user's chat without edit rights", async () => {
+    const foreignUserChatId = "chat_other_user_no_rights";
+    const now = Date.now();
+    await coreRepo.createUser({
+      id: "usr_chat_other",
+      email: "other-chat@example.com",
+      display_name: "Fremder Nutzer",
+      locale: "de",
+      is_guest: 0,
+      created_at: now,
+      expires_at: null,
+      deleted_at: null
+    });
+    await ragRepo.createChat({
+      id: foreignUserChatId,
+      notebook_id: testNotebookId,
+      user_id: "usr_chat_other",
+      title: "Fremder Nutzer",
+      model_used: "auto",
+      created_at: now,
+      updated_at: now
+    });
+
+    // Without coreRepo no role can be resolved, so a non-owner must be refused.
+    const noCoreApp = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
+    noCoreApp.use("*", async (c, next) => {
+      c.set("sessionUser", { id: testUserId });
+      await next();
+    });
+    registerChatRoutes(noCoreApp, { ragRepo, autoRouter });
+
+    const res = await noCoreApp.request(
+      `http://localhost/api/v1/notebooks/${testNotebookId}/chat`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message: "Nicht erlaubt", chatId: foreignUserChatId })
+      }
+    );
+
+    expect(res.status).toBe(404);
+    expect(await ragRepo.getMessagesByChat(foreignUserChatId)).toHaveLength(0);
+  });
+
+  it("allows a notebook owner to continue another user's chat in the same notebook", async () => {
+    const memberChatId = "chat_member_same_notebook";
+    const now = Date.now();
+    await coreRepo.createUser({
+      id: "usr_chat_member",
+      email: "member-chat@example.com",
+      display_name: "Mitglied",
+      locale: "de",
+      is_guest: 0,
+      created_at: now,
+      expires_at: null,
+      deleted_at: null
+    });
+    await ragRepo.createChat({
+      id: memberChatId,
+      notebook_id: testNotebookId,
+      user_id: "usr_chat_member",
+      title: "Mitglied",
+      model_used: "auto",
+      created_at: now,
+      updated_at: now
+    });
+
+    const res = await app.request(`http://localhost/api/v1/notebooks/${testNotebookId}/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "Folgefrage des Eigentümers", chatId: memberChatId })
+    });
+
+    expect(res.status).toBe(200);
+    await res.text();
+    expect(await ragRepo.getMessagesByChat(memberChatId)).not.toHaveLength(0);
+  });
+
   it("returns 404 for unknown chat in GET /api/v1/chats/:id/messages", async () => {
     const res = await app.request("http://localhost/api/v1/chats/chat_unknown/messages");
     expect(res.status).toBe(404);
