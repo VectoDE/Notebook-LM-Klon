@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const REPO_ROOT = join(import.meta.dirname, "../../../..");
@@ -125,7 +125,14 @@ describe("docs/openssf.md: Pflichtkapitel (#148)", () => {
   });
 
   it("covers the Passing criteria groups and the single-maintainer exception honestly", () => {
-    for (const group of ["Basics", "Change Control", "Reporting", "Quality", "Security", "Analysis"]) {
+    for (const group of [
+      "Basics",
+      "Change Control",
+      "Reporting",
+      "Quality",
+      "Security",
+      "Analysis"
+    ]) {
       expect(doc).toContain(group);
     }
     expect(doc).toContain("Zweite Freigabe");
