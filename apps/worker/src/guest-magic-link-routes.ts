@@ -1,5 +1,6 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import { type Context, Hono } from "hono";
+import type { AuditLogger } from "./audit-log.js";
 import type { CoreRepository } from "./core-repository.js";
 import { seedDemoNotebooks } from "./demo-seeder.js";
 import type { MailAdapter } from "./mail-adapter.js";
@@ -29,6 +30,8 @@ export interface GuestAndMagicLinkRoutesOptions {
   appBaseUrl: string;
   isProduction?: boolean;
   customFetch?: typeof fetch;
+  /** Security audit log (Issue #259); logins are recorded when set. */
+  auditLogger?: AuditLogger | undefined;
 }
 
 function generateSecureSuffix(): string {
@@ -202,6 +205,11 @@ export function createGuestAndMagicLinkRoutes(
     // Create active session
     const ua = c.req.header("user-agent") || null;
     const session = await opts.sessionManager.createSession(guestId, ip, ua);
+    await opts.auditLogger?.record(c, {
+      userId: guestId,
+      action: "auth.login.guest",
+      target: `user:${guestId}`
+    });
 
     const cookieHeader = buildSessionCookie(
       session.rawToken,
@@ -417,6 +425,11 @@ export function createGuestAndMagicLinkRoutes(
     const ip = c.req.header("cf-connecting-ip") || null;
     const ua = c.req.header("user-agent") || null;
     const session = await opts.sessionManager.createSession(user.id, ip, ua);
+    await opts.auditLogger?.record(c, {
+      userId: user.id,
+      action: "auth.login.magic_link",
+      target: `user:${user.id}`
+    });
 
     const cookieHeader = buildSessionCookie(
       session.rawToken,

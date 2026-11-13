@@ -17,7 +17,7 @@ Stand: 2026-11-13 · Issue #258
 | 5 | Inhalte | Notebooks, Quellen, Chunks, Vektoren, Chats, Notizen, Artefakte | Nutzer, in Quellen genannte Dritte | Kernfunktion | D1, R2 `notebooks/{id}/` | sofort bei Löschung von Quelle, Notebook oder Konto; Demo-Notebooks nach 30 Tagen |
 | 6 | Eigene API-Schlüssel (BYOK) | verschlüsselter Schlüssel, letzte 4 Zeichen | Nutzer | Aufrufe beim gewählten KI-Anbieter | D1 `provider_keys` | sofort bei Entfernen oder Kontolöschung |
 | 7 | Kontingente und Rate-Limits | Zähler je Konto, Zähler je IP-Hash | Nutzer, Besucher | Missbrauch und Kosten begrenzen | D1 `quotas`, `rate_limits`, Arbeitsspeicher | Kontingente mit dem Konto; Rate-Limit-Fenster 1 Minute |
-| 8 | Audit-Log | Aktion, Ziel-ID, gesalzener IP-Hash, Zeitpunkt | Nutzer | Sicherheit, Nachweis | D1 `audit_log` | siehe Issue #259; Personenbezug entfällt bei Kontolöschung |
+| 8 | Audit-Log | Aktion (Login, Quellen- und Kontolöschung), Ziel-ID, tagesweise gesalzener IP-Hash, Zeitpunkt; keine Inhalte, Titel, E-Mail-Adressen | Nutzer | Sicherheit, Nachweis | D1 `audit_log` | 90 Tage (stündlicher Cron); `user_id` wird bei Kontolöschung `NULL` |
 | 9 | Missbrauchsmeldungen | Ziel-ID, Grund, meldende Person | Nutzer | Moderation (AI Act) | D1 `abuse_reports` | [Frist festlegen] |
 | 10 | Backups | alle Daten aus D1 | alle oben | Wiederherstellung | D1 Time Travel | 30 Tage (Workers Paid), 7 Tage (Free) |
 

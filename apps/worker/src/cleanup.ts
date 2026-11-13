@@ -1,3 +1,4 @@
+import { purgeExpiredAuditEntries } from "./audit-log.js";
 import type { DatabaseAdapter } from "./core-repository.js";
 
 export interface MinimalR2Bucket {
@@ -15,6 +16,8 @@ export interface CleanupMetrics {
   deletedMagicLinks: number;
   deletedNotebooks: number;
   deletedR2Objects: number;
+  /** Audit entries older than AUDIT_RETENTION_DAYS (Issue #259). */
+  deletedAuditEntries: number;
   durationMs: number;
 }
 
@@ -32,6 +35,7 @@ export interface RunCleanupOptions {
  * - Expired magic links (expires_at < now)
  * - Expired demo notebooks (expires_at IS NOT NULL AND expires_at < now)
  * - Associated R2 objects (sources, artifacts) under guest / notebook prefixes
+ * - Audit log entries older than the retention period (90 days)
  */
 export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<CleanupMetrics> {
   const startTime = Date.now();
@@ -90,6 +94,9 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
   const magicLinkDelRes = await db.run("DELETE FROM magic_links WHERE expires_at < ?", [now]);
   deletedMagicLinks = magicLinkDelRes.changes;
 
+  // 5. Enforce audit log retention
+  const deletedAuditEntries = await purgeExpiredAuditEntries(db, now);
+
   const durationMs = Date.now() - startTime;
 
   return {
@@ -98,6 +105,7 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
     deletedMagicLinks,
     deletedNotebooks,
     deletedR2Objects,
+    deletedAuditEntries,
     durationMs
   };
 }

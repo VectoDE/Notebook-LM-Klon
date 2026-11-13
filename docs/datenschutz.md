@@ -1,6 +1,6 @@
 # Datenschutzhinweise (Entwurf)
 
-Stand: 2026-11-13 · Issue #258
+Stand: 2026-11-13 · Issues #258, #259
 
 > Entwurf aus Sicht der Technik, keine Rechtsberatung. Bitte vor Veröffentlichung von einer Anwältin oder einem Anwalt prüfen lassen. Angaben in eckigen Klammern ergänzt der Betreiber.
 
@@ -13,6 +13,7 @@ Stand: 2026-11-13 · Issue #258
 - **Konto:** E-Mail-Adresse (bei Anmeldung per Magic Link), Anzeigename, Sprache, Passkey-Daten. Gastkonten laufen nach 24 Stunden ab.
 - **Inhalte:** Notebooks, hochgeladene Quellen, Chats, Notizen und erzeugte Artefakte. Sie liegen in Cloudflare D1 und R2.
 - **Sitzung:** Ein technisch notwendiges Cookie (`__Host-sid`) hält Sie angemeldet. Im Speicher steht nur ein Hash des Tokens, IP-Adresse und Browserkennung nur als tagesweise gesalzener Hash.
+- **Sicherheitsprotokoll:** Anmeldungen sowie das Löschen von Quellen und Konten werden mit Zeitpunkt, Art des Ereignisses und der betroffenen ID protokolliert. Die IP-Adresse steht dort nur als tagesweise gesalzener Hash, Inhalte von Quellen nie. Die Einträge werden nach 90 Tagen gelöscht.
 - **Einstellungen im Browser:** Design, Farbmodus, Sprache, Spaltenlayout und Ihre Einwilligungsentscheidung liegen im lokalen Speicher Ihres Browsers und verlassen das Gerät nicht.
 
 ## Löschung

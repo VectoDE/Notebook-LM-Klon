@@ -25,7 +25,7 @@ Der Test `apps/worker/src/__tests__/account-routes.test.ts` belegt, dass nach de
 ## Bewusste Entscheidungen
 
 - **Notebooks in fremden Arbeitsbereichen:** Hat die Person ein Notebook in einem fremden Arbeitsbereich angelegt, wird es mitgelöscht (`created_by` ist `ON DELETE RESTRICT`). Eine Übergabe an den Inhaber des Arbeitsbereichs ist nicht umgesetzt; das wäre eine eigene Entscheidung des Inhabers.
-- **Audit-Log:** Einträge bleiben bis zum Ende ihrer Aufbewahrungsfrist stehen, die Verknüpfung zur Person wird aber gelöscht (`user_id` wird `NULL`). Die IP liegt dort nur als gesalzener Hash vor.
+- **Audit-Log:** Einträge bleiben bis zum Ende ihrer Aufbewahrungsfrist von 90 Tagen stehen (`AUDIT_RETENTION_DAYS` in `apps/worker/src/audit-log.ts`, durchgesetzt vom stündlichen Cron), die Verknüpfung zur Person wird aber gelöscht (`user_id` wird `NULL`). Die Kontolöschung selbst wird als `account.delete` mit der Konto-ID als Ziel protokolliert. Die IP liegt nur als tagesweise gesalzener Hash vor, Quelleninhalte nie.
 - **Durable Objects:** Zwischengespeicherte Vektoren im `NotebookDO` werden nicht aktiv geleert. Sie hängen an der Notebook-ID, die nach der Löschung nicht mehr erreichbar ist, und werden beim nächsten Neuaufbau verworfen.
 
 ## Backups: D1 Time Travel

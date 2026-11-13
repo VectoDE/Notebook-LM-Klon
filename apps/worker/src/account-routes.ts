@@ -1,5 +1,6 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import type { Hono } from "hono";
+import type { AuditLogger } from "./audit-log.js";
 import { type MinimalR2Bucket, purgeUsers } from "./cleanup.js";
 import type { CoreRepository } from "./core-repository.js";
 import { buildClearSessionCookie } from "./session.js";
@@ -10,6 +11,7 @@ export const ACCOUNT_DELETE_CONFIRMATION = "DELETE_MY_ACCOUNT";
 export interface AccountRoutesDependencies {
   readonly coreRepo: CoreRepository;
   readonly isProduction: boolean;
+  readonly auditLogger?: AuditLogger | undefined;
 }
 
 const PROBLEM_HEADERS = { "content-type": "application/problem+json; charset=utf-8" } as const;
@@ -65,6 +67,12 @@ export function registerAccountRoutes(
 
     const mediaBucket = (c.env.MEDIA ?? null) as MinimalR2Bucket | null;
     const result = await purgeUsers(deps.coreRepo.db, mediaBucket, [sessionUser.id]);
+    // Written after the purge: the user row is gone, so the entry carries no user_id.
+    await deps.auditLogger?.record(c, {
+      userId: null,
+      action: "account.delete",
+      target: `user:${sessionUser.id}`
+    });
 
     return c.json(
       {
