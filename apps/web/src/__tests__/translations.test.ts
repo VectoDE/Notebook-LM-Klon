@@ -91,7 +91,8 @@ describe("Oberfläche auf Englisch", () => {
       "High contrast (AAA)",
       "Calm clarity",
       "Reduce motion",
-      ">Role</label>",
+      ">Role (preview)</label>",
+      "Preview only: this choice changes nothing yet.",
       ">Viewer</option>",
       "Design and color scheme are saved on this device."
     ]) {

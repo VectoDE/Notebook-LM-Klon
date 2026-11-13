@@ -14,6 +14,7 @@ const REQUIRED_DOCS = [
   "docs/accessibility-wcag-aaa.md",
   "docs/database-schema.md",
   "docs/loom-presentation-guide.md",
+  "docs/datenschutz-modelle.md",
   "docs/wiki/Home.md",
   "docs/wiki/_Sidebar.md",
   "docs/wiki/_Footer.md",
@@ -24,7 +25,8 @@ const REQUIRED_DOCS = [
   "docs/wiki/5-Security-DSGVO-und-AI-Act.md",
   "docs/wiki/6-Barrierefreiheit-WCAG-AAA.md",
   "docs/wiki/7-Cloudflare-Free-Limits.md",
-  "docs/wiki/8-Loom-Praesentations-Leitfaden.md"
+  "docs/wiki/8-Loom-Praesentations-Leitfaden.md",
+  "docs/wiki/10-Datenschutz-je-KI-Modell.md"
 ];
 
 const REQUIRED_SVGS = [
