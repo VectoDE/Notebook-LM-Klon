@@ -5,7 +5,7 @@ import { type Page, expect, test } from "@playwright/test";
  * Server mit VITE_GTM_ID=GTM-TEST0001. Anfragen an Google werden abgefangen.
  */
 const GOOGLE =
-  /googletagmanager\.com|google-analytics\.com|analytics\.google\.com|doubleclick\.net/;
+  /^https:\/\/([a-z0-9-]+\.)*(googletagmanager\.com|google-analytics\.com|analytics\.google\.com|doubleclick\.net)\//;
 
 async function watchGoogle(page: Page): Promise<string[]> {
   const requests: string[] = [];
