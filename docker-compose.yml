@@ -12,6 +12,11 @@ services:
       - APP_ORIGIN=http://localhost:8787
       # Secret, from the host environment (e.g. `openssl rand -hex 32`). Without it login is blocked (503).
       - SESSION_SALT_SECRET
+      # Secret, from the host environment (e.g. `openssl rand -hex 32`, at least 32 characters).
+      # Without it BYOK key storage is off (503). See apps/worker/.env.example and docs/security-and-compliance.md.
+      - KEK_V1
+      - KEK_V2
+      - KEK_CURRENT_VERSION
     volumes:
       - app-data:/app/.data
     restart: unless-stopped
