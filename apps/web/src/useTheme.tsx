@@ -42,6 +42,7 @@ import {
 } from "./theme-preferences.js";
 import { AREA_DE, AREA_EN } from "./translations-areas.js";
 import { ENTITY_GRAPH_DE, ENTITY_GRAPH_EN } from "./translations-entity-graph.js";
+import { STRUCTURED_DE, STRUCTURED_EN } from "./translations-structured.js";
 
 export { COLOR_MODES, COLOR_MODE_PREFERENCES, LANGUAGES, THEMES };
 export type { ColorMode, ColorModePreference, DesignTheme, Language };
@@ -54,6 +55,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   de: {
     ...AREA_DE,
     ...ENTITY_GRAPH_DE,
+    ...STRUCTURED_DE,
     appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
     appSubtitle:
       "Bereit für Forschung, Quellenanalyse, Wissengraphen und barrierefreie Studio-Synthese.",
@@ -137,7 +139,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navChat: "Chat",
     navChatAria: "Chat & Zitate",
     navStudio: "Studio",
-    navStudioAria: "Studio (7 Werkzeuge)",
+    navStudioAria: "Studio (10 Werkzeuge)",
     navSettings: "Einstellungen",
     navSettingsHint: "Sprache, KI-Modell, Datenschutz",
     menuOpen: "Menü öffnen",
@@ -158,6 +160,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   en: {
     ...AREA_EN,
     ...ENTITY_GRAPH_EN,
+    ...STRUCTURED_EN,
     appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
     appSubtitle:
       "Ready for research, source grounding, knowledge graphs, and accessible synthesis.",
@@ -235,7 +238,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navChat: "Chat",
     navChatAria: "Chat & citations",
     navStudio: "Studio",
-    navStudioAria: "Studio (7 tools)",
+    navStudioAria: "Studio (10 tools)",
     navSettings: "Settings",
     navSettingsHint: "Language, AI model, privacy",
     menuOpen: "Open menu",
