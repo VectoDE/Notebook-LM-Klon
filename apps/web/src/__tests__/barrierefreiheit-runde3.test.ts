@@ -130,7 +130,8 @@ describe("Sprachauszeichnung der Inhalte (#323)", () => {
         contentLang: "en"
       })
     );
-    expect(mindmap).toMatch(/class="rn-mm-label" lang="en">Compute</);
+    // Beschriftung bricht in <tspan>-Zeilen um (Issue #279), die Sprache sitzt am <text>
+    expect(mindmap).toMatch(/class="rn-mm-label" lang="en"><tspan[^>]*>Compute<\/tspan><\/text>/);
     expect(mindmap).toContain('<span class="rn-tree-text" lang="en"><strong>Compute</strong>');
   });
 
