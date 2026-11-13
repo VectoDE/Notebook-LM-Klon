@@ -385,6 +385,23 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       expect(((await res.json()) as { code: string }).code).toBe("QUOTA_MAX_LLM_CALLS_EXCEEDED");
     });
 
+    it("routes model=custom to the own endpoint and answers 503 without one (Issue #247)", async () => {
+      const res = await call("/api/v1/notebooks/nb_a/chat", {
+        method: "POST",
+        cookie: fx.cookies.bob,
+        json: { ...chatBody, model: "custom" }
+      });
+      expect(res.status).toBe(503);
+      expect(((await res.json()) as { code: string }).code).toBe("CUSTOM_ENDPOINT_UNAVAILABLE");
+    });
+
+    it("guards the own-endpoint settings with a session", async () => {
+      expect((await call("/api/v1/providers/custom")).status).toBe(401);
+      const res = await call("/api/v1/providers/custom", { cookie: fx.cookies.alice });
+      expect(res.status).toBe(200);
+      expect(((await res.json()) as { enabled: boolean }).enabled).toBe(false);
+    });
+
     it("serves chat history only with a session", async () => {
       await fx.ragRepo.createChat({
         id: "chat_1",

@@ -1750,6 +1750,168 @@
           }
         }
       }
+    },
+    "/api/v1/providers/custom": {
+      "get": {
+        "operationId": "getCustomEndpoint",
+        "tags": ["Modelle"],
+        "summary": "Eigenen OpenAI-kompatiblen Endpunkt lesen (ohne Schlüssel)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomEndpointState"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      },
+      "put": {
+        "operationId": "putCustomEndpoint",
+        "tags": ["Modelle"],
+        "summary": "Eigenen OpenAI-kompatiblen Endpunkt speichern",
+        "description": "Nur HTTPS auf Hosts aus `BYOM_ALLOWED_HOSTS`; private, lokale und reservierte Adressen werden abgelehnt. Den Schlüssel speichert `PUT /api/v1/keys/custom`.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomEndpointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomEndpointSaved"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteCustomEndpoint",
+        "tags": ["Modelle"],
+        "summary": "Eigenen Endpunkt und zugehörigen Schlüssel löschen",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["configured"],
+                  "properties": {
+                    "configured": {
+                      "type": "boolean",
+                      "const": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/providers/custom/test": {
+      "post": {
+        "operationId": "testCustomEndpoint",
+        "tags": ["Modelle"],
+        "summary": "Verbindung zum eigenen Endpunkt testen (GET /models)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomEndpointTestResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "description": "Verbindung fehlgeschlagen oder Schlüssel nicht lesbar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomEndpointTestResult"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2823,6 +2985,94 @@
           "newKeyVersion": {
             "type": "integer",
             "minimum": 1
+          }
+        }
+      },
+      "CustomEndpointState": {
+        "type": "object",
+        "required": ["enabled", "configured", "baseUrl", "chatModel", "embedModel", "hasKey"],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "false, wenn der Betreiber keine Hosts in BYOM_ALLOWED_HOSTS freigegeben hat"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "baseUrl": {
+            "type": ["string", "null"]
+          },
+          "chatModel": {
+            "type": ["string", "null"]
+          },
+          "embedModel": {
+            "type": ["string", "null"]
+          },
+          "hasKey": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CustomEndpointRequest": {
+        "type": "object",
+        "required": ["baseUrl", "chatModel"],
+        "properties": {
+          "baseUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "HTTPS-Adresse auf einem freigegebenen Host, ohne Port, Zugangsdaten, Query oder Fragment"
+          },
+          "chatModel": {
+            "type": "string",
+            "maxLength": 200,
+            "pattern": "^[\\w.:/@-]+$"
+          },
+          "embedModel": {
+            "type": "string",
+            "maxLength": 200,
+            "pattern": "^[\\w.:/@-]+$"
+          }
+        }
+      },
+      "CustomEndpointSaved": {
+        "type": "object",
+        "required": ["configured", "baseUrl", "chatModel", "embedModel"],
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "const": true
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "chatModel": {
+            "type": "string"
+          },
+          "embedModel": {
+            "type": ["string", "null"]
+          }
+        }
+      },
+      "CustomEndpointTestResult": {
+        "type": "object",
+        "required": ["ok", "latencyMs"],
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "latencyMs": {
+            "type": "number",
+            "minimum": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Fehlertext ohne Schlüssel"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }

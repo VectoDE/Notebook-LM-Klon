@@ -62,6 +62,7 @@ for (const width of [390, 1440]) {
         "KI-Modell",
         "Bewegung",
         "Eigene API-Schlüssel (BYOK)In Vorbereitung",
+        "Eigener Endpunkt (OpenAI-kompatibel)",
         "EU AI Act"
       ]);
       expect(new Set(titles.map((x) => x.t))).toEqual(new Set(["none"]));
