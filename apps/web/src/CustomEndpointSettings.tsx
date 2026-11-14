@@ -19,7 +19,12 @@ import { useTheme } from "./useTheme.jsx";
 
 type Busy = "idle" | "loading" | "saving" | "testing";
 
-export function CustomEndpointSettings() {
+export interface CustomEndpointSettingsProps {
+  /** Meldet jeden geladenen Zustand, z. B. damit die Modellauswahl „Eigener Endpunkt“ freigibt. */
+  readonly onStateChange?: ((state: CustomEndpointState) => void) | undefined;
+}
+
+export function CustomEndpointSettings({ onStateChange }: CustomEndpointSettingsProps = {}) {
   const { language } = useTheme();
   const lang: EndpointLanguage = language === "en" ? "en" : "de";
   const tx = (key: string, vars?: Record<string, string | number>) => endpointText(lang, key, vars);
@@ -40,6 +45,7 @@ export function CustomEndpointSettings() {
 
   const applyState = (next: CustomEndpointState) => {
     setState(next);
+    onStateChange?.(next);
     setBaseUrl(next.baseUrl ?? "");
     setChatModel(next.chatModel ?? "");
     setEmbedModel(next.embedModel ?? "");
@@ -130,7 +136,7 @@ export function CustomEndpointSettings() {
       aria-busy={busy !== "idle"}
       data-testid="custom-endpoint-settings"
     >
-      <h3 id="custom-endpoint-title" className="rn-drawer-section-title">
+      <h3 id="custom-endpoint-title" className="rn-drawer-section-title" tabIndex={-1}>
         {tx("title")}
       </h3>
       <p className="rn-drawer-text">{tx("intro")}</p>

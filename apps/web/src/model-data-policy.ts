@@ -17,8 +17,10 @@ import type { ModelId } from "./theme-preferences.js";
  *   Zustimmung oder Feedback).
  * - `conditional`: Training ist nur unter Bedingungen ausgeschlossen (Region, kostenpflichtige Stufe).
  * - `local`: Kein externer KI-Anbieter; das Modell läuft auf dem Server dieser Installation.
+ * - `operator`: Eigener Endpunkt (F249); maßgeblich sind die Bedingungen seines Betreibers, die
+ *   diese App nicht kennt. Deshalb gibt es keine allgemeine Quelle.
  */
-export type TrainingStatus = "noTraining" | "conditional" | "local";
+export type TrainingStatus = "noTraining" | "conditional" | "local" | "operator";
 
 /**
  * - `connected`: Anfragen gehen an diesen Anbieter.
@@ -104,6 +106,12 @@ export const MODEL_DATA_POLICIES: Readonly<Record<ModelId, ModelDataPolicy>> = {
     noteKey: "policyOllama",
     connection: "connected",
     sources: [SOURCES.ollamaFaq]
+  },
+  custom: {
+    status: "operator",
+    noteKey: "policyCustom",
+    connection: "connected",
+    sources: []
   }
 };
 
@@ -111,7 +119,8 @@ export const MODEL_DATA_POLICIES: Readonly<Record<ModelId, ModelDataPolicy>> = {
 export const STATUS_KEYS: Readonly<Record<TrainingStatus, string>> = {
   noTraining: "policyStatusNoTraining",
   conditional: "policyStatusConditional",
-  local: "policyStatusLocal"
+  local: "policyStatusLocal",
+  operator: "policyStatusOperator"
 };
 
 /** Sprachschlüssel für den Anbindungsstand (ohne Hinweis bei `connected`). */
