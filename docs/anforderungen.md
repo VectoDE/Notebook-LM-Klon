@@ -174,7 +174,7 @@ Notebook-LM-Klon mit Frontend, Backend und Datenbank. Alle Richtlinien und Geset
 | 93 | Vollständige Repo-Konfiguration | Komplette Ausstattung mit Governance-, Security-, Template- und Automatisierungs-Dateien sowie Branch-Protection und Private Vulnerability Reporting |
 | 94 | GitHub Wiki & Discussions | Vollständige 1:1-Synchronisation der 8 illustrierten Handbuch-Kapitel ins GitHub Wiki inkl. Sidebar/Footer und automatisiertem `.github/workflows/wiki-sync.yml` |
 | 95 | Blockweise Umsetzung | Umsetzung in 9 klar abgegrenzten Themenblöcken (Block 1: Fundament, CI, OpenSSF, Doku & Wiki, Issues #1–#5 / #47–#61) |
-| 96 | Offizielles Produkt-Branding | Der offizielle Produktname lautet **`RelationNotes`** mit dem Untertitel **`NotebookLM & RelationFlow Knowledge Studio`** |
+| 96 | Offizielles Produkt-Branding | Der offizielle Produktname lautet **`RelationNotes`** mit dem Untertitel **`Quellen verstehen, mit Belegen chatten`** |
 | 97 | CI-Checklisten-Gate | Automatisierter Workflow `.github/workflows/verify-issue-checklists.yml` prüft bei jedem PR, dass alle referenzierten Sub-Issues 0 offene Checkboxen (`- [ ]`) haben |
 | 98 | Keine KI-Kennzeichnung | Striktes Verbot jeglicher `Generated with ...`- oder `Co-Authored-By: ...`-Zeilen in Commits, PRs, Issues, Code und Dokumentation |
 | 99 | Kostenlose Werkzeuge & Dienste | 100 % lauffähig im kostenlosen Cloudflare Free Tier (Workers, D1, R2, SQLite Durable Objects) und kostenlosen GitHub-Tarif |

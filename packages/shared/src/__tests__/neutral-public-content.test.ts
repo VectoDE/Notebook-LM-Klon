@@ -31,11 +31,14 @@ function collect(path: string, out: string[]): void {
 const files: string[] = [];
 for (const root of SCAN_ROOTS) collect(root, files);
 
+// Einmal lesen statt je Test, damit der Lauf auch unter Last schnell bleibt.
+const contents = files
+  .map((file) => relative(REPO_ROOT, file).replaceAll("\\", "/"))
+  .filter((file) => file !== SELF)
+  .map((file) => [file, readFileSync(join(REPO_ROOT, file), "utf-8")] as const);
+
 function offenders(pattern: RegExp): string[] {
-  return files
-    .map((file) => relative(REPO_ROOT, file).replaceAll("\\", "/"))
-    .filter((file) => file !== SELF)
-    .filter((file) => pattern.test(readFileSync(join(REPO_ROOT, file), "utf-8")));
+  return contents.filter(([, text]) => pattern.test(text)).map(([file]) => file);
 }
 
 describe("Öffentliche Inhalte ohne Bewerbungsbezug", () => {
@@ -49,6 +52,10 @@ describe("Öffentliche Inhalte ohne Bewerbungsbezug", () => {
 
   it("enthält keinen Bewerbungskontext", () => {
     expect(offenders(/bewerbung|junior[- ]entwickler/i)).toEqual([]);
+  });
+
+  it("nutzt den neutralen Produktnamen ohne Untertitel mit Fremdmarke", () => {
+    expect(offenders(/knowledge studio/i)).toEqual([]);
   });
 
   it("verlinkt kein nicht existierendes RelationFlow-Repository", () => {

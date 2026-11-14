@@ -1,6 +1,6 @@
 # Support & Hilfe (`RelationNotes`)
 
-Willkommen bei **RelationNotes – NotebookLM & RelationFlow Knowledge Studio**! Hier findest du die schnellsten Wege für Fragen, technische Dokumentation und Fehlerberichte:
+Willkommen bei **RelationNotes**! Hier findest du die schnellsten Wege für Fragen, technische Dokumentation und Fehlerberichte:
 
 ## 1. Dokumentation & Architektur-Wiki
 - **GitHub Wiki:** [https://github.com/VectoDE/Notebook-LM-Klon/wiki](https://github.com/VectoDE/Notebook-LM-Klon/wiki) (8 reich bebilderte Kapitel zu Architektur, Hybrid-RAG, RelationFlow-Integration, Datenbankschema, Security, WCAG 2.2 AAA, Plattform-Limits & Loom-Präsentationsleitfaden)

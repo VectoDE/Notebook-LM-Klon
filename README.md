@@ -3,13 +3,13 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-banner-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero-banner-light.svg">
-  <img alt="RelationNotes – NotebookLM & RelationFlow Knowledge Studio" src="docs/assets/hero-banner-light.svg" width="100%">
+  <img alt="RelationNotes" src="docs/assets/hero-banner-light.svg" width="100%">
 </picture>
 <sub>Grafik in <a href="docs/assets/hero-banner-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="docs/assets/hero-banner-en.svg" hreflang="en" lang="en">English</a></sub>
 
 # RelationNotes
 
-### **NotebookLM & RelationFlow Knowledge Studio**
+### **Quellen verstehen, mit Belegen chatten**
 
 *Quellengebundene KI-Forschung, Hybrid-RAG (D1 FTS5 + Int8-Vektorsuche), multimodales Audio-/Video-Studio und bidirektionale Wissensgraph-Synthese – zu 100 % lauffähig im kostenlosen Cloudflare Free Tier.*
 

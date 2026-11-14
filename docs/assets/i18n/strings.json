@@ -1,12 +1,12 @@
 {
   "hero-banner": {
     "title": {
-      "de": "RelationNotes – NotebookLM & RelationFlow Knowledge Studio",
-      "en": "RelationNotes – NotebookLM & RelationFlow Knowledge Studio"
+      "de": "RelationNotes",
+      "en": "RelationNotes"
     },
     "desc": {
-      "de": "RelationNotes – NotebookLM & RelationFlow Knowledge Studio. Quellengebundene KI-Synthese mit Inline-Zitaten, Hybrid-RAG und Wissensgraph-Brücke zu RelationFlow, dargestellt als Wissensgraph aus fünf verbundenen Knoten.",
-      "en": "RelationNotes – NotebookLM & RelationFlow Knowledge Studio. Source-grounded AI synthesis with inline citations, hybrid RAG and a knowledge-graph bridge to RelationFlow, shown as a knowledge graph of five connected nodes."
+      "de": "RelationNotes. Quellengebundene KI-Synthese mit Inline-Zitaten, Hybrid-RAG und Wissensgraph-Brücke zu RelationFlow, dargestellt als Wissensgraph aus fünf verbundenen Knoten.",
+      "en": "RelationNotes. Source-grounded AI synthesis with inline citations, hybrid RAG and a knowledge-graph bridge to RelationFlow, shown as a knowledge graph of five connected nodes."
     },
     "texts": {}
   },

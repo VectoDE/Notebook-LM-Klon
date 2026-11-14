@@ -1,4 +1,4 @@
-# RelationNotes – NotebookLM & RelationFlow Knowledge Studio
+# RelationNotes
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/hero-banner-dark.svg">
@@ -7,7 +7,7 @@
 </picture>
 <sub>Grafik in <a href="./assets/hero-banner-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="./assets/hero-banner-en.svg" hreflang="en" lang="en">English</a></sub>
 
-Willkommen im offiziellen technischen Projekthandbuch und Architektur-Wiki von **RelationNotes – NotebookLM & RelationFlow Knowledge Studio**.
+Willkommen im offiziellen technischen Projekthandbuch und Architektur-Wiki von **RelationNotes**.
 
 Dieses Wiki dokumentiert die vollständige Systemarchitektur, die mathematischen Grundlagen der lokalen Hybrid-RAG-Engine, das Andock-Konzept an die Ziel-Plattform **RelationFlow**, das 17-Tabellen-D1-Datenbankschema, unsere Defense-in-Depth-Sicherheitsarchitektur (DSGVO & EU AI Act Art. 50), die Barrierefreiheit nach **WCAG 2.2 Level AAA** sowie die empirisch gemessenen Cloudflare-Free-Tier-Budgets.
 
