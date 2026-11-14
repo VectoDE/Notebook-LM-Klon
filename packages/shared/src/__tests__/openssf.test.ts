@@ -63,6 +63,25 @@ describe("OpenSSF Scorecard, Governance & Clean Root Structure (#59, #60, #61, #
     expect(openssfDoc).toContain("100 % Abdeckung");
   });
 
+  it("pins every external Dockerfile base image to a sha256 digest (Scorecard Pinned-Dependencies)", () => {
+    const dockerfile = readFileSync(join(REPO_ROOT, "apps/worker/Dockerfile"), "utf-8");
+    const fromLines = dockerfile
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => /^FROM\s/i.test(line));
+    const stageNames = new Set<string>();
+    expect(fromLines.length).toBeGreaterThan(0);
+    for (const line of fromLines) {
+      const [, image = "", , alias] = line.split(/\s+/);
+      if (!stageNames.has(image.toLowerCase())) {
+        expect(image, `Unpinned base image: ${line}`).toMatch(/@sha256:[0-9a-f]{64}$/);
+      }
+      if (alias) {
+        stageNames.add(alias.toLowerCase());
+      }
+    }
+  });
+
   it("verifies presence and required sections of LICENSE and .github/* governance files (#60, #108)", () => {
     const license = readFileSync(join(REPO_ROOT, "LICENSE"), "utf-8");
     expect(license).toContain("MIT License");

@@ -13,7 +13,7 @@ Der Workflow `.github/workflows/scorecard.yml` läuft bei Push auf `main`, bei �
 | Scorecard Check | Messwert | Umsetzung im Repository und Einordnung |
 |---|---|---|
 | **Token-Permissions** | 10 | Alle Workflows setzen `permissions` auf Top-Level auf `contents: read` (in `scorecard.yml`: `read-all`). Schreibrechte (`security-events`, `id-token`, `attestations`, `contents: write`) stehen nur auf Job-Ebene. |
-| **Pinned-Dependencies** | 6 | Alle GitHub Actions sind auf einen 40-stelligen Commit-SHA gepinnt (geprüft in `packages/shared/src/__tests__/ci-workflows.test.ts`). Offen: Die drei Basis-Images in `apps/worker/Dockerfile` sind nicht per Digest gepinnt, daher nur 6 statt 10. |
+| **Pinned-Dependencies** | Ziel 10 (Scorecard-Lauf ausstehend) | Alle GitHub Actions sind auf einen 40-stelligen Commit-SHA gepinnt (geprüft in `packages/shared/src/__tests__/ci-workflows.test.ts`). Das Basis-Image in `apps/worker/Dockerfile` ist auf den Digest `node:22-alpine@sha256:1314fb30…481a` gepinnt (geprüft in `openssf.test.ts`, Renovate hält ihn aktuell). Der Messwert steht nach dem nächsten Scorecard-Lauf auf `main`. |
 | **Dependency-Update-Tool** | 10 | `.github/renovate.json` (`rangeStrategy: "pin"`, `helpers:pinGitHubActionDigests`) und `.github/dependabot.yml`. |
 | **SAST** | 10 | `.github/workflows/codeql.yml` analysiert JavaScript/TypeScript bei Push, Pull Request und wöchentlich. |
 | **Vulnerabilities** | 10 | `ci.yml` führt `osv-scanner` über `pnpm-lock.yaml` und `gitleaks` über die Historie aus. Scorecard meldet 0 bekannte Schwachstellen. |
@@ -141,6 +141,6 @@ Der Workflow `.github/workflows/release.yml` startet bei einem Tag `v*.*.*`. Der
 |---|---|---|
 | bestpractices.dev-Projekt anlegen | Inhaber-Schritt | Konto bei bestpractices.dev, Projekt für das Repository anlegen, Antworten aus Kapitel 2 übernehmen. Das Badge erst danach in die `README.md` aufnehmen. |
 | Erstes Release `v0.1.0` | Inhaber-Schritt | Tag setzen (Kapitel 4). Danach entfallen „Offen“ bei Release-Tags und Release Notes sowie `Signed-Releases` mit -1. |
-| Docker-Basis-Images per Digest pinnen | Technische Schuld | Hebt `Pinned-Dependencies` von 6 auf 10. Noch nicht umgesetzt. |
+| Docker-Basis-Images per Digest pinnen | Erledigt | Basis-Image `node:22-alpine` ist per Digest gepinnt (`openssf.test.ts`). Messwert nach nächstem Scorecard-Lauf prüfen. |
 | Zweite Freigabe, weitere Beitragende | Strukturell | Nicht erreichbar mit einem Maintainer (Kapitel 3). |
 | DAST gegen eine Staging-Instanz | Verbesserung | Erst sinnvoll, wenn eine Instanz deployt ist. |

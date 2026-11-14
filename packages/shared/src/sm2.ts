@@ -93,8 +93,8 @@ export function calculateSM2(
   const delta = 0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02);
   const newEaseFactor = Math.max(SM2_MINIMUM_EASE_FACTOR, Number((prevEF + delta).toFixed(2)));
 
-  let newRepetitions = 0;
-  let newIntervalDays = 1;
+  let newRepetitions: number;
+  let newIntervalDays: number;
 
   if (quality < 3) {
     // Failure / Again: reset repetitions and start interval back at 1
