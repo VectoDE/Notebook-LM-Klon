@@ -111,14 +111,20 @@ noch nicht dokumentiert ist (Anfrage-Entwurf: Issue #249).
 | Einstellung im UI (Deutsch und Englisch) | `apps/web/src/CustomEndpointSettings.tsx` |
 
 **Betreiber-Konfiguration:** `BYOM_ALLOWED_HOSTS` als kommagetrennte Liste, z. B.
-`api.relationflow.io,*.relationflow.io`. Ohne Eintrag ist die Funktion gesperrt.
+`api.example.com,*.example.com` (Platzhalter; der echte Host steht erst fest, wenn die Schnittstelle
+bekannt ist). Ohne Eintrag ist die Funktion gesperrt. Die Basis-URL endet auf den Versionspfad, z. B.
+`https://api.example.com/v1`; der Adapter hängt `/chat/completions`, `/embeddings` und `/models` an.
 
 **Regeln für jeden Aufruf:** nur `https:` auf Port 443, keine Zugangsdaten, Query-Parameter oder Fragmente
 in der Adresse, Host auf der Allowlist, keine privaten oder reservierten Adressen, DNS-Prüfung aller A- und
-AAAA-Einträge vor dem Aufruf (gegen DNS-Rebinding), keine Weiterleitungen, Zeitlimit 30 s. Der Schlüssel
-geht nur im `Authorization`-Header raus und wird aus Fehlermeldungen entfernt.
+AAAA-Einträge vor dem Aufruf (gegen DNS-Rebinding), keine Weiterleitungen. Zeitlimits: 30 s bis zu den
+Antwort-Headern, im Stream Abbruch nach 60 s ohne neue Daten. Der Schlüssel geht nur im
+`Authorization`-Header raus und wird aus Fehlermeldungen entfernt.
 
-**Im Chat nutzen:** `POST /api/v1/notebooks/:id/chat` mit `"model": "custom"`.
+**Im Chat nutzen:** `POST /api/v1/notebooks/:id/chat` mit `"model": "custom"`. Fehlt der Endpunkt, antwortet
+der Server sofort mit 503 (`CUSTOM_ENDPOINT_UNAVAILABLE`), ohne Chat oder Nachricht anzulegen. Die
+Modellauswahl in der Oberfläche bietet „Eigener Endpunkt" noch nicht an; der Chat nutzt ihn bisher nur
+über die API.
 
 **Restrisiko:** Zwischen DNS-Prüfung und Verbindungsaufbau kann sich die Auflösung theoretisch ändern. Die
 Allowlist begrenzt das auf Domains, denen der Betreiber vertraut.
