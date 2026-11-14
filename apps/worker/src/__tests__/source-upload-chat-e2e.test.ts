@@ -234,4 +234,96 @@ describe("P6: eigene Quelle hochladen, indexieren, suchen, im Chat zitieren", ()
     const events = parseSse(await chat.text());
     expect(events.find((e) => e.event === "done")?.data).toMatchObject({ noEvidence: true });
   });
+
+  describe("mit Workers AI (Binding gemockt): semantische Suche ohne gemeinsame Wörter", () => {
+    /** Ein Thema je Dimension: Sachsen/Dresden → 0, Rhein/Köln → 1, sonst 2. */
+    function topicVector(text: string): number[] {
+      const v = new Array<number>(768).fill(0);
+      if (/Dresden|Sachsen/.test(text)) v[0] = 1;
+      else if (/Rhein|Köln|Nordrhein/.test(text)) v[1] = 1;
+      else v[2] = 1;
+      return v;
+    }
+
+    let aiCalls: string[][];
+    beforeEach(async () => {
+      const { resetEmbeddingCircuit } = await import("../embeddings.js");
+      resetEmbeddingCircuit();
+      aiCalls = [];
+      (env as unknown as { AI: unknown }).AI = {
+        run: async (_model: string, inputs: { input: string[] }) => {
+          aiCalls.push(inputs.input);
+          return {
+            data: inputs.input.map((t, index) => ({ index, embedding: topicVector(t) })),
+            usage: { total_tokens: inputs.input.length * 10 }
+          };
+        }
+      };
+    });
+
+    it("Upload speichert Vektoren, Suche und Chat finden die Quelle per Bedeutung", async () => {
+      const elbe = await uploadTxt("elbe.txt", "Die Elbe fließt durch Dresden.");
+      const rhein = await uploadTxt("rhein.txt", "Der Rhein fließt durch Köln.");
+      expect(aiCalls[0]).toEqual(["title: elbe.txt | text: Die Elbe fließt durch Dresden."]);
+
+      const stored = sqlite
+        .prepare("SELECT model, dimensions FROM chunk_vectors ORDER BY chunk_id")
+        .all();
+      expect(stored).toEqual([
+        { model: "@cf/google/embeddinggemma-2", dimensions: 768 },
+        { model: "@cf/google/embeddinggemma-2", dimensions: 768 }
+      ]);
+
+      // "Landeshauptstadt Sachsens" steht in keiner Quelle: FTS findet nichts, der Vektor schon.
+      const search = await call(
+        "/api/v1/notebooks/nb_a/search",
+        json("POST", { query: "Landeshauptstadt Sachsens", mode: "hybrid" })
+      );
+      const body = (await search.json()) as {
+        results: Array<{ sourceId: string; vectorRank: number | null }>;
+      };
+      expect(body.results[0]).toMatchObject({ sourceId: elbe, vectorRank: 1 });
+
+      const chat = await call(
+        "/api/v1/notebooks/nb_a/chat",
+        json("POST", { message: "Landeshauptstadt Sachsens?" })
+      );
+      const events = parseSse(await chat.text());
+      const citations = events.find((e) => e.event === "citations")?.data as {
+        citations: Array<{ sourceId: string }>;
+      };
+      expect(citations.citations[0]?.sourceId).toBe(elbe);
+      expect(aiCalls.at(-1)).toEqual(["task: search result | query: Landeshauptstadt Sachsens?"]);
+      // Mit Quellenauswahl bleibt die Vektorsuche auf die gewählte Quelle beschränkt
+      const scoped = await call(
+        "/api/v1/notebooks/nb_a/chat",
+        json("POST", { message: "Landeshauptstadt Sachsens?", sourceIds: [rhein] })
+      );
+      const scopedEvents = parseSse(await scoped.text());
+      const scopedCitations = scopedEvents.find((e) => e.event === "citations")?.data as {
+        citations: Array<{ sourceId: string }>;
+      };
+      expect(scopedCitations.citations.every((c) => c.sourceId === rhein)).toBe(true);
+
+      const usage = sqlite.prepare("SELECT scope, tokens FROM ai_embedding_usage").all();
+      expect(usage).toEqual([{ scope: "global", tokens: 50 }]);
+    });
+
+    it("fällt Workers AI aus, bleibt es beim Volltext und der Upload gelingt trotzdem", async () => {
+      (env as unknown as { AI: unknown }).AI = {
+        run: async () => {
+          throw new Error("4006: daily free allocation exceeded");
+        }
+      };
+      await uploadTxt("elbe.txt", "Die Elbe fließt durch Dresden.");
+      expect(sqlite.prepare("SELECT COUNT(*) AS n FROM chunk_vectors").get()).toEqual({ n: 0 });
+
+      const fts = await call(
+        "/api/v1/notebooks/nb_a/search",
+        json("POST", { query: "Dresden", mode: "hybrid" })
+      );
+      const body = (await fts.json()) as { results: Array<{ ftsRank: number | null }> };
+      expect(body.results[0]?.ftsRank).toBe(1);
+    });
+  });
 });

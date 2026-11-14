@@ -7,6 +7,7 @@ import {
 import type { Hono } from "hono";
 import { resolveAppConfig } from "./config.js";
 import type { CoreRepository } from "./core-repository.js";
+import { EMBEDDING_MODEL, documentInput, embedTexts } from "./embeddings.js";
 import type { RagRepository } from "./rag-repository.js";
 import { exceedsWordLimit, sourceWordLimitProblem } from "./word-limit.js";
 
@@ -32,6 +33,7 @@ export async function notifyNotebookDO(
       sourceId?: string;
       quantized: number[];
       scale: number;
+      model?: string;
     }>;
   }
 ): Promise<void> {
@@ -161,6 +163,23 @@ export function registerChunkIngestionRoutes(
     const now = Date.now();
     const d1 = deps.d1Database ?? c.env.DB;
 
+    // Chunks ohne mitgelieferten Vektor bekommen serverseitig ein Embedding (Workers AI).
+    // Ohne Binding, bei erschöpftem Kontingent oder Fehler bleibt es beim Volltextindex.
+    const withoutVector = chunkItems.filter((item) => !item.vector);
+    const serverVectors = new Map<(typeof chunkItems)[number], Float32Array>();
+    if (withoutVector.length > 0) {
+      const embedded = await embedTexts(
+        { AI: c.env?.AI, DB: d1 },
+        withoutVector.map((item) => documentInput(source.title, item.text)),
+        sessionUser
+      );
+      if (embedded.ok) {
+        withoutVector.forEach((item, i) => {
+          serverVectors.set(item, embedded.vectors[i] as Float32Array);
+        });
+      }
+    }
+
     // Build statements for chunk and vector insertion
     // Each chunk insertion will also automatically trigger FTS5 chunks_fts via SQLite triggers!
     interface PreparedItem {
@@ -174,6 +193,7 @@ export function registerChunkIngestionRoutes(
             sourceId: string;
             quantized: number[];
             scale: number;
+            model: string;
           }
         | undefined;
     }
@@ -207,18 +227,30 @@ export function registerChunkIngestionRoutes(
       let vectorParams: unknown[] | undefined;
       let doVector: PreparedItem["doVector"] | undefined;
 
-      if (item.vector) {
+      const serverVector = serverVectors.get(item);
+      if (item.vector || serverVector) {
         let quantizedArr: Int8Array;
         let scale: number;
         let dimensions: number;
+        const vectorModel = serverVector ? EMBEDDING_MODEL : model;
 
-        if ("quantized" in item.vector) {
-          quantizedArr = new Int8Array(item.vector.quantized);
-          scale = item.vector.scale;
-          dimensions = item.vector.dimensions ?? quantizedArr.length;
+        if (serverVector) {
+          const q = quantizeFloat32ToInt8(serverVector);
+          quantizedArr = q.quantized;
+          scale = q.scale;
+          dimensions = serverVector.length;
+        } else if ("quantized" in (item.vector as NonNullable<typeof item.vector>)) {
+          const clientVector = item.vector as {
+            quantized: number[];
+            scale: number;
+            dimensions?: number;
+          };
+          quantizedArr = new Int8Array(clientVector.quantized);
+          scale = clientVector.scale;
+          dimensions = clientVector.dimensions ?? quantizedArr.length;
         } else {
           // auto-quantize from float32
-          const floatArr = new Float32Array(item.vector.float32);
+          const floatArr = new Float32Array((item.vector as { float32: number[] }).float32);
           const q = quantizeFloat32ToInt8(floatArr);
           quantizedArr = q.quantized;
           scale = q.scale;
@@ -248,7 +280,7 @@ export function registerChunkIngestionRoutes(
         vectorParams = [
           chunkId,
           source.notebook_id,
-          model,
+          vectorModel,
           dimensions,
           scale,
           minVal,
@@ -261,7 +293,8 @@ export function registerChunkIngestionRoutes(
           chunkId,
           sourceId: source.id,
           quantized: Array.from(quantizedArr),
-          scale
+          scale,
+          model: vectorModel
         };
       }
 
