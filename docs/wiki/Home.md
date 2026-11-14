@@ -9,7 +9,7 @@
 
 Willkommen im offiziellen technischen Projekthandbuch und Architektur-Wiki von **RelationNotes – NotebookLM & RelationFlow Knowledge Studio**.
 
-Dieses Wiki dokumentiert die vollständige Systemarchitektur, die mathematischen Grundlagen der lokalen Hybrid-RAG-Engine, das bidirektionale Andock-Konzept an **RelationFlow** (Everlast Consulting GmbH), das 17-Tabellen-D1-Datenbankschema, unsere Defense-in-Depth-Sicherheitsarchitektur (DSGVO & EU AI Act Art. 50), die Barrierefreiheit nach **WCAG 2.2 Level AAA** sowie die empirisch gemessenen Cloudflare-Free-Tier-Budgets.
+Dieses Wiki dokumentiert die vollständige Systemarchitektur, die mathematischen Grundlagen der lokalen Hybrid-RAG-Engine, das Andock-Konzept an die Ziel-Plattform **RelationFlow**, das 17-Tabellen-D1-Datenbankschema, unsere Defense-in-Depth-Sicherheitsarchitektur (DSGVO & EU AI Act Art. 50), die Barrierefreiheit nach **WCAG 2.2 Level AAA** sowie die empirisch gemessenen Cloudflare-Free-Tier-Budgets.
 
 ---
 
@@ -24,7 +24,7 @@ Dieses Wiki dokumentiert die vollständige Systemarchitektur, die mathematischen
 | [**5. Security, DSGVO & AI Act**](5-Security-DSGVO-und-AI-Act) | Defense-in-Depth & EU-Rechtsrahmen | `AES-256-GCM` BYOK mit `AAD`, WebAuthn Passkeys (`ES256`), SSRF-Guard, DSGVO-1-Klick-Export/Löschung, EU AI Act Art. 50 |
 | [**6. Barrierefreiheit (WCAG 2.2 AAA)**](6-Barrierefreiheit-WCAG-AAA) | Inklusive Forschungsoberfläche | Kontrastverhältnisse `>= 7:1`, `3 px` Fokus-Ringe, ARIA-Treegrid für Mindmaps, WebVTT-Synchron-Transkripte, reduzierte Bewegung |
 | [**7. Cloudflare-Free-Limits**](7-Cloudflare-Free-Limits) | Empirische Benchmarks & Kontingente | Nachweis des 10-ms-CPU-Budgets (`< 0,6 ms` WebCrypto), `node:sqlite` FTS5-Probe, `demo`- vs. `full`-Profile |
-| [**8. Loom-Präsentations-Leitfaden**](8-Loom-Praesentations-Leitfaden) | 10-Minuten-Walkthrough | Minutenplan und Sprechpunkte mit eingebetteten Architektur-Schaubildern für das Bewerbungs-Review |
+| [**8. Loom-Präsentations-Leitfaden**](8-Loom-Praesentations-Leitfaden) | 10-Minuten-Walkthrough | Minutenplan und Sprechpunkte mit eingebetteten Architektur-Schaubildern für einen Video-Walkthrough |
 | [**9. Lasttests**](9-Lasttests) | k6 lokal und Live-Rauchtest | 100 gleichzeitige simulierte Nutzer, p50/p95/p99, Fehlerquote, HTML- und JSON-Report |
 | [**10. Datenschutz je KI-Modell**](10-Datenschutz-je-KI-Modell) | Training mit Eingaben | Angabe je Anbieter und Zugangsweg mit Quelle, Wortlaut und Abrufdatum; keine Rechtsberatung |
 | [**11. Lokale Verschlüsselung**](11-Lokale-Verschluesselung) | IndexedDB mit AES-GCM | Schlüssel aus der Konto-Sitzung, nicht exportierbar; Abmelden löscht die lokale Datenbank nachweisbar |

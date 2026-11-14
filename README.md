@@ -29,7 +29,7 @@
 
 | Zielgruppe | Was Sie hier in 2 Minuten finden | Direkte Einstiegspunkte |
 | :--- | :--- | :--- |
-| **HR, Recruiting & Produkt-Entscheider** | Ein schlüsselfertiges KI-Forschungs- & Wissens-Studio, das Dokumente mit **absatzgenauen Inline-Zitaten `[1]`** belegt, als **Zwei-Host-Podcast** vertont und nahtlos mit dem Wissensgraphen [**RelationFlow**](https://github.com/VectoDE/RelationFlow) verbindet – ohne laufende Cloud-Fixkosten (`0 €` Cloudflare Free Tier). | [Kernfunktionen](#warum-relationnotes--kernfunktionen--alleinstellungsmerkmale) · [Loom-Präsentations-Leitfaden](docs/loom-presentation-guide.md) · [Barrierefreiheit WCAG 2.2 AAA](docs/accessibility-wcag-aaa.md) |
+| **Produkt-Entscheider & Fachanwender** | Ein schlüsselfertiges KI-Forschungs- & Wissens-Studio, das Dokumente mit **absatzgenauen Inline-Zitaten `[1]`** belegt, als **Zwei-Host-Podcast** vertont und für die Anbindung an die KI-Plattform [**RelationFlow**](https://relationflow.io) vorbereitet ist – ohne laufende Cloud-Fixkosten (`0 €` Cloudflare Free Tier). | [Kernfunktionen](#warum-relationnotes--kernfunktionen--alleinstellungsmerkmale) · [Loom-Präsentations-Leitfaden](docs/loom-presentation-guide.md) · [Barrierefreiheit WCAG 2.2 AAA](docs/accessibility-wcag-aaa.md) |
 | **Senior Engineers & Tech Leads** | Strikte Edge-Architektur unter realen **10 ms CPU-Limits** pro Request: **Reciprocal Rank Fusion (`k = 60`)** aus SQLite `FTS5` (`bm25`) und `int8`-quantisierten Matryoshka-Vektoren (`768 Dim`) im `NotebookDO`-RAM (`< 2 ms`), `node:sqlite`-Verifikation, **100 % Testabdeckung** (Unit, Integration, Contract, `fast-check` Property-Fuzzing). | [Systemarchitektur](docs/architecture.md) · [Hybrid-RAG-Mathematik](docs/rag-and-vectors.md) · [Cloudflare-Budgets](docs/platform-limits.md) · [D1-Datenbankschema](docs/database-schema.md) |
 | **Security-, Privacy- & OpenSSF-Auditoren** | **WebAuthn Passkeys (`ES256`)**, Envelope-Encryption (**AES-256-GCM mit AAD**) für BYOK-API-Schlüssel, strikter SSRF-Guard, SHA-gepinnte GitHub Actions, `gitleaks`, `osv-scanner`, `CodeQL`, OpenSSF Scorecard sowie vollständige **DSGVO- & EU-AI-Act-Art.-50-Konformität** (C2PA / SynthID / JSON-Manifeste). | [Security, DSGVO & AI Act](docs/security-and-compliance.md) · [OpenSSF-Richtlinie](docs/openssf.md) · [`.github/SECURITY.md`](.github/SECURITY.md) |
 
@@ -37,7 +37,7 @@
 
 ## Warum RelationNotes? – Kernfunktionen & Alleinstellungsmerkmale
 
-Klassische KI-Chats halluzinieren Zusammenhänge und verlieren nach dem Gespräch den Bezug zu den Originaldokumenten. **RelationNotes** verbindet die präzise Quellentreue von **Google NotebookLM** mit der strukturierten Wissensmodellierung von [**RelationFlow**](https://github.com/VectoDE/RelationFlow):
+Klassische KI-Chats halluzinieren Zusammenhänge und verlieren nach dem Gespräch den Bezug zu den Originaldokumenten. **RelationNotes** übernimmt die Quellentreue von **Google NotebookLM** und ist für die Anbindung an die KI-Plattform [**RelationFlow**](https://relationflow.io) vorbereitet:
 
 1. **Multi-Format-Quellen-Ingestion & Zitat-Präzision:**
    - Verarbeitung von **PDFs** (`unpdf`), **DOCX** (`mammoth`), **Markdown/TXT/CSV**, **Webseiten** (Readability + strikter SSRF-Guard), **YouTube-Transkripten** und **Audio-Aufnahmen**.
@@ -124,7 +124,7 @@ Die Oberfläche lässt sich im laufenden Betrieb zwischen vier eigenständigen D
 | :--- | :--- | :--- |
 | **Pure NotebookLM** | Ruhige, helle Arbeitsfläche mit weichen Panels, Anmutung wie NotebookLM, eigene Farbe in Indigo und Lavendel. Standard. | Inter |
 | **Immersive Cinema** | Nacht-Violett mit Fuchsia- und Cyan-Licht, eigene Bewegungssprache (abgeschaltet bei `prefers-reduced-motion`). | Space Grotesk |
-| **Editorial Calm** | Farbwelt von Everlast und RelationFlow: Everlast-Blau für Flächen, Slate-Neutraltöne. | Source Serif 4 |
+| **Editorial Calm** | Ruhige Blau-Slate-Welt: Blau `#2563EB` nur für Flächen, Text in `#1E40AF`, Slate-Neutraltöne. | Source Serif 4 |
 | **Fusion** | Petrol und Teal mit Bernstein, eigenständige Palette. | Geist |
 
 ---
@@ -136,7 +136,7 @@ Das Studio-Panel bietet sechs Werkzeuge. Sie arbeiten mit den Quellen des Notebo
 | Werkzeug | Was es tut |
 | :--- | :--- |
 | **Audio-Overview** | Zwei-Host-Gespräch mit mitlaufendem Transkript. Per Rückfrage (`POST /api/v1/notebooks/:id/audio-interject`) lässt sich mitten im Gespräch nachfragen. |
-| **Video-Overview** | Folien mit Kapiteln, im Browser abspielbar, Export als `.webm`. |
+| **Video-Overview** | Folien mit Kapiteln, im Browser abspielbar. Der `.webm`-Export liegt als Modul vor, ist in der Oberfläche aber noch nicht eingebunden. |
 | **Mindmap** | Konzeptgraph als SVG, zusätzlich als ARIA-Baumansicht, mit Export. |
 | **Lernkarten** | Karten zum Umdrehen, mit Export. |
 | **Quiz** | Fragen mit Begründung aus der Quelle, mit Export. |
@@ -146,7 +146,7 @@ Das Studio-Panel bietet sechs Werkzeuge. Sie arbeiten mit den Quellen des Notebo
 
 ## Andocken an RelationFlow
 
-[RelationFlow](https://github.com/VectoDE/RelationFlow) ist der Wissens-Workspace, an den RelationNotes sich anschließen soll. Die Beschreibung steht in [`docs/relationflow-integration.md`](docs/relationflow-integration.md). Hier der ehrliche Stand:
+[RelationFlow](https://relationflow.io) ist die KI-Plattform, an die RelationNotes sich anschließen soll. Die Beschreibung steht in [`docs/relationflow-integration.md`](docs/relationflow-integration.md). Hier der ehrliche Stand:
 
 | Baustein | Stand | Wo |
 | :--- | :--- | :--- |
@@ -477,12 +477,12 @@ Sämtliche Architekturentscheidungen (ADRs #1–#110) sind im Ordner [`docs/`](d
 
 1. [**Systemarchitektur & Edge-Runtime**](docs/architecture.md) – Single-Worker-Topologie, `NotebookDO` vs. `JobDO`, `demo`- vs. `full`-Profile.
 2. [**Hybrid-RAG & Int8-Vektorsuche**](docs/rag-and-vectors.md) – SQLite `FTS5` (`bm25`), Matryoshka `int8`-Quantisierung und Reciprocal Rank Fusion (`k = 60`).
-3. [**RelationFlow-Wissensgraph-Integration**](docs/relationflow-integration.md) – Kanonisches Austauschformat `relationflow/export/v1` und bidirektionale Synchronisation.
+3. [**Andocken an RelationFlow**](docs/relationflow-integration.md) – Such-API, Rollen und Modell-Router; das Austauschformat `relationflow/export/v1` ist beschrieben, aber noch nicht gebaut.
 4. [**Datenbank-Schema (Cloudflare D1)**](docs/database-schema.md) – Alle 17 Tabellen, Trigger, Indizes und kaskadierende Löschpfade.
 5. [**Security, DSGVO & EU AI Act**](docs/security-and-compliance.md) – WebAuthn Passkeys, AES-256-GCM BYOK, SSRF-Guard und Artikel-50-Provenienz.
 6. [**Barrierefreiheit nach WCAG 2.2 Level AAA**](docs/accessibility-wcag-aaa.md) – Farbkontraste (`>= 7:1`), Fokus-Ringe, Tastatursteuerung und multimodale Alternativen.
 7. [**Cloudflare Free-Tier-Limits & CPU-Budgets**](docs/platform-limits.md) – Empirische Benchmarks (`< 0,6 ms` WebCrypto) und Kapazitätsrechnung.
-8. [**Loom-Präsentations- & Bewerbungs-Leitfaden**](docs/loom-presentation-guide.md) – Drehbuch für eine überzeugende 10-Minuten-Vorführung.
+8. [**Loom-Präsentations-Leitfaden**](docs/loom-presentation-guide.md) – Ablauf und Schaubilder für einen Video-Walkthrough von 10 Minuten.
 9. [**Anforderungs- & Entscheidungsregister (ADRs #1–#110)**](docs/anforderungen.md) – Lückenlose Dokumentation aller 110 Architektur- und Qualitätsentscheidungen.
 10. [**Lasttests (k6, lokal und Live-Rauchtest)**](docs/load-test.md) – 200 gleichzeitige simulierte Nutzer mit Upload, Chat, Suche und Studio, p95 249 ms, 0 % Fehler; [HTML-Report](docs/load-test/report-local.html) und [JSON](docs/load-test/summary-local.json).
 11. [**Datenschutz je KI-Modell**](docs/datenschutz-modelle.md) – Training mit Eingaben je Anbieter und Zugangsweg, mit Quellen, Wortlaut und Abrufdatum.

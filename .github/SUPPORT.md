@@ -7,7 +7,7 @@ Willkommen bei **RelationNotes – NotebookLM & RelationFlow Knowledge Studio**!
 - **Im Repository unter `docs/`:**
   - [`docs/architecture.md`](./docs/architecture.md) – Single-Worker Edge-Architektur
   - [`docs/rag-and-vectors.md`](./docs/rag-and-vectors.md) – `int8`-Quantisierung, `NotebookDO` & `FTS5` BM25 Hybrid-RRF
-  - [`docs/relationflow-integration.md`](./docs/relationflow-integration.md) – Andock-Konzept an Everlasts RelationFlow
+  - [`docs/relationflow-integration.md`](./docs/relationflow-integration.md) – Andock-Konzept an RelationFlow
   - [`docs/security-and-compliance.md`](./docs/security-and-compliance.md) – BYOK `AES-256-GCM`, DSGVO, EU AI Act Art. 50 & WCAG 2.2 AAA
   - [`docs/platform-limits.md`](./docs/platform-limits.md) – Cloudflare Free-Tier-Limits & Benchmarks
 
