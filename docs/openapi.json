@@ -985,7 +985,7 @@
         "operationId": "initSourceUpload",
         "tags": ["Quellen"],
         "summary": "Upload einer Quelle einleiten",
-        "description": "Legt die Quelle mit Status `uploading` an. Mindestrolle: editor. Erlaubte Typen werden serverseitig geprüft.",
+        "description": "Legt die Quelle mit Status `uploading` an. Mindestrolle: editor. Erlaubte Typen werden serverseitig geprüft. Im Profil `demo` gelten globale R2-Grenzen zum Schutz der Cloudflare-Freimenge (docs/platform-limits.md, Abschnitt 5); dort ist `mode` immer `worker-upload`.",
         "security": [
           {
             "sessionCookie": []
@@ -1030,6 +1030,16 @@
           "401": {
             "$ref": "#/components/responses/Problem401"
           },
+          "403": {
+            "description": "Kontingent erschöpft, u. a. `QUOTA_MAX_SOURCES_PER_NOTEBOOK_EXCEEDED`, `QUOTA_MAX_SOURCE_BYTES_EXCEEDED`, `QUOTA_MAX_USER_STORAGE_EXCEEDED` (Speicher je Nutzer) oder `QUOTA_MAX_GUEST_STORAGE_EXCEEDED` (Speicher je Gast).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "404": {
             "$ref": "#/components/responses/Problem404"
           },
@@ -1048,6 +1058,35 @@
           },
           "429": {
             "$ref": "#/components/responses/Problem429"
+          },
+          "503": {
+            "description": "`UPLOAD_DAILY_LIMIT_REACHED`: Tageslimit der Instanz für Uploads (Anzahl oder Bytes je UTC-Tag) erreicht.",
+            "headers": {
+              "Retry-After": {
+                "description": "Sekunden bis 00:00 UTC.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "507": {
+            "description": "`STORAGE_BUDGET_EXHAUSTED`: Gesamtspeicher der Instanz für hochgeladene Dateien ist voll.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1164,7 +1203,11 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["status", "sourceId", "etag"],
+                  "required": [
+                    "status",
+                    "sourceId",
+                    "etag"
+                  ],
                   "properties": {
                     "status": {
                       "const": "uploaded"
@@ -1200,7 +1243,14 @@
             }
           },
           "413": {
-            "$ref": "#/components/responses/Problem413"
+            "description": "`UPLOAD_SIZE_MISMATCH`: Content-Length größer als angemeldet. `UPLOAD_TOO_LARGE`: Der Body lieferte mehr Bytes als Content-Length; der Upload wurde abgebrochen, das R2-Objekt gelöscht und die Quelle auf `error` gesetzt.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "429": {
             "$ref": "#/components/responses/Problem429"
@@ -1237,7 +1287,11 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["status", "sourceId", "verified"],
+                  "required": [
+                    "status",
+                    "sourceId",
+                    "verified"
+                  ],
                   "properties": {
                     "status": {
                       "const": "ready"
@@ -1261,6 +1315,16 @@
           },
           "404": {
             "$ref": "#/components/responses/Problem404"
+          },
+          "413": {
+            "description": "`UPLOAD_SIZE_MISMATCH`: Das gespeicherte Objekt ist größer als angemeldet; es wurde gelöscht.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "415": {
             "description": "Dateiinhalt passt nicht zum Typ.",
