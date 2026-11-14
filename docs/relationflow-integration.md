@@ -107,7 +107,7 @@ noch nicht dokumentiert ist (Anfrage-Entwurf: Issue #249).
 | Adapter (`/chat/completions` mit und ohne Stream, `/embeddings`, `/models`) | `apps/worker/src/openai-compatible-provider.ts` |
 | Schutz für Nutzer-Endpunkte | `apps/worker/src/endpoint-guard.ts` |
 | Routen `GET/PUT/DELETE /api/v1/providers/custom`, `POST /api/v1/providers/custom/test` | `apps/worker/src/custom-endpoint-routes.ts` |
-| Tabelle `provider_endpoints` (Adresse, Modelle; der Schlüssel liegt verschlüsselt in `provider_keys`) | `apps/worker/migrations/0003_custom_endpoints.sql` |
+| Tabelle `provider_endpoints` (Adresse, Modelle; der Schlüssel liegt verschlüsselt in `provider_keys`) | `apps/worker/migrations/0006_custom_endpoints.sql` |
 | Einstellung im UI (Deutsch und Englisch) | `apps/web/src/CustomEndpointSettings.tsx` |
 
 **Betreiber-Konfiguration:** `BYOM_ALLOWED_HOSTS` als kommagetrennte Liste, z. B.

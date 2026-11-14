@@ -1,4 +1,4 @@
--- Migration 0003: Nutzereigene OpenAI-kompatible Endpunkte (BYOM, Issue #247)
+-- Migration 0006: Nutzereigene OpenAI-kompatible Endpunkte (BYOM, Issue #247)
 -- Der API-Schlüssel liegt weiterhin verschlüsselt in provider_keys (provider = 'custom').
 -- Hier stehen nur Adresse und Modellnamen, keine Geheimnisse.
 

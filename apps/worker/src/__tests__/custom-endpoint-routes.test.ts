@@ -23,7 +23,7 @@ function createDb(): { adapter: DatabaseAdapter; close: () => void } {
   for (const file of [
     "0001_initial_core.sql",
     "0002_rag_and_studio.sql",
-    "0003_custom_endpoints.sql"
+    "0006_custom_endpoints.sql"
   ]) {
     sqlite.exec(readFileSync(resolve(process.cwd(), "apps/worker/migrations", file), "utf-8"));
   }

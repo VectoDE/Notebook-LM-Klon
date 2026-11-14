@@ -34,7 +34,7 @@ export interface ProviderEndpointRow {
   readonly updated_at: number;
 }
 
-/** Zugriff auf die Tabelle provider_endpoints (Migration 0003). */
+/** Zugriff auf die Tabelle provider_endpoints (Migration 0006). */
 export class EndpointRepository {
   constructor(private readonly db: DatabaseAdapter) {}
 
