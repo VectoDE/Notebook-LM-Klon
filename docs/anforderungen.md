@@ -8,7 +8,7 @@ Notebook-LM-Klon mit Frontend, Backend und Datenbank. Alle Richtlinien und Geset
 ## Entscheidungen (Runde 1)
 | # | Thema | Entscheidung |
 |---|---|---|
-| 1 | Zweck | Bewerbungsprojekt, vollständig (Frontend, Backend, DB, alles Nötige) |
+| 1 | Zweck | Vollständiges Referenzprojekt (Frontend, Backend, DB, alles Nötige) |
 | 2 | Funktionsumfang | Volle Parität: Quellen, Chat mit Zitaten, Zusammenfassungen, Audio-Overview, Mindmaps, Lernkarten, Quiz, Video-Overview |
 | 3 | LLM | Provider-Abstraktion: Gemini API und Ollama |
 | 4 | Hosting | Cloudflare, **ein einziger Worker**, **eine Datenbank**, **ein Medienspeicher** |
@@ -61,10 +61,9 @@ Notebook-LM-Klon mit Frontend, Backend und Datenbank. Alle Richtlinien und Geset
 | 33 | DSGVO | Export, Löschung, Audit-Log, Session-Cookie + Cloudflare Web Analytics (cookielos) |
 | 34 | Repo | Repository `github.com/VectoDE/Notebook-LM-Klon` |
 
-## Kontext Bewerbung
-- Testaufgabe Everlast Consulting GmbH, Stelle Junior Entwickler (Vollzeit), Full Stack.
-- Abgabe: GitHub-Repo-Link, Live-Deployment, Loom-Video max. 10 Min. (Vorgehen erklären, Klon live testen).
-- Schwerpunkt-Hinweis: „Beschäftige dich bitte mit RelationFlow.“
+## Lieferumfang
+- Öffentliches GitHub-Repository, Live-Deployment, Video-Walkthrough von höchstens 10 Minuten (Vorgehen erklären, Klon live testen).
+- Schwerpunkt: Anbindung an RelationFlow als Ziel-Plattform.
 
 ## Entscheidungen (Runde 6)
 | # | Thema | Entscheidung |
@@ -73,7 +72,7 @@ Notebook-LM-Klon mit Frontend, Backend und Datenbank. Alle Richtlinien und Geset
 | 36 | Priorisierung | Gestaffelt: Kern (Quellen, Chat mit Zitaten, Audio-Overview, Studio-Werkzeuge, a11y, Sicherheit) zuerst live, Erweiterungen in Phasen 2–4 |
 | 37 | RelationFlow | Recherche und gezielte architektonische Einbindung |
 | 38 | KI-Doku | README dokumentiert Vorgehen und KI-Einsatz transparent; Commits und PRs ohne KI-Kennzeichnung |
-| 39 | Abgabe | Loom-Leitfaden + Antwort-E-Mail-Entwurf vorbereitet |
+| 39 | Präsentation | Video-Leitfaden mit Zeitplan und Prüfliste ([`loom-guide.md`](loom-guide.md)) |
 
 ## Entscheidungen (Runde 7)
 | # | Thema | Entscheidung |
@@ -87,7 +86,7 @@ Notebook-LM-Klon mit Frontend, Backend und Datenbank. Alle Richtlinien und Geset
 ## Impressum & Datenschutz-Schutz (Runde 8 & Entscheidung #59)
 - Im öffentlichen GitHub-Repository stehen **keine privaten Wohnadressdaten**.
 - Die Impressumsdaten (`IMPRINT_NAME`, `IMPRINT_STREET`, `IMPRINT_CITY`, `IMPRINT_EMAIL`) werden im Live-Deployment ausschließlich über Cloudflare-Worker-Umgebungsvariablen über `/api/v1/legal/imprint` injiziert; als zweiter schneller Kontaktweg dient das Turnstile-geschützte Kontaktformular (`/api/v1/contact`).
-- Rechtsstatus: Nicht-kommerzielles Bewerbungsprojekt.
+- Rechtsstatus: Nicht-kommerzielles Referenz- und Demonstrationsprojekt.
 
 ## Entscheidungen (Runde 9)
 | # | Thema | Entscheidung |
@@ -122,7 +121,7 @@ Notebook-LM-Klon mit Frontend, Backend und Datenbank. Alle Richtlinien und Geset
 |---|---|---|
 | 61 | Echtzeit & Workspaces | Direkt in Phase 1: Live-Präsenz + Echtzeit-Sync via `NotebookDO` (WebSockets) UND sichtbarer Workspace-/Rollen-Umschalter (RelationFlow-Bezug) |
 | 62 | Studio-Werkzeuge Phase 1 | Alle 6 Studio-Werkzeuge schon in Phase 1 funktionsfähig: Audio-Overview, Video-Overview (Folien+Audio), interaktive SVG-Mindmap, Lernkarten, Quiz mit Erklärung, Briefing/FAQ |
-| 63 | Demo-Inhalte | Vorbereiteter „RelationFlow & KI im Mittelstand“-Demo-Workspace + zweites technisches Demo-Notebook |
+| 63 | Demo-Inhalte | Vorbereiteter „KI im Mittelstand“-Demo-Workspace + zweites technisches Demo-Notebook |
 | 64 | Google-Docs-Import | In Phase 1 „1-Klick Import per öffentlichem Google-Docs-Link“ (ohne OAuth-Sperre sofort nutzbar) + zusätzlicher OAuth-Picker für angemeldete Testnutzer |
 | 65 | Audio-Overview-Technik | Echter Multi-Speaker-Audio-Stream via Gemini Native Audio TTS (wenn Key vorhanden) + vorgeneriertes Zwei-Sprecher-Audio im Demo-Notebook (Piper/Gemini) + Web-Speech-Fallback offline |
 | 66 | GitHub-Projektmanagement | GitHub Project (Kanban) + Meilensteine (Phase 1–4) + detaillierte Issues + Discussions im Repo `VectoDE/Notebook-LM-Klon` |
@@ -132,7 +131,7 @@ Notebook-LM-Klon mit Frontend, Backend und Datenbank. Alle Richtlinien und Geset
 |---|---|---|
 | 67 | Video-Overview-Player & Export | Interaktiver In-App-Canvas/Folien-Player (mit Kapitel-Sprung & Untertiteln) + 1-Klick-Export als `.webm`/`.mp4` im Browser (`MediaRecorder` / WebCodecs) |
 | 68 | Interactive Audio Host Mode | Live-Rückfragen während des Audio-Overviews („Beitreten / Fragen“ per Mikrofon oder Text, Hosts antworten kontextbezogen per TTS) |
-| 69 | Demo-Audio-Produktion | Vorgeneriertes deutsches Zwei-Sprecher-Demo-Audio für das „RelationFlow & KI im Mittelstand“-Demo-Notebook lokal mit Piper TTS + `ffmpeg` (echte Audiodatei + WebVTT-Wort-Zeitstempel) |
+| 69 | Demo-Audio-Produktion | Vorgeneriertes deutsches Zwei-Sprecher-Demo-Audio für das „KI im Mittelstand“-Demo-Notebook lokal mit Piper TTS + `ffmpeg` (echte Audiodatei + WebVTT-Wort-Zeitstempel) |
 | 70 | Artefakt-Exporte | Mindmap als SVG/PNG/JSON, Lernkarten als Anki-CSV/JSON, Briefing/Zusammenfassungen als Markdown/PDF |
 | 71 | OpenSSF & Branch-Protection | Branch-Protection auf `main` aktivieren (PR Pflicht, Status-Checks Pflicht, Linear History), jedes Issue als eigener Branch + Pull Request nach `main` |
 
