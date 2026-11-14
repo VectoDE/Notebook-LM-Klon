@@ -312,3 +312,94 @@ describe("OpenAiCompatibleProvider: Verbindungstest", () => {
     expect(out.message).not.toContain(KEY);
   });
 });
+
+describe("OpenAiCompatibleProvider: Größenlimits (F247)", () => {
+  /** Antwort mit endlosem Body; zählt, wie viele Teile gelesen wurden. */
+  function endless(status: number, headers: Record<string, string> = {}) {
+    const state = { pulls: 0, cancelled: false };
+    const fetchFn = (async () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          pull(controller) {
+            state.pulls += 1;
+            controller.enqueue(new TextEncoder().encode(`${KEY} `.repeat(64)));
+          },
+          cancel() {
+            state.cancelled = true;
+          }
+        }),
+        { status, headers }
+      )) as unknown as typeof fetch;
+    return { state, fetchFn };
+  }
+
+  it("liest Fehlerantworten nur begrenzt und ohne Schlüssel", async () => {
+    const { state, fetchFn } = endless(500);
+    const err = (await provider({ fetchFn })
+      .chat([{ role: "user", content: "x" }])
+      .catch((e: Error) => e)) as Error;
+    expect(err.message).toContain("Endpunkt-Fehler (500)");
+    expect(err.message).not.toContain(KEY);
+    expect(err.message.length).toBeLessThan(300);
+    expect(state.cancelled).toBe(true);
+    expect(state.pulls).toBeLessThan(10);
+  });
+
+  it("bricht zu große JSON-Antworten ab", async () => {
+    const { state, fetchFn } = endless(200);
+    await expect(
+      provider({ fetchFn, maxResponseBytes: 10_000 }).chat([{ role: "user", content: "x" }])
+    ).rejects.toThrow("zu groß");
+    expect(state.cancelled).toBe(true);
+    await expect(
+      provider({ fetchFn, maxResponseBytes: 10_000 }).embed(["a"])
+    ).rejects.toThrow("zu groß");
+    await expect(
+      provider({ fetchFn, maxResponseBytes: 10_000 }).generateJson([
+        { role: "user", content: "x" }
+      ])
+    ).rejects.toThrow("zu groß");
+  });
+
+  it("lehnt eine zu große Content-Length ab, ohne den Body zu lesen", async () => {
+    const { state, fetchFn } = endless(200, { "content-length": "999999999" });
+    await expect(
+      provider({ fetchFn, maxResponseBytes: 1000 }).chat([{ role: "user", content: "x" }])
+    ).rejects.toThrow("zu groß");
+    expect(state.pulls).toBeLessThanOrEqual(1);
+  });
+
+  it("bricht einen Stream ab, der das Größenlimit überschreitet", async () => {
+    handler = (_req, res) => {
+      res.writeHead(200, { "content-type": "text/event-stream" });
+      res.write(`data: {"choices":[{"delta":{"content":"${"a".repeat(2000)}"}}]}\n\n`);
+      res.write(`data: {"choices":[{"delta":{"content":"${"b".repeat(2000)}"}}]}\n\n`);
+      res.end("data: [DONE]\n\n");
+    };
+    const chunks: unknown[] = [];
+    await expect(
+      (async () => {
+        for await (const c of provider({ maxResponseBytes: 3000 }).chatStream([
+          { role: "user", content: "x" }
+        ]))
+          chunks.push(c);
+      })()
+    ).rejects.toThrow("zu groß");
+  });
+
+  it("Verbindungstest meldet eine zu große Modellliste als Fehler", async () => {
+    const { fetchFn } = endless(200);
+    const out = await provider({ fetchFn, maxResponseBytes: 5000 }).probeHealth();
+    expect(out.ok).toBe(false);
+    expect(out.message).toContain("zu groß");
+  });
+
+  it("liest Antworten ohne Body als leer", async () => {
+    const noBody = (async () => new Response(null, { status: 503 })) as unknown as typeof fetch;
+    await expect(provider({ fetchFn: noBody }).chat([{ role: "user", content: "x" }])).rejects.toThrow(
+      /^Endpunkt-Fehler \(503\)$/
+    );
+    const emptyOk = (async () => new Response(null, { status: 200 })) as unknown as typeof fetch;
+    expect((await provider({ fetchFn: emptyOk }).probeHealth()).models).toEqual([]);
+  });
+});
