@@ -410,7 +410,8 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       expect((await call("/api/v1/providers/custom")).status).toBe(401);
       const res = await call("/api/v1/providers/custom", { cookie: fx.cookies.alice });
       expect(res.status).toBe(200);
-      expect(((await res.json()) as { enabled: boolean }).enabled).toBe(false);
+      // F247: ohne BYOM_ALLOWED_HOSTS ist die Funktion an, ohne zusätzliche Host-Einschränkung.
+      expect(await res.json()).toMatchObject({ enabled: true, hostRestricted: false });
     });
 
     it("serves chat history only with a session", async () => {
