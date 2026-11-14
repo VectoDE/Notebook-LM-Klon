@@ -63,11 +63,22 @@ function isSourceUploadError(error: unknown): error is SourceUploadError {
   );
 }
 
+/** Speicher je Nutzer bzw. Gast ist voll (Server: quota-guard.ts). */
+const STORAGE_QUOTA_CODES = new Set([
+  "QUOTA_MAX_USER_STORAGE_EXCEEDED",
+  "QUOTA_MAX_GUEST_STORAGE_EXCEEDED"
+]);
+
+/** Globale R2-Grenzen der Instanz (Server: r2-budget.ts), kein Fehler des Nutzers. */
+const UPLOAD_CAPACITY_CODES = new Set(["UPLOAD_DAILY_LIMIT_REACHED", "STORAGE_BUDGET_EXHAUSTED"]);
+
 /** Schlüssel im Sprachkatalog mit verständlichem Grund und Handlungshinweis. */
 export function uploadErrorKey(error: unknown): string {
   if (!isSourceUploadError(error)) return "srcErrorRead";
   if (error.code === "UNSUPPORTED_TYPE" || error.status === 415) return "srcErrorType";
   if (error.code === "NO_TEXT") return "srcErrorEmpty";
+  if (STORAGE_QUOTA_CODES.has(error.code)) return "srcErrorStorage";
+  if (UPLOAD_CAPACITY_CODES.has(error.code)) return "srcErrorCapacity";
   if (error.status === 413) return "srcErrorSize";
   return errorKeyForStatus(error.status);
 }
