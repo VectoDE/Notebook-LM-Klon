@@ -55,55 +55,14 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
     [now, batchSize]
   );
 
-  if (expiredGuests.length > 0) {
-    const guestIds = expiredGuests.map((g) => g.id);
-    const placeholders = guestIds.map(() => "?").join(",");
-
-    // Find all workspaces owned by these guests
-    const workspaces = await db.query<{ id: string }>(
-      `SELECT id FROM workspaces WHERE owner_id IN (${placeholders})`,
-      guestIds
-    );
-    const workspaceIds = workspaces.map((w) => w.id);
-
-    // Find all notebooks in these workspaces or created by these guests
-    const wsPlaceholders = workspaceIds.length > 0 ? workspaceIds.map(() => "?").join(",") : "''";
-    const notebooks = await db.query<{ id: string }>(
-      `SELECT id FROM notebooks WHERE workspace_id IN (${wsPlaceholders}) OR created_by IN (${placeholders})`,
-      [...workspaceIds, ...guestIds]
-    );
-    const notebookIds = notebooks.map((n) => n.id);
-
-    // Delete associated R2 files for each guest and notebook
-    if (mediaBucket) {
-      for (const guestId of guestIds) {
-        deletedR2Objects += await purgeR2Prefix(mediaBucket, `users/${guestId}/`);
-      }
-      for (const nbId of notebookIds) {
-        deletedR2Objects += await purgeR2Prefix(mediaBucket, `notebooks/${nbId}/`);
-      }
-    }
-
-    // Delete notebooks (ON DELETE CASCADE handles notebook_shares)
-    if (notebookIds.length > 0) {
-      const nbPlaceholders = notebookIds.map(() => "?").join(",");
-      const nbDelRes = await db.run(
-        `DELETE FROM notebooks WHERE id IN (${nbPlaceholders})`,
-        notebookIds
-      );
-      deletedNotebooks += nbDelRes.changes;
-    }
-
-    // Delete workspaces (ON DELETE RESTRICT on workspaces requires deleting them before owner user)
-    if (workspaceIds.length > 0) {
-      const wsPlaceholders = workspaceIds.map(() => "?").join(",");
-      await db.run(`DELETE FROM workspaces WHERE id IN (${wsPlaceholders})`, workspaceIds);
-    }
-
-    // Finally delete users (ON DELETE CASCADE removes passkeys, sessions, quotas, workspace_members)
-    const userDelRes = await db.run(`DELETE FROM users WHERE id IN (${placeholders})`, guestIds);
-    deletedGuests = userDelRes.changes;
-  }
+  const purged = await purgeUsers(
+    db,
+    mediaBucket,
+    expiredGuests.map((g) => g.id)
+  );
+  deletedGuests = purged.deletedUsers;
+  deletedNotebooks += purged.deletedNotebooks;
+  deletedR2Objects += purged.deletedR2Objects;
 
   // 2. Identify and purge expired demo notebooks that are not already deleted
   const expiredNotebooks = await db.query<{ id: string }>(
@@ -150,6 +109,83 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
     deletedR2Objects,
     durationMs
   };
+}
+
+export interface PurgeUsersResult {
+  deletedUsers: number;
+  deletedNotebooks: number;
+  deletedR2Objects: number;
+}
+
+/**
+ * Deletes users with everything they own, immediately and irreversibly (Art. 17 DSGVO):
+ * R2 objects under users/{id}/ and notebooks/{id}/, notebooks they own or created,
+ * their workspaces and finally the user rows. ON DELETE CASCADE removes passkeys,
+ * sessions, quotas, memberships, shares, chats, notes, artifacts, provider keys,
+ * sources, chunks and vectors. audit_log keeps its rows with user_id set to NULL.
+ * Used by the cron cleanup (expired guests) and by DELETE /api/v1/me.
+ */
+export async function purgeUsers(
+  db: DatabaseAdapter,
+  mediaBucket: MinimalR2Bucket | null | undefined,
+  userIds: readonly string[]
+): Promise<PurgeUsersResult> {
+  if (userIds.length === 0) {
+    return { deletedUsers: 0, deletedNotebooks: 0, deletedR2Objects: 0 };
+  }
+  const ids = [...userIds];
+  const placeholders = ids.map(() => "?").join(",");
+  let deletedNotebooks = 0;
+  let deletedR2Objects = 0;
+
+  // Workspaces owned by these users
+  const workspaces = await db.query<{ id: string }>(
+    `SELECT id FROM workspaces WHERE owner_id IN (${placeholders})`,
+    ids
+  );
+  const workspaceIds = workspaces.map((w) => w.id);
+
+  // Notebooks in these workspaces or created by these users
+  const wsPlaceholders = workspaceIds.length > 0 ? workspaceIds.map(() => "?").join(",") : "''";
+  const notebooks = await db.query<{ id: string }>(
+    `SELECT id FROM notebooks WHERE workspace_id IN (${wsPlaceholders}) OR created_by IN (${placeholders})`,
+    [...workspaceIds, ...ids]
+  );
+  const notebookIds = notebooks.map((n) => n.id);
+
+  // R2 objects first, so no orphaned files remain if a later step fails
+  if (mediaBucket) {
+    for (const userId of ids) {
+      deletedR2Objects += await purgeR2Prefix(mediaBucket, `users/${userId}/`);
+    }
+    for (const nbId of notebookIds) {
+      deletedR2Objects += await purgeR2Prefix(mediaBucket, `notebooks/${nbId}/`);
+    }
+  }
+
+  // Notebooks (ON DELETE CASCADE handles shares, sources, chunks, vectors, chats, notes)
+  if (notebookIds.length > 0) {
+    const nbPlaceholders = notebookIds.map(() => "?").join(",");
+    await db.run(`DELETE FROM notebooks WHERE id IN (${nbPlaceholders})`, notebookIds);
+    // Count from the SELECT above: meta.changes may include ON DELETE CASCADE rows
+    // depending on the driver (node:sqlite total_changes), D1 does not.
+    deletedNotebooks = notebookIds.length;
+  }
+
+  // Workspaces (owner_id is ON DELETE RESTRICT, so they go before the owner)
+  if (workspaceIds.length > 0) {
+    const ownedPlaceholders = workspaceIds.map(() => "?").join(",");
+    await db.run(`DELETE FROM workspaces WHERE id IN (${ownedPlaceholders})`, workspaceIds);
+  }
+
+  // Users last (ON DELETE CASCADE removes passkeys, sessions, quotas, workspace_members)
+  const existingUsers = await db.query<{ id: string }>(
+    `SELECT id FROM users WHERE id IN (${placeholders})`,
+    ids
+  );
+  await db.run(`DELETE FROM users WHERE id IN (${placeholders})`, ids);
+
+  return { deletedUsers: existingUsers.length, deletedNotebooks, deletedR2Objects };
 }
 
 /**

@@ -4,6 +4,7 @@ import {
   createProblemDetails
 } from "@notebook-lm/shared";
 import { Hono } from "hono";
+import { registerAccountRoutes } from "./account-routes.js";
 import { registerAudioRoutes } from "./audio-routes.js";
 import {
   csrfProtection,
@@ -325,7 +326,11 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   );
   registerJobRoutes(app, { coreRepo });
 
-  // 8. BYOK key management (last: its router adds its own same-origin CSRF check)
+  // 8. Account self-service (Art. 17 DSGVO): immediate deletion of the own account
+  app.use("/api/v1/me", requireAuth());
+  registerAccountRoutes(app, { coreRepo, isProduction });
+
+  // 9. BYOK key management (last: its router adds its own same-origin CSRF check)
   app.use("/api/v1/keys", requireAuth(), requireConfiguredKek(), requireSalt);
   app.use("/api/v1/keys/*", requireAuth(), requireConfiguredKek(), requireSalt);
   registerBYOKRoutes(app, { ragRepo, coreRepo, keyVault, saltSecret });
