@@ -122,7 +122,7 @@ describe("parseFileInWorker", () => {
           >);
           worker.onmessage?.({
             data: { type: "CHUNKS_EXTRACTED", chunks: [], text: "ok" }
-          } as MessageEvent<IngestParserWorkerResponse>);
+          } as unknown as MessageEvent<IngestParserWorkerResponse>);
         });
       },
       terminate() {}

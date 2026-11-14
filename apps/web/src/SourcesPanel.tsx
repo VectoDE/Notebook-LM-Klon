@@ -124,7 +124,9 @@ export function SourcesPanel({
     s.title.toLowerCase().includes(filterText.toLowerCase())
   );
 
-  const allSelected = sources.length > 0 && sources.every((s) => s.isSelected !== false);
+  // Quellen in Verarbeitung oder mit Fehler zählen bei "Alle auswählen" nicht mit (P6)
+  const selectable = sources.filter((s) => isSourceUsable(s));
+  const allSelected = selectable.length > 0 && selectable.every((s) => s.isSelected !== false);
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -341,7 +343,8 @@ export function SourcesPanel({
           </li>
         ) : (
           filteredSources.map((source) => {
-            const isSelected = source.isSelected !== false;
+            const isPending = !isSourceUsable(source);
+            const isSelected = !isPending && source.isSelected !== false;
             const isInspected = inspectedSourceId === source.id;
 
             return (
@@ -362,6 +365,8 @@ export function SourcesPanel({
                       type="checkbox"
                       id={`source-checkbox-${source.id}`}
                       checked={isSelected}
+                      // Erst indexierte Quellen können eine Antwort belegen (P6)
+                      disabled={isPending}
                       onChange={() => onToggleSelect?.(source.id)}
                       aria-label={tf("srcSelectAria", { title: source.title })}
                       data-testid={`source-checkbox-${source.id}`}
@@ -381,6 +386,18 @@ export function SourcesPanel({
                         {Math.round(source.byteSize / 1024)} KB
                       </span>
                     </small>
+                    {isPending && (
+                      <small
+                        role="status"
+                        className="rn-source-status"
+                        data-status={source.status}
+                        data-testid={`source-status-${source.id}`}
+                      >
+                        {source.status === "error"
+                          ? t(source.errorKey ?? "srcErrorRead")
+                          : t("srcStatusProcessing")}
+                      </small>
+                    )}
                   </div>
                 </div>
 
@@ -559,6 +576,11 @@ export function SourcesPanel({
       )}
     </section>
   );
+}
+
+/** Bereit für den Chat: indexiert oder ohne Statusangabe (Demo- und Link-Quellen). */
+export function isSourceUsable(source: Pick<WorkspaceSource, "status">): boolean {
+  return source.status !== "processing" && source.status !== "error";
 }
 
 /** Kurzes Kürzel für die Dateiart, rein visuell (der Dateiname steht daneben). */
