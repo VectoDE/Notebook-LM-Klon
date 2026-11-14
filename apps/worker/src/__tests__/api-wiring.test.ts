@@ -392,6 +392,9 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
     });
 
     it("routes model=custom to the own endpoint and answers 503 without one (Issue #247)", async () => {
+      const countMessages = () =>
+        (fx.sqlite.prepare("SELECT COUNT(*) AS n FROM messages").get() as { n: number }).n;
+      const before = countMessages();
       const res = await call("/api/v1/notebooks/nb_a/chat", {
         method: "POST",
         cookie: fx.cookies.bob,
@@ -399,6 +402,8 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       });
       expect(res.status).toBe(503);
       expect(((await res.json()) as { code: string }).code).toBe("CUSTOM_ENDPOINT_UNAVAILABLE");
+      // Kein halber Chat: ohne Endpunkt wird auch die Nutzernachricht nicht gespeichert.
+      expect(countMessages()).toBe(before);
     });
 
     it("guards the own-endpoint settings with a session", async () => {

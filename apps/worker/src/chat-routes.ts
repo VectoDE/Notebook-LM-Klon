@@ -213,6 +213,31 @@ export function registerChatRoutes(
       language
     } = parseResult.data;
 
+    // 0. Eigener Endpunkt (BYOM, #247) vor allem anderen auflösen: Fehlt er, gibt es sofort 503,
+    // ohne Chat oder Nutzernachricht anzulegen und unabhängig davon, ob die Quellen Belege liefern.
+    let customProvider: LlmProvider | null = null;
+    if (requestedModel === "custom") {
+      try {
+        customProvider = deps.resolveCustomProvider
+          ? await deps.resolveCustomProvider(sessionUser.id)
+          : null;
+      } catch {
+        customProvider = null;
+      }
+      if (!customProvider) {
+        const problem = createProblemDetails({
+          status: 503,
+          title: "Service Unavailable",
+          detail: "Kein eigener Endpunkt eingerichtet oder Schlüssel nicht lesbar.",
+          instance: c.req.path,
+          code: "CUSTOM_ENDPOINT_UNAVAILABLE"
+        });
+        return c.json(problem, 503, {
+          "content-type": "application/problem+json; charset=utf-8"
+        });
+      }
+    }
+
     // 1. Resolve or create chat
     const now = Date.now();
     let chatId = existingChatId;
@@ -366,30 +391,7 @@ export function registerChatRoutes(
     // 4. Build Grounded Context & System Prompt with Prompt Injection Neutralisation
     const grounded = buildGroundedContext(chunks);
 
-    // 5. Select Provider and Model: own endpoint (BYOM) or AutoRouter
-    let customProvider: LlmProvider | null = null;
-    if (requestedModel === "custom") {
-      try {
-        customProvider = deps.resolveCustomProvider
-          ? await deps.resolveCustomProvider(sessionUser.id)
-          : null;
-      } catch {
-        customProvider = null;
-      }
-      if (!customProvider) {
-        const problem = createProblemDetails({
-          status: 503,
-          title: "Service Unavailable",
-          detail: "Kein eigener Endpunkt eingerichtet oder Schlüssel nicht lesbar.",
-          instance: c.req.path,
-          code: "CUSTOM_ENDPOINT_UNAVAILABLE"
-        });
-        return c.json(problem, 503, {
-          "content-type": "application/problem+json; charset=utf-8"
-        });
-      }
-    }
-
+    // 5. Select Provider and Model: own endpoint (BYOM, resolved above) or AutoRouter
     const routingDecision: { provider: string; model: string | undefined } = customProvider
       ? { provider: "custom", model: undefined }
       : routerInstance.route({
