@@ -1,4 +1,7 @@
 import { type Page, expect, test } from "@playwright/test";
+import { buildDocx } from "../src/__tests__/zip-fixture";
+
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 /**
  * P6: eigene Quellen hochladen. Der echte Ingest-Worker liest TXT, Markdown und PDF im
@@ -129,6 +132,44 @@ test.describe("Eigene Quellen hochladen (P6)", () => {
     await page.getByTestId("chat-input-field").press("Enter");
     await expect(page.getByText("Durch Dresden")).toBeVisible();
     expect(log.chat?.sourceIds).toEqual(expect.arrayContaining(["srv_elbe_md", "srv_rhein_pdf"]));
+  });
+
+  test("Word-Datei (.docx) wird im Worker mit mammoth gelesen und indexiert", async ({ page }) => {
+    const log = await mockWorker(page);
+    await page.goto("/");
+
+    await page.getByTestId("file-upload-input").setInputFiles({
+      name: "weser.docx",
+      mimeType: DOCX_MIME,
+      buffer: Buffer.from(buildDocx(["Die Weser fließt durch Bremen.", "Zweiter Absatz."]))
+    });
+
+    await expect(page.getByTestId("source-item-srv_weser_docx")).toBeVisible();
+    await expect(page.locator("[data-testid^='source-status-']")).toHaveCount(0);
+    expect(log.inits).toEqual([
+      expect.objectContaining({ filename: "weser.docx", mimeType: DOCX_MIME })
+    ]);
+    const chunks = log.chunks.find((c) => c.sourceId === "srv_weser_docx");
+    expect(chunks?.body.chunks.map((c) => c.text).join(" ")).toContain("Die Weser fließt");
+
+    await page.getByTestId("btn-inspect-source-srv_weser_docx").click();
+    await expect(page.getByTestId("inspector-source-content")).toContainText("Zweiter Absatz.");
+  });
+
+  test("Zip-Bombe als .docx wird abgelehnt, ohne den Server zu belasten", async ({ page }) => {
+    const log = await mockWorker(page);
+    await page.goto("/");
+
+    await page.getByTestId("file-upload-input").setInputFiles({
+      name: "bombe.docx",
+      mimeType: DOCX_MIME,
+      buffer: Buffer.from(buildDocx(["A".repeat(20 * 1024 * 1024)]))
+    });
+
+    const status = page.locator("[data-testid^='source-status-']");
+    await expect(status).toHaveAttribute("data-status", "error");
+    await expect(status).toContainText("ungewöhnlich aufgebaut");
+    expect(log.inits).toHaveLength(0);
   });
 
   test("ohne Anmeldung bleibt die Datei mit Grund sichtbar und geht nicht in den Chat", async ({
