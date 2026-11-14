@@ -3062,6 +3062,7 @@
             "minLength": 1
           },
           "queryVector": {
+            "description": "Optionaler Float32-Anfragevektor. Fehlt er, rechnet der Server ihn in den Modi hybrid und vector per Workers AI (@cf/google/embeddinggemma-2, 768 Dimensionen) und vergleicht nur Vektoren dieses Modells. Ohne Binding, bei erschöpftem Tageskontingent oder Fehler: nur FTS5.",
             "type": "array",
             "items": {
               "type": "number"
@@ -3457,6 +3458,7 @@
             }
           },
           "model": {
+            "description": "Modell der mitgelieferten Client-Vektoren. Chunks ohne Vektor bettet der Server per Workers AI ein und speichert sie mit dem Modell @cf/google/embeddinggemma-2.",
             "type": "string",
             "default": "text-embedding-3-small"
           },
@@ -3491,6 +3493,7 @@
             "minimum": 0
           },
           "vectorsIngested": {
+            "description": "Gespeicherte Vektoren: mitgelieferte plus serverseitig berechnete. 0, wenn Workers AI fehlt, das Kontingent erschöpft ist oder ein Fehler auftrat (Volltextindex bleibt).",
             "type": "integer",
             "minimum": 0
           },

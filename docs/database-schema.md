@@ -198,3 +198,16 @@ Kommentare hängen an einer Quelle oder einer Notiz desselben Notebooks. SQLite 
 `comment_mentions(comment_id, user_id)` hält die Erwähnungen. Der Worker nimmt nur Personen an, die über den Workspace oder eine Freigabe Zugriff auf das Notebook haben. Indizes: `idx_comments_target (notebook_id, target_type, target_id, created_at)` für den Faden, `idx_comment_mentions_user (user_id)` für „Wo werde ich erwähnt“.
 
 Rechte: Lesen ab `viewer`, Schreiben ab `editor`, Bearbeiten nur durch die verfassende Person (mit `editor`), Löschen durch die verfassende Person oder den `owner`. Ratenbegrenzung: eigene Kategorie `comments` mit 60 Anfragen je Minute und Person.
+
+### Embedding-Tageszähler (`0007_ai_embedding_usage.sql`)
+
+Zählt die Eingabe-Tokens, die der Worker pro UTC-Tag an Workers AI schickt (serverseitige
+Embeddings, siehe [rag-and-vectors.md, Abschnitt 5](./rag-and-vectors.md)). Keine Inhalte, nur
+Zahlen. Zeilen früherer Tage löscht der Worker beim nächsten Schreiben. Die Nummer 0007 lässt 0004
+und 0006 frei, weil offene Zweige sie belegen.
+
+| Spalte (`ai_embedding_usage`) | Typ | Bedeutung |
+|---|---|---|
+| `day` | `TEXT` | UTC-Tag `YYYY-MM-DD` (Teil des Primärschlüssels) |
+| `scope` | `TEXT` | `global` für das ganze Konto oder `guest:<user_id>` für das Gast-Limit (Teil des Primärschlüssels) |
+| `tokens` | `INTEGER` | verbrauchte Eingabe-Tokens an diesem Tag, `>= 0` |

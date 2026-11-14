@@ -1,6 +1,6 @@
 # Cloudflare Free-Tier-Limits, CPU-Budgets & Architekturentscheidungen
 
-Stand: 2026-11-09 · Verifiziert durch automatisierte Tests (`fts5-probe.test.ts`, `crypto-benchmark.test.ts`)
+Stand: 2026-11-14 · Verifiziert durch automatisierte Tests (`fts5-probe.test.ts`, `crypto-benchmark.test.ts`)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/architecture-overview-dark.svg">
@@ -20,6 +20,7 @@ Der NotebookLM-Klon läuft vollständig auf **einem einzigen Cloudflare Worker**
 | **Cloudflare R2** | 10 GB Speicher/Monat, 1 Mio. Class-A-Ops (Writes), 10 Mio. Class-B-Ops (Reads), **0 € Egress** | Große Quelldateien (bis 50 MB je Datei und 200 MB je Notebook, in beiden Profilen) dürfen den Worker-Speicher (128 MB) nicht sprengen. | Dualer Upload-Pfad (Entscheidung #57): Primär **S3-kompatible Presigned URL** (`aws4fetch`, direkter Browser-PUT nach R2) mit automatischem Fallback auf gestreamten Multipart-Upload über das native `MEDIA`-R2-Binding. Automatische Cron-TTL-Bereinigung nach 24 h (Gäste) bzw. 30 Tagen (Demo). |
 | **Durable Objects (SQLite)** | 100.000 Requests/Tag, 13.000 GB-s/Tag, 5 GB SQLite-Speicher (`new_sqlite_classes`), **30 s CPU-Budget pro Aufruf** | Im Free-Plan sind ausschließlich SQLite-backed Durable Objects (`new_sqlite_classes`) zulässig. | `NotebookDO` (Echtzeit-WebSockets mit Hibernation + In-Memory-`Int8Array`-Vektorsuche) und `JobDO` (persistente Hintergrund-Job-Queue via `alarm()` ohne separates Cloudflare-Queues-Abo). |
 | **Email Sending** | Im Free-Plan Versand **nur an vorab verifizierte eigene Zieladressen**; Versand an beliebige fremde Adressen erfordert Workers Paid oder Drittanbieter. | E-Mail-Magic-Link kann im reinen Cloudflare-Free-Plan nicht an unbekannte Bewerbungsprüfer senden. | Primäre Anmeldung über **WebAuthn Passkeys** + **1-Klick-Gastzugang (24 h)** (sofort ohne E-Mail testbar). Für Magic-Link ist ein Multi-Provider-Adapter (`cloudflare`, optionaler kostenloser `resend`/`brevo`-Key oder `console` im Dev-Modus) integriert (Entscheidung #56). |
+| **Workers AI** (Stand 2026-11-14) | **10.000 Neuronen pro Tag**, Reset 00:00 UTC; danach im Free-Plan Fehler statt Abrechnung. Text-Embeddings: 3.000 Anfragen/Minute. `@cf/google/embeddinggemma-2`: 154 Neuronen je Mio. Eingabe-Tokens (≈ 64,9 Mio. Tokens/Tag) | Ohne serverseitige Embeddings bleibt die Vektorsuche bei hochgeladenen Quellen leer; ein unbegrenzter Verbrauch würde das Tageskontingent für alle sperren. | Binding `AI`, Embeddings beim Chunk-Ingest und für Suchanfragen, Tagesbudget 50 Mio. Tokens (77 % der freien Menge), je Gast 1 Mio. Tokens, Zähler in D1 (`ai_embedding_usage`), 60 s Fehlerpause. Ohne Binding, über Budget oder bei Fehlern: Rückfall auf FTS5. Details und Quellen: [rag-and-vectors.md, Abschnitt 5](./rag-and-vectors.md#5-serverseitige-embeddings-über-workers-ai-kostenlose-stufe). |
 
 ---
 
