@@ -28,6 +28,9 @@
       "migrations_dir": "migrations"
     }
   ],
+  "ai": {
+    "binding": "AI"
+  },
   "r2_buckets": [
     {
       "binding": "MEDIA",
