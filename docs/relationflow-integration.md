@@ -92,3 +92,33 @@ Cookie: __Host-sid=...
   ]
 }
 ```
+
+---
+
+## 5. Eigener OpenAI-kompatibler Endpunkt (BYOM, Issue #247)
+
+RelationFlow oder ein anderer Dienst mit OpenAI-kompatibler API lässt sich pro Nutzer als eigener Endpunkt
+einbinden. Stand: Adapter, Einstellungen und Verbindungstest sind fertig und gegen einen lokalen
+Fake-Server getestet. Ein Test gegen den echten RelationFlow-Endpunkt steht aus, weil die Schnittstelle
+noch nicht dokumentiert ist (Anfrage-Entwurf: Issue #249).
+
+| Teil | Datei |
+|---|---|
+| Adapter (`/chat/completions` mit und ohne Stream, `/embeddings`, `/models`) | `apps/worker/src/openai-compatible-provider.ts` |
+| Schutz für Nutzer-Endpunkte | `apps/worker/src/endpoint-guard.ts` |
+| Routen `GET/PUT/DELETE /api/v1/providers/custom`, `POST /api/v1/providers/custom/test` | `apps/worker/src/custom-endpoint-routes.ts` |
+| Tabelle `provider_endpoints` (Adresse, Modelle; der Schlüssel liegt verschlüsselt in `provider_keys`) | `apps/worker/migrations/0003_custom_endpoints.sql` |
+| Einstellung im UI (Deutsch und Englisch) | `apps/web/src/CustomEndpointSettings.tsx` |
+
+**Betreiber-Konfiguration:** `BYOM_ALLOWED_HOSTS` als kommagetrennte Liste, z. B.
+`api.relationflow.io,*.relationflow.io`. Ohne Eintrag ist die Funktion gesperrt.
+
+**Regeln für jeden Aufruf:** nur `https:` auf Port 443, keine Zugangsdaten, Query-Parameter oder Fragmente
+in der Adresse, Host auf der Allowlist, keine privaten oder reservierten Adressen, DNS-Prüfung aller A- und
+AAAA-Einträge vor dem Aufruf (gegen DNS-Rebinding), keine Weiterleitungen, Zeitlimit 30 s. Der Schlüssel
+geht nur im `Authorization`-Header raus und wird aus Fehlermeldungen entfernt.
+
+**Im Chat nutzen:** `POST /api/v1/notebooks/:id/chat` mit `"model": "custom"`.
+
+**Restrisiko:** Zwischen DNS-Prüfung und Verbindungsaufbau kann sich die Auflösung theoretisch ändern. Die
+Allowlist begrenzt das auf Domains, denen der Betreiber vertraut.
