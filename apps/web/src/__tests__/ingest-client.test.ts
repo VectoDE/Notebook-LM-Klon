@@ -117,9 +117,9 @@ describe("parseFileInWorker", () => {
       onerror: null,
       postMessage() {
         queueMicrotask(() => {
-          worker.onmessage?.({ data: { action: "ready" } } as unknown as MessageEvent<
-            IngestParserWorkerResponse
-          >);
+          worker.onmessage?.({
+            data: { action: "ready" }
+          } as unknown as MessageEvent<IngestParserWorkerResponse>);
           worker.onmessage?.({
             data: { type: "CHUNKS_EXTRACTED", chunks: [], text: "ok" }
           } as unknown as MessageEvent<IngestParserWorkerResponse>);

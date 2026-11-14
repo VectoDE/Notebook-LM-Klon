@@ -204,7 +204,10 @@ describe("P6: eigene Quelle hochladen, indexieren, suchen, im Chat zitieren", ()
 
     const chat = await call(
       "/api/v1/notebooks/nb_a/chat",
-      json("POST", { message: "Durch welche Stadt fließt die Elbe? Dresden?", sourceIds: [sourceId] })
+      json("POST", {
+        message: "Durch welche Stadt fließt die Elbe? Dresden?",
+        sourceIds: [sourceId]
+      })
     );
     expect(chat.status).toBe(200);
     const events = parseSse(await chat.text());

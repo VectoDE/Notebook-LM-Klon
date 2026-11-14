@@ -701,9 +701,7 @@ export function WorkspaceLayout({
 
   const handleToggleSelectAllSources = (selected: boolean) => {
     // Quellen in Verarbeitung oder mit Fehler bleiben abgewählt
-    setSources((prev) =>
-      prev.map((s) => (isSourceUsable(s) ? { ...s, isSelected: selected } : s))
-    );
+    setSources((prev) => prev.map((s) => (isSourceUsable(s) ? { ...s, isSelected: selected } : s)));
   };
 
   /**

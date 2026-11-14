@@ -387,8 +387,9 @@ export function SourcesPanel({
                       </span>
                     </small>
                     {isPending && (
-                      <small
-                        role="status"
+                      // <output> ist eine Statusmeldung (role="status"): Screenreader sagen
+                      // den Wechsel von "wird gelesen" zu einem Fehler an
+                      <output
                         className="rn-source-status"
                         data-status={source.status}
                         data-testid={`source-status-${source.id}`}
@@ -396,7 +397,7 @@ export function SourcesPanel({
                         {source.status === "error"
                           ? t(source.errorKey ?? "srcErrorRead")
                           : t("srcStatusProcessing")}
-                      </small>
+                      </output>
                     )}
                   </div>
                 </div>

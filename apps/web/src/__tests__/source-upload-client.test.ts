@@ -234,7 +234,11 @@ describe("uploadSource: Kette Init, Upload, Prüfung, Chunks", () => {
     const { calls, fetchImpl } = fakeWorker({
       "POST /api/v1/sources/:id/upload/complete": () =>
         Response.json(
-          { status: 415, detail: "Magic-Byte-Prüfung fehlgeschlagen.", code: "MAGIC_BYTES_MISMATCH" },
+          {
+            status: 415,
+            detail: "Magic-Byte-Prüfung fehlgeschlagen.",
+            code: "MAGIC_BYTES_MISMATCH"
+          },
           { status: 415 }
         )
     });

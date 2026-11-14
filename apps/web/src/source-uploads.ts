@@ -4,7 +4,8 @@
  * sichtbarer Fehler ("error"). Reine Funktionen, damit WorkspaceLayout sie nur anwendet.
  */
 import { errorKeyForStatus } from "./chat-client.js";
-import { SourceUploadError, type UploadSourceResult } from "./source-upload-client.js";
+// Nur Typen: der Upload-Client wird erst beim ersten Upload nachgeladen
+import type { SourceUploadError, UploadSourceResult } from "./source-upload-client.js";
 import type { WorkspaceSource } from "./workspace-types.js";
 
 /** Platzhalter, solange die Datei gelesen, hochgeladen und indexiert wird. */
@@ -52,9 +53,19 @@ export function markSourceFailed(
   );
 }
 
+/** Strukturell geprüft, damit dieses Modul den Upload-Client nicht statisch lädt. */
+function isSourceUploadError(error: unknown): error is SourceUploadError {
+  return (
+    error instanceof Error &&
+    error.name === "SourceUploadError" &&
+    typeof (error as Partial<SourceUploadError>).status === "number" &&
+    typeof (error as Partial<SourceUploadError>).code === "string"
+  );
+}
+
 /** Schlüssel im Sprachkatalog mit verständlichem Grund und Handlungshinweis. */
 export function uploadErrorKey(error: unknown): string {
-  if (!(error instanceof SourceUploadError)) return "srcErrorRead";
+  if (!isSourceUploadError(error)) return "srcErrorRead";
   if (error.code === "UNSUPPORTED_TYPE" || error.status === 415) return "srcErrorType";
   if (error.code === "NO_TEXT") return "srcErrorEmpty";
   if (error.status === 413) return "srcErrorSize";

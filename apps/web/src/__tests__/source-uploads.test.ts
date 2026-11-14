@@ -77,7 +77,11 @@ describe("Zustände einer hochgeladenen Quelle", () => {
 describe("SourcesPanel zeigt den Verarbeitungsstand", () => {
   const sources: WorkspaceSource[] = [
     { ...createPendingSource(file, "tmp_1") },
-    { ...createPendingSource(new File(["x"], "foto.md"), "tmp_2"), status: "error", errorKey: "srcErrorEmpty" }
+    {
+      ...createPendingSource(new File(["x"], "foto.md"), "tmp_2"),
+      status: "error",
+      errorKey: "srcErrorEmpty"
+    }
   ];
 
   it("meldet Verarbeitung und Fehler sichtbar und für Screenreader, ohne Auswahl im Chat", () => {
@@ -89,7 +93,8 @@ describe("SourcesPanel zeigt den Verarbeitungsstand", () => {
     // Noch nicht bereite Quellen lassen sich nicht für den Chat auswählen
     expect(html).toMatch(/disabled=""[^>]*data-testid="source-checkbox-tmp_1"/);
     expect(html).toMatch(/disabled=""[^>]*data-testid="source-checkbox-tmp_2"/);
-    expect(html).toMatch(/role="status"[^>]*data-testid="source-status-tmp_1"/);
+    // <output> trägt implizit role="status" (Live-Region für Screenreader)
+    expect(html).toMatch(/<output[^>]*data-testid="source-status-tmp_1"/);
   });
 
   it("bereite Quellen zeigen keinen Status", () => {
