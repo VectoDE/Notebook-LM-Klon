@@ -18,15 +18,20 @@ export const SOURCE_UPLOAD_MIME_BY_EXTENSION: Readonly<Record<string, string>> =
   pdf: "application/pdf",
   txt: "text/plain",
   md: "text/markdown",
-  markdown: "text/markdown"
+  markdown: "text/markdown",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 };
 
 const SUPPORTED_MIME_TYPES = new Set([
   "application/pdf",
   "text/plain",
   "text/markdown",
-  "text/x-markdown"
+  "text/x-markdown",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 ]);
+
+/** Upload-Grenze je Datei, gleich MAX_SOURCE_BYTE_SIZE_LIMIT im Worker (50 MB). */
+export const MAX_SOURCE_FILE_BYTES = 50 * 1024 * 1024;
 
 /** Chunks je Anfrage an /chunks; hält die Körper klein und die D1-Batches überschaubar. */
 export const CHUNK_BATCH_SIZE = 50;
@@ -129,6 +134,10 @@ export async function uploadSource(options: UploadSourceOptions): Promise<Upload
       0,
       "UNSUPPORTED_TYPE"
     );
+  }
+
+  if (file.size > MAX_SOURCE_FILE_BYTES) {
+    throw new SourceUploadError(`${file.name} ist größer als 50 MB.`, 413, "FILE_TOO_LARGE");
   }
 
   onStage?.("parsing");

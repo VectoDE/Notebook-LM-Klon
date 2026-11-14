@@ -2,6 +2,7 @@ import { IngestChunksBodySchema, type TextChunk, chunkText } from "@notebook-lm/
 import { describe, expect, it } from "vitest";
 import {
   CHUNK_BATCH_SIZE,
+  MAX_SOURCE_FILE_BYTES,
   SourceUploadError,
   resolveUploadMimeType,
   uploadSource
@@ -79,6 +80,15 @@ describe("resolveUploadMimeType", () => {
     expect(
       resolveUploadMimeType(new File(["x"], "a.txt", { type: "application/octet-stream" }))
     ).toBe("text/plain");
+  });
+
+  it("erkennt Word-Dateien (.docx) am Typ und an der Endung", () => {
+    const docxMime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    expect(resolveUploadMimeType(new File(["x"], "a.docx", { type: docxMime }))).toBe(docxMime);
+    expect(resolveUploadMimeType(new File(["x"], "Bericht.DOCX"))).toBe(docxMime);
+    expect(resolveUploadMimeType(new File(["x"], "alt.doc", { type: "application/msword" }))).toBe(
+      null
+    );
   });
 
   it("lehnt Dateiarten ab, die der Text-Parser nicht lesen kann", () => {
@@ -195,6 +205,27 @@ describe("uploadSource: Kette Init, Upload, Prüfung, Chunks", () => {
     }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(SourceUploadError);
     expect((error as SourceUploadError).code).toBe("UNSUPPORTED_TYPE");
+    expect(calls).toHaveLength(0);
+  });
+
+  it("prüft die Upload-Grenze (50 MB) vor dem Lesen und vor dem Server", async () => {
+    expect(MAX_SOURCE_FILE_BYTES).toBe(50 * 1024 * 1024);
+    const { calls, fetchImpl } = fakeWorker();
+    let parsed = 0;
+    const big = new File(["x"], "riesig.docx");
+    Object.defineProperty(big, "size", { value: MAX_SOURCE_FILE_BYTES + 1 });
+    const error = await uploadSource({
+      notebookId: "nb_1",
+      file: big,
+      parse: async (f) => {
+        parsed += 1;
+        return textParser(f);
+      },
+      fetchImpl
+    }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(SourceUploadError);
+    expect(error).toMatchObject({ status: 413, code: "FILE_TOO_LARGE" });
+    expect(parsed).toBe(0);
     expect(calls).toHaveLength(0);
   });
 

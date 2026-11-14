@@ -46,7 +46,16 @@ export interface SourcesPanelProps {
 }
 
 /** Erlaubte Dateiarten beim Hochladen (auch für den Knopf in der eingeklappten Leiste). */
-export const SOURCE_FILE_ACCEPT = ".pdf,.txt,.md,text/plain,text/markdown,application/pdf";
+export const SOURCE_FILE_ACCEPT = [
+  ".pdf",
+  ".docx",
+  ".txt",
+  ".md",
+  "text/plain",
+  "text/markdown",
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+].join(",");
 
 export function SourcesPanel({
   sources,
@@ -587,6 +596,7 @@ export function isSourceUsable(source: Pick<WorkspaceSource, "status">): boolean
 /** Kurzes Kürzel für die Dateiart, rein visuell (der Dateiname steht daneben). */
 function sourceTypeLabel(mimeType: string): string {
   if (mimeType.includes("pdf")) return "PDF";
+  if (mimeType.includes("wordprocessingml")) return "DOCX";
   if (mimeType.includes("markdown")) return "MD";
   if (mimeType.includes("html")) return "WEB";
   return "TXT";

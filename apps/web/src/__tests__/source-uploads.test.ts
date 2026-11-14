@@ -1,7 +1,8 @@
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { SourcesPanel } from "../SourcesPanel.js";
+import { SOURCE_FILE_ACCEPT, SourcesPanel } from "../SourcesPanel.js";
 import { SourceUploadError } from "../source-upload-client.js";
 import {
   createPendingSource,
@@ -67,9 +68,39 @@ describe("Zustände einer hochgeladenen Quelle", () => {
     );
     expect(uploadErrorKey(new SourceUploadError("x", 413, "FILE_TOO_LARGE"))).toBe("srcErrorSize");
     expect(uploadErrorKey(new Error("Parser kaputt"))).toBe("srcErrorRead");
-    for (const key of ["srcErrorType", "srcErrorEmpty", "srcErrorSize", "srcErrorRead"]) {
+    for (const key of [
+      "srcErrorType",
+      "srcErrorEmpty",
+      "srcErrorSize",
+      "srcErrorRead",
+      "srcErrorTimeout",
+      "srcErrorComplex"
+    ]) {
       expect(TRANSLATIONS.de[key], key).toBeTruthy();
       expect(TRANSLATIONS.en[key], key).toBeTruthy();
+    }
+  });
+
+  it("ordnet Fehler beim Lesen im Ingest-Worker (DOCX, Zeitlimit) eigenen Texten zu", () => {
+    expect(uploadErrorKey(new SourceUploadError("x", 0, "PARSE_TIMEOUT"))).toBe("srcErrorTimeout");
+    expect(uploadErrorKey(new SourceUploadError("x", 0, "DOCX_TOO_COMPLEX"))).toBe(
+      "srcErrorComplex"
+    );
+    expect(uploadErrorKey(new SourceUploadError("x", 0, "DOCX_TOO_LARGE"))).toBe("srcErrorSize");
+    expect(uploadErrorKey(new SourceUploadError("x", 0, "TEXT_TOO_LONG"))).toBe("srcErrorSize");
+    expect(uploadErrorKey(new SourceUploadError("x", 0, "DOCX_INVALID"))).toBe("srcErrorRead");
+  });
+
+  it("Leichte Sprache hat die neuen Fehlertexte und nennt Word-Dateien", () => {
+    const ls = JSON.parse(
+      readFileSync(new URL("../locales/de-x-ls.json", import.meta.url), "utf8")
+    ) as Record<string, string>;
+    expect(ls.srcErrorTimeout).toBeTruthy();
+    expect(ls.srcErrorComplex).toBeTruthy();
+    for (const key of ["srcDropHint", "srcErrorType", "srcEmptyNoneText"]) {
+      expect(ls[key], key).toMatch(/Word/);
+      expect(TRANSLATIONS.de[key], key).toMatch(/Word/);
+      expect(TRANSLATIONS.en[key], key).toMatch(/Word/);
     }
   });
 });
@@ -95,6 +126,22 @@ describe("SourcesPanel zeigt den Verarbeitungsstand", () => {
     expect(html).toMatch(/disabled=""[^>]*data-testid="source-checkbox-tmp_2"/);
     // <output> trägt implizit role="status" (Live-Region für Screenreader)
     expect(html).toMatch(/<output[^>]*data-testid="source-status-tmp_1"/);
+  });
+
+  it("das Upload-Feld nimmt Word-Dateien (.docx) an und zeigt sie als DOCX", () => {
+    const docxMime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    expect(SOURCE_FILE_ACCEPT.split(",")).toEqual(expect.arrayContaining([".docx", docxMime]));
+    const html = renderToStaticMarkup(
+      createElement(SourcesPanel, {
+        sources: [
+          {
+            ...createPendingSource(new File(["x"], "bericht.docx", { type: docxMime }), "src_w"),
+            status: "ready"
+          }
+        ]
+      })
+    );
+    expect(html).toContain(">DOCX<");
   });
 
   it("bereite Quellen zeigen keinen Status", () => {

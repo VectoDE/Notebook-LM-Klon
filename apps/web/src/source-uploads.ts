@@ -68,6 +68,11 @@ export function uploadErrorKey(error: unknown): string {
   if (!isSourceUploadError(error)) return "srcErrorRead";
   if (error.code === "UNSUPPORTED_TYPE" || error.status === 415) return "srcErrorType";
   if (error.code === "NO_TEXT") return "srcErrorEmpty";
-  if (error.status === 413) return "srcErrorSize";
+  if (error.code === "PARSE_TIMEOUT") return "srcErrorTimeout";
+  if (error.code === "DOCX_TOO_COMPLEX") return "srcErrorComplex";
+  if (error.code === "DOCX_INVALID") return "srcErrorRead";
+  if (error.status === 413 || error.code === "DOCX_TOO_LARGE" || error.code === "TEXT_TOO_LONG") {
+    return "srcErrorSize";
+  }
   return errorKeyForStatus(error.status);
 }
