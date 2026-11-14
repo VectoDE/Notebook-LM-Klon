@@ -44,10 +44,14 @@ export default defineConfig(({ mode }) => {
     worker: {
       format: "es"
     },
-    // PDF.js wird erst beim ersten Upload im Worker importiert; ohne Vorab-Bündelung
+    // PDF.js und mammoth werden erst beim ersten Upload im Worker importiert; ohne Vorab-Bündelung
     // entdeckt der Dev-Server es erst dann und lädt die Seite neu
     optimizeDeps: {
-      include: ["pdfjs-dist/legacy/build/pdf.mjs", "pdfjs-dist/legacy/build/pdf.worker.mjs"]
+      include: [
+        "mammoth",
+        "pdfjs-dist/legacy/build/pdf.mjs",
+        "pdfjs-dist/legacy/build/pdf.worker.mjs"
+      ]
     },
     build: {
       outDir: "dist",
