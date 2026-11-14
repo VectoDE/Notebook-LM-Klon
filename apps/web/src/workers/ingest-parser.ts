@@ -30,7 +30,7 @@ export interface IngestParserWorkerRequest {
 
 export type IngestParserWorkerResponse =
   | { type: "PROGRESS"; progress: number }
-  | { type: "CHUNKS_EXTRACTED"; chunks: TextChunk[] }
+  | { type: "CHUNKS_EXTRACTED"; chunks: TextChunk[]; text: string }
   | { type: "ERROR"; error: string };
 
 /**
@@ -84,13 +84,20 @@ export function extractMarkdownSections(markdown: string): DocumentSection[] {
   return sections;
 }
 
+interface PdfjsWorkerGlobal {
+  pdfjsWorker?: unknown;
+}
+
 /**
  * Page-by-page PDF text extractor.
- * Dynamically imports pdfjs-dist when in browser/worker environment.
+ * Lädt pdfjs-dist erst bei Bedarf. Wir laufen schon in einem Web Worker: der PDF.js-Worker
+ * wird deshalb als Modul im selben Thread eingebunden statt über workerSrc (Ansatz aus PR #397).
  */
 export async function extractPdfTextByPages(
   data: Uint8Array
 ): Promise<Array<{ pageNumber: number; text: string }>> {
+  const scope = globalThis as PdfjsWorkerGlobal;
+  scope.pdfjsWorker ??= await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
   const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const loadingTask = pdfjsLib.getDocument({
     data,
@@ -118,10 +125,23 @@ export async function extractPdfTextByPages(
   return pages;
 }
 
+export interface ParsedDocument {
+  chunks: TextChunk[];
+  /** Volltext für die Vorschau der Quelle (PDF: Seiten mit Leerzeile getrennt). */
+  text: string;
+}
+
 /**
  * Parses supported document formats into semantic token chunks.
  */
 export async function parseDocumentToChunks(options: ParseDocumentOptions): Promise<TextChunk[]> {
+  return (await parseDocument(options)).chunks;
+}
+
+/**
+ * Liest ein Dokument und liefert Chunks und Volltext.
+ */
+export async function parseDocument(options: ParseDocumentOptions): Promise<ParsedDocument> {
   const { fileData, fileName, mimeType, maxTokens, overlapTokens, customPdfExtractor } = options;
 
   const normalizedMime = mimeType.toLowerCase();
@@ -159,26 +179,31 @@ export async function parseDocumentToChunks(options: ParseDocumentOptions): Prom
         });
       }
     }
-    return allChunks;
+    return { chunks: allChunks, text };
   }
 
   if (isPlainText) {
     const text = new TextDecoder("utf-8").decode(fileData);
-    return chunkText({
-      text,
-      maxTokens,
-      overlapTokens
-    });
+    return {
+      chunks: chunkText({
+        text,
+        maxTokens,
+        overlapTokens
+      }),
+      text
+    };
   }
 
   if (isPdf) {
     const extractor = customPdfExtractor ?? extractPdfTextByPages;
     const pages = await extractor(fileData);
     const allChunks: TextChunk[] = [];
+    const pageTexts: string[] = [];
     let globalIndex = 0;
 
     for (const page of pages) {
       if (!page.text || page.text.trim().length === 0) continue;
+      pageTexts.push(page.text);
       const chunks = chunkText({
         text: page.text,
         maxTokens,
@@ -192,7 +217,7 @@ export async function parseDocumentToChunks(options: ParseDocumentOptions): Prom
         });
       }
     }
-    return allChunks;
+    return { chunks: allChunks, text: pageTexts.join("\n\n") };
   }
 
   throw new Error(`Unsupported mime type: ${mimeType} for file: ${fileName}`);
@@ -212,7 +237,7 @@ export async function handleParserMessage(
 
     postMessage({ type: "PROGRESS", progress: 10 });
 
-    const chunks = await parseDocumentToChunks({
+    const { chunks, text } = await parseDocument({
       fileData: request.payload.fileData,
       fileName: request.payload.fileName,
       mimeType: request.payload.mimeType,
@@ -222,7 +247,7 @@ export async function handleParserMessage(
 
     postMessage({ type: "PROGRESS", progress: 80 });
     postMessage({ type: "PROGRESS", progress: 100 });
-    postMessage({ type: "CHUNKS_EXTRACTED", chunks });
+    postMessage({ type: "CHUNKS_EXTRACTED", chunks, text });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     postMessage({ type: "ERROR", error: message });
