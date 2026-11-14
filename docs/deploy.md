@@ -40,5 +40,9 @@ pnpm --filter @notebook-lm/worker exec tsx src/smoke-check.ts http://localhost:8
    `wrangler secret put <NAME>` für `SESSION_SALT_SECRET`, `TURNSTILE_SECRET_KEY`,
    `RESEND_API_KEY`, `MAIL_FROM`, `DEMO_GEMINI_KEY`, `KEK`.
 6. `APP_ORIGIN` in `apps/worker/wrangler.jsonc` auf die echte HTTPS-Adresse setzen.
+   Optional: `BYOM_ALLOWED_HOSTS` (kommagetrennt, z. B. `api.example.com,*.example.com`) schränkt
+   eigene KI-Endpunkte der Nutzer auf diese Hosts ein. Ohne Wert ist jeder öffentliche HTTPS-Host
+   erlaubt; interne und private Ziele sind immer gesperrt (Details:
+   `docs/relationflow-integration.md`, Abschnitt 5).
 7. Nach dem Deploy einmal im Browser als Gast anmelden und eine Chat-Frage stellen. Das braucht
    ein echtes Turnstile-Token und lässt sich deshalb nicht automatisch prüfen.

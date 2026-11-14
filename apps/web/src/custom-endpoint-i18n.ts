@@ -11,8 +11,8 @@ const ENTRIES: readonly Entry[] = [
   ["title", "Eigener Endpunkt (OpenAI-kompatibel)", "Own endpoint (OpenAI-compatible)"],
   [
     "intro",
-    "Zum Beispiel RelationFlow. Der Server ruft nur HTTPS-Adressen auf, die der Betreiber freigegeben hat.",
-    "For example RelationFlow. The server only calls HTTPS addresses the operator has allowed."
+    "Zum Beispiel RelationFlow. Erlaubt ist jede öffentliche HTTPS-Adresse; interne und private Adressen sind gesperrt.",
+    "For example RelationFlow. Any public HTTPS address works; internal and private addresses are blocked."
   ],
   [
     "disabled",

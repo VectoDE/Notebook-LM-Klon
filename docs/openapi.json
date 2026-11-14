@@ -2649,7 +2649,7 @@
         "operationId": "putCustomEndpoint",
         "tags": ["Modelle"],
         "summary": "Eigenen OpenAI-kompatiblen Endpunkt speichern",
-        "description": "Nur HTTPS auf Hosts aus `BYOM_ALLOWED_HOSTS`; private, lokale und reservierte Adressen werden abgelehnt. Den Schlüssel speichert `PUT /api/v1/keys/custom`.",
+        "description": "Jeder öffentliche HTTPS-Host auf Port 443; ist `BYOM_ALLOWED_HOSTS` gesetzt, nur diese Hosts. Private, lokale, interne und reservierte Ziele werden abgelehnt, auch nach DNS-Auflösung. Den Schlüssel speichert `PUT /api/v1/keys/custom`.",
         "security": [
           {
             "sessionCookie": []
@@ -2737,6 +2737,7 @@
         "operationId": "testCustomEndpoint",
         "tags": ["Modelle"],
         "summary": "Verbindung zum eigenen Endpunkt testen (GET /models)",
+        "description": "Höchstens 5 Tests pro Minute je Nutzer, danach 429 mit `Retry-After`.",
         "security": [
           {
             "sessionCookie": []
@@ -4061,11 +4062,23 @@
       },
       "CustomEndpointState": {
         "type": "object",
-        "required": ["enabled", "configured", "baseUrl", "chatModel", "embedModel", "hasKey"],
+        "required": [
+          "enabled",
+          "hostRestricted",
+          "configured",
+          "baseUrl",
+          "chatModel",
+          "embedModel",
+          "hasKey"
+        ],
         "properties": {
           "enabled": {
             "type": "boolean",
-            "description": "false, wenn der Betreiber keine Hosts in BYOM_ALLOWED_HOSTS freigegeben hat"
+            "description": "Immer true: jeder öffentliche HTTPS-Host ist erlaubt (Entscheidung F247)"
+          },
+          "hostRestricted": {
+            "type": "boolean",
+            "description": "true, wenn der Betreiber die Hosts per BYOM_ALLOWED_HOSTS zusätzlich einschränkt"
           },
           "configured": {
             "type": "boolean"
