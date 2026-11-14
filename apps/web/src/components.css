@@ -268,6 +268,12 @@ html[data-color-mode="aaa-contrast"] .rn-sources[data-view="cards"] .rn-source {
   align-self: end;
 }
 
+.rn-sources[data-view="cards"] .rn-source-progress,
+.rn-sources[data-view="cards"] .rn-source-error {
+  grid-column: 1 / -1;
+  grid-row: 4;
+}
+
 .rn-sources[data-view="cards"] .rn-source-type {
   display: table;
   margin-bottom: var(--rn-space-1);

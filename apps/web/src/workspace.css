@@ -2219,6 +2219,59 @@ html[data-design="immersive-cinema"] .rn-source-meta .rn-source-type {
   white-space: nowrap;
 }
 
+/* Fortschritt der lokalen Verarbeitung (Issue #154): Balken und Text unter der Metazeile */
+.rn-source-progress,
+.rn-source-error {
+  grid-column: 2 / span 2;
+  grid-row: 3;
+  min-width: 0;
+  padding-inline-end: var(--rn-space-2);
+}
+
+.rn-source-progress {
+  display: grid;
+  gap: var(--rn-space-1);
+  margin-top: var(--rn-space-1);
+}
+
+.rn-source-progress-track {
+  display: block;
+  height: 6px;
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-surface-variant);
+  box-shadow: inset 0 0 0 1px var(--rn-color-panel-border);
+  overflow: hidden;
+}
+
+.rn-source-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-accent);
+  transition: width var(--rn-transition-base);
+}
+
+.rn-source-progress-text {
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+}
+
+.rn-source-error {
+  margin-top: var(--rn-space-1);
+  color: var(--rn-color-error);
+  font-size: var(--rn-text-small);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rn-source-progress-fill {
+    transition: none;
+  }
+}
+
+html[data-reduce-motion="true"] .rn-source-progress-fill {
+  transition: none;
+}
+
 .rn-source-inspect[aria-label$="schließen"] {
   color: var(--rn-color-primary);
 }

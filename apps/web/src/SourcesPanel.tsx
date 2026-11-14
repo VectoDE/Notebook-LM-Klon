@@ -23,7 +23,13 @@ import {
   readSourcesView,
   storeView
 } from "./view-preferences.js";
-import type { CitationLocation, PanelFocusAttributes, WorkspaceSource } from "./workspace-types.js";
+import type {
+  CitationLocation,
+  PanelFocusAttributes,
+  SourceErrorCode,
+  SourceStage,
+  WorkspaceSource
+} from "./workspace-types.js";
 
 export interface SourcesPanelProps {
   readonly sources: readonly WorkspaceSource[];
@@ -46,7 +52,9 @@ export interface SourcesPanelProps {
 }
 
 /** Erlaubte Dateiarten beim Hochladen (auch für den Knopf in der eingeklappten Leiste). */
-export const SOURCE_FILE_ACCEPT = ".pdf,.txt,.md,text/plain,text/markdown,application/pdf";
+export const SOURCE_FILE_ACCEPT =
+  ".pdf,.txt,.md,.markdown,.docx,.png,.jpg,.jpeg,.webp,text/plain,text/markdown,application/pdf," +
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg,image/webp";
 
 export function SourcesPanel({
   sources,
@@ -348,6 +356,7 @@ export function SourcesPanel({
               <li
                 key={source.id}
                 data-testid={`source-item-${source.id}`}
+                data-status={source.status ?? "ready"}
                 data-inspected={isInspected ? "true" : undefined}
                 className="rn-source"
               >
@@ -381,6 +390,7 @@ export function SourcesPanel({
                         {Math.round(source.byteSize / 1024)} KB
                       </span>
                     </small>
+                    <SourceProgress source={source} />
                   </div>
                 </div>
 
@@ -566,5 +576,66 @@ function sourceTypeLabel(mimeType: string): string {
   if (mimeType.includes("pdf")) return "PDF";
   if (mimeType.includes("markdown")) return "MD";
   if (mimeType.includes("html")) return "WEB";
+  if (mimeType.includes("wordprocessingml")) return "DOCX";
+  if (mimeType.startsWith("image/")) return "IMG";
   return "TXT";
+}
+
+const STAGE_KEYS: Readonly<Record<SourceStage, string>> = {
+  reading: "srcStageReading",
+  pdf: "srcStagePdf",
+  docx: "srcStageDocx",
+  ocr: "srcStageOcr",
+  chunking: "srcStageChunking"
+};
+
+const ERROR_KEYS: Readonly<Record<SourceErrorCode, string>> = {
+  unsupported: "srcErrorUnsupported",
+  unreadable: "srcErrorUnreadable",
+  too_large: "srcErrorTooLarge",
+  failed: "srcErrorFailed"
+};
+
+/**
+ * Fortschritt der lokalen Verarbeitung (PDF, DOCX, OCR) mit zugänglichem Fortschrittsbalken
+ * (Issue #154): role="progressbar" mit aria-valuenow und sprechendem aria-valuetext. Fertige
+ * Quellen zeigen nichts, Fehler stehen als Text in der Zeile.
+ */
+export function SourceProgress({ source }: { readonly source: WorkspaceSource }) {
+  const { t, tf } = useTheme();
+  if (source.status === "error") {
+    return (
+      <small className="rn-source-error" data-testid={`source-error-${source.id}`}>
+        {t(ERROR_KEYS[source.errorCode ?? "failed"])}
+      </small>
+    );
+  }
+  if (source.status !== "processing") return null;
+  const value = Math.min(100, Math.max(0, Math.round(source.progress ?? 0)));
+  const valueText = tf("srcProgressValue", {
+    stage: t(STAGE_KEYS[source.stage ?? "reading"]),
+    n: value
+  });
+  return (
+    <div className="rn-source-progress">
+      <div
+        role="progressbar"
+        aria-label={tf("srcProgressAria", { title: source.title })}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={value}
+        aria-valuetext={valueText}
+        data-testid={`source-progress-${source.id}`}
+        className="rn-source-progress-track"
+        // Kein Bedienelement: nicht in der Tab-Reihenfolge, nur programmatisch fokussierbar
+        tabIndex={-1}
+      >
+        <span className="rn-source-progress-fill" style={{ width: `${value}%` }} />
+      </div>
+      {/* Sichtbarer Text; Screenreader lesen denselben Wert schon über aria-valuetext */}
+      <span className="rn-source-progress-text" aria-hidden="true">
+        {valueText}
+      </span>
+    </div>
+  );
 }

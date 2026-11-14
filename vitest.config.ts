@@ -41,7 +41,12 @@ export default defineConfig({
         "apps/web/src/notebook-sync.ts",
         "apps/web/src/sync-status-text.ts",
         "apps/web/src/provenance-client.ts",
-        "apps/web/src/chat-export.ts"
+        "apps/web/src/chat-export.ts",
+        "apps/web/src/ingest-client.ts",
+        "apps/web/src/workers/ingest-parser.ts",
+        "apps/web/src/workers/ingest.worker.ts",
+        "apps/web/src/workers/docx-extract.ts",
+        "apps/web/src/workers/ocr-extract.ts"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {

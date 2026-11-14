@@ -118,6 +118,60 @@ describe("Boundary preservation (Paragraphs, Sentences, Words)", () => {
     }
   });
 
+  it("keeps exact offsets across multiple paragraphs, extra blank lines and leading/trailing breaks (#86)", () => {
+    const para = (n: number) =>
+      Array.from({ length: 12 }, (_, i) => `Absatz ${n} Satz ${i} mit Inhalt.`).join(" ");
+    const text = `\n\n${para(1)}\n\n\n\n${para(2)}\n\n${para(3)}\n\n\n`;
+    const chunks = chunkText({ text, maxTokens: 120, overlapTokens: 30 });
+
+    expect(chunks.length).toBeGreaterThan(2);
+    for (const chunk of chunks) {
+      // Der Ausschnitt aus dem Original ist exakt der Chunk-Text
+      expect(text.slice(chunk.startOffset, chunk.endOffset)).toBe(chunk.text);
+    }
+    expect(chunks[0]?.startOffset).toBe(2);
+    expect(chunks[0]?.text.startsWith("Absatz 1 Satz 0")).toBe(true);
+    expect(chunks.at(-1)?.text.trimEnd().endsWith("Absatz 3 Satz 11 mit Inhalt.")).toBe(true);
+  });
+
+  it("overlaps consecutive chunks by offset without exceeding the overlap budget (#86)", () => {
+    const text = Array.from({ length: 60 }, (_, i) => `Satz ${i} beschreibt ein Detail.`).join(" ");
+    const chunks = chunkText({ text, maxTokens: 80, overlapTokens: 20 });
+
+    expect(chunks.length).toBeGreaterThan(2);
+    for (let i = 1; i < chunks.length; i++) {
+      const prev = chunks[i - 1];
+      const curr = chunks[i];
+      if (!prev || !curr) throw new Error("missing chunk");
+      // Überlappung: der neue Chunk beginnt vor dem Ende des vorherigen, aber nach dessen Anfang
+      expect(curr.startOffset).toBeLessThan(prev.endOffset);
+      expect(curr.startOffset).toBeGreaterThan(prev.startOffset);
+      const overlapText = text.slice(curr.startOffset, prev.endOffset);
+      expect(prev.text.endsWith(overlapText)).toBe(true);
+      expect(curr.text.startsWith(overlapText)).toBe(true);
+      expect(curr.chunkIndex).toBe(i);
+    }
+  });
+
+  it("ends every chunk at a sentence boundary when sentences fit (#86)", () => {
+    const text = Array.from(
+      { length: 50 },
+      (_, i) => `Gedanke ${i} endet hier mit einem Punkt.`
+    ).join(" ");
+    const chunks = chunkText({ text, maxTokens: 90, overlapTokens: 15 });
+    expect(chunks.length).toBeGreaterThan(1);
+    for (const chunk of chunks) {
+      expect(chunk.text.trimEnd()).toMatch(/\.$/);
+      expect(chunk.text).toMatch(/^Gedanke \d+ endet/);
+    }
+  });
+
+  it("accepts exactly 500,000 words and rejects 500,001 (#86)", () => {
+    const exact = "wort ".repeat(MAX_WORDS_LIMIT);
+    expect(() => chunkText({ text: exact, maxTokens: 1_000_000_000 })).not.toThrow();
+    expect(() => chunkText({ text: `${exact}zuviel` })).toThrow(TextTooLargeError);
+  });
+
   it("handles very long continuous words without breaking", () => {
     const superLongWord = "a".repeat(1000);
     const chunks = chunkText({ text: superLongWord, maxTokens: 100 });

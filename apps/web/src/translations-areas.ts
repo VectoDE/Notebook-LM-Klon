@@ -25,7 +25,40 @@ const ENTRIES: readonly Entry[] = [
   ["srcFileInputAria", "Dateien hochladen", "Upload files"],
   ["srcDropzoneLabel", "Datei-Dropzone", "File drop zone"],
   ["srcDropTitle", "Dateien hier ablegen", "Drop files here"],
-  ["srcDropHint", "PDF, TXT oder Markdown", "PDF, TXT or Markdown"],
+  [
+    "srcDropHint",
+    "PDF, Word (DOCX), TXT, Markdown oder Bild mit Text (PNG, JPEG, WebP)",
+    "PDF, Word (DOCX), TXT, Markdown or an image with text (PNG, JPEG, WebP)"
+  ],
+  // Fortschritt der lokalen Verarbeitung (Issue #154)
+  ["srcProgressAria", "Verarbeitung von {title}", "Processing {title}"],
+  ["srcProgressValue", "{stage}: {n} %", "{stage}: {n}%"],
+  ["srcStageReading", "Datei wird gelesen", "Reading file"],
+  ["srcStagePdf", "PDF wird ausgelesen", "Extracting PDF text"],
+  ["srcStageDocx", "Word-Datei wird ausgelesen", "Extracting Word document"],
+  ["srcStageOcr", "Texterkennung läuft", "Recognising text"],
+  ["srcStageChunking", "Text wird aufgeteilt", "Splitting text"],
+  [
+    "srcErrorUnsupported",
+    "Dieses Dateiformat wird nicht unterstützt.",
+    "This file type is not supported."
+  ],
+  [
+    "srcErrorUnreadable",
+    "Kein lesbarer Text gefunden. Bei Bildern hilft eine schärfere Aufnahme.",
+    "No readable text found. For images, a sharper picture helps."
+  ],
+  [
+    "srcErrorTooLarge",
+    "Zu viel Text: höchstens 500.000 Wörter pro Quelle.",
+    "Too much text: 500,000 words per source at most."
+  ],
+  [
+    "srcErrorFailed",
+    "Die Datei konnte nicht verarbeitet werden.",
+    "The file could not be processed."
+  ],
+  ["toastSourceFailed", "Quelle nicht hinzugefügt: {title}", "Source not added: {title}"],
   ["srcSearchLabel", "Quellen durchsuchen", "Search sources"],
   ["srcSearchPlaceholder", "Quellen filtern …", "Filter sources …"],
   ["srcSelectAll", "Alle Quellen auswählen", "Select all sources"],

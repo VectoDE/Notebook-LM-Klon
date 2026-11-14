@@ -38,6 +38,7 @@ import { chatToMarkdown } from "./chat-export.js";
 import { triggerBrowserDownload } from "./download.js";
 import { wipeLocalData } from "./encrypted-store.js";
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
+import type { IngestResult } from "./ingest-client.js";
 import { buildKnowledgeGraph } from "./knowledge-graph.js";
 import {
   type CollapsedPanels,
@@ -61,7 +62,13 @@ import { describeSyncStatus } from "./sync-status-text.js";
 import { browserStorage, readStoredModel, storeModel } from "./theme-preferences.js";
 import { useNotebookSync } from "./useNotebookSync.js";
 import { documentLanguage, useTheme } from "./useTheme.js";
-import type { CitationLocation, PanelFocusAttributes, WorkspaceSource } from "./workspace-types.js";
+import type {
+  CitationLocation,
+  PanelFocusAttributes,
+  SourceErrorCode,
+  SourceStage,
+  WorkspaceSource
+} from "./workspace-types.js";
 
 export const DEFAULT_MINDMAP: MindmapNode = {
   id: "cf_root",
@@ -254,6 +261,27 @@ export interface WorkspaceLayoutProps {
   readonly notebookId?: string | undefined;
   /** Test-Hook: ersetzt fetch fuer den Chat-Client. */
   readonly chatFetch?: typeof fetch | undefined;
+  /** Test-Hook: ersetzt die Verarbeitung hochgeladener Dateien im Ingest-Worker. */
+  readonly ingest?: SourceIngest | undefined;
+}
+
+/** Verarbeitet eine Datei und meldet Phase und Fortschritt (0–100). */
+export type SourceIngest = (
+  file: File,
+  onProgress: (stage: SourceStage, progress: number) => void
+) => Promise<IngestResult>;
+
+/** Lädt den Ingest-Client erst beim ersten Upload nach; das Start-Bundle bleibt kleiner. */
+const defaultIngest: SourceIngest = async (file, onProgress) => {
+  const { ingestFile } = await import("./ingest-client.js");
+  return ingestFile(file, { onProgress });
+};
+
+/** Fehlercode eines IngestFailure, strukturell geprüft, damit der Client nicht statisch geladen wird. */
+function ingestErrorCodeOf(error: unknown): SourceErrorCode {
+  return error instanceof Error && error.name === "IngestFailure" && "code" in error
+    ? (error.code as SourceErrorCode)
+    : "failed";
 }
 
 /** Standardtitel des Demo-Notebooks, bis er umbenannt wird. */
@@ -356,7 +384,8 @@ export function WorkspaceLayout({
   initialTool = "overview",
   initialPanelTab = "chat",
   notebookId = "nb_active",
-  chatFetch
+  chatFetch,
+  ingest = defaultIngest
 }: WorkspaceLayoutProps) {
   const { theme, setTheme, colorMode, setColorMode, t, tf, language } = useTheme();
   const isNarrowHeader = useMediaQuery(NARROW_HEADER_QUERY);
@@ -678,21 +707,57 @@ export function WorkspaceLayout({
     setSources((prev) => prev.map((s) => ({ ...s, isSelected: selected })));
   };
 
-  const handleUploadFiles = (files: readonly File[]) => {
+  const updateSource = (id: string, patch: Partial<WorkspaceSource>) => {
+    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  };
+
+  // Dateien werden lokal im Ingest-Worker gelesen, ausgewertet (PDF, DOCX, OCR) und zerlegt;
+  // die Zeile zeigt den Fortschritt, bis die Quelle bereit ist (Issues #88, #154)
+  const handleUploadFiles = async (files: readonly File[]) => {
+    const stamp = Date.now();
     const newSources: WorkspaceSource[] = files.map((file, idx) => ({
-      id: `src_up_${Date.now()}_${idx}`,
+      id: `src_up_${stamp}_${idx}`,
       title: file.name.replace(/\.[^/.]+$/, ""),
       originalName: file.name,
       mimeType: file.type || "text/plain",
       byteSize: file.size,
-      chunksCount: 1,
-      isSelected: true,
-      rawText: `Inhalt von ${file.name}`
+      isSelected: false,
+      status: "processing",
+      stage: "reading",
+      progress: 0
     }));
     setSources((prev) => [...prev, ...newSources]);
-    const [first] = newSources;
-    if (newSources.length === 1 && first) notify(tf("toastSourceAdded", { title: first.title }));
-    else if (newSources.length > 1) notify(tf("toastSourcesAdded", { n: newSources.length }));
+
+    const results = await Promise.all(
+      files.map(async (file, idx) => {
+        const source = newSources[idx] as WorkspaceSource;
+        try {
+          const { chunks, text } = await ingest(file, (stage, progress) =>
+            updateSource(source.id, { stage, progress })
+          );
+          updateSource(source.id, {
+            status: "ready",
+            progress: 100,
+            chunksCount: chunks.length,
+            rawText: text,
+            isSelected: true
+          });
+          return true;
+        } catch (error) {
+          updateSource(source.id, {
+            status: "error",
+            errorCode: ingestErrorCodeOf(error)
+          });
+          notify(tf("toastSourceFailed", { title: source.title }));
+          return false;
+        }
+      })
+    );
+
+    const added = newSources.filter((_, idx) => results[idx]);
+    const [first] = added;
+    if (added.length === 1 && first) notify(tf("toastSourceAdded", { title: first.title }));
+    else if (added.length > 1) notify(tf("toastSourcesAdded", { n: added.length }));
   };
 
   const handleImportUrl = (url: string, title?: string) => {
@@ -1127,7 +1192,7 @@ export function WorkspaceLayout({
                 data-testid="rail-file-input"
                 onChange={(event) => {
                   const files = Array.from(event.target.files ?? []);
-                  if (files.length > 0) handleUploadFiles(files);
+                  if (files.length > 0) void handleUploadFiles(files);
                   event.target.value = "";
                 }}
                 aria-label={t("srcFileInputAria")}
