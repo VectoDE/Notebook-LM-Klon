@@ -83,7 +83,9 @@ describe("Modellauswahl: Eigener Endpunkt (F249)", () => {
 
   it("ohne Endpunkt: Option deaktiviert, Hinweis mit Link zum Abschnitt", () => {
     const html = render({ activeModel: "gemini-2.5-flash" });
-    expect(html).toContain('<option value="custom" disabled="">Eigener Endpunkt (OpenAI-kompatibel)</option>');
+    expect(html).toContain(
+      '<option value="custom" disabled="">Eigener Endpunkt (OpenAI-kompatibel)</option>'
+    );
     expect(html).toContain('id="settings-model-custom-hint"');
     expect(html).toContain('href="#custom-endpoint-title"');
     expect(html).toContain(
@@ -93,7 +95,9 @@ describe("Modellauswahl: Eigener Endpunkt (F249)", () => {
 
   it("mit Endpunkt: Option wählbar, kein Einrichtungshinweis, Datenschutz zum Betreiber", () => {
     const html = render({ activeModel: "custom", customEndpointConfigured: true });
-    expect(html).toContain('<option value="custom" selected="">Eigener Endpunkt (OpenAI-kompatibel)</option>');
+    expect(html).toContain(
+      '<option value="custom" selected="">Eigener Endpunkt (OpenAI-kompatibel)</option>'
+    );
     expect(html).not.toContain('id="settings-model-custom-hint"');
     expect(html).toContain('data-status="operator"');
     expect(html).toContain("Hängt vom Betreiber des Endpunkts ab");

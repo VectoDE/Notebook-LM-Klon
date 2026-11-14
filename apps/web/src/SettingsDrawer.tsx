@@ -16,7 +16,7 @@
  * Fokusfalle, Escape schließt, Klick auf den Hintergrund schließt.
  */
 
-import { type MouseEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MotionSetting } from "./AppearanceControls.js";
 import { CustomEndpointSettings } from "./CustomEndpointSettings.js";
 import { Icon } from "./Icon.js";
@@ -63,15 +63,6 @@ const MODEL_LABELS: Readonly<Record<ModelId, { key: string } | { text: string }>
   "ollama-local": { key: "modelOllama" },
   custom: { key: "modelCustom" }
 };
-
-/** Springt zum Abschnitt „Eigener Endpunkt“ im Dialog und setzt den Fokus auf dessen Überschrift. */
-function focusCustomEndpointSection(e: MouseEvent<HTMLAnchorElement>): void {
-  const heading = document.getElementById("custom-endpoint-title");
-  if (!heading) return;
-  e.preventDefault();
-  heading.scrollIntoView({ block: "start" });
-  heading.focus();
-}
 
 /** Datum der Anbieterangaben in der Schreibweise der Sprache (UTC, damit es nicht verrutscht). */
 function formatRetrieved(language: string): string {
@@ -240,9 +231,8 @@ export function SettingsDrawer({
                 data-testid="model-custom-setup"
               >
                 {t("modelCustomSetup")}{" "}
-                <a href="#custom-endpoint-title" onClick={focusCustomEndpointSection}>
-                  {t("modelCustomSetupLink")}
-                </a>
+                {/* Sprungmarke im Dialog; die Überschrift hat tabIndex -1 und nimmt den Fokus an. */}
+                <a href="#custom-endpoint-title">{t("modelCustomSetupLink")}</a>
               </p>
             )}
             <ModelDataPolicyNote model={activeModel} />
@@ -270,7 +260,9 @@ export function SettingsDrawer({
             <p className="rn-drawer-text">{t("byokText")}</p>
           </section>
 
-          <CustomEndpointSettings onStateChange={(state) => setCustomConfigured(state.configured)} />
+          <CustomEndpointSettings
+            onStateChange={(state) => setCustomConfigured(state.configured)}
+          />
 
           <section className="rn-drawer-notice" aria-labelledby="compliance-section-title">
             <h3 id="compliance-section-title" className="rn-drawer-section-title">

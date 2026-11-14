@@ -238,8 +238,7 @@ export const TRANSLATIONS: Record<BuiltinLanguage, TranslationDictionary> = {
     modelGeminiFlash: "Google Gemini 2.5 Flash (default)",
     modelOllama: "Ollama Llama 3 (on the server)",
     modelCustom: "Own endpoint (OpenAI-compatible)",
-    modelCustomSetup:
-      "“Own endpoint” becomes selectable once its URL and chat model are saved.",
+    modelCustomSetup: "“Own endpoint” becomes selectable once its URL and chat model are saved.",
     modelCustomSetupLink: "Set up your own endpoint",
     policyStatusOperator: "Depends on the endpoint operator",
     policyCustom:

@@ -233,7 +233,9 @@ describe("Eigener Endpunkt: Routen (Issue #247)", () => {
     await put(app, { baseUrl: "https://api.relationflow.example/v1", chatModel: "rf-auto" });
     const statuses: number[] = [];
     for (let i = 0; i < 7; i++) {
-      statuses.push((await app.request("/api/v1/providers/custom/test", { method: "POST" })).status);
+      statuses.push(
+        (await app.request("/api/v1/providers/custom/test", { method: "POST" })).status
+      );
     }
     expect(statuses[0]).toBe(200);
     expect(statuses.at(-1)).toBe(429);

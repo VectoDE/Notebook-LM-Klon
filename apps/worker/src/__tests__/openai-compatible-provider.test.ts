@@ -351,13 +351,11 @@ describe("OpenAiCompatibleProvider: Größenlimits (F247)", () => {
       provider({ fetchFn, maxResponseBytes: 10_000 }).chat([{ role: "user", content: "x" }])
     ).rejects.toThrow("zu groß");
     expect(state.cancelled).toBe(true);
+    await expect(provider({ fetchFn, maxResponseBytes: 10_000 }).embed(["a"])).rejects.toThrow(
+      "zu groß"
+    );
     await expect(
-      provider({ fetchFn, maxResponseBytes: 10_000 }).embed(["a"])
-    ).rejects.toThrow("zu groß");
-    await expect(
-      provider({ fetchFn, maxResponseBytes: 10_000 }).generateJson([
-        { role: "user", content: "x" }
-      ])
+      provider({ fetchFn, maxResponseBytes: 10_000 }).generateJson([{ role: "user", content: "x" }])
     ).rejects.toThrow("zu groß");
   });
 
@@ -396,9 +394,9 @@ describe("OpenAiCompatibleProvider: Größenlimits (F247)", () => {
 
   it("liest Antworten ohne Body als leer", async () => {
     const noBody = (async () => new Response(null, { status: 503 })) as unknown as typeof fetch;
-    await expect(provider({ fetchFn: noBody }).chat([{ role: "user", content: "x" }])).rejects.toThrow(
-      /^Endpunkt-Fehler \(503\)$/
-    );
+    await expect(
+      provider({ fetchFn: noBody }).chat([{ role: "user", content: "x" }])
+    ).rejects.toThrow(/^Endpunkt-Fehler \(503\)$/);
     const emptyOk = (async () => new Response(null, { status: 200 })) as unknown as typeof fetch;
     expect((await provider({ fetchFn: emptyOk }).probeHealth()).models).toEqual([]);
   });
