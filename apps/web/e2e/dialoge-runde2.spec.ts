@@ -226,7 +226,8 @@ test.describe("Fokusring um den Videoplayer: mind. 3:1 gegen den Panelgrund", ()
         // Der Player lädt erst auf Absicht nach (Issue #350), nicht mehr im Leerlauf
         await expect(player).toBeVisible();
         await page.getByTestId("btn-back-to-studio-overview").focus();
-        for (let i = 0; i < 6; i++) {
+        // Großzügige Grenze: unter Last (CI) liegen mehr Bedienelemente vor dem Player.
+        for (let i = 0; i < 40; i++) {
           await page.keyboard.press("Tab");
           if (await player.evaluate((el) => el === document.activeElement)) break;
         }

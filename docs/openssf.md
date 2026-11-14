@@ -21,7 +21,7 @@ Der Workflow `.github/workflows/scorecard.yml` läuft bei Push auf `main`, bei �
 | **License** | 10 | `LICENSE` (MIT). |
 | **Dangerous-Workflow** | 10 | Kein `pull_request_target`, keine Skript-Injektion über Eingaben. In `release.yml` und `deploy.yml` laufen Eingaben nur über Umgebungsvariablen. |
 | **Binary-Artifacts** | 10 | Keine Binärdateien im Repository. |
-| **Fuzzing** | 10 | Property-Based-Tests mit `fast-check` (`apps/worker/src/__tests__/worker-fuzz.test.ts`, `packages/shared/src/__tests__/property-fuzz.test.ts`). |
+| **Fuzzing** | 10 | Property-Based-Tests mit `fast-check` (`apps/worker/src/__tests__/worker-fuzz.test.ts`, `apps/worker/src/__tests__/ssrf-guard-fuzz.test.ts`, `packages/shared/src/__tests__/property-fuzz.test.ts`, `packages/shared/src/__tests__/property-fuzz-core.test.ts`). Chunker, SSRF-Prüfung, Zitat-Parser und int8-Quantisierung laufen mit je 1.000 Fällen und festem Seed. Beim Aufbau fiel auf: Bereichsmarker wie `[1-999999999]` wurden Zahl für Zahl aufgezählt; sie werden jetzt ab 100 Einträgen ignoriert. |
 | **CI-Tests** | 10 | 30 von 30 gemergten Pull Requests liefen mit CI-Tests. |
 | **Contributors** | 3 | Ein Beitragender aus einer Organisation. Strukturell, siehe Kapitel 3. |
 | **Code-Review** | 0 | 0 von 30 Änderungen mit zweiter Freigabe. Strukturell, siehe Kapitel 3. |
