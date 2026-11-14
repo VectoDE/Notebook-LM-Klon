@@ -272,7 +272,8 @@ export function registerChatRoutes(
 
     // 3. Retrieve relevant context chunks via Hybrid / FTS5 search
     const searchLimit = maxChunks;
-    const matchQuery = buildSafeFts5MatchQuery(message);
+    // Fragen in natürlicher Sprache: ein Treffer genügt, BM25 ordnet nach Relevanz (P6)
+    const matchQuery = buildSafeFts5MatchQuery(message, "any");
     let ftsChunks: Array<{ id: string }> = [];
     if (matchQuery.length > 0) {
       ftsChunks = await deps.ragRepo.searchChunksFts(

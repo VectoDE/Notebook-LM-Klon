@@ -14,6 +14,27 @@ describe("D1 / SQLite FTS5 Virtual Table, Sync Triggers & BM25 Ranking", () => {
     expect(buildSafeFts5MatchQuery("   ---   ")).toBe("");
   });
 
+  it("verknüpft für Fragen im Chat mit OR, damit nicht jedes Wort im Abschnitt stehen muss", () => {
+    expect(buildSafeFts5MatchQuery("Wo fließt die Elbe?", "any")).toBe(
+      '"Wo" OR "fließt" OR "die" OR "Elbe"'
+    );
+    expect(buildSafeFts5MatchQuery("Elbe", "any")).toBe('"Elbe"');
+    expect(buildSafeFts5MatchQuery("  ?! ", "any")).toBe("");
+
+    const db = new DatabaseSync(":memory:");
+    db.exec(CHUNKS_FTS5_SCHEMA_SQL);
+    db.prepare("INSERT INTO chunks_probe (id, notebook_id, text) VALUES (?, ?, ?)").run(
+      "c1",
+      "nb-1",
+      "Die Elbe fließt durch Dresden."
+    );
+    const search = db.prepare(CHUNKS_FTS5_BM25_SEARCH_SQL);
+    const question = "Durch welche Stadt fließt die Elbe";
+    expect(search.all(buildSafeFts5MatchQuery(question), "nb-1", 10)).toHaveLength(0);
+    expect(search.all(buildSafeFts5MatchQuery(question, "any"), "nb-1", 10)).toHaveLength(1);
+    db.close();
+  });
+
   it("creates FTS5 virtual table, syncs INSERT/UPDATE/DELETE triggers, and ranks via bm25()", () => {
     const db = new DatabaseSync(":memory:");
     db.exec(CHUNKS_FTS5_SCHEMA_SQL);
