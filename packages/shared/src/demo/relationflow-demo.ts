@@ -258,7 +258,8 @@ export const RELATIONFLOW_DEMO_NOTEBOOK: DemoNotebookDefinition = {
           {
             scene: 2,
             title: "Phase 1: Compliance-Audit & BYOK",
-            visual: "Das Projektteam analysiert Datenflüsse und richtet den AES-256-GCM-Schlüsseltresor ein",
+            visual:
+              "Das Projektteam analysiert Datenflüsse und richtet den AES-256-GCM-Schlüsseltresor ein",
             voiceover:
               "Klare Leitplanken: DSGVO-Auftragsverarbeitung und eigener Schlüsselbund verhindern Datentraining.",
             durationSec: 20
