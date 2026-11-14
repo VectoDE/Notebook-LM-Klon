@@ -5,7 +5,7 @@
  * des Haupt-Threads. Der Worker meldet PROGRESS und zum Schluss CHUNKS_EXTRACTED oder ERROR;
  * danach wird er beendet.
  */
-import type { ParsedSource } from "./source-upload-client.js";
+import { type ParsedSource, SourceUploadError } from "./source-upload-client.js";
 import type {
   IngestParserWorkerRequest,
   IngestParserWorkerResponse
@@ -38,8 +38,16 @@ function isIngestResponse(value: unknown): value is IngestParserWorkerResponse {
   );
 }
 
+/**
+ * Zeitlimit je Datei. Der Worker parst synchron (mammoth, PDF.js); hängt er, hilft nur
+ * terminate() von außen. 60 s reichen für eine 50-MB-Datei auf schwachen Geräten.
+ */
+export const INGEST_PARSE_TIMEOUT_MS = 60_000;
+
 export interface ParseFileOptions {
   readonly createWorker?: IngestWorkerFactory | undefined;
+  /** Zeitlimit in Millisekunden (Tests); Standard INGEST_PARSE_TIMEOUT_MS. */
+  readonly timeoutMs?: number | undefined;
 }
 
 /** Liest eine Datei im Worker und liefert Chunks und Volltext. */
@@ -52,7 +60,14 @@ export async function parseFileInWorker(
   const worker = (options.createWorker ?? createIngestWorker)();
 
   return new Promise<ParsedSource>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      finish();
+      reject(
+        new SourceUploadError(`Lesen von ${file.name} hat zu lange gedauert.`, 0, "PARSE_TIMEOUT")
+      );
+    }, options.timeoutMs ?? INGEST_PARSE_TIMEOUT_MS);
     const finish = () => {
+      clearTimeout(timer);
       worker.onmessage = null;
       worker.onerror = null;
       worker.terminate();
@@ -63,6 +78,9 @@ export async function parseFileInWorker(
       finish();
       if (message.type === "CHUNKS_EXTRACTED") {
         resolve({ chunks: message.chunks, text: message.text });
+      } else if (message.code) {
+        // Grenzen (Zip-Bombe, Textlänge) mit Code, damit die Oberfläche den Grund nennt
+        reject(new SourceUploadError(message.error, 0, message.code));
       } else {
         reject(new Error(message.error));
       }
