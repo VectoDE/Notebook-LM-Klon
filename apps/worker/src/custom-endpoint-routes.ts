@@ -17,12 +17,19 @@ import type { DatabaseAdapter } from "./core-repository.js";
 import {
   BYOM_ALLOWLIST_ENV,
   type HostResolver,
+  assertHostResolvesPublic,
+  createDohResolver,
   parseHostAllowlist,
   validateUserEndpoint
 } from "./endpoint-guard.js";
 import { type KeyVault, deserializeEncryptedPayload } from "./key-vault.js";
 import { OpenAiCompatibleProvider } from "./openai-compatible-provider.js";
 import type { RagRepository } from "./rag-repository.js";
+import { type RateLimitConfig, checkRateLimit } from "./rate-limiter.js";
+import type { SsrSecurityError } from "./ssrf-guard.js";
+
+/** Eigenes Limit für den Verbindungstest je Nutzer (jeder Test löst DNS- und Endpunkt-Aufrufe aus). */
+export const CUSTOM_ENDPOINT_TEST_RATE_LIMIT: RateLimitConfig = { limit: 5, windowMs: 60_000 };
 
 export interface ProviderEndpointRow {
   readonly user_id: string;
@@ -86,6 +93,8 @@ export interface CustomEndpointRoutesDependencies {
   readonly allowlist?: readonly string[] | undefined;
   readonly resolver?: HostResolver | undefined;
   readonly fetchFn?: typeof fetch | undefined;
+  /** Überschreibt das Limit des Verbindungstests (Tests). */
+  readonly testRateLimit?: RateLimitConfig | undefined;
 }
 
 type RouteEnv = { Bindings: Env; Variables: { sessionUser?: { id: string } } };
@@ -98,20 +107,22 @@ const PROBLEM_HEADERS = { "content-type": "application/problem+json; charset=utf
 
 function problem(
   c: Context<RouteEnv>,
-  status: 400 | 401 | 404 | 422,
+  status: 400 | 401 | 404 | 422 | 429,
   code: string,
-  detail: string
+  detail: string,
+  headers: Record<string, string> = {}
 ) {
   const titles = {
     400: "Bad Request",
     401: "Unauthorized",
     404: "Not Found",
-    422: "Unprocessable Content"
+    422: "Unprocessable Content",
+    429: "Too Many Requests"
   } as const;
   return c.json(
     createProblemDetails({ status, title: titles[status], detail, instance: c.req.path, code }),
     status,
-    PROBLEM_HEADERS
+    { ...PROBLEM_HEADERS, ...headers }
   );
 }
 
@@ -170,7 +181,9 @@ export function createCustomEndpointRoutes(deps: CustomEndpointRoutesDependencie
     const key = await deps.ragRepo.getProviderKey(user.id, "custom");
     return c.json(
       {
-        enabled: allowlist.length > 0,
+        // Jeder öffentliche HTTPS-Host ist erlaubt (F247); die Allowlist schränkt nur ein.
+        enabled: true,
+        hostRestricted: allowlist.length > 0,
         configured: endpoint !== null,
         baseUrl: endpoint?.base_url ?? null,
         chatModel: endpoint?.chat_model ?? null,
@@ -201,6 +214,17 @@ export function createCustomEndpointRoutes(deps: CustomEndpointRoutesDependencie
     const check = validateUserEndpoint(parsed.data.baseUrl, allowlist);
     if (!check.valid || !check.url) {
       return problem(c, 422, check.code as string, check.reason as string);
+    }
+    // Früh rückmelden, wenn der Name auf interne Adressen zeigt. Geprüft wird trotzdem vor jedem
+    // Aufruf erneut (DNS kann sich nach dem Speichern ändern).
+    try {
+      await assertHostResolvesPublic(
+        check.url.hostname,
+        deps.resolver ?? createDohResolver(deps.fetchFn)
+      );
+    } catch (err) {
+      const error = err as SsrSecurityError;
+      return problem(c, 422, error.code, error.message);
     }
 
     const now = Date.now();
@@ -240,6 +264,20 @@ export function createCustomEndpointRoutes(deps: CustomEndpointRoutesDependencie
   router.post("/api/v1/providers/custom/test", async (c) => {
     const user = c.get("sessionUser");
     if (!user) return problem(c, 401, "UNAUTHORIZED", "Authentifizierung erforderlich.");
+
+    const rule = deps.testRateLimit ?? CUSTOM_ENDPOINT_TEST_RATE_LIMIT;
+    const db = (c.env as { DB?: D1Database } | undefined)?.DB;
+    const limit = await checkRateLimit(`rl:byom-test:usr:${user.id}`, rule, db);
+    if (!limit.allowed) {
+      const retryAfter = String(limit.retryAfterSeconds);
+      return problem(
+        c,
+        429,
+        "RATE_LIMIT_EXCEEDED",
+        `Höchstens ${rule.limit} Verbindungstests pro Minute. Bitte in ${retryAfter} Sekunden erneut versuchen.`,
+        { "Retry-After": retryAfter }
+      );
+    }
 
     const allowlist = resolveAllowlist(deps, c.env);
     let provider: OpenAiCompatibleProvider | null;

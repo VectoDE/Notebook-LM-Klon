@@ -13,6 +13,7 @@ import {
 } from "../custom-endpoint-routes.js";
 import { KeyVault, serializeEncryptedPayload } from "../key-vault.js";
 import { RagRepository } from "../rag-repository.js";
+import { clearRateLimitMemory } from "../rate-limiter.js";
 
 const KEK = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const KEY = "rf_live_0123456789abcdef";
@@ -118,6 +119,7 @@ describe("Eigener Endpunkt: Routen (Issue #247)", () => {
       deleted_at: null
     });
     user = { id: "usr_a" };
+    clearRateLimitMemory();
     fetchCalls = [];
     fetchResponse = () => Response.json({ data: [{ id: "rf-auto" }] });
   });
@@ -135,24 +137,106 @@ describe("Eigener Endpunkt: Routen (Issue #247)", () => {
     );
   });
 
-  it("zeigt den leeren Zustand und die Allowlist aus der Umgebung", async () => {
+  it("zeigt den leeren Zustand; ohne BYOM_ALLOWED_HOSTS ist die Funktion an", async () => {
     const app = buildApp({ allowlist: undefined });
-    const off = await (await app.request("/api/v1/providers/custom")).json();
-    expect(off).toEqual({
-      enabled: false,
+    const state = await (await app.request("/api/v1/providers/custom")).json();
+    expect(state).toEqual({
+      enabled: true,
+      hostRestricted: false,
       configured: false,
       baseUrl: null,
       chatModel: null,
       embedModel: null,
       hasKey: false
     });
-    const on = (await (
+    const restricted = (await (
       await app.request("/api/v1/providers/custom", {}, {
         BYOM_ALLOWED_HOSTS: "api.relationflow.example"
       } as unknown as Env)
-    ).json()) as { enabled: boolean };
-    expect(on.enabled).toBe(true);
+    ).json()) as { enabled: boolean; hostRestricted: boolean };
+    expect(restricted).toMatchObject({ enabled: true, hostRestricted: true });
     expect(resolveAllowlist({}, undefined)).toEqual([]);
+    expect(resolveAllowlist({}, { BYOM_ALLOWED_HOSTS: " " })).toEqual([]);
+  });
+
+  it("speichert ohne Allowlist jeden öffentlichen HTTPS-Host", async () => {
+    const res = await put(buildApp({ allowlist: [] }), {
+      baseUrl: "https://llm.example.org/v1",
+      chatModel: "m"
+    });
+    expect(res.status).toBe(200);
+    expect((await endpointRepo.get("usr_a"))?.base_url).toBe("https://llm.example.org/v1");
+  });
+
+  it.each([
+    ["https://localhost/v1", "SSRF_DETECTED"],
+    ["https://169.254.169.254/v1", "SSRF_DETECTED"],
+    ["https://[fd00:ec2::254]/v1", "SSRF_DETECTED"],
+    ["https://intranet/v1", "SSRF_DETECTED"],
+    ["https://llm.example.org:8443/v1", "ENDPOINT_PORT"]
+  ])("sperrt ohne Allowlist trotzdem %s", async (baseUrl, code) => {
+    const res = await put(buildApp({ allowlist: [] }), { baseUrl, chatModel: "m" });
+    expect(res.status).toBe(422);
+    expect(((await res.json()) as { code: string }).code).toBe(code);
+    expect(await endpointRepo.get("usr_a")).toBeNull();
+  });
+
+  it("prüft schon beim Speichern die DNS-Auflösung", async () => {
+    const privateDns = await put(
+      buildApp({ allowlist: [], resolver: async () => ["93.184.215.14", "10.0.0.5"] }),
+      { baseUrl: "https://rebind.example.org/v1", chatModel: "m" }
+    );
+    expect(privateDns.status).toBe(422);
+    expect(((await privateDns.json()) as { code: string }).code).toBe("SSRF_DETECTED");
+    const noDns = await put(
+      buildApp({
+        allowlist: [],
+        resolver: async () => {
+          throw new Error("NXDOMAIN");
+        }
+      }),
+      { baseUrl: "https://gibt-es-nicht.example.org/v1", chatModel: "m" }
+    );
+    expect(((await noDns.json()) as { code: string }).code).toBe("DNS_FAILED");
+    expect(await endpointRepo.get("usr_a")).toBeNull();
+  });
+
+  it("nutzt ohne eigenen Resolver den DoH-Resolver über fetchFn", async () => {
+    fetchResponse = () => Response.json({ Answer: [{ type: 1, data: "93.184.215.14" }] });
+    const res = await put(buildApp({ allowlist: [], resolver: undefined }), {
+      baseUrl: "https://llm.example.org/v1",
+      chatModel: "m"
+    });
+    expect(res.status).toBe(200);
+    expect(fetchCalls.some((u) => u.includes("dns-query?name=llm.example.org"))).toBe(true);
+  });
+
+  it("Verbindungstest: eigenes Limit je Nutzer (429 mit Retry-After)", async () => {
+    const app = buildApp({ testRateLimit: { limit: 2, windowMs: 60_000 } });
+    await put(app, { baseUrl: "https://api.relationflow.example/v1", chatModel: "rf-auto" });
+    const test = () => app.request("/api/v1/providers/custom/test", { method: "POST" });
+    expect((await test()).status).toBe(200);
+    expect((await test()).status).toBe(200);
+    const limited = await test();
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("retry-after")).toMatch(/^\d+$/);
+    expect(((await limited.json()) as { code: string }).code).toBe("RATE_LIMIT_EXCEEDED");
+    expect(fetchCalls).toHaveLength(2);
+
+    // Ein anderer Nutzer hat ein eigenes Kontingent.
+    user = { id: "usr_b" };
+    expect((await test()).status).toBe(404);
+  });
+
+  it("Verbindungstest: Standardlimit greift ohne Überschreibung", async () => {
+    const app = buildApp();
+    await put(app, { baseUrl: "https://api.relationflow.example/v1", chatModel: "rf-auto" });
+    const statuses: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      statuses.push((await app.request("/api/v1/providers/custom/test", { method: "POST" })).status);
+    }
+    expect(statuses[0]).toBe(200);
+    expect(statuses.at(-1)).toBe(429);
   });
 
   it("prüft den Body beim Speichern", async () => {
