@@ -108,6 +108,9 @@ export function isPrivateOrReservedIpv4(ipNum: number): boolean {
   // 192.0.2.0/24 (TEST-NET-1)
   if (b0 === 192 && b1 === 0 && ((ipNum >>> 8) & 0xff) === 2) return true;
 
+  // 192.88.99.0/24 (ehemaliges 6to4-Relay-Anycast, RFC 7526)
+  if (b0 === 192 && b1 === 88 && ((ipNum >>> 8) & 0xff) === 99) return true;
+
   // 192.168.0.0/16 (Private-Use RFC 1918)
   if (b0 === 192 && b1 === 168) return true;
 
@@ -264,8 +267,19 @@ export function isPrivateOrReservedIpv6(segments: number[]): boolean {
     return isPrivateOrReservedIpv4(((s1 << 16) | s2) >>> 0);
   }
 
-  // Teredo 2001:0::/32 tunnels to arbitrary IPv4 targets
-  if (s0 === 0x2001 && s1 === 0) {
+  // IETF Protocol Assignments 2001::/23 (RFC 6890): enthält Teredo 2001::/32 (Tunnel zu beliebigen
+  // IPv4-Zielen), Benchmarking 2001:2::/48 und ORCHID 2001:10::/28, 2001:20::/28
+  if (s0 === 0x2001 && s1 < 0x0200) {
+    return true;
+  }
+
+  // Documentation 3fff::/20 (RFC 9637)
+  if (s0 === 0x3fff && (s1 & 0xf000) === 0) {
+    return true;
+  }
+
+  // Segment Routing SIDs 5f00::/16 (RFC 9602)
+  if (s0 === 0x5f00) {
     return true;
   }
 

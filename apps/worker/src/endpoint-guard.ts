@@ -5,17 +5,21 @@
  * ruft diese Adresse serverseitig auf, deshalb gelten strengere Regeln als beim URL-Import:
  *
  * 1. Nur `https:`, keine Zugangsdaten in der URL, kein Query-String, kein Fragment, nur Port 443.
- * 2. Der Host muss auf der Allowlist des Betreibers stehen (`BYOM_ALLOWED_HOSTS`, kommagetrennt,
- *    `*.example.com` erlaubt Subdomains). Leere Allowlist = Funktion gesperrt (fail closed).
- * 3. Host darf keine private, lokale oder reservierte Adresse sein (bestehender SSRF-Schutz).
+ * 2. Jeder öffentliche Host ist erlaubt (Entscheidung F247). `BYOM_ALLOWED_HOSTS` (kommagetrennt,
+ *    `*.example.com` erlaubt Subdomains) schränkt optional zusätzlich ein; leer = keine Einschränkung.
+ * 3. Gesperrt sind private, lokale, reservierte und Metadaten-Adressen in jeder Schreibweise sowie
+ *    interne Namen: `localhost`, `*.localhost`, `*.local`, `*.localdomain`, `*.internal`, `*.arpa`
+ *    (inkl. `*.home.arpa`) und Namen ohne Punkt.
  * 4. DNS-Prüfung vor jedem Aufruf: alle A/AAAA-Einträge müssen öffentlich sein (gegen
  *    DNS-Rebinding auf interne Adressen). Schlägt die Auflösung fehl, wird blockiert.
  * 5. Weiterleitungen werden nie verfolgt (`redirect: "manual"`, jede 3xx-Antwort = Fehler).
- * 6. Zeitlimit je Aufruf.
+ * 6. Zeitlimit bis zu den Antwort-Headern; Größen- und Leerlauflimits setzt der Adapter.
  *
- * Restrisiko: Zwischen DNS-Prüfung und eigentlichem Verbindungsaufbau kann sich die Auflösung
- * theoretisch ändern (TOCTOU). Die Allowlist begrenzt das auf Domains, denen der Betreiber vertraut;
- * auf Cloudflare Workers sind private Netze zudem nicht über `fetch` erreichbar.
+ * Restrisiko: `fetch` löst den Namen danach selbst noch einmal auf. Weder auf Cloudflare Workers
+ * noch mit dem Standard-`fetch` lässt sich die Verbindung an die geprüfte IP binden. Zwischen Prüfung
+ * und Verbindungsaufbau kann sich die Auflösung deshalb ändern (TOCTOU, Rebinding mit kurzer TTL).
+ * Auf Workers laufen ausgehende Anfragen über das Cloudflare-Netz, private Netze des Betreibers sind
+ * dort nicht erreichbar; im Node-Betrieb ist die DNS-Prüfung der einzige Schutz davor.
  */
 
 import {
@@ -62,19 +66,29 @@ export function isHostAllowed(host: string, allowlist: readonly string[]): boole
   });
 }
 
-/** Statische Prüfung einer Endpunkt-Basis-URL (ohne Netzwerkzugriff). */
+/** Endungen interner Namensräume (RFC 6761, RFC 6762, RFC 8375, ICANN `.internal`). */
+const INTERNAL_SUFFIXES = [".localhost", ".local", ".localdomain", ".internal", ".arpa"] as const;
+
+/**
+ * true, wenn ein Host (Name oder IP-Literal) kein öffentliches Ziel ist. Strenger als der
+ * URL-Import: zusätzlich gesperrt sind Namen ohne Punkt (Intranet-Namen, Suchdomänen) und `*.arpa`.
+ */
+export function isBlockedEndpointHost(host: string): boolean {
+  const h = host.trim().toLowerCase().replace(/\.$/, "");
+  if (parseIpv4ToUint32(h) !== null || parseIpv6(h) !== null) return isPrivateOrLocalHost(h);
+  if (!h.includes(".")) return true;
+  if (INTERNAL_SUFFIXES.some((suffix) => h.endsWith(suffix))) return true;
+  return isPrivateOrLocalHost(h);
+}
+
+/**
+ * Statische Prüfung einer Endpunkt-Basis-URL (ohne Netzwerkzugriff). Eine leere Allowlist
+ * bedeutet: alle öffentlichen Hosts sind erlaubt.
+ */
 export function validateUserEndpoint(
   rawUrl: string,
   allowlist: readonly string[]
 ): EndpointValidation {
-  if (allowlist.length === 0) {
-    return {
-      valid: false,
-      code: "BYOM_DISABLED",
-      reason: "Eigene Endpunkte sind auf diesem Server nicht freigeschaltet (Allowlist leer)."
-    };
-  }
-
   let parsed: URL;
   try {
     parsed = new URL(rawUrl.trim());
@@ -107,14 +121,14 @@ export function validateUserEndpoint(
       reason: "Nur der HTTPS-Standardport 443 ist erlaubt."
     };
   }
-  if (isPrivateOrLocalHost(parsed.hostname)) {
+  if (isBlockedEndpointHost(parsed.hostname)) {
     return {
       valid: false,
       code: "SSRF_DETECTED",
-      reason: "Private, lokale und reservierte Adressen sind gesperrt (SSRF-Schutz)."
+      reason: "Private, lokale, interne und reservierte Adressen sind gesperrt (SSRF-Schutz)."
     };
   }
-  if (!isHostAllowed(parsed.hostname, allowlist)) {
+  if (allowlist.length > 0 && !isHostAllowed(parsed.hostname, allowlist)) {
     return {
       valid: false,
       code: "ENDPOINT_NOT_ALLOWED",
@@ -232,6 +246,57 @@ export async function guardedEndpointFetch(
     );
   }
   return response;
+}
+
+/** Höchstgröße einer Antwort vom Nutzer-Endpunkt (JSON, Embeddings, Stream gesamt). */
+export const DEFAULT_MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
+/** Fehlerantworten werden nur bis zu dieser Größe gelesen, der Rest wird verworfen. */
+export const MAX_ERROR_BODY_BYTES = 4096;
+
+/** Fehler, wenn eine Antwort das Größenlimit überschreitet. */
+export class ResponseTooLargeError extends Error {
+  constructor(readonly limit: number) {
+    super(`Antwort des Endpunkts ist zu groß (Limit ${limit} Bytes).`);
+    this.name = "ResponseTooLargeError";
+  }
+}
+
+/**
+ * Liest einen Antwort-Body höchstens bis `maxBytes`. Mit `truncate` wird danach abgeschnitten
+ * (für Fehlertexte), sonst wirft die Funktion `ResponseTooLargeError`. Eine zu große
+ * Content-Length wird abgelehnt, ohne den Body zu lesen. Die Verbindung wird in beiden Fällen
+ * geschlossen.
+ */
+export async function readBodyLimited(
+  res: Response,
+  maxBytes: number,
+  mode: "throw" | "truncate" = "throw"
+): Promise<string> {
+  const declared = Number(res.headers.get("content-length"));
+  if (mode === "throw" && declared > maxBytes) {
+    await Promise.allSettled([res.body?.cancel()]);
+    throw new ResponseTooLargeError(maxBytes);
+  }
+  if (!res.body) return "";
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let text = "";
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const remaining = maxBytes - total;
+    total += value.byteLength;
+    if (value.byteLength > remaining) {
+      await Promise.allSettled([reader.cancel()]);
+      if (mode === "throw") throw new ResponseTooLargeError(maxBytes);
+      text += decoder.decode(value.subarray(0, remaining));
+      return text;
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+  return text + decoder.decode();
 }
 
 /**
