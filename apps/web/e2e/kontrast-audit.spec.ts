@@ -258,14 +258,14 @@ const fmt = (n: number) => n.toFixed(2).replace(".", ",");
  * mitten im Farbwechsel nach dem Umschalten von Design oder Modus (nur unter Last sichtbar).
  */
 async function settle(page: Page): Promise<void> {
-  await page.evaluate(() =>
-    Promise.all(
-      document
-        .getAnimations()
-        .filter((a) => a.effect?.getTiming().iterations !== Number.POSITIVE_INFINITY)
-        .map((a) => a.finished.catch(() => undefined))
-    )
-  );
+  await page.evaluate(async () => {
+    const pending = document
+      .getAnimations()
+      .filter((a) => a.effect?.getTiming().iterations !== Number.POSITIVE_INFINITY)
+      .map((a) => a.finished.catch(() => undefined));
+    // Höchstens 2 s warten: eine nie endende Animation darf den Test nicht aufhängen.
+    await Promise.race([Promise.all(pending), new Promise((resolve) => setTimeout(resolve, 2000))]);
+  });
 }
 
 for (const design of DESIGNS) {
