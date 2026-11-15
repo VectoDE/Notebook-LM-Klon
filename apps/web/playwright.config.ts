@@ -46,7 +46,11 @@ export default defineConfig({
   },
   projects: [
     // Vollständige E2E-Suite: nur Chromium (der e2e-Job in ci.yml).
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: [/browser-touch\.spec\.ts/]
+    },
     ...DESKTOP_MATRIX.map(({ name, use }) => ({
       name,
       use,

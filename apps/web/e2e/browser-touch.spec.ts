@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openPanel } from "./helpers";
 
 /**
  * Bedienung per Tippen auf Touch-Geräten, Telefon und Tablet in Hoch- und Querformat
@@ -24,7 +25,9 @@ test.describe("Touch", () => {
         await expect(page.locator(`[data-panel='${tab}']`)).toBeVisible();
       }
     } else {
+      // Ab 900 px sind die Spalten die Navigation; der Sprunglink klappt sie bei Bedarf aus.
       for (const tab of ["sources", "studio", "chat"] as const) {
+        await openPanel(page, tab);
         await expect(page.locator(`[data-panel='${tab}']`)).toBeVisible();
       }
     }

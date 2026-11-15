@@ -334,7 +334,7 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   align-items: center;
   justify-content: center;
   gap: var(--rn-space-2);
-  height: var(--rn-control-h);
+  height: var(--rn-control-h, 44px); /* Variable gilt nur im Kopf: Rückfall 44 px (WCAG 2.5.5) */
   padding: 0 var(--rn-space-4);
   border: 0;
   border-radius: var(--rn-radius-pill);
