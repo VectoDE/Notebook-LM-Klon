@@ -1,8 +1,15 @@
 import { type SourceRow, type SourceType, createProblemDetails } from "@notebook-lm/shared";
 import { AwsClient } from "aws4fetch";
-import type { Hono } from "hono";
+import type { Context, Hono } from "hono";
+import { resolveAppConfig } from "./config.js";
 import type { CoreRepository } from "./core-repository.js";
 import { prefersEnglish } from "./quota-guard.js";
+import {
+  UploadTooLargeError,
+  limitStream,
+  reserveUploadBudget,
+  secondsUntilNextUtcDay
+} from "./r2-budget.js";
 import type { RagRepository } from "./rag-repository.js";
 
 /**
@@ -186,6 +193,43 @@ export function buildContentDisposition(filename: string): string {
   return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encoded}`;
 }
 
+const PROBLEM_CONTENT_TYPE = "application/problem+json; charset=utf-8";
+
+/** Antwort nach RFC 9457 für die R2-Grenzen (F247), Text deutsch oder englisch. */
+function limitProblem(
+  c: Context,
+  status: 413 | 503 | 507,
+  code: string,
+  de: string,
+  en: string,
+  headers: Record<string, string> = {}
+): Response {
+  const titles = {
+    413: "Payload Too Large",
+    503: "Service Unavailable",
+    507: "Insufficient Storage"
+  };
+  const problem = createProblemDetails({
+    status,
+    title: titles[status],
+    detail: prefersEnglish(c.req.header("accept-language")) ? en : de,
+    instance: c.req.path,
+    code
+  });
+  return c.json(problem, status, { "content-type": PROBLEM_CONTENT_TYPE, ...headers });
+}
+
+/** FixedLengthStream gibt es nur in der Workers-Laufzeit; R2 braucht dort eine bekannte Länge. */
+function withKnownLength(
+  stream: ReadableStream<Uint8Array>,
+  length: number
+): ReadableStream<Uint8Array> {
+  const Fixed = (
+    globalThis as { FixedLengthStream?: new (n: number) => TransformStream<Uint8Array, Uint8Array> }
+  ).FixedLengthStream;
+  return Fixed ? stream.pipeThrough(new Fixed(length)) : stream;
+}
+
 export interface SourcesUploadRoutesDependencies {
   coreRepo: CoreRepository;
   ragRepo: RagRepository;
@@ -311,6 +355,29 @@ export function registerSourcesUploadRoutes(
       });
     }
 
+    // Globale R2-Grenzen (Freimenge): Gesamtspeicher und Uploads je UTC-Tag (F247)
+    const config = resolveAppConfig(c.env as { APP_PROFILE?: string; APP_ORIGIN?: string });
+    const budget = await reserveUploadBudget(c.env.DB, byteSize, config.quotas.r2Budget);
+    if (!budget.ok) {
+      if (budget.code === "STORAGE_BUDGET_EXHAUSTED") {
+        return limitProblem(
+          c,
+          507,
+          budget.code,
+          "Der Speicher für hochgeladene Dateien ist voll. Neue Uploads sind erst wieder möglich, wenn Platz frei wird.",
+          "The storage for uploaded files is full. New uploads are possible again once space is freed."
+        );
+      }
+      return limitProblem(
+        c,
+        503,
+        budget.code,
+        "Das tägliche Upload-Limit dieser Instanz ist erreicht. Ab 00:00 UTC sind wieder Uploads möglich.",
+        "This instance has reached its daily upload limit. Uploads are possible again from 00:00 UTC.",
+        { "retry-after": String(secondsUntilNextUtcDay()) }
+      );
+    }
+
     // Generate unique Source ID and R2 Object Key
     const sourceId = crypto.randomUUID();
     const r2Key = `notebooks/${notebookId}/sources/${sourceId}.${resolvedType.ext}`;
@@ -326,7 +393,9 @@ export function registerSourcesUploadRoutes(
     let uploadUrl: string;
     let mode: "presigned-s3" | "worker-upload";
 
-    if (s3AccessKey && s3SecretKey && s3Bucket && s3AccountId) {
+    // Presigned PUT umgeht die Byte-Zählung im Worker; mit R2-Budget (Profil demo) daher nie.
+    const allowPresigned = config.quotas.r2Budget === null;
+    if (allowPresigned && s3AccessKey && s3SecretKey && s3Bucket && s3AccountId) {
       uploadUrl = await createR2PresignedPutUrl({
         accountId: s3AccountId,
         bucketName: s3Bucket,
@@ -436,12 +505,32 @@ export function registerSourcesUploadRoutes(
       });
     }
 
-    // Direct streaming into R2 bucket without buffering in Worker RAM
-    const r2Result = await c.env.MEDIA.put(source.r2_key, bodyStream, {
-      httpMetadata: {
-        contentType: source.mime_type
+    // Direct streaming into R2 bucket without buffering in Worker RAM. Bytes are counted
+    // while streaming; more than Content-Length aborts the upload (F247).
+    const declaredLength = Number(contentLengthHeader);
+    const r2Key = source.r2_key;
+    let r2Result: R2Object;
+    try {
+      r2Result = await c.env.MEDIA.put(
+        r2Key,
+        withKnownLength(limitStream(bodyStream, declaredLength), declaredLength),
+        { httpMetadata: { contentType: source.mime_type } }
+      );
+    } catch (error) {
+      // Abgebrochener oder fehlgeschlagener Upload: kein Objekt in R2 zurücklassen
+      await c.env.MEDIA.delete(r2Key);
+      await ragRepo.updateSourceStatus(sourceId, "error", "Upload abgebrochen.");
+      if (error instanceof UploadTooLargeError) {
+        return limitProblem(
+          c,
+          413,
+          "UPLOAD_TOO_LARGE",
+          `Der Upload liefert mehr als die angemeldeten ${declaredLength} Bytes und wurde abgebrochen.`,
+          `The upload sent more than the declared ${declaredLength} bytes and was aborted.`
+        );
       }
-    });
+      throw error;
+    }
 
     return c.json(
       {
@@ -492,11 +581,25 @@ export function registerSourcesUploadRoutes(
       });
     }
 
+    // Größe des gespeicherten Objekts gegen die angemeldete Größe (R2 liefert sie beim Range-GET mit)
+    if (headObject.size > source.byte_size) {
+      await c.env.MEDIA.delete(source.r2_key);
+      await ragRepo.updateSourceStatus(sourceId, "error", "Datei größer als angemeldet.");
+      return limitProblem(
+        c,
+        413,
+        "UPLOAD_SIZE_MISMATCH",
+        `Die gespeicherte Datei (${headObject.size} Bytes) ist größer als angemeldet (${source.byte_size} Bytes) und wurde gelöscht.`,
+        `The stored file (${headObject.size} bytes) is larger than declared (${source.byte_size} bytes) and was deleted.`
+      );
+    }
+
     const buffer = await headObject.arrayBuffer();
     const firstBytes = new Uint8Array(buffer);
 
     const isValid = detectMagicBytes(firstBytes, source.mime_type);
     if (!isValid) {
+      await c.env.MEDIA.delete(source.r2_key);
       await ragRepo.updateSourceStatus(
         sourceId,
         "error",
