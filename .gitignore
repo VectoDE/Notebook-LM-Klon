@@ -33,3 +33,6 @@ Thumbs.db
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
+
+# Temporäre Lasttest-Konfiguration ohne Workers-AI-Binding (load-test/run-local.mjs)
+apps/worker/wrangler.loadtest.json

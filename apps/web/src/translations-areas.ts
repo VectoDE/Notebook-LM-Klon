@@ -788,6 +788,16 @@ const ENTRIES: readonly Entry[] = [
     "The file is too large or exceeds the notebook's quota."
   ],
   [
+    "srcErrorStorage",
+    "Ihr Speicher ist voll. Entfernen Sie Quellen, die Sie nicht mehr brauchen, und laden Sie die Datei dann erneut hoch.",
+    "Your storage is full. Remove sources you no longer need, then upload the file again."
+  ],
+  [
+    "srcErrorCapacity",
+    "Diese Instanz nimmt gerade keine Uploads an, ihr Kontingent ist ausgeschöpft. Versuchen Sie es später noch einmal.",
+    "This instance is not accepting uploads right now because its quota is used up. Try again later."
+  ],
+  [
     "srcErrorRead",
     "Die Datei ließ sich nicht lesen. Prüfen Sie, ob sie beschädigt ist, und versuchen Sie es noch einmal.",
     "The file could not be read. Check whether it is damaged and try again."

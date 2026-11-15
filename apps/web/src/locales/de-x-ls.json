@@ -403,6 +403,8 @@
   "srcErrorType": "Die App kann diese Datei nicht lesen. Laden Sie eine Datei als PDF, Word, TXT oder Markdown hoch.",
   "srcErrorEmpty": "In der Datei steht kein Text, den die App lesen kann. Ein Foto von einem Text kann die App noch nicht lesen.",
   "srcErrorSize": "Die Datei ist zu groß. Oder im Notebook ist kein Platz mehr.",
+  "srcErrorStorage": "Ihr Speicher ist voll. Löschen Sie zuerst Quellen, die Sie nicht mehr brauchen. Dann laden Sie die Datei noch einmal hoch.",
+  "srcErrorCapacity": "Die App nimmt gerade keine Dateien an. Es gibt eine Grenze für alle zusammen. Versuchen Sie es später noch einmal.",
   "srcErrorRead": "Die App kann die Datei nicht öffnen. Vielleicht ist sie kaputt. Versuchen Sie es noch einmal.",
   "srcErrorTimeout": "Die App hat zu lange für die Datei gebraucht. Darum hat die App aufgehört. Teilen Sie eine lange Datei in kleinere Dateien. Laden Sie die kleinen Dateien dann einzeln hoch.",
   "srcErrorComplex": "Die App kann diese Datei nicht sicher öffnen. Die Datei ist ungewöhnlich gebaut. Speichern Sie die Datei in Word neu. Laden Sie die Datei dann noch einmal hoch.",

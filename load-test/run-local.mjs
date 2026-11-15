@@ -9,7 +9,14 @@
 
 import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { createWriteStream, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import {
+  createWriteStream,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { startFakeOllama } from "./fake-ollama.mjs";
@@ -33,6 +40,15 @@ const hold = argument("hold", "90s");
 mkdirSync(outDir, { recursive: true });
 
 const persistDir = mkdtempSync(join(tmpdir(), "nlk-loadtest-"));
+
+// Workers AI läuft nie lokal; ein "ai"-Binding würde wrangler dev mit dem Cloudflare-Konto
+// verbinden. Der Lasttest läuft ohne Konto und nutzt den Volltext-Rückfall, deshalb startet er
+// mit einer Kopie der Konfiguration ohne "ai" (gleicher Ordner, damit relative Pfade stimmen).
+const loadTestConfig = join(workerDir, "wrangler.loadtest.json");
+const { ai: _remoteOnlyAi, ...wranglerConfig } = JSON.parse(
+  readFileSync(join(workerDir, "wrangler.jsonc"), "utf8")
+);
+writeFileSync(loadTestConfig, JSON.stringify(wranglerConfig, null, 2));
 const workerEnv = { ...process.env, CI: "1", NO_COLOR: "1" };
 
 function run(command, args, options = {}) {
@@ -141,7 +157,18 @@ try {
   fakeLlm = await startFakeOllama(Number(process.env.FAKE_OLLAMA_PORT || 11434));
   run(
     process.execPath,
-    [wranglerBin, "d1", "migrations", "apply", "DB", "--local", "--persist-to", persistDir],
+    [
+      wranglerBin,
+      "d1",
+      "migrations",
+      "apply",
+      "DB",
+      "--local",
+      "--config",
+      loadTestConfig,
+      "--persist-to",
+      persistDir
+    ],
     { cwd: workerDir, env: workerEnv }
   );
 
@@ -152,6 +179,8 @@ try {
       wranglerBin,
       "dev",
       "--local",
+      "--config",
+      loadTestConfig,
       "--ip",
       "127.0.0.1",
       "--port",
@@ -216,5 +245,6 @@ try {
   await fakeLlm?.close();
   await new Promise((done) => (workerLog ? workerLog.end(done) : done()));
   rmSync(persistDir, { recursive: true, force: true });
+  rmSync(loadTestConfig, { force: true });
 }
 process.exit(exitCode);

@@ -63,6 +63,15 @@ function isSourceUploadError(error: unknown): error is SourceUploadError {
   );
 }
 
+/** Speicher je Nutzer bzw. Gast ist voll (Server: quota-guard.ts). */
+const STORAGE_QUOTA_CODES = new Set([
+  "QUOTA_MAX_USER_STORAGE_EXCEEDED",
+  "QUOTA_MAX_GUEST_STORAGE_EXCEEDED"
+]);
+
+/** Globale R2-Grenzen der Instanz (Server: r2-budget.ts), kein Fehler des Nutzers. */
+const UPLOAD_CAPACITY_CODES = new Set(["UPLOAD_DAILY_LIMIT_REACHED", "STORAGE_BUDGET_EXHAUSTED"]);
+
 /** Schlüssel im Sprachkatalog mit verständlichem Grund und Handlungshinweis. */
 export function uploadErrorKey(error: unknown): string {
   if (!isSourceUploadError(error)) return "srcErrorRead";
@@ -71,6 +80,8 @@ export function uploadErrorKey(error: unknown): string {
   if (error.code === "PARSE_TIMEOUT") return "srcErrorTimeout";
   if (error.code === "DOCX_TOO_COMPLEX") return "srcErrorComplex";
   if (error.code === "DOCX_INVALID") return "srcErrorRead";
+  if (STORAGE_QUOTA_CODES.has(error.code)) return "srcErrorStorage";
+  if (UPLOAD_CAPACITY_CODES.has(error.code)) return "srcErrorCapacity";
   if (error.status === 413 || error.code === "DOCX_TOO_LARGE" || error.code === "TEXT_TOO_LONG") {
     return "srcErrorSize";
   }
