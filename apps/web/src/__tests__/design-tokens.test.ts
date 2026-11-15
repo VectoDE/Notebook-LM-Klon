@@ -63,7 +63,7 @@ describe("Design-Tokens: Vollständigkeit", () => {
     }
   });
 
-  it("Editorial Calm nutzt Everlast-Blau: #2563EB nur als Fläche, Text #1E40AF", () => {
+  it("Editorial Calm nutzt Blau #2563EB nur als Fläche, Text #1E40AF", () => {
     const light = DESIGN_TOKENS["editorial-calm"].light;
     expect(light.brand).toBe("#2563EB");
     expect(light.logoTile).toBe("#2563EB");
@@ -117,7 +117,7 @@ describe("Design-Tokens: Vollständigkeit", () => {
       expect(DESIGN_TOKENS.fusion[mode]).not.toEqual(DESIGN_TOKENS.pure[mode]);
       expect(DESIGN_TOKENS.fusion[mode].canvas).not.toBe(DESIGN_TOKENS.pure[mode].canvas);
     }
-    // Pure verwendet weder Everlast- noch Google-Blauwerte
+    // Pure verwendet weder die Editorial-Calm- noch Google-Blauwerte
     const foreignBlues = ["#1A73E8", "#0B57D0", "#4285F4", "#1967D2", "#2563EB", "#1E40AF"];
     for (const mode of COLOR_MODES) {
       const values = Object.values(DESIGN_TOKENS.pure[mode]);
