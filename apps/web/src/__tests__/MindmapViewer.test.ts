@@ -6,22 +6,29 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import {
   FIT_PADDING,
+  LABEL_LINE_HEIGHT,
+  LABEL_MAX_TEXT_WIDTH,
   MindmapViewer,
   NODE_FONT_SIZE,
   PAN_STEP,
   PHONE_QUERY,
+  TOGGLE_HIT_RADIUS,
   TOGGLE_RADIUS,
   buildParentMap,
   buildTreeMeta,
   computeMindmapLayout,
+  createTextMeasure,
+  estimateTextWidth,
   fitMindmap,
   flattenLayoutNodes,
   initialMindmapTab,
+  nodeSizeFor,
   nodeWidthFor,
   panDeltaForKey,
   resolveActiveId,
   tabKeyTarget,
-  treeKeyAction
+  treeKeyAction,
+  wrapLabel
 } from "../MindmapViewer.js";
 
 const sampleTree: MindmapNode = {
@@ -112,16 +119,79 @@ describe("MindmapViewer Layout Engine & Component (Sub-Issue #122)", () => {
     };
     const layout = computeMindmapLayout(longRoot, new Set());
     const root = layout.layoutNode;
-    // 14 px Inter: höchstens ~8,6 px je Zeichen; Rand links/rechts plus Platz für den Knopf
-    const needed = longRoot.label.length * 8.6 + 32 + 40;
-    expect(root.width).toBeGreaterThanOrEqual(needed);
+    // Jede Zeile passt mit Rand links/rechts und Platz für den Knopf in den Knoten
+    for (const line of root.lines) {
+      expect(line.length * 8.6 + 32 + 40).toBeLessThanOrEqual(root.width);
+    }
+    // Nichts geht verloren: die Zeilen ergeben zusammen die ganze Beschriftung
+    expect(root.lines.join(" ")).toBe(longRoot.label);
+    expect(root.lines.length).toBeGreaterThan(1);
+    expect(root.height).toBe(root.lines.length * LABEL_LINE_HEIGHT + 24);
     // Kinder beginnen rechts vom breiteren Wurzelknoten, die Kante startet an dessen Rand
     const child = root.children[0];
     expect(child?.x).toBeGreaterThan(root.x + root.width);
     expect(layout.connections[0]?.fromX).toBe(root.x + root.width);
-    // Kurze Beschriftungen behalten die Mindestbreite
+    expect(layout.connections[0]?.fromY).toBe(root.y + root.height / 2);
+    // Kurze Beschriftungen behalten die Mindestgröße
     expect(nodeWidthFor("Kind", false)).toBe(180);
+    expect(nodeSizeFor("Kind", false)).toEqual({ width: 180, height: 44, lines: ["Kind"] });
     expect(nodeWidthFor("x".repeat(30), true)).toBeGreaterThan(nodeWidthFor("x".repeat(30), false));
+  });
+
+  it("bricht lange Beschriftungen um, trennt überlange Wörter hart (Issue #279)", () => {
+    const max = LABEL_MAX_TEXT_WIDTH;
+    expect(wrapLabel("Kurz", max)).toEqual(["Kurz"]);
+    expect(wrapLabel("", max)).toEqual([""]);
+    const word = "Datenschutzfolgenabschätzungsverfahrensdokumentation";
+    const lines = wrapLabel(`Ein ${word} hier`, max);
+    expect(lines.length).toBeGreaterThan(2);
+    expect(lines.join("").replace(/\s+/g, "")).toBe(`Ein${word}hier`);
+    for (const line of lines) expect(estimateTextWidth(line)).toBeLessThanOrEqual(max);
+    // Eigene Messfunktion (z. B. breite Schrift): nie breiter als erlaubt
+    const wide = (text: string) => text.length * 12;
+    const label = "Grundlagen der verteilten Datenhaltung mit Durable Objects";
+    const wideLines = wrapLabel(label, max, wide);
+    for (const line of wideLines) expect(wide(line)).toBeLessThanOrEqual(max);
+    expect(wideLines.join(" ")).toBe(label);
+    expect(wideLines.length).toBeGreaterThan(wrapLabel(label, max).length);
+  });
+
+  it("Eltern höher als ihre Kinder: Knoten beginnt oben, nichts überlappt", () => {
+    const tall: MindmapNode = {
+      id: "t",
+      label: "Sehr lange Beschriftung ".repeat(8).trim(),
+      children: [{ id: "k", label: "Kind" }]
+    };
+    const layout = computeMindmapLayout(tall, new Set());
+    expect(layout.layoutNode.y).toBe(40);
+    expect(layout.layoutNode.height).toBeGreaterThan(44);
+    expect(layout.totalHeight).toBe(layout.layoutNode.height);
+  });
+
+  it("misst im Browser mit Canvas, sonst mit der Schätzung", () => {
+    expect(createTextMeasure(undefined)).toBe(estimateTextWidth);
+    const noCanvas = { createElement: () => ({ getContext: () => null }) } as unknown as Document;
+    expect(createTextMeasure(noCanvas)).toBe(estimateTextWidth);
+    const ctx = { font: "", measureText: (text: string) => ({ width: text.length * 20 }) };
+    const doc = {
+      createElement: () => ({ getContext: () => ctx }),
+      documentElement: {},
+      defaultView: {
+        getComputedStyle: () => ({ getPropertyValue: () => ' "Space Grotesk", sans-serif ' })
+      }
+    } as unknown as Document;
+    const measure = createTextMeasure(doc);
+    expect(ctx.font).toBe('700 14px "Space Grotesk", sans-serif');
+    // Die breitere Messung gewinnt gegenüber der Schätzung
+    expect(measure("abc")).toBe(60);
+    const narrowCtx = { font: "", measureText: () => ({ width: 1 }) };
+    const fallbackDoc = {
+      createElement: () => ({ getContext: () => narrowCtx }),
+      documentElement: {},
+      defaultView: { getComputedStyle: () => ({ getPropertyValue: () => "" }) }
+    } as unknown as Document;
+    expect(createTextMeasure(fallbackDoc)("abc")).toBe(estimateTextWidth("abc"));
+    expect(narrowCtx.font).toBe("700 14px sans-serif");
   });
 
   it("hat ausreichend große Bedienziele (24 px Knoten-Knopf, 44 px Hauptaktionen)", () => {
@@ -150,6 +220,9 @@ describe("MindmapViewer Layout Engine & Component (Sub-Issue #122)", () => {
       expect(minHeight(selector), b).toBeGreaterThanOrEqual(44);
     }
     expect(html).toContain(`r="${TOGGLE_RADIUS}"`);
+    // Trefferfläche des Knoten-Knopfs: 44 x 44 px
+    expect(TOGGLE_HIT_RADIUS * 2).toBeGreaterThanOrEqual(44);
+    expect(html).toContain(`r="${TOGGLE_HIT_RADIUS}"`);
   });
 
   describe("Tastatur und Hilfstechnik (#296)", () => {

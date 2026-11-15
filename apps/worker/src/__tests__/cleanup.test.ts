@@ -8,7 +8,12 @@ import { scheduled } from "../index.js";
 
 function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } {
   const db = new DatabaseSync(":memory:");
-  for (const file of ["0001_initial_core.sql", "0003_webauthn_challenges.sql"]) {
+  for (const file of [
+    "0001_initial_core.sql",
+    "0002_rag_and_studio.sql",
+    "0003_webauthn_challenges.sql",
+    "0007_upload_grenzen.sql"
+  ]) {
     db.exec(readFileSync(resolve(process.cwd(), "apps/worker/migrations", file), "utf-8"));
   }
 

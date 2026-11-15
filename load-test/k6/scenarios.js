@@ -1,8 +1,10 @@
-// k6-Lastprofil für RelationNotes (Issue #352).
+// k6-Lastprofil für RelationNotes (Issues #352 und #256).
 //
 // Profile (Umgebungsvariable PROFILE):
-//   local  Mehrere Szenarien mit vielen gleichzeitigen simulierten Nutzern gegen einen lokal
-//          gestarteten Worker (wrangler dev). Gastzugang, authentifizierte Lese-Endpunkte.
+//   local  Drei Szenarien mit vielen gleichzeitigen simulierten Nutzern (Standard 200) gegen
+//          einen lokal gestarteten Worker (wrangler dev): Besucher, Gäste mit Suche und
+//          Gäste, die eine Quelle hochladen, chatten und einen Studio-Job anstoßen. Der Chat
+//          läuft gegen ein lokales Test-LLM (load-test/fake-ollama.mjs), nie gegen echte KI.
 //   smoke  Kleiner Live-Rauchtest (2-5 VUs, kurz). Nur öffentliche, lesende Endpunkte:
 //          keine Konten, keine KI-Aufrufe, kein Schreibzugriff.
 //
@@ -20,7 +22,7 @@ import { Counter, Rate, Trend } from "k6/metrics";
 
 const BASE_URL = (__ENV.BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
 const PROFILE = __ENV.PROFILE || "local";
-const PEAK_VUS = Number(__ENV.PEAK_VUS || 100);
+const PEAK_VUS = Number(__ENV.PEAK_VUS || 200);
 const HOLD = __ENV.HOLD || "90s";
 // Offizieller Cloudflare-Testtoken (Dummy), passt zum Test-Secret 1x000...AA.
 const TURNSTILE_TOKEN = __ENV.TURNSTILE_TOKEN || "XXXX.DUMMY.TOKEN.XXXX";
@@ -39,6 +41,9 @@ const guestDuration = new Trend("endpoint_guest_login", true);
 const providersDuration = new Trend("endpoint_providers", true);
 const searchDuration = new Trend("endpoint_search_fts", true);
 const jobsDuration = new Trend("endpoint_jobs", true);
+const uploadDuration = new Trend("endpoint_source_upload", true);
+const chatDuration = new Trend("endpoint_chat", true);
+const studioDuration = new Trend("endpoint_studio_enqueue", true);
 
 // 429 ist erwartetes Verhalten des Rate-Limiters und kein Fehler im Sinne von http_req_failed.
 http.setResponseCallback(http.expectedStatuses({ min: 200, max: 399 }, 429));
@@ -52,20 +57,28 @@ function ramp(peak) {
   ];
 }
 
+// Anteile an der Spitzenlast: 30 % Besucher, 30 % Gäste mit Suche, 40 % aktive Gäste.
 const localScenarios = {
   public_visitors: {
     executor: "ramping-vus",
     exec: "publicVisitor",
     startVUs: 0,
-    stages: ramp(Math.max(1, Math.round(PEAK_VUS * 0.5))),
+    stages: ramp(Math.max(1, Math.round(PEAK_VUS * 0.3))),
     gracefulRampDown: "10s"
   },
   guest_members: {
     executor: "ramping-vus",
     exec: "guestMember",
     startVUs: 0,
-    stages: ramp(Math.max(1, Math.round(PEAK_VUS * 0.5))),
+    stages: ramp(Math.max(1, Math.round(PEAK_VUS * 0.3))),
     gracefulRampDown: "10s"
+  },
+  source_creators: {
+    executor: "ramping-vus",
+    exec: "sourceCreator",
+    startVUs: 0,
+    stages: ramp(Math.max(1, Math.round(PEAK_VUS * 0.4))),
+    gracefulRampDown: "20s"
   }
 };
 
@@ -86,7 +99,13 @@ export const options = {
     http_req_failed: ["rate<0.01"],
     unexpected_status: ["rate<0.01"],
     http_req_duration: ["p(95)<800", "p(99)<2000"],
-    checks: ["rate>0.99"]
+    checks: ["rate>0.99"],
+    // Je Ablauf (Issue #256). Der Upload zählt seine vier Schritte einzeln.
+    "http_req_duration{endpoint:guest_login}": ["p(95)<1000"],
+    "http_req_duration{endpoint:search_fts}": ["p(95)<800"],
+    "http_req_duration{endpoint:source_upload}": ["p(95)<1000"],
+    "http_req_duration{endpoint:chat}": ["p(95)<2000"],
+    "http_req_duration{endpoint:studio_enqueue}": ["p(95)<800"]
   },
   summaryTrendStats: ["avg", "min", "med", "p(90)", "p(95)", "p(99)", "max"]
 };
@@ -213,6 +232,145 @@ export function guestMember() {
   const jobsOk = check(jobs, { "jobs: 200": (r) => r.status === 200 || r.status === 429 });
   track(jobs, jobsDuration, jobsOk);
   sleep(0.8 + Math.random());
+}
+
+// Aktive Gäste: eigener Gastzugang mit eigenem Notizbuch (demoNotebookId), dann je Durchlauf
+// Suche, Chat und Studio-Job, in den ersten drei Durchläufen zusätzlich ein Quellen-Upload.
+// Pausen von 6 bis 10 Sekunden halten jeden Nutzer unter den Limits (Upload 10/min, Chat 20/min).
+const creatorState = { ready: false, failed: false, notebookId: "", round: 0 };
+
+const SOURCE_TEXT =
+  "RelationNotes speichert Quellen in D1 und R2. Die Suche kombiniert Volltext und Vektoren. " +
+  "Antworten im Chat nennen die Stellen der Quelle, auf denen sie beruhen. ";
+
+function jsonParams(headers, endpoint, extra) {
+  return {
+    headers: { ...headers, "content-type": "application/json", origin: BASE_URL, ...extra },
+    tags: { endpoint }
+  };
+}
+
+function loginCreator(headers) {
+  const res = http.post(
+    `${BASE_URL}/api/v1/auth/guest`,
+    JSON.stringify({ turnstileToken: TURNSTILE_TOKEN, locale: "de" }),
+    jsonParams(headers, "guest_login")
+  );
+  guestDuration.add(res.timings.duration);
+  const ok = check(res, {
+    "guest(aktiv): 201 mit Notizbuch": (r) => r.status === 201 && Boolean(r.json("demoNotebookId"))
+  });
+  unexpectedStatus.add(!ok);
+  if (!ok) {
+    guestLoginFailed.add(1);
+    return false;
+  }
+  creatorState.notebookId = res.json("demoNotebookId");
+  return true;
+}
+
+function uploadSource(headers) {
+  const content = `${SOURCE_TEXT.repeat(12)}Lasttest VU ${__VU}, Durchlauf ${creatorState.round}.`;
+  const steps = [];
+  const init = http.post(
+    `${BASE_URL}/api/v1/notebooks/${creatorState.notebookId}/sources`,
+    JSON.stringify({
+      filename: `lasttest-${__VU}-${creatorState.round}.txt`,
+      mimeType: "text/plain",
+      byteSize: content.length
+    }),
+    jsonParams(headers, "source_upload")
+  );
+  steps.push(init);
+  let ok = check(init, { "upload: 201 angelegt": (r) => r.status === 201 });
+  if (ok) {
+    const sourceId = init.json("sourceId");
+    const put = http.put(
+      `${BASE_URL}/api/v1/sources/${sourceId}/upload`,
+      content,
+      jsonParams(headers, "source_upload", { "content-type": "text/plain" })
+    );
+    steps.push(put);
+    ok = check(put, { "upload: 200 Datei gespeichert": (r) => r.status === 200 });
+    if (ok) {
+      const done = http.post(
+        `${BASE_URL}/api/v1/sources/${sourceId}/upload/complete`,
+        "{}",
+        jsonParams(headers, "source_upload")
+      );
+      steps.push(done);
+      ok = check(done, { "upload: 200 geprüft und bereit": (r) => r.status === 200 });
+    }
+    if (ok) {
+      const chunks = http.post(
+        `${BASE_URL}/api/v1/sources/${sourceId}/chunks`,
+        JSON.stringify({ chunks: [{ chunkIndex: 0, text: content }], markReady: true }),
+        jsonParams(headers, "source_upload")
+      );
+      steps.push(chunks);
+      ok = check(chunks, { "upload: 200 Chunks gespeichert": (r) => r.status === 200 });
+    }
+  }
+  for (const res of steps) uploadDuration.add(res.timings.duration);
+  if (steps[steps.length - 1].status === 429) rateLimited.add(1);
+  else unexpectedStatus.add(!ok);
+}
+
+function chatOnce(headers) {
+  const res = http.post(
+    `${BASE_URL}/api/v1/notebooks/${creatorState.notebookId}/chat`,
+    JSON.stringify({ message: "Wie arbeitet die Suche?", model: "llama3", maxChunks: 5 }),
+    jsonParams(headers, "chat", { accept: "text/event-stream" })
+  );
+  const ok = check(res, {
+    "chat: 200 als Stream": (r) => r.status === 429 || r.status === 200,
+    "chat: Antwort-Token im Stream": (r) =>
+      r.status === 429 || (typeof r.body === "string" && r.body.includes("event: token"))
+  });
+  track(res, chatDuration, ok);
+}
+
+function studioJob(headers) {
+  const res = http.post(
+    `${BASE_URL}/api/v1/jobs/enqueue`,
+    JSON.stringify({ notebookId: creatorState.notebookId, kind: "mindmap" }),
+    jsonParams(headers, "studio_enqueue")
+  );
+  const ok = check(res, {
+    "studio: 201 Job eingereiht": (r) => r.status === 201 || r.status === 429
+  });
+  track(res, studioDuration, ok);
+}
+
+export function sourceCreator() {
+  const headers = clientHeaders();
+  if (!creatorState.ready && !creatorState.failed) {
+    creatorState.ready = loginCreator(headers);
+    creatorState.failed = !creatorState.ready;
+  }
+  if (creatorState.failed) {
+    sleep(2);
+    return;
+  }
+  if (creatorState.round < 3) {
+    uploadSource(headers);
+    sleep(1 + Math.random());
+  }
+  const search = http.post(
+    `${BASE_URL}/api/v1/notebooks/${creatorState.notebookId}/search`,
+    JSON.stringify({ query: "Volltext Vektoren", mode: "fts", limit: 5 }),
+    jsonParams(headers, "search_fts")
+  );
+  const searchOk = check(search, {
+    "search(eigenes Notizbuch): 200": (r) => r.status === 200 || r.status === 429
+  });
+  track(search, searchDuration, searchOk);
+  sleep(1 + Math.random());
+  chatOnce(headers);
+  sleep(1 + Math.random());
+  studioJob(headers);
+  creatorState.round += 1;
+  sleep(3 + Math.random() * 3);
 }
 
 function metricValue(data, name, key) {

@@ -8,7 +8,7 @@
 
 ## Sicherheitslücke melden / Reporting a Vulnerability (Coordinated Vulnerability Disclosure)
 
-Sicherheit hat in **RelationNotes – NotebookLM & RelationFlow Knowledge Studio** höchste Priorität. Bitte melde potenzielle Sicherheitslücken **nicht** über öffentliche GitHub-Issues, sondern vertraulich über einen der folgenden Kanäle:
+Sicherheit hat in **RelationNotes** höchste Priorität. Bitte melde potenzielle Sicherheitslücken **nicht** über öffentliche GitHub-Issues, sondern vertraulich über einen der folgenden Kanäle:
 
 1. **GitHub Private Vulnerability Reporting (empfohlen):**
    Über den Reiter **[Security → Report a vulnerability](https://github.com/VectoDE/Notebook-LM-Klon/security/advisories/new)** in diesem Repository.

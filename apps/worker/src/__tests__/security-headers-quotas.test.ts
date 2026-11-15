@@ -164,6 +164,8 @@ describe("Rate Limiting (Sub-Issue #78)", () => {
     expect(resolveCategoryFromPath("/api/v1/chat/message")).toBe("chat");
     expect(resolveCategoryFromPath("/api/v1/notebook/ask")).toBe("chat");
     expect(resolveCategoryFromPath("/api/v1/sources/file/upload")).toBe("uploads");
+    expect(resolveCategoryFromPath("/api/v1/provenance/sign")).toBe("uploads");
+    expect(resolveCategoryFromPath("/api/v1/provenance/status")).toBe("general");
     expect(resolveCategoryFromPath("/api/v1/health")).toBe("general");
   });
 

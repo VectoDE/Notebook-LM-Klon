@@ -14,6 +14,10 @@
 * [**7. Cloudflare-Free-Limits**](7-Cloudflare-Free-Limits)
 * [**8. Loom-Präsentations-Leitfaden**](8-Loom-Praesentations-Leitfaden)
 * [**9. Lasttests**](9-Lasttests)
+* [**10. Datenschutz je KI-Modell**](10-Datenschutz-je-KI-Modell)
+* [**11. Lokale Verschlüsselung**](11-Lokale-Verschluesselung)
+* [**12. Offline-Synchronisation**](12-Offline-Synchronisation)
+* [**13. Medienalternativen**](13-Medienalternativen)
 
 ---
 * [**Haupt-Repository**](https://github.com/VectoDE/Notebook-LM-Klon)

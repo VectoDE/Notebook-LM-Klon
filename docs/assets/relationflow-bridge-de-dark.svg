@@ -1,5 +1,5 @@
 <svg lang="de" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" width="1200" height="500" role="img" aria-labelledby="rf-title rf-desc">
-  <title id="rf-title">Andock-Architektur an Everlast RelationFlow</title>
+  <title id="rf-title">Andock-Architektur an RelationFlow</title>
   <desc id="rf-desc">Zeigt die nahtlose Integration des NotebookLM-Klons als Wissens-, RAG- und Studio-Modul in die RelationFlow-Plattform über Workspaces, Rollen (Owner, Editor, Viewer), Auto-LLM-Router und die dedizierte /api/v1/notebooks/:id/search Schnittstelle.</desc>
   <style>
     :root {
@@ -32,7 +32,7 @@
 
   <rect width="1200" height="500" rx="20" fill="url(#rfBg)" />
 
-  <text x="48" y="52" fill="#F8FAFC" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="24" font-weight="700">Andocken an RelationFlow (Everlast Consulting) – Modulare Bridge-Architektur</text>
+  <text x="48" y="52" fill="#F8FAFC" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="24" font-weight="700">Andocken an RelationFlow – Modulare Bridge-Architektur</text>
   <text x="48" y="78" fill="#CBD5E1" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14">Gemeinsames Rollenmodell (Owner/Editor/Viewer) · Intelligenter Auto-Modell-Router · Eigenständige Hybrid-RAG-API für KI-Assistenten</text>
 
   <!-- Left: RelationFlow Core -->

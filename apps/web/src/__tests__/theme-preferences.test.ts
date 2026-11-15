@@ -11,6 +11,7 @@ import {
   applyReduceMotion,
   applyThemeToDocument,
   browserStorage,
+  documentLanguage,
   readReduceMotion,
   readStoredModel,
   resolveColorMode,
@@ -123,8 +124,15 @@ describe("resolveInitialPreferences", () => {
     });
   });
 
-  it("kennt genau Deutsch und Englisch", () => {
-    expect(LANGUAGES).toEqual(["de", "en"]);
+  it("kennt Deutsch, Leichte Sprache und Englisch", () => {
+    expect(LANGUAGES).toEqual(["de", "de-x-ls", "en"]);
+  });
+
+  it("übernimmt gespeicherte Leichte Sprache", () => {
+    const storage = {
+      getItem: (key: string) => (key === STORAGE_KEYS.language ? "de-x-ls" : null)
+    };
+    expect(resolveInitialPreferences({ storage }).language).toBe("de-x-ls");
   });
 });
 
@@ -143,6 +151,19 @@ describe("applyThemeToDocument", () => {
     expect(store.setItem).toHaveBeenCalledWith(STORAGE_KEYS.theme, "fusion");
     expect(store.setItem).toHaveBeenCalledWith(STORAGE_KEYS.colorMode, "dark");
     expect(store.setItem).toHaveBeenCalledWith(STORAGE_KEYS.language, "en");
+  });
+
+  it("setzt bei Leichter Sprache lang=de für Screenreader und data-language=de-x-ls", () => {
+    const root = { setAttribute: vi.fn(), removeAttribute: vi.fn() };
+    const store = { setItem: vi.fn() };
+    applyThemeToDocument(root, { ...prefs, language: "de-x-ls" }, store);
+    expect(root.setAttribute).toHaveBeenCalledWith("lang", "de");
+    expect(root.setAttribute).toHaveBeenCalledWith("data-language", "de-x-ls");
+    expect(root.setAttribute).toHaveBeenCalledWith("dir", "ltr");
+    expect(store.setItem).toHaveBeenCalledWith(STORAGE_KEYS.language, "de-x-ls");
+    expect(documentLanguage("de-x-ls")).toBe("de");
+    expect(documentLanguage("de")).toBe("de");
+    expect(documentLanguage("en")).toBe("en");
   });
 
   it("setzt bei Automatisch den Gerätemodus und speichert die Wahl", () => {
@@ -166,7 +187,7 @@ describe("applyThemeToDocument", () => {
       }
     };
     expect(() => applyThemeToDocument(root, prefs, failing)).not.toThrow();
-    expect(root.setAttribute).toHaveBeenCalledTimes(8);
+    expect(root.setAttribute).toHaveBeenCalledTimes(10);
   });
 });
 
