@@ -1,15 +1,20 @@
 import { WORKSPACE_VERSION } from "@notebook-lm/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { App } from "../App.js";
+import { preloadStudioViewers } from "../lazy-viewers.js";
+
+// Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
+beforeAll(() => preloadStudioViewers());
 
 describe("RelationNotes Web Shell (App.tsx)", () => {
   it("renders accessible main landmark with RelationNotes title and workspace version", () => {
     const html = renderToStaticMarkup(createElement(App));
     expect(html).toContain('aria-labelledby="app-title"');
     expect(html).toContain("RelationNotes");
-    expect(html).toContain("NotebookLM &amp; RelationFlow Knowledge Studio");
+    expect(html).toContain('<h1 id="app-title">RelationNotes</h1>');
+    expect(html).not.toMatch(/Knowledge\sStudio/);
     expect(html).toContain(WORKSPACE_VERSION);
     expect(html).toContain('aria-label="Studio Werkzeuge"');
     expect(html).toContain("Übersicht");

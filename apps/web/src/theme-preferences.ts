@@ -2,7 +2,8 @@
  * Reine Hilfsfunktionen für Design-, Farbmodus- und Sprachwahl (ohne React),
  * damit Startwerte, Systemeinstellung und DOM-Attribute testbar sind.
  *
- * DOM-Vertrag: <html data-design="…" data-color-mode="…" lang="…">.
+ * DOM-Vertrag: <html data-design="…" data-color-mode="…" data-language="…" lang="…">.
+ * data-language trägt die gewählte Sprache (auch "de-x-ls"), lang die Dokumentsprache.
  * Das frühere Attribut data-theme wird entfernt (Issue #252).
  */
 
@@ -13,8 +14,13 @@ import {
   type DesignTheme,
   THEMES
 } from "./design-tokens.js";
+import { directionOf } from "./i18n.js";
 
-export type Language = "de" | "en";
+/**
+ * Sprachen der Oberfläche. "de-x-ls" ist Deutsch in Leichter Sprache (Issue #349): eine
+ * Variante von Deutsch mit eigenem Katalog (locales/de-x-ls.json), der erst bei Bedarf lädt.
+ */
+export type Language = "de" | "de-x-ls" | "en";
 
 /** Gewählter Farbmodus: fest oder "system" (folgt dem Gerät, auch bei späteren Änderungen). */
 export type ColorModePreference = ColorMode | "system";
@@ -28,7 +34,16 @@ export const SYSTEM_COLOR_QUERIES = [
   "(prefers-contrast: more)",
   "(prefers-color-scheme: dark)"
 ] as const;
-export const LANGUAGES: readonly Language[] = ["de", "en"] as const;
+export const LANGUAGES: readonly Language[] = ["de", "de-x-ls", "en"] as const;
+
+/**
+ * Wert für <html lang>: Leichte Sprache ist Deutsch. Screenreader und Browser wählen Stimme,
+ * Silbentrennung und Rechtschreibprüfung nach der Hauptsprache; ein privater Tag wie
+ * "de-x-ls" ist zwar gültiges BCP 47, wird aber nicht überall erkannt.
+ */
+export function documentLanguage(language: Language): "de" | "en" {
+  return language === "en" ? "en" : "de";
+}
 
 export const STORAGE_KEYS = {
   theme: "rn_design",
@@ -134,7 +149,10 @@ export function applyThemeToDocument(
 ): void {
   root.setAttribute("data-design", prefs.theme);
   root.setAttribute("data-color-mode", resolveColorMode(prefs.colorMode, systemMode));
-  root.setAttribute("lang", prefs.language);
+  const lang = documentLanguage(prefs.language);
+  root.setAttribute("lang", lang);
+  root.setAttribute("data-language", prefs.language);
+  root.setAttribute("dir", directionOf(lang));
   root.removeAttribute("data-theme");
   try {
     storage?.setItem(STORAGE_KEYS.theme, prefs.theme);

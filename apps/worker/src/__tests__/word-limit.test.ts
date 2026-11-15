@@ -48,6 +48,18 @@ describe("countWords / countUniqueWords", () => {
     expect(countWords("  eins zwei\ndrei\t vier  ")).toBe(4);
   });
 
+  it("trennt an Unicode-Leerraum, aber nicht an Satzzeichen, Bindestrich oder Zero-Width-Space", () => {
+    // Trennzeichen sind alle Zeichen, die auf \s passen (inkl. U+00A0, U+2009, U+2028, U+3000).
+    expect(countWords("eins zwei drei vier　fünf")).toBe(5);
+    expect(countWords("﻿eins zwei")).toBe(2);
+    // Satzzeichen und Bindestriche gehören zum Wort.
+    expect(countWords("Hallo, Welt! E-Mail-Adresse.")).toBe(3);
+    // Zero-Width-Space (U+200B) und weiches Trennzeichen (U+00AD) trennen nicht.
+    expect(countWords("eins​zwei Silben­trennung")).toBe(2);
+    // Schriften ohne Leerzeichen zählen je zusammenhängender Folge als ein Wort.
+    expect(countWords("日本語のテキスト 中文")).toBe(2);
+  });
+
   it("zählt überlappende Chunks nicht doppelt", () => {
     const text = "a b c d e f";
     const chunks = [

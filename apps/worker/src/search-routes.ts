@@ -9,6 +9,7 @@ import {
 } from "@notebook-lm/shared";
 import type { Hono } from "hono";
 import type { CoreRepository } from "./core-repository.js";
+import { embedQuery } from "./embeddings.js";
 import { buildSafeFts5MatchQuery } from "./fts5-probe.js";
 import type { RagRepository } from "./rag-repository.js";
 
@@ -36,6 +37,8 @@ export async function queryNotebookVectorSearch(
     scale?: number;
     limit?: number;
     sourceIds?: string[];
+    /** Nur Vektoren dieses Embedding-Modells vergleichen (Anfragevektor vom Server). */
+    model?: string;
   }
 ): Promise<VectorSearchResultItem[]> {
   const limit = options.limit ?? 10;
@@ -95,6 +98,9 @@ export async function queryNotebookVectorSearch(
   const scored: VectorSearchResultItem[] = [];
 
   for (const cv of chunkVectors) {
+    if (options.model !== undefined && cv.model !== options.model) {
+      continue;
+    }
     const sourceId = chunkSourceMap ? chunkSourceMap.get(cv.chunk_id) : undefined;
     if (allowedSources && (!sourceId || !allowedSources.has(sourceId))) {
       continue;
@@ -250,9 +256,16 @@ export function registerSearchRoutes(
     let ftsResults: Array<ChunkRow & { rank: number; source_title?: string }> = [];
 
     // Semantic Vector Search (if mode is 'hybrid' or 'vector')
-    if ((mode === "hybrid" || mode === "vector") && queryVector && queryVector.length > 0) {
+    // Ohne mitgelieferten Anfragevektor rechnet der Server ihn per Workers AI; geht das nicht
+    // (kein Binding, Kontingent erschöpft, Fehler), bleibt es bei FTS5.
+    let vectorQuery: { queryVector: number[]; model?: string } | null =
+      queryVector && queryVector.length > 0 ? { queryVector } : null;
+    if ((mode === "hybrid" || mode === "vector") && !vectorQuery) {
+      vectorQuery = await embedQuery(c.env, query, sessionUser);
+    }
+    if ((mode === "hybrid" || mode === "vector") && vectorQuery) {
       vectorResults = await queryNotebookVectorSearch(c.env, ragRepo, notebookId, {
-        queryVector,
+        ...vectorQuery,
         limit: limit * 2, // oversample for RRF fusion
         ...(sourceIds ? { sourceIds } : {})
       });

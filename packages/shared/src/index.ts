@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const WORKSPACE_VERSION = "0.1.0" as const;
+export { WORKSPACE_VERSION } from "./version.js";
 
 export const DeploymentProfileSchema = z.enum(["demo", "full"]);
 export type DeploymentProfile = z.infer<typeof DeploymentProfileSchema>;
@@ -234,7 +234,9 @@ export const ChatRequestBodySchema = z.object({
   model: z.string().min(1).optional(),
   sourceIds: z.array(z.string().min(1)).optional(),
   temperature: z.number().min(0).max(2).optional(),
-  maxChunks: z.number().int().min(1).max(50).default(10)
+  maxChunks: z.number().int().min(1).max(50).default(10),
+  /** Sprache der Oberfläche: bestimmt den Text der ehrlichen Nichtantwort (Issue #243). */
+  language: z.enum(["de", "en"]).optional()
 });
 export type ChatRequestBody = z.infer<typeof ChatRequestBodySchema>;
 
@@ -262,7 +264,9 @@ export type ChatMessageItem = z.infer<typeof ChatMessageItemSchema>;
 
 export const ChatMessagesResponseSchema = z.object({
   chatId: z.string().min(1),
-  messages: z.array(ChatMessageItemSchema)
+  messages: z.array(ChatMessageItemSchema),
+  /** Cursor für die nächstältere Seite; null, wenn der Verlauf vollständig ist (Issue #243). */
+  nextCursor: z.string().min(1).nullable().optional()
 });
 export type ChatMessagesResponse = z.infer<typeof ChatMessagesResponseSchema>;
 
@@ -475,5 +479,11 @@ export * from "./citation-parser.js";
 export * from "./audio-interject-types.js";
 export * from "./podcast-state-machine.js";
 export * from "./video-storyboard.js";
+export * from "./media-alternatives.js";
 export * from "./sm2.js";
 export * from "./studio-artifacts.js";
+export * from "./provenance.js";
+export * from "./comments.js";
+export * from "./quiz-mixed.js";
+export * from "./entity-graph.js";
+export * from "./studio-structured.js";

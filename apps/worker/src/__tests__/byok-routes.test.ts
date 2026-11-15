@@ -292,7 +292,7 @@ describe("BYOK Key Management API & Rotation (Sub-Issues #93, #94)", () => {
       closeDb();
     });
 
-    it("uses x-forwarded-for header fallback for IP privacy hashing", async () => {
+    it("ignores a client-supplied x-forwarded-for header outside a trusted source (#342)", async () => {
       const res = await app.request("/api/v1/keys/anthropic", {
         method: "PUT",
         headers: {
@@ -307,11 +307,11 @@ describe("BYOK Key Management API & Rotation (Sub-Issues #93, #94)", () => {
         "SELECT * FROM audit_log WHERE user_id = ? AND action = 'byok_key_saved'",
         ["usr_alice"]
       );
-      expect(audits.length).toBeGreaterThanOrEqual(1);
+      expect(audits.map((a) => a.ip_hash)).toEqual(["unknown-ip"]);
       closeDb();
     });
 
-    it("uses default IP fallback 127.0.0.1 when no client IP header is supplied", async () => {
+    it("stores an audit entry without IP hash when no client IP is known (#342)", async () => {
       const res = await app.request("/api/v1/keys/google", {
         method: "PUT",
         headers: {
@@ -325,7 +325,7 @@ describe("BYOK Key Management API & Rotation (Sub-Issues #93, #94)", () => {
         "SELECT * FROM audit_log WHERE user_id = ? AND target = 'google'",
         ["usr_alice"]
       );
-      expect(audits.length).toBeGreaterThanOrEqual(1);
+      expect(audits.map((a) => a.ip_hash)).toEqual(["unknown-ip"]);
       closeDb();
     });
 

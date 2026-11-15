@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { DEFAULT_MINDMAP, DEFAULT_SOURCES } from "../WorkspaceLayout.js";
 import {
   ARC_LEFT,
@@ -26,6 +26,10 @@ import {
   tokenize,
   wrapLabel
 } from "../knowledge-graph.js";
+import { preloadStudioViewers } from "../lazy-viewers.js";
+
+// Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
+beforeAll(() => preloadStudioViewers());
 
 const demo = () => buildKnowledgeGraph(DEFAULT_SOURCES, DEFAULT_MINDMAP);
 

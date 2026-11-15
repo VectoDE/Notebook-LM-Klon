@@ -5,7 +5,7 @@
  * - Keeps the main relation workspace uncluttered by housing technical configurations:
  *   - Model Router & BYOK (OpenAI, Anthropic, Google, Groq, DeepSeek, Mistral, Ollama)
  *   - EU AI Act Article 50 transparency status
- *   - EU GDPR data processing guarantees (zero model training)
+ *   - Training-Angabe je Modell mit Quelle (Issue #302, model-data-policy.ts)
  *   - Language
  *
  * Reihenfolge (Issue #319, #328): Sprache, KI-Modell, Bewegung, eigene Schlüssel, Rechtliches.
@@ -20,9 +20,20 @@ import { useEffect, useRef } from "react";
 import { MotionSetting } from "./AppearanceControls.js";
 import { Icon } from "./Icon.js";
 import { trapTabKey } from "./focus-trap.js";
+import { CONNECTION_KEYS, POLICY_RETRIEVED, STATUS_KEYS, policyFor } from "./model-data-policy.js";
 import { DEFAULT_MODEL, MODEL_IDS, type ModelId } from "./theme-preferences.js";
 import { useReturnFocus } from "./useReturnFocus.js";
-import { LANGUAGES, useTheme } from "./useTheme.jsx";
+import { LANGUAGES, type Language, documentLanguage, useTheme } from "./useTheme.jsx";
+
+/**
+ * Namen der Sprachen, jeweils in der Sprache selbst (Issue #349): Sie bleiben gleich, egal
+ * welche Sprache gerade gilt, damit man die eigene Sprache immer wiederfindet.
+ */
+export const LANGUAGE_NAMES: Readonly<Record<Language, string>> = {
+  de: "Deutsch",
+  "de-x-ls": "Deutsch – Leichte Sprache",
+  en: "English"
+};
 
 export interface SettingsDrawerProps {
   readonly isOpen: boolean;
@@ -33,15 +44,60 @@ export interface SettingsDrawerProps {
   readonly returnFocusFallback?: (() => HTMLElement | null | undefined) | undefined;
 }
 
-/** Anzeigenamen der Modelle; die Liste der erlaubten Werte steht in theme-preferences. */
-const MODEL_LABELS: Readonly<Record<ModelId, string>> = {
-  "gemini-2.5-flash": "Google Gemini 2.5 Flash (Standard)",
-  "gemini-2.5-pro": "Google Gemini 2.5 Pro",
-  "claude-3-7-sonnet": "Anthropic Claude 3.7 Sonnet",
-  "gpt-4o": "OpenAI GPT-4o",
-  "deepseek-r1": "DeepSeek R1 (Groq Fast Inference)",
-  "ollama-local": "Ollama Local (100% On-Device)"
+/**
+ * Anzeigenamen der Modelle; die Liste der erlaubten Werte steht in theme-preferences.
+ * `key` verweist auf den Sprachkatalog, `text` ist ein Eigenname ohne Übersetzung.
+ */
+const MODEL_LABELS: Readonly<Record<ModelId, { key: string } | { text: string }>> = {
+  "gemini-2.5-flash": { key: "modelGeminiFlash" },
+  "gemini-2.5-pro": { text: "Google Gemini 2.5 Pro" },
+  "claude-3-7-sonnet": { text: "Anthropic Claude 3.7 Sonnet" },
+  "gpt-4o": { text: "OpenAI GPT-4o" },
+  "deepseek-r1": { text: "DeepSeek R1 (Groq)" },
+  "ollama-local": { key: "modelOllama" }
 };
+
+/** Datum der Anbieterangaben in der Schreibweise der Sprache (UTC, damit es nicht verrutscht). */
+function formatRetrieved(language: string): string {
+  return new Date(`${POLICY_RETRIEVED}T00:00:00Z`).toLocaleDateString(
+    language === "en" ? "en-GB" : "de-DE",
+    { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }
+  );
+}
+
+/** Trainingsangabe des Anbieters zum gewählten Modell mit Quelle (Issue #302). */
+function ModelDataPolicyNote({ model }: { readonly model: string }) {
+  const { language, t } = useTheme();
+  const policy = policyFor(model);
+  return (
+    <div className="rn-model-policy" data-testid="model-policy" data-status={policy.status}>
+      <p id="settings-model-policy" className="rn-drawer-text">
+        <strong>{t("policyTitle")}: </strong>
+        <span data-testid="model-policy-status">{t(STATUS_KEYS[policy.status])}.</span>{" "}
+        {t(policy.noteKey)}
+      </p>
+      {policy.connection !== "connected" && (
+        <p className="rn-drawer-text" data-testid="model-policy-connection">
+          {t(CONNECTION_KEYS[policy.connection])}
+        </p>
+      )}
+      <ul className="rn-model-policy-sources">
+        {policy.sources.map((source) => (
+          <li key={source.url}>
+            {t("policySource")}:{" "}
+            <a href={source.url} target="_blank" rel="noopener noreferrer" lang="en">
+              {source.label}
+            </a>{" "}
+            <span className="rn-visually-hidden">{t("policyNewWindow")}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="rn-setting-hint" data-testid="model-policy-retrieved">
+        {t("policyRetrieved")} {formatRetrieved(language)}. {t("policyDisclaimer")}
+      </p>
+    </div>
+  );
+}
 
 export function SettingsDrawer({
   isOpen,
@@ -105,7 +161,7 @@ export function SettingsDrawer({
               <legend id="lang-section-title" className="rn-drawer-section-title">
                 {t("languageLabel")}
               </legend>
-              <div className="rn-segmented rn-segmented--grid">
+              <div className="rn-segmented rn-segmented--grid rn-segmented--stack">
                 {LANGUAGES.map((lang) => (
                   <label key={lang} className="rn-segment">
                     <input
@@ -117,7 +173,7 @@ export function SettingsDrawer({
                       data-testid={`lang-option-${lang}`}
                       className="rn-segment-input"
                     />
-                    <span lang={lang}>{lang === "de" ? "Deutsch" : "English"}</span>
+                    <span lang={documentLanguage(lang)}>{LANGUAGE_NAMES[lang]}</span>
                   </label>
                 ))}
               </div>
@@ -134,18 +190,25 @@ export function SettingsDrawer({
                 id="settings-model"
                 value={activeModel}
                 onChange={(e) => onModelChange?.(e.target.value)}
+                aria-describedby="settings-model-hint settings-model-policy"
                 className="rn-control-input"
                 data-testid="model-router-select"
               >
-                {MODEL_IDS.map((id) => (
-                  <option key={id} value={id}>
-                    {MODEL_LABELS[id]}
-                  </option>
-                ))}
+                {MODEL_IDS.map((id) => {
+                  const label = MODEL_LABELS[id];
+                  return (
+                    <option key={id} value={id}>
+                      {"key" in label ? t(label.key) : label.text}
+                    </option>
+                  );
+                })}
               </select>
               <Icon name="chevron" size={16} className="rn-control-chevron" />
             </div>
-            <p className="rn-setting-hint">{t("modelHint")}</p>
+            <p id="settings-model-hint" className="rn-setting-hint">
+              {t("modelHint")}
+            </p>
+            <ModelDataPolicyNote model={activeModel} />
           </section>
 
           {/* Bewegung auch hier (Issue #328), gleicher Zustand wie in der Darstellung */}

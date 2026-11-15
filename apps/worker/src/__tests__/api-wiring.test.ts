@@ -24,6 +24,8 @@ interface Fixture {
   ragRepo: RagRepository;
   cookies: Record<"alice" | "bob" | "carol" | "mallory", string>;
   dataDir: string;
+  /** Closes the in-process Durable Object databases. */
+  closeEnv: () => void;
 }
 
 /** In-memory R2 mock that accepts streamed bodies like the real binding. */
@@ -52,7 +54,8 @@ async function createFixture(extraEnv: Record<string, unknown> = {}): Promise<Fi
   const sqlite = new DatabaseSync(":memory:");
   runSqliteMigrations(sqlite, resolve(process.cwd(), "apps/worker/migrations"));
   // Explicit test salt: production has no fallback, a missing salt blocks login (503).
-  const { env: baseEnv } = createNodeEnv({ db: sqlite, dataDir, sessionSaltSecret: TEST_SALT });
+  const handle = createNodeEnv({ db: sqlite, dataDir, sessionSaltSecret: TEST_SALT });
+  const baseEnv = handle.env;
   const env = Object.assign(baseEnv, { MEDIA: createStreamingR2Mock() }, extraEnv) as Env;
 
   const coreRepo = new CoreRepository(createD1DatabaseAdapter(env.DB));
@@ -100,7 +103,7 @@ async function createFixture(extraEnv: Record<string, unknown> = {}): Promise<Fi
     cookies[id] = `sid=${session.rawToken}`;
   }
 
-  return { env, sqlite, coreRepo, ragRepo, cookies, dataDir };
+  return { env, sqlite, coreRepo, ragRepo, cookies, dataDir, closeEnv: handle.close };
 }
 
 describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
@@ -143,6 +146,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    fx.closeEnv();
     fx.sqlite.close();
     rmSync(fx.dataDir, { recursive: true, force: true });
   });
@@ -236,6 +240,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
     }
 
     function disposeFixture(other: Fixture): void {
+      other.closeEnv();
       other.sqlite.close();
       rmSync(other.dataDir, { recursive: true, force: true });
     }
@@ -317,6 +322,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
         { method: "POST", json: { email: "user@example.test", turnstileToken: "tok" } },
         mailFx.env
       );
+      mailFx.closeEnv();
       mailFx.sqlite.close();
       rmSync(mailFx.dataDir, { recursive: true, force: true });
       expect(res.status).toBe(200);
@@ -612,7 +618,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
   });
 
   describe("jobs", () => {
-    it("enqueue: 401 anonymous, 404 foreign notebook, 200 with access", async () => {
+    it("enqueue: 401 anonymous, 404 foreign notebook, 201 with access (real JobDO)", async () => {
       const json = { notebookId: "nb_a", kind: "mindmap" };
       expect((await call("/api/v1/jobs/enqueue", { method: "POST", json })).status).toBe(401);
       expect(
@@ -622,7 +628,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       expect(
         (await call("/api/v1/jobs/enqueue", { method: "POST", json, cookie: fx.cookies.alice }))
           .status
-      ).toBe(200);
+      ).toBe(201);
     });
 
     it("list: requires session, notebookId and notebook access", async () => {
@@ -639,15 +645,78 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       );
     });
 
-    it("does not expose job status/cancel without an ownership check", async () => {
-      const status = await call("/api/v1/jobs/job_1", { cookie: fx.cookies.alice });
-      expect(status.status).toBe(501);
-      expect(((await status.json()) as { code: string }).code).toBe("ENDPOINT_NOT_EXPOSED");
-      const cancel = await call("/api/v1/jobs/job_1/cancel", {
-        method: "POST",
-        cookie: fx.cookies.alice
+    it("status/cancel only under the notebook, with role and job ownership checks", async () => {
+      const jobsByNotebook: Record<string, Record<string, { id: string; notebookId: string }>> = {
+        nb_a: {
+          job_a: { id: "job_a", notebookId: "nb_a" },
+          // A record of another notebook must never be served under nb_a.
+          job_foreign: { id: "job_foreign", notebookId: "nb_b" }
+        }
+      };
+      const cancelled: string[] = [];
+      const jobFx = await createFixture({
+        JOB_DO: {
+          idFromName: (name: string) => name,
+          get: (notebookId: string) => ({
+            fetch: async (req: Request) => {
+              const match = new URL(req.url).pathname.match(/^\/jobs\/([^/]+)(\/cancel)?$/);
+              const job = match?.[1] ? jobsByNotebook[notebookId]?.[match[1]] : undefined;
+              if (!job) {
+                return Response.json({ code: "JOB_NOT_FOUND" }, { status: 404 });
+              }
+              if (match?.[2]) {
+                cancelled.push(`${notebookId}/${job.id}`);
+                return Response.json({ ...job, status: "cancelled" });
+              }
+              return Response.json({ ...job, status: "running" });
+            }
+          })
+        }
       });
-      expect(cancel.status).toBe(501);
+      const get = (path: string, cookie?: string) =>
+        call(path, cookie ? { cookie } : {}, jobFx.env);
+      const cancel = (path: string, cookie?: string) =>
+        call(path, cookie ? { method: "POST", cookie } : { method: "POST" }, jobFx.env);
+
+      // Old, notebook-less routes are gone.
+      expect((await get("/api/v1/jobs/job_a", jobFx.cookies.alice)).status).toBe(404);
+      expect((await cancel("/api/v1/jobs/job_a/cancel", jobFx.cookies.alice)).status).toBe(404);
+
+      expect((await get("/api/v1/notebooks/nb_a/jobs/job_a")).status).toBe(401);
+      expect((await get("/api/v1/notebooks/nb_a/jobs/job_a", jobFx.cookies.mallory)).status).toBe(
+        404
+      );
+
+      const own = await get("/api/v1/notebooks/nb_a/jobs/job_a", jobFx.cookies.bob);
+      expect(own.status).toBe(200);
+      expect(((await own.json()) as { notebookId: string }).notebookId).toBe("nb_a");
+
+      const foreign = await get("/api/v1/notebooks/nb_a/jobs/job_foreign", jobFx.cookies.alice);
+      expect(foreign.status).toBe(404);
+      expect(((await foreign.json()) as { code: string }).code).toBe("JOB_NOT_FOUND");
+      expect((await get("/api/v1/notebooks/nb_a/jobs/job_none", jobFx.cookies.alice)).status).toBe(
+        404
+      );
+
+      // Cancel needs the editor role and an own job.
+      expect((await cancel("/api/v1/notebooks/nb_a/jobs/job_a/cancel")).status).toBe(401);
+      expect(
+        (await cancel("/api/v1/notebooks/nb_a/jobs/job_a/cancel", jobFx.cookies.mallory)).status
+      ).toBe(404);
+      expect(
+        (await cancel("/api/v1/notebooks/nb_a/jobs/job_a/cancel", jobFx.cookies.bob)).status
+      ).toBe(403);
+      expect(
+        (await cancel("/api/v1/notebooks/nb_a/jobs/job_foreign/cancel", jobFx.cookies.alice)).status
+      ).toBe(404);
+      expect(cancelled).toEqual([]);
+      expect(
+        (await cancel("/api/v1/notebooks/nb_a/jobs/job_a/cancel", jobFx.cookies.carol)).status
+      ).toBe(200);
+      expect(cancelled).toEqual(["nb_a/job_a"]);
+
+      jobFx.sqlite.close();
+      rmSync(jobFx.dataDir, { recursive: true, force: true });
     });
   });
 
@@ -660,11 +729,24 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       expect(((await noKek.json()) as { code: string }).code).toBe("BYOK_NOT_CONFIGURED");
     });
 
+    it("keeps BYOK off (503, app still starts) when a configured KEK is too short", async () => {
+      for (const weak of [{ KEK_V1: "short" }, { KEK_V1: KEK, KEK_V2: "short" }]) {
+        const weakFx = await createFixture(weak);
+        const res = await call("/api/v1/keys", { cookie: weakFx.cookies.alice }, weakFx.env);
+        expect(res.status).toBe(503);
+        expect(((await res.json()) as { code: string }).code).toBe("BYOK_NOT_CONFIGURED");
+        expect((await call("/api/v1/health", {}, weakFx.env)).status).toBe(200);
+        weakFx.sqlite.close();
+        rmSync(weakFx.dataDir, { recursive: true, force: true });
+      }
+    });
+
     it("lists keys for an authenticated user when a KEK is configured", async () => {
       const kekFx = await createFixture({ KEK_V1: KEK });
       const res = await call("/api/v1/keys", { cookie: kekFx.cookies.alice }, kekFx.env);
       expect(res.status).toBe(200);
       expect(((await res.json()) as { keys: unknown[] }).keys).toEqual([]);
+      kekFx.closeEnv();
       kekFx.sqlite.close();
       rmSync(kekFx.dataDir, { recursive: true, force: true });
     });
@@ -703,6 +785,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
         // Routes without session creation stay available.
         expect((await call("/api/v1/health", {}, noSaltFx.env)).status).toBeLessThan(600);
         expect((await call("/api/v1/demo/info", {}, noSaltFx.env)).status).toBeLessThan(500);
+        noSaltFx.closeEnv();
         noSaltFx.sqlite.close();
         rmSync(noSaltFx.dataDir, { recursive: true, force: true });
       }
@@ -713,6 +796,8 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
         "fetch",
         vi.fn(async () => Response.json({ success: true }))
       );
+      // cf-connecting-ip is only trusted inside the Cloudflare runtime (#342)
+      vi.stubGlobal("navigator", { userAgent: "Cloudflare-Workers" });
       const saltFx = await createFixture({
         SESSION_SALT_SECRET: "configured-secret-salt",
         TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA"
@@ -736,6 +821,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       expect(row?.ip_hash).not.toBe(
         await computeDailySaltedHash("198.51.100.23", `relationnotes-session:${ORIGIN}`)
       );
+      saltFx.closeEnv();
       saltFx.sqlite.close();
       rmSync(saltFx.dataDir, { recursive: true, force: true });
     });
@@ -766,6 +852,7 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
         prodFx.env
       );
       expect(denied.status).toBe(403);
+      prodFx.closeEnv();
       prodFx.sqlite.close();
       rmSync(prodFx.dataDir, { recursive: true, force: true });
     });

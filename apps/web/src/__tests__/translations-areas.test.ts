@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { PodcastStateMachine, PodcastStateMachineContext } from "@notebook-lm/shared";
 import { type ReactNode, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { ChatPanel } from "../ChatPanel.js";
 import { DeepDiveStage } from "../DeepDiveStage.js";
 import { FlashcardsViewer, describeNextReview, describeRepetitions } from "../FlashcardsViewer.js";
@@ -14,8 +14,10 @@ import { QuizViewer } from "../QuizViewer.js";
 import { SourcesPanel } from "../SourcesPanel.js";
 import { StudioPanel } from "../StudioPanel.js";
 import { VideoOverviewPlayer } from "../VideoOverviewPlayer.js";
+import { preloadStudioViewers } from "../lazy-viewers.js";
 import { podcastStateKey } from "../stage-visuals.js";
 import { AREA_DE, AREA_EN } from "../translations-areas.js";
+import { COMMENTS_DE, COMMENTS_EN } from "../translations-comments.js";
 import {
   TRANSLATIONS,
   ThemeProvider,
@@ -25,6 +27,9 @@ import {
   useTheme
 } from "../useTheme.js";
 
+// Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
+beforeAll(() => preloadStudioViewers());
+
 const SRC = join(__dirname, "..");
 
 /** Schlüssel aus t("…"), tf("…") und labelKey/hintKey-Angaben im Quelltext. */
@@ -33,7 +38,7 @@ function usedKeys(): Map<string, string> {
   for (const file of readdirSync(SRC).filter((f) => /\.tsx?$/.test(f))) {
     const text = readFileSync(join(SRC, file), "utf8");
     for (const m of text.matchAll(/\bt[f]?\(\s*"([A-Za-z0-9]+)"/g)) {
-      if (m[1]) found.set(m[1], file);
+      if (m[1]) found.set(`${file}|${m[1]}`, file);
     }
   }
   return found;
@@ -41,9 +46,13 @@ function usedKeys(): Map<string, string> {
 
 describe("Bedientexte der Bereiche (Issue #320)", () => {
   it("jeder im Quelltext benutzte Schlüssel steht in Deutsch und Englisch", () => {
-    for (const [key, file] of usedKeys()) {
-      expect(TRANSLATIONS.de[key], `${file}: ${key} (de)`).toBeTruthy();
-      expect(TRANSLATIONS.en[key], `${file}: ${key} (en)`).toBeTruthy();
+    for (const [entry, file] of usedKeys()) {
+      const key = entry.slice(file.length + 1);
+      // Die Kommentar-Oberfläche hat einen eigenen, nachgeladenen Katalog (#353).
+      const de = file === "CommentThread.tsx" ? COMMENTS_DE : TRANSLATIONS.de;
+      const en = file === "CommentThread.tsx" ? COMMENTS_EN : TRANSLATIONS.en;
+      expect(de[key], `${file}: ${key} (de)`).toBeTruthy();
+      expect(en[key], `${file}: ${key} (en)`).toBeTruthy();
     }
   });
 
@@ -185,11 +194,14 @@ const STORYBOARD = {
         accentColor: "#0ff"
       },
       audioDescription: "Described",
+      spokenNarration: "Spoken text.",
       citations: [{ sourceTitle: "Doc", quote: "Quote" }]
     }
   ],
   subtitles: [],
-  chapters: [{ id: "c1", index: 0, title: "Intro", startTimeMs: 0, endTimeMs: 10000 }]
+  chapters: [
+    { id: "c1", index: 0, title: "Intro", startTimeMs: 0, endTimeMs: 10000, slideIds: ["s1"] }
+  ]
 } as never;
 
 describe("Englische Oberfläche der Bereiche und Werkzeuge", () => {

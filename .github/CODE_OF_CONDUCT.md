@@ -2,7 +2,7 @@
 
 ## Unser Versprechen / Our Pledge
 
-Im Interesse einer offenen, respektvollen und inklusiven Gemeinschaft verpflichten wir uns als Mitwirkende und Maintainer von **RelationNotes – NotebookLM & RelationFlow Knowledge Studio**, die Teilnahme an unserem Projekt für alle Menschen frei von Belästigung und Diskriminierung zu gestalten – unabhängig von Alter, Körpergröße, sichtbarer oder unsichtbarer Behinderung, Ethnie, Geschlechtsmerkmalen, Geschlechtsidentität und -ausdruck, Erfahrungsgrad, Bildung, sozioökonomischem Status, Nationalität, persönlicher Erscheinung, Religion oder sexueller Identität und Orientierung.
+Im Interesse einer offenen, respektvollen und inklusiven Gemeinschaft verpflichten wir uns als Mitwirkende und Maintainer von **RelationNotes**, die Teilnahme an unserem Projekt für alle Menschen frei von Belästigung und Diskriminierung zu gestalten – unabhängig von Alter, Körpergröße, sichtbarer oder unsichtbarer Behinderung, Ethnie, Geschlechtsmerkmalen, Geschlechtsidentität und -ausdruck, Erfahrungsgrad, Bildung, sozioökonomischem Status, Nationalität, persönlicher Erscheinung, Religion oder sexueller Identität und Orientierung.
 
 ## Unsere Standards / Our Standards
 

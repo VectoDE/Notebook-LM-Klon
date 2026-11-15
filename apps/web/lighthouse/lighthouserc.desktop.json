@@ -1,0 +1,57 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "pnpm --filter @notebook-lm/web exec vite preview --host 127.0.0.1 --port 4173 --strictPort",
+      "startServerReadyPattern": "Local",
+      "url": ["http://127.0.0.1:4173/"],
+      "numberOfRuns": 3,
+      "settings": {
+        "preset": "desktop",
+        "chromeFlags": "--no-sandbox --headless=new"
+      }
+    },
+    "assert": {
+      "assertions": {
+        "largest-contentful-paint": [
+          "error",
+          {
+            "maxNumericValue": 2500,
+            "aggregationMethod": "median"
+          }
+        ],
+        "total-blocking-time": [
+          "error",
+          {
+            "maxNumericValue": 200,
+            "aggregationMethod": "median"
+          }
+        ],
+        "cumulative-layout-shift": [
+          "error",
+          {
+            "maxNumericValue": 0.1,
+            "aggregationMethod": "median"
+          }
+        ],
+        "resource-summary:script:size": [
+          "error",
+          {
+            "maxNumericValue": 180000,
+            "aggregationMethod": "median"
+          }
+        ],
+        "resource-summary:total:size": [
+          "warn",
+          {
+            "maxNumericValue": 1100000,
+            "aggregationMethod": "median"
+          }
+        ]
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": ".lighthouseci/desktop"
+    }
+  }
+}
