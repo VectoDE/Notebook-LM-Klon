@@ -154,7 +154,7 @@ export function createGuestAndMagicLinkRoutes(
     await opts.auditLogger?.record(c, {
       userId: guestId,
       action: "auth.login.guest",
-      target: `user:${guestId}`
+      target: "user:self"
     });
 
     const cookieHeader = buildSessionCookie(
@@ -374,7 +374,7 @@ export function createGuestAndMagicLinkRoutes(
     await opts.auditLogger?.record(c, {
       userId: user.id,
       action: "auth.login.magic_link",
-      target: `user:${user.id}`
+      target: "user:self"
     });
 
     const cookieHeader = buildSessionCookie(

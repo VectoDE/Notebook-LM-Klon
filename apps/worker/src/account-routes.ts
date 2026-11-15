@@ -71,7 +71,7 @@ export function registerAccountRoutes(
     await deps.auditLogger?.record(c, {
       userId: null,
       action: "account.delete",
-      target: `user:${sessionUser.id}`
+      target: "user:deleted"
     });
 
     return c.json(

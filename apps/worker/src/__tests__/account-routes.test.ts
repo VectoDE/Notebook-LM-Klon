@@ -50,10 +50,9 @@ const USER_SCOPED_COUNTS: Record<string, string> = {
   notes: "SELECT COUNT(*) AS n FROM notes WHERE user_id = ?",
   artifacts: "SELECT COUNT(*) AS n FROM artifacts WHERE user_id = ?",
   provider_keys: "SELECT COUNT(*) AS n FROM provider_keys WHERE user_id = ?",
-  sources: "SELECT COUNT(*) AS n FROM sources WHERE notebook_id IN ('nb_alice', 'nb_alice_in_bob')",
-  chunks: "SELECT COUNT(*) AS n FROM chunks WHERE notebook_id IN ('nb_alice', 'nb_alice_in_bob')",
-  chunk_vectors:
-    "SELECT COUNT(*) AS n FROM chunk_vectors WHERE notebook_id IN ('nb_alice', 'nb_alice_in_bob')",
+  sources: "SELECT COUNT(*) AS n FROM sources WHERE notebook_id = 'nb_alice'",
+  chunks: "SELECT COUNT(*) AS n FROM chunks WHERE notebook_id = 'nb_alice'",
+  chunk_vectors: "SELECT COUNT(*) AS n FROM chunk_vectors WHERE notebook_id = 'nb_alice'",
   messages: "SELECT COUNT(*) AS n FROM messages WHERE chat_id = 'chat_alice'"
 };
 
@@ -221,7 +220,7 @@ describe("DELETE /api/v1/me (Löschkonzept #258)", () => {
     rmSync(fx.dataDir, { recursive: true, force: true });
   });
 
-  it("löscht alle D1-Datensätze und R2-Objekte des Kontos sofort und lässt fremde Daten stehen", async () => {
+  it("löscht die eigenen D1-Datensätze und R2-Objekte sofort, übergibt Notebooks in fremden Arbeitsbereichen und lässt fremde Daten stehen", async () => {
     for (const [table, sql] of Object.entries(USER_SCOPED_COUNTS)) {
       expect(countFor(fx.sqlite, sql, "alice"), `vorher ${table}`).toBeGreaterThan(0);
     }
@@ -236,8 +235,8 @@ describe("DELETE /api/v1/me (Löschkonzept #258)", () => {
     expect(res.headers.get("set-cookie")).toContain("Max-Age=0");
     expect(await res.json()).toEqual({
       deleted: true,
-      deletedNotebooks: 2,
-      deletedR2Objects: 3
+      deletedNotebooks: 1,
+      deletedR2Objects: 2
     });
 
     for (const [table, sql] of Object.entries(USER_SCOPED_COUNTS)) {
@@ -250,6 +249,7 @@ describe("DELETE /api/v1/me (Löschkonzept #258)", () => {
     expect(Number(fts.n)).toBe(1);
 
     expect([...fx.bucket.objects.keys()].sort()).toEqual([
+      "notebooks/nb_alice_in_bob/artifacts/x.json",
       "notebooks/nb_bob/sources/src_bob.txt",
       "users/bob/avatar.png"
     ]);
@@ -257,7 +257,12 @@ describe("DELETE /api/v1/me (Löschkonzept #258)", () => {
     // bob keeps workspace, notebook, source and session
     expect(countFor(fx.sqlite, USER_SCOPED_COUNTS.users as string, "bob")).toBe(1);
     expect(countFor(fx.sqlite, USER_SCOPED_COUNTS.workspaces as string, "bob")).toBe(1);
-    expect(countFor(fx.sqlite, USER_SCOPED_COUNTS.notebooks as string, "bob")).toBe(1);
+    // F361: das Notebook aus bobs Arbeitsbereich bleibt und gehört jetzt bob; Autorfelder sind anonymisiert
+    expect(countFor(fx.sqlite, USER_SCOPED_COUNTS.notebooks as string, "bob")).toBe(2);
+    expect(
+      countFor(fx.sqlite, "SELECT COUNT(*) AS n FROM notes WHERE user_id = 'user_deleted'", "")
+    ).toBe(1);
+    expect(countFor(fx.sqlite, "SELECT COUNT(*) AS n FROM pending_r2_purge", "")).toBe(0);
     expect(countFor(fx.sqlite, USER_SCOPED_COUNTS.sessions as string, "bob")).toBe(1);
     const bobSources = fx.sqlite
       .prepare("SELECT COUNT(*) AS n FROM sources WHERE notebook_id = 'nb_bob'")

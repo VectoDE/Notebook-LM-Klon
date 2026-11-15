@@ -12,7 +12,7 @@ import {
   purgeExpiredAuditEntries
 } from "../audit-log.js";
 import { registerChunkIngestionRoutes } from "../chunk-ingestion.js";
-import { runScheduledCleanup } from "../cleanup.js";
+import { type BatchStatement, purgeUsers, runScheduledCleanup } from "../cleanup.js";
 import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
 import { createGuestAndMagicLinkRoutes } from "../guest-magic-link-routes.js";
 import { ConsoleMailAdapter } from "../mail-adapter.js";
@@ -52,6 +52,18 @@ function createDb(): { sqlite: DatabaseSync; adapter: DatabaseAdapter } {
     async run(sql: string, params: unknown[] = []) {
       const info = sqlite.prepare(sql).run(...(params as (string | number | null)[]));
       return { changes: Number(info.changes) };
+    },
+    async batch(statements: BatchStatement[]) {
+      sqlite.exec("BEGIN");
+      try {
+        for (const statement of statements) {
+          sqlite.prepare(statement.sql).run(...(statement.params as (string | number | null)[]));
+        }
+        sqlite.exec("COMMIT");
+      } catch (err) {
+        sqlite.exec("ROLLBACK");
+        throw err;
+      }
     }
   };
   return { sqlite, adapter };
@@ -285,8 +297,8 @@ describe("Audit-Ereignisse an den Routen (Issue #259)", () => {
 
     const rows = auditRows(sqlite);
     expect(rows.map((r) => [r.action, r.user_id, r.target])).toEqual([
-      ["auth.login.guest", guestId, `user:${guestId}`],
-      ["auth.login.magic_link", "alice", "user:alice"]
+      ["auth.login.guest", guestId, "user:self"],
+      ["auth.login.magic_link", "alice", "user:self"]
     ]);
     // no e-mail address, no token, no plain IP in the log
     const dump = JSON.stringify(rows);
@@ -318,6 +330,81 @@ describe("Audit-Ereignisse an den Routen (Issue #259)", () => {
     expect(auditRows(sqlite).map((r) => [r.action, r.user_id])).toEqual([
       ["auth.login.passkey", "alice"]
     ]);
+  });
+
+  it("hinterlässt nach der Kontolöschung keine Konto-ID in audit_log, auch nicht aus Altzeilen", async () => {
+    // Altzeile aus der Zeit, als das Ziel noch user:<id> war
+    await repo.logAudit({
+      id: "legacy",
+      user_id: "alice",
+      action: "auth.login.passkey",
+      target: "user:alice",
+      ip_hash: "-",
+      created_at: Date.now()
+    });
+    const user = await repo.getUserById("alice");
+    const passkeyService = {
+      verifyLogin: async () => ({ verified: true, user, signCountUpdated: true })
+    } as unknown as PasskeyService;
+    const app = new Hono<{ Bindings: Env }>();
+    app.route(
+      "/api/v1/auth/passkey",
+      createPasskeyRoutes({ repo, passkeyService, sessionManager: sessions, auditLogger: logger })
+    );
+    const res = await app.fetch(
+      requestFromClient("http://localhost/api/v1/auth/passkey/login/verify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: "cred", response: {} })
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(auditRows(sqlite).map((r) => r.target)).toEqual(["user:alice", "user:self"]);
+
+    await purgeUsers(repo.db, null, ["alice"]);
+
+    const rows = auditRows(sqlite);
+    expect(rows).toHaveLength(2);
+    expect(rows.every((r) => r.user_id === null)).toBe(true);
+    expect(rows.map((r) => r.target)).toEqual(["user:deleted", "user:deleted"]);
+    expect(JSON.stringify(rows)).not.toContain("alice");
+  });
+
+  it("setzt die 90-Tage-Löschung auch durch, wenn die Kontolöschung im Cron scheitert", async () => {
+    const now = 10 * AUDIT_RETENTION_MS;
+    await repo.createUser({
+      id: "guest_old",
+      email: null,
+      display_name: "Gast",
+      locale: "de",
+      is_guest: 1,
+      created_at: now - 1000,
+      expires_at: now - 1,
+      deleted_at: null
+    });
+    await repo.logAudit({
+      id: "old",
+      user_id: null,
+      action: "auth.login.guest",
+      target: "user:self",
+      ip_hash: "-",
+      created_at: now - AUDIT_RETENTION_MS - 1
+    });
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const broken: DatabaseAdapter = {
+      ...repo.db,
+      batch: async () => {
+        throw new Error("D1 nicht erreichbar");
+      }
+    };
+
+    const metrics = await runScheduledCleanup({ db: broken, now });
+
+    expect(metrics.failedSteps).toBe(1);
+    expect(metrics.deletedGuests).toBe(0);
+    expect(metrics.deletedAuditEntries).toBe(1);
+    expect(auditRows(sqlite)).toHaveLength(0);
+    expect(errors).toHaveBeenCalled();
   });
 
   it("protokolliert Quellen- und Kontolöschung ohne Quelleninhalte", async () => {
@@ -382,9 +469,11 @@ describe("Audit-Ereignisse an den Routen (Issue #259)", () => {
       // alice's own row lost its user_id when the account was deleted (ON DELETE SET NULL)
       ["source.delete", null, "source:src_1"],
       ["source.delete", null, "source:src_2"],
-      ["account.delete", null, "user:alice"]
+      ["account.delete", null, "user:deleted"]
     ]);
     const dump = JSON.stringify(rows);
+    // Die Konto-ID steht in keiner Spalte, weder als user_id noch im Ziel
+    expect(dump).not.toContain("alice");
     for (const content of ["Vertrag", "vertraulicher Inhalt", "Geheimes Projekt", CLIENT_IP]) {
       expect(dump).not.toContain(content);
     }

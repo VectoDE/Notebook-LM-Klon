@@ -183,7 +183,7 @@ export function createPasskeyRoutes(opts: {
       await opts.auditLogger?.record(c, {
         userId: result.user.id,
         action: "auth.login.passkey",
-        target: `user:${result.user.id}`
+        target: "user:self"
       });
 
       const cookieHeader = buildSessionCookie(

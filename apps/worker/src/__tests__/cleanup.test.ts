@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it, vi } from "vitest";
 import { type CleanupMetrics, type MinimalR2Bucket, runScheduledCleanup } from "../cleanup.js";
-import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
+import { type BatchStatement, CoreRepository, type DatabaseAdapter } from "../core-repository.js";
 import { scheduled } from "../index.js";
 
 function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } {
@@ -12,7 +12,10 @@ function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } 
     "0001_initial_core.sql",
     "0002_rag_and_studio.sql",
     "0003_webauthn_challenges.sql",
-    "0007_upload_grenzen.sql"
+    "0005_comments.sql",
+    "0007_upload_grenzen.sql",
+    "0008_ai_embedding_usage.sql",
+    "0009_konto_loeschung.sql"
   ]) {
     db.exec(readFileSync(resolve(process.cwd(), "apps/worker/migrations", file), "utf-8"));
   }
@@ -34,6 +37,20 @@ function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } 
       const stmt = db.prepare(sqlStr);
       const info = stmt.run(...(params as (string | number | bigint | null)[]));
       return { changes: Number(info.changes) };
+    },
+    async batch(statements: BatchStatement[]): Promise<void> {
+      db.exec("BEGIN");
+      try {
+        for (const statement of statements) {
+          db.prepare(statement.sql).run(
+            ...(statement.params as (string | number | bigint | null)[])
+          );
+        }
+        db.exec("COMMIT");
+      } catch (err) {
+        db.exec("ROLLBACK");
+        throw err;
+      }
     }
   };
 

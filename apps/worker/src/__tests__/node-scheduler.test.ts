@@ -15,6 +15,7 @@ const METRICS: CleanupMetrics = {
   deletedR2Objects: 0,
   deletedStaleUploads: 0,
   deletedAuditEntries: 0,
+  failedSteps: 0,
   durationMs: 3
 };
 const ENV = { DB: {} as D1Database, MEDIA: {} as R2Bucket };
