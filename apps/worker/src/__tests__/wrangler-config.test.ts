@@ -5,9 +5,14 @@ import worker from "../index.js";
 
 const WRANGLER_PATH = join(import.meta.dirname, "../../wrangler.jsonc");
 
+/** wrangler.jsonc erlaubt Kommentare; ganze Kommentarzeilen werden vor JSON.parse entfernt. */
+function readWranglerConfig(): string {
+  return readFileSync(WRANGLER_PATH, "utf-8").replace(/^\s*\/\/.*$/gm, "");
+}
+
 describe("Wrangler Single-Worker Configuration", () => {
   it("declares SPA static assets routing with /api/* worker-first handling", () => {
-    const raw = readFileSync(WRANGLER_PATH, "utf-8");
+    const raw = readWranglerConfig();
     const parsed = JSON.parse(raw) as {
       name: string;
       assets: {
@@ -35,7 +40,7 @@ describe("Wrangler Single-Worker Configuration", () => {
   });
 
   it("schedules the hourly cleanup cron handled by the worker's scheduled() export (#334)", () => {
-    const parsed = JSON.parse(readFileSync(WRANGLER_PATH, "utf-8")) as {
+    const parsed = JSON.parse(readWranglerConfig()) as {
       main: string;
       compatibility_flags?: string[];
       triggers?: { crons?: string[] };
@@ -45,5 +50,28 @@ describe("Wrangler Single-Worker Configuration", () => {
     expect(parsed.compatibility_flags).toContain("nodejs_compat");
     expect(parsed.main).toBe("src/index.ts");
     expect(typeof worker.scheduled).toBe("function");
+  });
+
+  it("hält die Region fest: D1 mit EU-Jurisdiktion, R2 mit Location Hint weur, beides nur beim Anlegen (F249)", () => {
+    const raw = readFileSync(WRANGLER_PATH, "utf-8");
+    const parsed = JSON.parse(readWranglerConfig()) as {
+      d1_databases: Record<string, unknown>[];
+      r2_buckets: Record<string, unknown>[];
+    };
+    // D1-Jurisdiktion und R2-Location-Hint gelten beim Anlegen, nicht im Binding.
+    // Ein R2-Binding braucht "jurisdiction" nur für Jurisdiktions-Buckets (eu, fedramp, us);
+    // der Bucket hat nur einen Location Hint, das Feld würde ihn nicht finden.
+    expect(parsed.r2_buckets[0]).toEqual({ binding: "MEDIA", bucket_name: "notebook-lm-media" });
+    expect(parsed.d1_databases[0]).not.toHaveProperty("jurisdiction");
+    expect(raw).toContain("wrangler d1 create notebook-lm-db --jurisdiction=eu");
+    expect(raw).toContain("wrangler r2 bucket create notebook-lm-media --location=weur");
+
+    const deploy = readFileSync(join(import.meta.dirname, "../../../../docs/deploy.md"), "utf-8");
+    expect(deploy).toContain("wrangler d1 create notebook-lm-db --jurisdiction=eu");
+    expect(deploy).toContain("wrangler r2 bucket create notebook-lm-media --location=weur");
+    // Ehrlichkeit: der R2-Standort ist ein Wunsch ohne Garantie, keine EU-Zusage für Uploads.
+    expect(deploy).toContain("Wunsch ohne Garantie");
+    expect(deploy).toContain("bevorzugt Westeuropa, ohne Garantie");
+    expect(raw).toContain("Wunsch ohne Garantie");
   });
 });

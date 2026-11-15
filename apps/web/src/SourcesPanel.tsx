@@ -10,7 +10,9 @@ import {
 import { EmptyState } from "./EmptyState.js";
 import { Icon } from "./Icon.js";
 import { ViewToggle } from "./ViewToggle.js";
+import type { FetchLike } from "./comments-client.js";
 import { trapTabKey } from "./focus-trap.js";
+import { LazyCommentThread } from "./lazy-viewers.js";
 import { browserStorage, shouldReduceMotion } from "./theme-preferences.js";
 import { type SourceUrlError, validateSourceUrl } from "./url-validation.js";
 import { useReturnFocus } from "./useReturnFocus.js";
@@ -37,10 +39,23 @@ export interface SourcesPanelProps {
   readonly panelAttributes?: PanelFocusAttributes | undefined;
   /** Bedienelement am Spaltenrand im Kopf, z. B. der Knopf zum Einklappen (Issue #325). */
   readonly headerAction?: ReactNode | undefined;
+  /** Notebook der Quellen; mit ID zeigt der Inspektor den Kommentar-Faden (Issue #353). */
+  readonly notebookId?: string | undefined;
+  /** Abrufe für Kommentare (Tests); Standard ist fetch. */
+  readonly commentsFetch?: FetchLike | undefined;
 }
 
 /** Erlaubte Dateiarten beim Hochladen (auch für den Knopf in der eingeklappten Leiste). */
-export const SOURCE_FILE_ACCEPT = ".pdf,.txt,.md,text/plain,text/markdown,application/pdf";
+export const SOURCE_FILE_ACCEPT = [
+  ".pdf",
+  ".docx",
+  ".txt",
+  ".md",
+  "text/plain",
+  "text/markdown",
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+].join(",");
 
 export function SourcesPanel({
   sources,
@@ -51,7 +66,9 @@ export function SourcesPanel({
   onImportUrl,
   onClearActiveCitation,
   panelAttributes,
-  headerAction
+  headerAction,
+  notebookId,
+  commentsFetch
 }: SourcesPanelProps) {
   const { t, tf } = useTheme();
   const [filterText, setFilterText] = useState("");
@@ -116,7 +133,9 @@ export function SourcesPanel({
     s.title.toLowerCase().includes(filterText.toLowerCase())
   );
 
-  const allSelected = sources.length > 0 && sources.every((s) => s.isSelected !== false);
+  // Quellen in Verarbeitung oder mit Fehler zählen bei "Alle auswählen" nicht mit (P6)
+  const selectable = sources.filter((s) => isSourceUsable(s));
+  const allSelected = selectable.length > 0 && selectable.every((s) => s.isSelected !== false);
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -333,7 +352,8 @@ export function SourcesPanel({
           </li>
         ) : (
           filteredSources.map((source) => {
-            const isSelected = source.isSelected !== false;
+            const isPending = !isSourceUsable(source);
+            const isSelected = !isPending && source.isSelected !== false;
             const isInspected = inspectedSourceId === source.id;
 
             return (
@@ -354,6 +374,8 @@ export function SourcesPanel({
                       type="checkbox"
                       id={`source-checkbox-${source.id}`}
                       checked={isSelected}
+                      // Erst indexierte Quellen können eine Antwort belegen (P6)
+                      disabled={isPending}
                       onChange={() => onToggleSelect?.(source.id)}
                       aria-label={tf("srcSelectAria", { title: source.title })}
                       data-testid={`source-checkbox-${source.id}`}
@@ -373,6 +395,19 @@ export function SourcesPanel({
                         {Math.round(source.byteSize / 1024)} KB
                       </span>
                     </small>
+                    {isPending && (
+                      // <output> ist eine Statusmeldung (role="status"): Screenreader sagen
+                      // den Wechsel von "wird gelesen" zu einem Fehler an
+                      <output
+                        className="rn-source-status"
+                        data-status={source.status}
+                        data-testid={`source-status-${source.id}`}
+                      >
+                        {source.status === "error"
+                          ? t(source.errorKey ?? "srcErrorRead")
+                          : t("srcStatusProcessing")}
+                      </output>
+                    )}
                   </div>
                 </div>
 
@@ -454,6 +489,17 @@ export function SourcesPanel({
               <span>{inspectedSource.rawText ?? t("srcNoFulltext")}</span>
             )}
           </div>
+
+          {notebookId && (
+            <LazyCommentThread
+              key={inspectedSource.id}
+              notebookId={notebookId}
+              targetType="source"
+              targetId={inspectedSource.id}
+              targetTitle={inspectedSource.title}
+              fetchFn={commentsFetch}
+            />
+          )}
         </aside>
       )}
 
@@ -542,9 +588,15 @@ export function SourcesPanel({
   );
 }
 
+/** Bereit für den Chat: indexiert oder ohne Statusangabe (Demo- und Link-Quellen). */
+export function isSourceUsable(source: Pick<WorkspaceSource, "status">): boolean {
+  return source.status !== "processing" && source.status !== "error";
+}
+
 /** Kurzes Kürzel für die Dateiart, rein visuell (der Dateiname steht daneben). */
 function sourceTypeLabel(mimeType: string): string {
   if (mimeType.includes("pdf")) return "PDF";
+  if (mimeType.includes("wordprocessingml")) return "DOCX";
   if (mimeType.includes("markdown")) return "MD";
   if (mimeType.includes("html")) return "WEB";
   return "TXT";

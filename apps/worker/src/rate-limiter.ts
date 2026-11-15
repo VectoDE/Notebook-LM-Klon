@@ -1,7 +1,7 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import type { Context, MiddlewareHandler } from "hono";
 
-export type RateLimitCategory = "auth" | "chat" | "uploads" | "general";
+export type RateLimitCategory = "auth" | "chat" | "uploads" | "comments" | "general";
 
 export interface RateLimitConfig {
   readonly limit: number; // Max requests allowed per window
@@ -12,6 +12,8 @@ export const RATE_LIMIT_RULES: Record<RateLimitCategory, RateLimitConfig> = {
   auth: { limit: 5, windowMs: 60_000 },
   chat: { limit: 20, windowMs: 60_000 },
   uploads: { limit: 10, windowMs: 60_000 },
+  // Comments (Issue #353): own bucket so a burst of comments cannot use up the general budget
+  comments: { limit: 60, windowMs: 60_000 },
   general: { limit: 120, windowMs: 60_000 }
 };
 
@@ -129,8 +131,16 @@ export function resolveCategoryFromPath(path: string): RateLimitCategory {
   ) {
     return "chat";
   }
-  if (path.includes("/upload") || path.includes("/sources/file") || path.includes("/media")) {
+  if (
+    path.includes("/upload") ||
+    path.includes("/sources/file") ||
+    path.includes("/media") ||
+    path.includes("/provenance/sign")
+  ) {
     return "uploads";
+  }
+  if (path.includes("/comments") || path.endsWith("/mentions") || path.endsWith("/members")) {
+    return "comments";
   }
   return "general";
 }

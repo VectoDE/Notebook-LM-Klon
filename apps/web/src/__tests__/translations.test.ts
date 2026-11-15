@@ -1,10 +1,14 @@
 import { type ReactNode, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { AppearanceControls, MODE_OPTIONS, THEME_OPTIONS } from "../AppearanceControls.js";
 import { SettingsDrawer } from "../SettingsDrawer.js";
 import { WorkspaceLayout } from "../WorkspaceLayout.js";
+import { preloadStudioViewers } from "../lazy-viewers.js";
 import { TRANSLATIONS, ThemeProvider, type ThemeProviderProps, translate } from "../useTheme.js";
+
+// Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
+beforeAll(() => preloadStudioViewers());
 
 describe("Sprachkatalog (Issue #301)", () => {
   it("führt in Deutsch und Englisch dieselben Schlüssel, keiner ist leer", () => {
@@ -50,7 +54,7 @@ describe("Oberfläche auf Englisch", () => {
     expect(html).toContain("Skip to content");
     expect(html).toContain('<span class="rn-tab-label">Sources</span>');
     expect(html).toContain('aria-label="Chat &amp; citations"');
-    expect(html).toContain('aria-label="Studio (7 tools)"');
+    expect(html).toContain('aria-label="Studio (10 tools)"');
     expect(html).not.toContain("Einstellungen");
     expect(html).not.toContain("Menü öffnen");
   });
@@ -70,7 +74,9 @@ describe("Oberfläche auf Englisch", () => {
       expect(html, text).toContain(text);
     }
     expect(html).not.toContain("Darstellung");
-    expect(html).not.toContain("Sprache");
+    // Die Sprachnamen stehen in der jeweiligen Sprache („Deutsch – Leichte Sprache“, Issue #349).
+    const withoutLanguageNames = html.replaceAll(/<span lang="\w+">[^<]*<\/span>/g, "");
+    expect(withoutLanguageNames).not.toContain("Sprache");
   });
 
   it("übersetzt die Darstellung samt Bewegung und Rolle", () => {
@@ -91,7 +97,8 @@ describe("Oberfläche auf Englisch", () => {
       "High contrast (AAA)",
       "Calm clarity",
       "Reduce motion",
-      ">Role</label>",
+      ">Role (preview)</label>",
+      "Preview only: this choice changes nothing yet.",
       ">Viewer</option>",
       "Design and color scheme are saved on this device."
     ]) {

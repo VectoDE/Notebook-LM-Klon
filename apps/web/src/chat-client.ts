@@ -200,6 +200,8 @@ export interface StreamChatOptions {
   readonly chatId?: string | undefined;
   readonly model?: string | undefined;
   readonly sourceIds?: readonly string[] | undefined;
+  /** Sprache der Oberfläche (Text der ehrlichen Nichtantwort, Issue #243). */
+  readonly language?: "de" | "en" | undefined;
   readonly signal?: AbortSignal | undefined;
   readonly fetchImpl?: typeof fetch | undefined;
 }
@@ -215,6 +217,7 @@ export async function* streamChat(options: StreamChatOptions): AsyncGenerator<Ch
   if (options.chatId) payload.chatId = options.chatId;
   if (options.model) payload.model = options.model;
   if (options.sourceIds && options.sourceIds.length > 0) payload.sourceIds = options.sourceIds;
+  if (options.language) payload.language = options.language;
 
   let res: Response;
   try {
@@ -237,4 +240,66 @@ export async function* streamChat(options: StreamChatOptions): AsyncGenerator<Ch
     const event = toChatEvent(msg);
     if (event) yield event;
   }
+}
+
+/** Eine Nachricht des gespeicherten Verlaufs (GET /api/v1/chats/:id/messages). */
+export interface ChatHistoryItem {
+  readonly id: string;
+  readonly role: "user" | "assistant" | "system";
+  readonly content: string;
+  readonly citations?: readonly ChatCitationPayload[] | null | undefined;
+  readonly aiGenerated?: boolean | undefined;
+  readonly createdAt?: number | undefined;
+}
+
+export interface FetchChatHistoryOptions {
+  readonly chatId: string;
+  /** Nachrichten je Seite (Server: 1 bis 200). */
+  readonly pageSize?: number | undefined;
+  readonly signal?: AbortSignal | undefined;
+  readonly fetchImpl?: typeof fetch | undefined;
+}
+
+/**
+ * Lädt den ganzen Verlauf eines Chats, Seite für Seite über den Cursor, ohne Gesamtgrenze
+ * (Issue #243). Ergebnis in zeitlicher Reihenfolge, älteste zuerst.
+ */
+export async function fetchChatHistory(
+  options: FetchChatHistoryOptions
+): Promise<ChatHistoryItem[]> {
+  const doFetch = options.fetchImpl ?? fetch;
+  const pageSize = options.pageSize ?? 100;
+  const pages: ChatHistoryItem[][] = [];
+  let cursor: string | null = null;
+  do {
+    const query = new URLSearchParams({ limit: String(pageSize) });
+    if (cursor) query.set("before", cursor);
+    const url = `/api/v1/chats/${encodeURIComponent(options.chatId)}/messages?${query}`;
+    let res: Response;
+    try {
+      res = await doFetch(url, {
+        headers: { accept: "application/json" },
+        credentials: "same-origin",
+        ...(options.signal ? { signal: options.signal } : {})
+      });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") throw err;
+      throw new ChatApiError(
+        "Netzwerkfehler: Der Server ist nicht erreichbar.",
+        0,
+        "NETWORK_ERROR"
+      );
+    }
+    if (!res.ok) throw await readProblem(res);
+    const body = (await res.json()) as {
+      readonly messages?: unknown;
+      readonly nextCursor?: unknown;
+    };
+    if (!Array.isArray(body.messages)) {
+      throw new ChatApiError("Unerwartete Antwort vom Server.", res.status, "INVALID_BODY");
+    }
+    pages.unshift(body.messages as ChatHistoryItem[]);
+    cursor = typeof body.nextCursor === "string" && body.nextCursor ? body.nextCursor : null;
+  } while (cursor);
+  return pages.flat();
 }

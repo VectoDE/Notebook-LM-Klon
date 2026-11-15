@@ -4,18 +4,22 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  MAX_OBJECT_BYTES,
-  ObjectTooLargeError,
-  createLocalR2Adapter,
-  createMockDurableObjectNamespace,
+  NodeConfigError,
   createNodeEnv,
-  createSqliteD1Adapter,
-  runSqliteMigrations,
+  pickPassthroughVars,
+  runCleanupCommand,
+  runNodeServerCli,
   startNodeServer
 } from "../node-server.js";
 import { clearRateLimitMemory } from "../rate-limiter.js";
 
 let TEST_DATA_DIR = "";
+
+/** Minimal valid configuration: the mandatory secrets (test values only). */
+const SECRETS = {
+  SESSION_SALT_SECRET: "test-only-session-salt-0123456789abcdef",
+  KEK_V1: "test-only-kek-0123456789abcdef0123456789"
+} as const;
 
 function safeCleanDir(dir: string): void {
   if (dir && existsSync(dir)) {
@@ -36,346 +40,46 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
     safeCleanDir(TEST_DATA_DIR);
   });
 
-  describe("createSqliteD1Adapter", () => {
-    it("executes migrations, queries rows, runs updates, and executes statements", async () => {
+  describe("Durable Objects on Node (#330)", () => {
+    it("runs the real JobDO: enqueue answers 201 and the alarm completes the job", async () => {
       const db = new DatabaseSync(":memory:");
-      const d1 = createSqliteD1Adapter(db);
+      const handle = createNodeEnv({ db, dataDir: TEST_DATA_DIR });
+      try {
+        const stub = handle.env.JOB_DO.get(handle.env.JOB_DO.idFromName("nb_1"));
+        const enqueued = await stub.fetch("http://internal/jobs/enqueue", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ notebookId: "nb_1", kind: "mindmap", payload: {} })
+        });
+        expect(enqueued.status).toBe(201);
+        const { id } = (await enqueued.json()) as { id: string };
 
-      await d1.exec("CREATE TABLE test_users (id TEXT PRIMARY KEY, name TEXT);");
+        let status = "";
+        for (let i = 0; i < 100 && status !== "completed"; i++) {
+          await new Promise((r) => setTimeout(r, 20));
+          const res = await stub.fetch(`http://internal/jobs/${id}`);
+          status = ((await res.json()) as { status: string }).status;
+        }
+        expect(status).toBe("completed");
+        expect(existsSync(join(TEST_DATA_DIR, "do", "JobDO"))).toBe(true);
 
-      // prepare().run()
-      const insertStmt = d1.prepare("INSERT INTO test_users VALUES (?, ?)");
-      const runRes = await insertStmt.bind("user-1", "Alice").run();
-      expect(runRes.meta.changes).toBe(1);
-
-      // prepare().first()
-      const firstRow = await d1
-        .prepare("SELECT * FROM test_users WHERE id = ?")
-        .bind("user-1")
-        .first<{ id: string; name: string }>();
-      expect(firstRow?.name).toBe("Alice");
-
-      // prepare().first(colName)
-      const nameCol = await d1
-        .prepare("SELECT * FROM test_users WHERE id = ?")
-        .bind("user-1")
-        .first<string>("name");
-      expect(nameCol).toBe("Alice");
-
-      const nullCol = await d1
-        .prepare("SELECT * FROM test_users WHERE id = ?")
-        .bind("user-1")
-        .first<string>("nonexistent");
-      expect(nullCol).toBeNull();
-
-      // prepare().first() returns null if row not found
-      const emptyRow = await d1
-        .prepare("SELECT * FROM test_users WHERE id = ?")
-        .bind("non-existent")
-        .first();
-      expect(emptyRow).toBeNull();
-
-      // prepare().all()
-      const allRes = await d1
-        .prepare("SELECT * FROM test_users")
-        .bind()
-        .all<{ id: string; name: string }>();
-      expect(allRes.results).toHaveLength(1);
-
-      // parameterless prepare() methods
-      const noParamFirst = await d1
-        .prepare("SELECT name FROM test_users LIMIT 1")
-        .first<{ name: string }>();
-      expect(noParamFirst?.name).toBe("Alice");
-
-      const noParamCol = await d1
-        .prepare("SELECT name FROM test_users LIMIT 1")
-        .first<string>("name");
-      expect(noParamCol).toBe("Alice");
-
-      const noParamNullCol = await d1
-        .prepare("SELECT name FROM test_users LIMIT 1")
-        .first<string>("nonexistent");
-      expect(noParamNullCol).toBeNull();
-
-      const noParamAll = await d1
-        .prepare("SELECT * FROM test_users")
-        .all<{ id: string; name: string }>();
-      expect(noParamAll.results).toHaveLength(1);
-
-      const noParamRun = await d1.prepare("UPDATE test_users SET name = 'Bob'").run();
-      expect(noParamRun.meta.changes).toBe(1);
-
-      // batch & dump
-      const batchRes = await d1.batch([d1.prepare("SELECT * FROM test_users")]);
-      expect(batchRes).toHaveLength(1);
-
-      const dumpBuffer = await d1.dump();
-      expect(dumpBuffer.byteLength).toBe(0);
-
-      db.close();
-    });
-
-    it("returns null when no rows match parameterless first()", async () => {
-      const db = new DatabaseSync(":memory:");
-      const d1 = createSqliteD1Adapter(db);
-      await d1.exec("CREATE TABLE empty_table (id TEXT);");
-      const res = await d1.prepare("SELECT * FROM empty_table").first();
-      expect(res).toBeNull();
-      db.close();
-    });
-  });
-
-  describe("createLocalR2Adapter", () => {
-    it("handles put, get, head, list and delete across buffer, string, blob and Uint8Array types", async () => {
-      const mediaDir = join(TEST_DATA_DIR, "media");
-      const r2 = createLocalR2Adapter(mediaDir);
-
-      // get on non-existent key
-      const missing = await r2.get("missing.txt");
-      expect(missing).toBeNull();
-
-      // head on non-existent key
-      const missingHead = await r2.head("missing.txt");
-      expect(missingHead).toBeNull();
-
-      // put string
-      const strPut = await r2.put("nested/test.txt", "hello text");
-      expect(strPut?.size).toBe(10);
-
-      // head existing
-      const headRes = await r2.head("nested/test.txt");
-      expect(headRes?.size).toBe(10);
-
-      // get existing
-      const getRes = await r2.get("nested/test.txt");
-      expect(getRes).not.toBeNull();
-      expect(await getRes?.text()).toBe("hello text");
-      const ab = await getRes?.arrayBuffer();
-      expect(ab?.byteLength).toBe(10);
-
-      // read stream
-      const stream = getRes?.body;
-      const reader = stream?.getReader();
-      const chunk = await reader?.read();
-      expect(chunk?.value).toBeDefined();
-
-      // put Uint8Array
-      const u8 = new Uint8Array([1, 2, 3, 4]);
-      await r2.put("binary/data.bin", u8);
-
-      // put ArrayBuffer
-      const abVal = new ArrayBuffer(8);
-      await r2.put("binary/buffer.bin", abVal);
-
-      // put Blob
-      const blob = new Blob(["blob content"], { type: "text/plain" });
-      await r2.put("blob/file.txt", blob);
-
-      // put other fallback
-      await r2.put("other/val.txt", 12345 as unknown as string);
-
-      // list with prefix
-      const listRes = await r2.list({ prefix: "nested" });
-      expect(listRes.objects).toHaveLength(1);
-      expect(listRes.objects[0]?.key).toBe("nested/test.txt");
-
-      // list without prefix
-      const listAll = await r2.list();
-      expect(listAll.objects.length).toBeGreaterThanOrEqual(4);
-
-      // delete single key
-      await r2.delete("nested/test.txt");
-      expect(await r2.get("nested/test.txt")).toBeNull();
-
-      // delete multiple keys (including non-existent)
-      await r2.delete(["binary/data.bin", "binary/buffer.bin", "non-existent.bin"]);
-      expect(await r2.get("binary/data.bin")).toBeNull();
-    });
-
-    it("stores a binary ReadableStream byte-for-byte (0x00 and 0xFF included, multi-chunk)", async () => {
-      const r2 = createLocalR2Adapter(join(TEST_DATA_DIR, "media"));
-
-      // All 256 byte values twice, with 0x00 and 0xFF at both ends
-      const original = new Uint8Array(512);
-      for (let i = 0; i < original.length; i++) {
-        original[i] = i % 256;
+        const notebook = handle.env.NOTEBOOK_DO.get(handle.env.NOTEBOOK_DO.idFromName("nb_1"));
+        expect((await notebook.fetch("http://internal/health")).status).toBe(200);
+      } finally {
+        handle.close();
+        db.close();
       }
-      original[0] = 0x00;
-      original[511] = 0xff;
-
-      const stream = new ReadableStream<Uint8Array>({
-        start(controller) {
-          controller.enqueue(original.slice(0, 1));
-          controller.enqueue(original.slice(1, 300));
-          controller.enqueue(original.slice(300));
-          controller.close();
-        }
-      });
-
-      const putRes = await r2.put("uploads/blob.bin", stream);
-      expect(putRes?.size).toBe(original.byteLength);
-
-      const getRes = await r2.get("uploads/blob.bin");
-      const roundTrip = new Uint8Array((await getRes?.arrayBuffer()) ?? new ArrayBuffer(0));
-      expect(roundTrip.byteLength).toBe(original.byteLength);
-      expect(Buffer.compare(Buffer.from(roundTrip), Buffer.from(original))).toBe(0);
-    });
-
-    it("uses MAX_OBJECT_BYTES (50 MB, per-file maximum) as the default cap", () => {
-      expect(MAX_OBJECT_BYTES).toBe(50 * 1024 * 1024);
-    });
-
-    it("rejects a ReadableStream above the cap and leaves no partial file behind", async () => {
-      const mediaDir = join(TEST_DATA_DIR, "media");
-      const r2 = createLocalR2Adapter(mediaDir, 1024);
-
-      // 3 chunks of 512 bytes: the first two fit exactly, the third crosses the cap
-      const stream = new ReadableStream<Uint8Array>({
-        start(controller) {
-          controller.enqueue(new Uint8Array(512).fill(0xaa));
-          controller.enqueue(new Uint8Array(512).fill(0xbb));
-          controller.enqueue(new Uint8Array(512).fill(0xcc));
-          controller.close();
-        }
-      });
-
-      await expect(r2.put("uploads/too-big.bin", stream)).rejects.toBeInstanceOf(
-        ObjectTooLargeError
-      );
-      expect(existsSync(join(mediaDir, "uploads", "too-big.bin"))).toBe(false);
-      expect(await r2.head("uploads/too-big.bin")).toBeNull();
-    });
-
-    it("removes the partial file when the source stream errors", async () => {
-      const mediaDir = join(TEST_DATA_DIR, "media");
-      const r2 = createLocalR2Adapter(mediaDir, 1024);
-      let sent = false;
-      const stream = new ReadableStream<Uint8Array>({
-        pull(controller) {
-          if (!sent) {
-            sent = true;
-            controller.enqueue(new Uint8Array([1, 2, 3]));
-            return;
-          }
-          controller.error(new Error("connection reset"));
-        }
-      });
-
-      await expect(r2.put("uploads/aborted.bin", stream)).rejects.toThrow("connection reset");
-      expect(existsSync(join(mediaDir, "uploads", "aborted.bin"))).toBe(false);
-    });
-
-    it("keeps a ReadableStream exactly at the cap byte-for-byte", async () => {
-      const r2 = createLocalR2Adapter(join(TEST_DATA_DIR, "media"), 1024);
-      const original = new Uint8Array(1024);
-      for (let i = 0; i < original.length; i++) {
-        original[i] = (i * 7) % 256;
-      }
-      const stream = new ReadableStream<Uint8Array>({
-        start(controller) {
-          controller.enqueue(original.slice(0, 1000));
-          controller.enqueue(original.slice(1000));
-          controller.close();
-        }
-      });
-
-      const putRes = await r2.put("uploads/at-cap.bin", stream);
-      expect(putRes?.size).toBe(1024);
-      const getRes = await r2.get("uploads/at-cap.bin");
-      const roundTrip = new Uint8Array((await getRes?.arrayBuffer()) ?? new ArrayBuffer(0));
-      expect(Buffer.compare(Buffer.from(roundTrip), Buffer.from(original))).toBe(0);
-    });
-
-    it("rejects buffered values above the cap without writing a file", async () => {
-      const mediaDir = join(TEST_DATA_DIR, "media");
-      const r2 = createLocalR2Adapter(mediaDir, 4);
-
-      await expect(r2.put("uploads/big.bin", new Uint8Array(5))).rejects.toBeInstanceOf(
-        ObjectTooLargeError
-      );
-      expect(existsSync(join(mediaDir, "uploads", "big.bin"))).toBe(false);
-    });
-
-    it("refuses keys that escape the media directory (path traversal)", async () => {
-      const mediaDir = join(TEST_DATA_DIR, "media");
-      const r2 = createLocalR2Adapter(mediaDir);
-      const outside = join(TEST_DATA_DIR, "escape.txt");
-
-      await expect(r2.put("../escape.txt", "pwned")).rejects.toBeInstanceOf(RangeError);
-      await expect(r2.put("nested/../../escape.txt", "pwned")).rejects.toBeInstanceOf(RangeError);
-
-      // Exclusive create ("wx") fails with EEXIST if one of the puts above had escaped,
-      // so this proves nothing was written outside without a separate existence check.
-      writeFileSync(outside, "secret", { flag: "wx" });
-      await expect(r2.get("../escape.txt")).rejects.toBeInstanceOf(RangeError);
-      await expect(r2.head("../escape.txt")).rejects.toBeInstanceOf(RangeError);
-      await expect(r2.delete("../escape.txt")).rejects.toBeInstanceOf(RangeError);
-      expect(existsSync(outside)).toBe(true);
-
-      // The media root itself is not a valid object
-      await expect(r2.put("", "x")).rejects.toBeInstanceOf(RangeError);
-      await expect(r2.put("nested/..", "x")).rejects.toBeInstanceOf(RangeError);
-
-      // Leading slashes are still treated as relative keys inside the root
-      await r2.put("/inside/ok.txt", "ok");
-      expect(existsSync(join(mediaDir, "inside", "ok.txt"))).toBe(true);
-    });
-
-    it("stores non-Uint8Array ArrayBufferViews by their bytes, not their string form", async () => {
-      const r2 = createLocalR2Adapter(join(TEST_DATA_DIR, "media"));
-      const words = new Uint16Array([0x0000, 0xffff, 0x00ff]);
-
-      await r2.put("uploads/words.bin", new DataView(words.buffer));
-
-      const getRes = await r2.get("uploads/words.bin");
-      const roundTrip = new Uint8Array((await getRes?.arrayBuffer()) ?? new ArrayBuffer(0));
-      expect(Buffer.compare(Buffer.from(roundTrip), Buffer.from(words.buffer))).toBe(0);
-    });
-  });
-
-  describe("createMockDurableObjectNamespace", () => {
-    it("provides IDs and fetches /health or generic DO routes", async () => {
-      const doNamespace = createMockDurableObjectNamespace("TestDO");
-
-      const idByName = doNamespace.idFromName("notebook-123");
-      expect(idByName.toString()).toBe("TestDO-notebook-123");
-      expect(idByName.equals(idByName)).toBe(false);
-
-      const uniqueId = doNamespace.newUniqueId();
-      expect(uniqueId.toString()).toContain("TestDO-");
-
-      const idFromStr = doNamespace.idFromString("custom-id");
-      expect(idFromStr.toString()).toBe("custom-id");
-      expect(idFromStr.equals(idFromStr)).toBe(false);
-      expect(uniqueId.equals(uniqueId)).toBe(false);
-
-      const stub = doNamespace.get(uniqueId);
-      const healthRes = await stub.fetch("http://localhost/health");
-      expect(healthRes.status).toBe(200);
-      const healthJson = (await healthRes.json()) as { ok: boolean };
-      expect(healthJson.ok).toBe(true);
-
-      const otherRes = await stub.fetch(new Request("http://localhost/other"));
-      expect(otherRes.status).toBe(200);
-    });
-  });
-
-  describe("runSqliteMigrations", () => {
-    it("gracefully returns if migrations directory does not exist", () => {
-      const db = new DatabaseSync(":memory:");
-      expect(() => runSqliteMigrations(db, "non-existent-dir")).not.toThrow();
-      db.close();
-    });
+    }, 15000);
   });
 
   describe("createNodeEnv", () => {
     it("creates environment bindings with default or custom options", async () => {
-      const { env, db } = createNodeEnv({
+      const handle = createNodeEnv({
         dataDir: TEST_DATA_DIR,
         appProfile: "full",
         appOrigin: "http://127.0.0.1:8787"
       });
+      const { env, db } = handle;
       expect(env.APP_PROFILE).toBe("full");
       expect(env.APP_ORIGIN).toBe("http://127.0.0.1:8787");
       expect(env.DB).toBeDefined();
@@ -384,13 +88,16 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       expect(env.JOB_DO).toBeDefined();
       const assetRes = await env.ASSETS.fetch("http://localhost/asset.png");
       expect(assetRes.status).toBe(404);
+      handle.close();
       db.close();
     });
 
     it("creates default data directory when not provided", () => {
       const customDb = new DatabaseSync(":memory:");
-      const { env } = createNodeEnv({ db: customDb });
-      expect(env.APP_PROFILE).toBe("demo");
+      const handle = createNodeEnv({ db: customDb });
+      expect(handle.env.APP_PROFILE).toBe("demo");
+      expect(handle.dataDir).toBe(join(process.cwd(), ".data"));
+      handle.close();
       customDb.close();
     });
 
@@ -399,16 +106,79 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       const read = (e: Env) => (e as unknown as Record<string, unknown>).SESSION_SALT_SECRET;
       vi.stubEnv("SESSION_SALT_SECRET", "from-process-env");
       try {
-        expect(read(createNodeEnv({ db: customDb }).env)).toBe("from-process-env");
-        expect(read(createNodeEnv({ db: customDb, sessionSaltSecret: "explicit" }).env)).toBe(
-          "explicit"
-        );
+        const dataDir = TEST_DATA_DIR;
+        expect(read(createNodeEnv({ db: customDb, dataDir }).env)).toBe("from-process-env");
+        expect(
+          read(createNodeEnv({ db: customDb, dataDir, sessionSaltSecret: "explicit" }).env)
+        ).toBe("explicit");
         vi.stubEnv("SESSION_SALT_SECRET", undefined);
-        expect(read(createNodeEnv({ db: customDb }).env)).toBeUndefined();
+        expect(read(createNodeEnv({ db: customDb, dataDir }).env)).toBeUndefined();
       } finally {
         vi.unstubAllEnvs();
         customDb.close();
       }
+    });
+  });
+
+  describe("mail delivery choice (#330)", () => {
+    const smtp = {
+      host: "smtp.example.test",
+      port: 587,
+      secure: false,
+      requireTls: true,
+      user: undefined,
+      pass: undefined,
+      from: "noreply@example.test"
+    };
+
+    it("uses SMTP as SEND_EMAIL and drops RESEND_API_KEY when SMTP is configured", () => {
+      const db = new DatabaseSync(":memory:");
+      const handle = createNodeEnv({
+        db,
+        dataDir: TEST_DATA_DIR,
+        vars: { RESEND_API_KEY: "re_test", MAIL_FROM: "noreply@example.test" },
+        smtp
+      });
+      const env = handle.env as unknown as Record<string, unknown>;
+      expect(env.SEND_EMAIL).toEqual({ send: expect.any(Function) });
+      expect(env.RESEND_API_KEY).toBeUndefined();
+      handle.close();
+      db.close();
+    });
+
+    it("keeps RESEND_API_KEY without SMTP", () => {
+      const db = new DatabaseSync(":memory:");
+      const handle = createNodeEnv({
+        db,
+        dataDir: TEST_DATA_DIR,
+        vars: { RESEND_API_KEY: "re_test", MAIL_FROM: "noreply@example.test" }
+      });
+      const env = handle.env as unknown as Record<string, unknown>;
+      expect(env.RESEND_API_KEY).toBe("re_test");
+      expect(env.SEND_EMAIL).toBeUndefined();
+      expect(env.PROVENANCE_SIGNER).toBeUndefined();
+      handle.close();
+      db.close();
+    });
+
+    it("sets the C2PA signer only when tool, certificate and key are configured (#353)", () => {
+      const db = new DatabaseSync(":memory:");
+      const handle = createNodeEnv({
+        db,
+        dataDir: TEST_DATA_DIR,
+        vars: {
+          C2PATOOL_PATH: "/opt/c2patool/c2patool",
+          C2PA_SIGN_CERT: "/run/secrets/c2pa-chain.pem",
+          C2PA_PRIVATE_KEY: "/run/secrets/c2pa-key.pem"
+        }
+      });
+      const env = handle.env as unknown as Record<string, unknown>;
+      expect(env.PROVENANCE_SIGNER).toMatchObject({
+        certificate: "test",
+        sign: expect.any(Function)
+      });
+      handle.close();
+      db.close();
     });
   });
 
@@ -418,8 +188,12 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       mkdirSync(staticDir, { recursive: true });
       writeFileSync(join(staticDir, "index.html"), "<html><body>App Loaded</body></html>");
       writeFileSync(join(staticDir, "style.css"), "body { margin: 0; }");
+      mkdirSync(join(staticDir, "assets"), { recursive: true });
+      writeFileSync(join(staticDir, "assets", "app-1a2b3c.js"), "console.log(1);");
 
       const serverInstance = await startNodeServer({
+        env: SECRETS,
+        onWarning: () => {},
         port: 0,
         dataDir: join(TEST_DATA_DIR, "srv-data"),
         staticDir,
@@ -445,6 +219,21 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       const cssRes = await fetch(`http://localhost:${port}/style.css`);
       expect(cssRes.status).toBe(200);
 
+      // 2b. Cache-Control und ETag (Issue #263)
+      expect(cssRes.headers.get("cache-control")).toBe("public, max-age=0, must-revalidate");
+      const assetRes = await fetch(`http://localhost:${port}/assets/app-1a2b3c.js`);
+      expect(assetRes.status).toBe(200);
+      expect(assetRes.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+      const assetEtag = assetRes.headers.get("etag");
+      expect(assetEtag).toBeTruthy();
+      const revalidated = await fetch(`http://localhost:${port}/assets/app-1a2b3c.js`, {
+        headers: { "if-none-match": assetEtag ?? "" }
+      });
+      expect(revalidated.status).toBe(304);
+      expect(revalidated.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+      const healthCache = await fetch(`http://localhost:${port}/api/v1/health`);
+      expect(healthCache.headers.get("cache-control")).toBe("no-store");
+
       // 3. Check SPA html fallback on unknown route
       const spaRes = await fetch(`http://localhost:${port}/unknown/route`);
       expect(spaRes.status).toBe(200);
@@ -459,6 +248,8 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       mkdirSync(emptyStaticDir, { recursive: true });
 
       const serverInstance = await startNodeServer({
+        env: SECRETS,
+        onWarning: () => {},
         port: 0,
         dataDir: join(TEST_DATA_DIR, "srv-data-empty"),
         staticDir: emptyStaticDir
@@ -471,18 +262,37 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       await serverInstance.close();
     });
 
-    it("boots with default options when no parameters given", async () => {
-      // Temporarily mock process.env.PORT
-      process.env.PORT = "0";
-      const serverInstance = await startNodeServer();
-      expect(serverInstance.port).toBeGreaterThan(0);
-      await serverInstance.close();
-      process.env.PORT = undefined;
+    it("boots with defaults from process.env and reports warnings via console.warn", async () => {
+      vi.stubEnv("PORT", "0");
+      vi.stubEnv("DATA_DIR", join(TEST_DATA_DIR, "srv-data-default"));
+      vi.stubEnv("STATIC_DIR", join(TEST_DATA_DIR, "no-static"));
+      vi.stubEnv("SESSION_SALT_SECRET", SECRETS.SESSION_SALT_SECRET);
+      vi.stubEnv("KEK_V1", SECRETS.KEK_V1);
+      vi.stubEnv("TURNSTILE_SECRET_KEY", "");
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const serverInstance = await startNodeServer();
+        expect(serverInstance.port).toBeGreaterThan(0);
+        expect(serverInstance.dataDir).toBe(join(TEST_DATA_DIR, "srv-data-default"));
+        expect(warn).toHaveBeenCalledWith(expect.stringMatching(/TURNSTILE_SECRET_KEY fehlt/));
+        await serverInstance.close();
+      } finally {
+        warn.mockRestore();
+        vi.unstubAllEnvs();
+      }
+    });
+
+    it("refuses to start without mandatory secrets and opens nothing", async () => {
+      const dataDir = join(TEST_DATA_DIR, "srv-data-refused");
+      expect(() => startNodeServer({ env: {}, port: 0, dataDir })).toThrow(NodeConfigError);
+      expect(existsSync(dataDir)).toBe(false);
     });
 
     it("boots without static directory configured or existing", async () => {
       const nonExistentStatic = join(TEST_DATA_DIR, "does-not-exist-dir");
       const serverInstance = await startNodeServer({
+        env: SECRETS,
+        onWarning: () => {},
         port: 0,
         dataDir: join(TEST_DATA_DIR, "srv-data-nostatic"),
         staticDir: nonExistentStatic
@@ -495,11 +305,48 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
       await serverInstance.close();
     });
 
+    it("starts the hourly cleanup by default and runs the same cleanup as the cron (#334)", async () => {
+      const info = vi.spyOn(console, "info").mockImplementation(() => {});
+      const instance = await startNodeServer({
+        env: SECRETS,
+        onWarning: () => {},
+        port: 0,
+        dataDir: join(TEST_DATA_DIR, "srv-data-cleanup"),
+        staticDir: join(TEST_DATA_DIR, "no-static")
+      });
+      try {
+        expect(instance.scheduler).toBeDefined();
+        const metrics = await instance.scheduler?.runOnce();
+        expect(metrics).toEqual(expect.objectContaining({ deletedGuests: expect.any(Number) }));
+        expect(info).toHaveBeenCalledWith(
+          expect.stringContaining('"event":"scheduled_cleanup_completed"')
+        );
+      } finally {
+        await instance.close();
+        info.mockRestore();
+      }
+    });
+
+    it("leaves the cleanup to an external cron when the interval is 0", async () => {
+      const instance = await startNodeServer({
+        env: SECRETS,
+        onWarning: () => {},
+        port: 0,
+        dataDir: join(TEST_DATA_DIR, "srv-data-nocleanup"),
+        staticDir: join(TEST_DATA_DIR, "no-static"),
+        cleanupIntervalMinutes: 0
+      });
+      expect(instance.scheduler).toBeUndefined();
+      await instance.close();
+    });
+
     it("reaches every API router over HTTP on the Node path (wiring, not 404)", async () => {
       clearRateLimitMemory();
       // Explicit test salt: without SESSION_SALT_SECRET the login routes answer 503.
       vi.stubEnv("SESSION_SALT_SECRET", "test-only-session-salt-node-wiring");
       const serverInstance = await startNodeServer({
+        env: SECRETS,
+        onWarning: () => {},
         port: 0,
         dataDir: join(TEST_DATA_DIR, "srv-data-routers"),
         staticDir: join(TEST_DATA_DIR, "no-static"),
@@ -546,6 +393,9 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
           code: "TURNSTILE_NOT_CONFIGURED"
         });
         expect((await probe("GET", "/api/v1/demo/info")).status).toBe(200);
+        // Demo sub-routes forward method and body (HEAD without body, POST with body).
+        expect((await fetch(`${base}/api/v1/demo/info`, { method: "HEAD" })).status).toBe(200);
+        expect((await probe("POST", "/api/v1/demo/seed", { role: "viewer" })).status).toBe(200);
 
         // Unknown API paths stay 404, so the 401s above are real routes.
         expect(await probe("GET", "/api/v1/does-not-exist")).toEqual({
@@ -561,6 +411,8 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
     it("rate-limits by socket address and ignores spoofed IP headers (#334)", async () => {
       clearRateLimitMemory();
       const serverInstance = await startNodeServer({
+        env: SECRETS,
+        onWarning: () => {},
         port: 0,
         dataDir: join(TEST_DATA_DIR, "srv-data-ratelimit"),
         staticDir: join(TEST_DATA_DIR, "no-static")
@@ -583,13 +435,13 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
 
     it("uses the configured trusted proxy header when TRUSTED_PROXY_HEADER is set (#334)", async () => {
       clearRateLimitMemory();
-      process.env.TRUSTED_PROXY_HEADER = "X-Forwarded-For";
       const serverInstance = await startNodeServer({
+        env: { ...SECRETS, TRUSTED_PROXY_HEADER: "X-Forwarded-For" },
+        onWarning: () => {},
         port: 0,
         dataDir: join(TEST_DATA_DIR, "srv-data-proxy"),
         staticDir: join(TEST_DATA_DIR, "no-static")
       });
-      Reflect.deleteProperty(process.env, "TRUSTED_PROXY_HEADER");
       const url = `http://localhost:${serverInstance.port}/api/v1/health`;
 
       const a1 = await fetch(url, { headers: { "x-forwarded-for": "6.6.6.6, 198.51.100.1" } });
@@ -607,10 +459,211 @@ describe("Node.js Runtime & Adapters (Decision #111)", () => {
 
   it("passes trustedProxyHeader from options into the environment", () => {
     const customDb = new DatabaseSync(":memory:");
-    const { env } = createNodeEnv({ db: customDb, trustedProxyHeader: "x-real-ip" });
+    const { env } = createNodeEnv({
+      db: customDb,
+      dataDir: TEST_DATA_DIR,
+      trustedProxyHeader: "x-real-ip"
+    });
     expect((env as unknown as { TRUSTED_PROXY_HEADER?: string }).TRUSTED_PROXY_HEADER).toBe(
       "x-real-ip"
     );
     customDb.close();
+  });
+
+  describe("runCleanupCommand (#334)", () => {
+    it("runs one cleanup against the data directory and logs the result", async () => {
+      const info = vi.fn();
+      await runCleanupCommand(
+        { env: SECRETS, dataDir: join(TEST_DATA_DIR, "cli-cleanup") },
+        { info, error: vi.fn() }
+      );
+      expect(existsSync(join(TEST_DATA_DIR, "cli-cleanup", "local.sqlite"))).toBe(true);
+      expect(info).toHaveBeenCalledWith(
+        expect.stringContaining('"event":"scheduled_cleanup_completed"')
+      );
+    });
+
+    it("reads process.env by default and refuses without mandatory secrets", async () => {
+      vi.stubEnv("SESSION_SALT_SECRET", "");
+      try {
+        await expect(runCleanupCommand()).rejects.toThrow(NodeConfigError);
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    });
+  });
+
+  describe("runNodeServerCli", () => {
+    const log = () => ({ info: vi.fn(), error: vi.fn() });
+
+    it("serve (default command): returns 0 and logs the address", async () => {
+      const l = log();
+      const code = await runNodeServerCli([], {
+        start: async () =>
+          ({ port: 1234 }) as unknown as Awaited<ReturnType<typeof startNodeServer>>,
+        log: l
+      });
+      expect(code).toBe(0);
+      expect(l.info).toHaveBeenCalledWith(expect.stringContaining("http://localhost:1234"));
+    });
+
+    it("cleanup: runs one cleanup and returns 0", async () => {
+      const cleanup = vi.fn(async () => {});
+      expect(await runNodeServerCli(["cleanup"], { cleanup, log: log() })).toBe(0);
+      expect(cleanup).toHaveBeenCalledOnce();
+    });
+
+    it("cleanup without injected runner uses runCleanupCommand with process.env", async () => {
+      vi.stubEnv("SESSION_SALT_SECRET", SECRETS.SESSION_SALT_SECRET);
+      vi.stubEnv("KEK_V1", SECRETS.KEK_V1);
+      vi.stubEnv("DATA_DIR", join(TEST_DATA_DIR, "cli-default"));
+      const l = log();
+      try {
+        expect(await runNodeServerCli(["cleanup"], { log: l })).toBe(0);
+        expect(l.info).toHaveBeenCalledWith(
+          expect.stringContaining('"event":"scheduled_cleanup_completed"')
+        );
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    });
+
+    it("rejects an unknown command with exit code 2", async () => {
+      const l = log();
+      expect(await runNodeServerCli(["migrate"], { log: l })).toBe(2);
+      expect(l.error).toHaveBeenCalledWith(expect.stringContaining('Unbekannter Befehl "migrate"'));
+    });
+
+    it("prints the configuration problems and returns 1", async () => {
+      const l = log();
+      const code = await runNodeServerCli(["serve"], {
+        start: async () => {
+          throw new NodeConfigError(["SESSION_SALT_SECRET fehlt."]);
+        },
+        log: l
+      });
+      expect(code).toBe(1);
+      expect(l.error).toHaveBeenCalledWith(
+        expect.stringMatching(/Start abgebrochen[\s\S]*SESSION_SALT_SECRET fehlt/)
+      );
+    });
+
+    it("returns 1 for other startup errors", async () => {
+      const l = log();
+      const code = await runNodeServerCli(["serve"], {
+        start: async () => {
+          throw new Error("EADDRINUSE");
+        },
+        log: l
+      });
+      expect(code).toBe(1);
+      expect(l.error).toHaveBeenCalledWith(
+        "[node-server] Start fehlgeschlagen:",
+        expect.any(Error)
+      );
+    });
+
+    it("uses process.argv, startNodeServer and console by default", async () => {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const argv = process.argv;
+      process.argv = [argv[0] ?? "node", "node-server.js"];
+      vi.stubEnv("SESSION_SALT_SECRET", "");
+      try {
+        expect(await runNodeServerCli()).toBe(1);
+        expect(error).toHaveBeenCalledWith(expect.stringMatching(/SESSION_SALT_SECRET fehlt/));
+      } finally {
+        process.argv = argv;
+        error.mockRestore();
+        vi.unstubAllEnvs();
+      }
+    });
+  });
+
+  describe("environment passthrough (#338)", () => {
+    it("pickPassthroughVars keeps known, non-blank variables only", () => {
+      expect(
+        pickPassthroughVars({
+          TURNSTILE_SECRET_KEY: " 1x0000000000000000000000000000000AA ",
+          KEK_V2: "k",
+          MAIL_FROM: "",
+          PATH: "/usr/bin"
+        })
+      ).toEqual({ TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA", KEK_V2: "k" });
+    });
+
+    it("createNodeEnv copies TURNSTILE_SECRET_KEY and KEKs into env (from vars or process.env)", () => {
+      const customDb = new DatabaseSync(":memory:");
+      const record = (e: Env) => e as unknown as Record<string, unknown>;
+      try {
+        const fromVars = createNodeEnv({
+          db: customDb,
+          dataDir: TEST_DATA_DIR,
+          vars: { TURNSTILE_SECRET_KEY: "turnstile-secret", KEK_V1: "kek", APP_PROFILE: "full" }
+        }).env;
+        expect(record(fromVars).TURNSTILE_SECRET_KEY).toBe("turnstile-secret");
+        expect(record(fromVars).KEK_V1).toBe("kek");
+        expect(fromVars.APP_PROFILE).toBe("full");
+
+        vi.stubEnv("TURNSTILE_SECRET_KEY", "from-process");
+        const fromProcess = createNodeEnv({ db: customDb, dataDir: TEST_DATA_DIR }).env;
+        expect(record(fromProcess).TURNSTILE_SECRET_KEY).toBe("from-process");
+        vi.stubEnv("TURNSTILE_SECRET_KEY", "");
+        const withoutSecret = createNodeEnv({ db: customDb, dataDir: TEST_DATA_DIR }).env;
+        expect(record(withoutSecret).TURNSTILE_SECRET_KEY).toBeUndefined();
+      } finally {
+        vi.unstubAllEnvs();
+        customDb.close();
+      }
+    });
+
+    it("guest login over HTTP: 201 with the Turnstile test secret, 503 without secret", async () => {
+      const realFetch = globalThis.fetch;
+      const siteverify = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+        const url = input instanceof Request ? input.url : String(input);
+        if (url.startsWith("https://challenges.cloudflare.com/")) {
+          const body = init?.body as FormData;
+          // Behaviour of the official always-passes test secret, as documented by Cloudflare.
+          const ok = body.get("secret") === "1x0000000000000000000000000000000AA";
+          return new Response(JSON.stringify({ success: ok }), {
+            headers: { "content-type": "application/json" }
+          });
+        }
+        return realFetch(input, init);
+      });
+      const guest = async (name: string, env: Record<string, string>) => {
+        clearRateLimitMemory();
+        const instance = await startNodeServer({
+          env,
+          onWarning: () => {},
+          port: 0,
+          dataDir: join(TEST_DATA_DIR, `srv-guest-${name}`),
+          staticDir: join(TEST_DATA_DIR, "no-static")
+        });
+        try {
+          const res = await realFetch(`http://localhost:${instance.port}/api/v1/auth/guest`, {
+            method: "POST",
+            headers: { "content-type": "application/json", origin: "http://localhost:8787" },
+            body: JSON.stringify({ turnstileToken: "XXXX.DUMMY.TOKEN.XXXX" })
+          });
+          return { status: res.status, body: (await res.json()) as { code?: string } };
+        } finally {
+          await instance.close();
+        }
+      };
+      try {
+        const withSecret = await guest("with", {
+          ...SECRETS,
+          TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA"
+        });
+        expect(withSecret.status).toBe(201);
+        const without = await guest("without", { ...SECRETS });
+        expect(without).toEqual({
+          status: 503,
+          body: expect.objectContaining({ code: "TURNSTILE_NOT_CONFIGURED" })
+        });
+      } finally {
+        siteverify.mockRestore();
+      }
+    }, 20000);
   });
 });

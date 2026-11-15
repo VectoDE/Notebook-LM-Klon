@@ -46,9 +46,11 @@ for (const width of [390, 1440]) {
     ]) {
       await expect(drawer, text).toContainText(text);
     }
-    for (const german of ["Darstellung", "Sprache", "Modell", "Schlüssel"]) {
+    for (const german of ["Darstellung", "Modell", "Schlüssel"]) {
       await expect(drawer, german).not.toContainText(german);
     }
+    // „Sprache“ steht nur im Namen „Deutsch – Leichte Sprache“ (in der eigenen Sprache, Issue #349)
+    await expect(drawer.locator("#lang-section-title")).toHaveText("Language");
     expect(await findLayoutProblems(page)).toEqual([]);
     await page.getByRole("button", { name: "Close settings" }).click();
     await expect(drawer).toBeHidden();
@@ -59,7 +61,7 @@ for (const width of [390, 1440]) {
       await expect(page.getByRole("navigation", { name: "Sections" }).first()).toBeVisible();
       await expect(bottom.getByRole("button", { name: "Sources (2)" })).toBeVisible();
       await expect(bottom.getByRole("button", { name: "Chat & citations" })).toBeVisible();
-      await expect(bottom.getByRole("button", { name: "Studio (7 tools)" })).toBeVisible();
+      await expect(bottom.getByRole("button", { name: "Studio (10 tools)" })).toBeVisible();
       await expect(bottom).toContainText("Sources");
 
       await page.getByRole("button", { name: "Open menu" }).click();

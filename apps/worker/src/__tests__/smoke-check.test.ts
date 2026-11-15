@@ -15,12 +15,13 @@ function createLocalFetch(extraEnv: Record<string, string | undefined>) {
   const dataDir = mkdtempSync(join(tmpdir(), "nlk-smoke-"));
   const db = new DatabaseSync(":memory:");
   runSqliteMigrations(db, join(import.meta.dirname, "../../migrations"));
-  const { env } = createNodeEnv({
+  const handle = createNodeEnv({
     db,
     dataDir,
     appOrigin: BASE,
     sessionSaltSecret: extraEnv.SESSION_SALT_SECRET
   });
+  const { env } = handle;
   Object.assign(env, extraEnv);
   const app = createApp();
   const fetchFn = async (input: string, init?: RequestInit): Promise<Response> => {
@@ -34,6 +35,7 @@ function createLocalFetch(extraEnv: Record<string, string | undefined>) {
   return {
     fetchFn,
     close: () => {
+      handle.close();
       db.close();
       rmSync(dataDir, { recursive: true, force: true });
     }
