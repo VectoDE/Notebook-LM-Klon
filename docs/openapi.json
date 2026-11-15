@@ -1203,11 +1203,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "status",
-                    "sourceId",
-                    "etag"
-                  ],
+                  "required": ["status", "sourceId", "etag"],
                   "properties": {
                     "status": {
                       "const": "uploaded"
@@ -1287,11 +1283,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "status",
-                    "sourceId",
-                    "verified"
-                  ],
+                  "required": ["status", "sourceId", "verified"],
                   "properties": {
                     "status": {
                       "const": "ready"
