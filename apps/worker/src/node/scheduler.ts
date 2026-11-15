@@ -1,8 +1,4 @@
-import {
-  type CleanupMetrics,
-  createNotebookStatePurger,
-  runScheduledCleanup
-} from "../cleanup.js";
+import { type CleanupMetrics, createNotebookStatePurger, runScheduledCleanup } from "../cleanup.js";
 import { createD1DatabaseAdapter } from "../d1-adapter.js";
 
 /**
