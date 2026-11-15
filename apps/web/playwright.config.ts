@@ -13,7 +13,10 @@ const DESKTOP_MATRIX = [
   { name: "chrome", use: { ...devices["Desktop Chrome"], channel: "chrome" } },
   { name: "chrome-beta", use: { ...devices["Desktop Chrome"], channel: "chrome-beta" } },
   { name: "msedge", use: { ...devices["Desktop Edge"], channel: "msedge" } },
-  { name: "msedge-beta", use: { ...devices["Desktop Edge"], channel: "msedge-beta" } }
+  { name: "msedge-beta", use: { ...devices["Desktop Edge"], channel: "msedge-beta" } },
+  // Nur im nächtlichen, nicht blockierenden Workflow e2e-matrix-nightly.yml (Issue #431).
+  { name: "chrome-dev", use: { ...devices["Desktop Chrome"], channel: "chrome-dev" } },
+  { name: "msedge-dev", use: { ...devices["Desktop Edge"], channel: "msedge-dev" } }
 ] as const;
 
 const TOUCH_MATRIX = [
