@@ -189,6 +189,19 @@ export function createInProcessNamespace(
           db.prepare("DELETE FROM _nlk_alarm WHERE id = 1").run();
           clearTimeout(slot.timer);
           slot.timer = undefined;
+        },
+        // Like storage.deleteAll() on Cloudflare: every table of the object is dropped, the
+        // object creates its schema again on next use. Only the alarm bookkeeping stays.
+        deleteAll: async () => {
+          const listTables =
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> '_nlk_alarm'";
+          const tables = db.prepare(listTables).all() as { name: string }[];
+          for (const { name } of tables) {
+            db.exec(`DROP TABLE "${name.replace(/"/g, '""')}"`);
+          }
+          db.prepare("DELETE FROM _nlk_alarm WHERE id = 1").run();
+          clearTimeout(slot.timer);
+          slot.timer = undefined;
         }
       },
       acceptWebSocket: () => {

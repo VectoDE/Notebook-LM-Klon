@@ -7,6 +7,8 @@ import {
   type BatchStatement,
   D1_MAX_BOUND_IDS,
   type MinimalR2Bucket,
+  createNotebookStatePurger,
+  drainPendingR2,
   purgeUsers,
   runScheduledCleanup
 } from "../cleanup.js";
@@ -555,5 +557,271 @@ describe("purgeUsers: Teilfehler und Nachlauf", () => {
     const again = await purgeUsers(fx.db, fx.bucket, ["alice"], fx.now);
     expect(again.deletedUsers).toBe(0);
     expect(count(fx, "SELECT COUNT(*) AS n FROM users WHERE id = 'user_deleted'")).toBe(1);
+  });
+});
+
+describe("purgeUsers: Nachfolger eines Arbeitsbereichs", () => {
+  let fx: Fixture;
+
+  beforeEach(async () => {
+    fx = await createFixture();
+  });
+
+  afterEach(() => {
+    fx.sqlite.close();
+    rmSync(fx.dataDir, { recursive: true, force: true });
+  });
+
+  const ownerOf = (workspace: string): string =>
+    (
+      fx.sqlite.prepare("SELECT owner_id FROM workspaces WHERE id = ?").get(workspace) as {
+        owner_id: string;
+      }
+    ).owner_id;
+
+  it("nimmt einen Gast nur, wenn es kein anderes Mitglied gibt", async () => {
+    await seedUser(fx, "alice");
+    await seedUser(fx, "carol");
+    await seedUser(fx, "gast", 1);
+    await seedWorkspace(fx, "ws_a", "alice");
+    // Gast ist früher und Admin, trotzdem geht der Bereich an das Nicht-Gast-Mitglied
+    await seedMember(fx, "ws_a", "gast", "owner", fx.now - 100);
+    await seedMember(fx, "ws_a", "carol", "viewer", fx.now + 100);
+
+    await purgeUsers(fx.db, fx.bucket, ["alice"], fx.now);
+
+    expect(ownerOf("ws_a")).toBe("carol");
+  });
+
+  it("nimmt den Gast, wenn er das einzige weitere Mitglied ist", async () => {
+    await seedUser(fx, "alice");
+    await seedUser(fx, "gast", 1);
+    await seedWorkspace(fx, "ws_a", "alice");
+    await seedMember(fx, "ws_a", "gast", "editor", fx.now + 1);
+
+    const res = await purgeUsers(fx.db, fx.bucket, ["alice"], fx.now);
+
+    expect(res.transferredWorkspaces).toBe(1);
+    expect(ownerOf("ws_a")).toBe("gast");
+  });
+
+  it("bevorzugt den Admin mit der längsten Zugehörigkeit vor einem älteren Nicht-Admin", async () => {
+    for (const id of ["alice", "carol", "dave", "erin"]) {
+      await seedUser(fx, id);
+    }
+    await seedWorkspace(fx, "ws_a", "alice");
+    await seedMember(fx, "ws_a", "carol", "editor", fx.now + 1);
+    await seedMember(fx, "ws_a", "erin", "owner", fx.now + 30);
+    await seedMember(fx, "ws_a", "dave", "owner", fx.now + 20);
+
+    await purgeUsers(fx.db, fx.bucket, ["alice"], fx.now);
+
+    expect(ownerOf("ws_a")).toBe("dave");
+  });
+
+  it("schließt alle im selben Lauf gelöschten Konten aus, auch aus anderen Blöcken", async () => {
+    const batch = Array.from({ length: 60 }, (_, i) => `u${String(i).padStart(2, "0")}`);
+    for (const id of batch) {
+      await seedUser(fx, id);
+    }
+    await seedUser(fx, "keeper");
+    await seedWorkspace(fx, "ws_x", "u00");
+    // u59 liegt im zweiten Block, ist Admin und am längsten dabei, wird aber im selben Lauf gelöscht
+    await seedMember(fx, "ws_x", "u59", "owner", fx.now - 500);
+    await seedMember(fx, "ws_x", "keeper", "viewer", fx.now + 500);
+    expect(batch.length).toBeGreaterThan(D1_MAX_BOUND_IDS);
+
+    const res = await purgeUsers(fx.db, fx.bucket, batch, fx.now);
+
+    expect(res.deletedUsers).toBe(60);
+    expect(ownerOf("ws_x")).toBe("keeper");
+    expect(count(fx, "SELECT COUNT(*) AS n FROM users WHERE id LIKE 'u%'")).toBe(0);
+  });
+
+  it("löscht den Arbeitsbereich, wenn alle weiteren Mitglieder im selben Lauf gelöscht werden", async () => {
+    await seedUser(fx, "alice");
+    await seedUser(fx, "bob");
+    await seedWorkspace(fx, "ws_a", "alice");
+    await seedMember(fx, "ws_a", "bob", "owner", fx.now + 1);
+    await seedNotebook(fx, "nb_a", "ws_a", "bob");
+
+    const res = await purgeUsers(fx.db, fx.bucket, ["alice", "bob"], fx.now);
+
+    expect(res.deletedNotebooks).toBe(1);
+    expect(count(fx, "SELECT COUNT(*) AS n FROM workspaces")).toBe(0);
+    expect(count(fx, "SELECT COUNT(*) AS n FROM notebooks")).toBe(0);
+  });
+});
+
+describe("purgeUsers: Durable-Object-Zustand (Art. 17 DSGVO)", () => {
+  let fx: Fixture;
+
+  beforeEach(async () => {
+    fx = await createFixture();
+    await seedUser(fx, "alice");
+    await seedUser(fx, "bob");
+    await seedWorkspace(fx, "ws_a", "alice");
+    await seedNotebook(fx, "nb_one", "ws_a", "alice");
+    await seedNotebook(fx, "nb_two", "ws_a", "alice");
+    await seedWorkspace(fx, "ws_b", "bob");
+    await seedNotebook(fx, "nb_alice_in_bob", "ws_b", "alice");
+  });
+
+  afterEach(() => {
+    fx.sqlite.close();
+    rmSync(fx.dataDir, { recursive: true, force: true });
+  });
+
+  const pending = (): string[] =>
+    (
+      fx.sqlite.prepare("SELECT prefix FROM pending_r2_purge ORDER BY prefix").all() as {
+        prefix: string;
+      }[]
+    ).map((row) => row.prefix);
+
+  it("leert den Zustand der gelöschten Notebooks und lässt erhaltene Notebooks in Ruhe", async () => {
+    const purge = vi.fn(async (_id: string) => {});
+
+    const res = await purgeUsers(fx.db, fx.bucket, ["alice"], fx.now, purge);
+
+    expect(res.deletedNotebooks).toBe(2);
+    expect(purge.mock.calls.map(([id]) => id).sort()).toEqual(["nb_one", "nb_two"]);
+    expect(pending()).toEqual([]);
+  });
+
+  it("merkt fehlgeschlagene DO-Löschungen vor, der Cron holt sie nach", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const failing = vi.fn(async (id: string) => {
+      if (id === "nb_two") {
+        throw new Error("DO nicht erreichbar");
+      }
+    });
+
+    const res = await purgeUsers(fx.db, null, ["alice"], fx.now, failing);
+
+    expect(res.deletedUsers).toBe(1);
+    expect(res.pendingR2Prefixes).toBe(1);
+    expect(pending()).toEqual(["notebook-state:nb_two"]);
+
+    const ok = vi.fn(async (_id: string) => {});
+    const metrics = await runScheduledCleanup({ db: fx.db, purgeNotebookState: ok, now: fx.now });
+
+    expect(metrics.failedSteps).toBe(0);
+    expect(ok).toHaveBeenCalledExactlyOnceWith("nb_two");
+    expect(pending()).toEqual([]);
+    errorSpy.mockRestore();
+  });
+
+  it("meldet im Cron einen Fehlschritt, wenn die DO-Löschung weiter scheitert", async () => {
+    await fx.db.run("INSERT INTO pending_r2_purge (prefix, created_at) VALUES (?, ?)", [
+      "notebook-state:nb_gone",
+      fx.now
+    ]);
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const broken = vi.fn(async () => {
+      throw new Error("DO nicht erreichbar");
+    });
+
+    const metrics = await runScheduledCleanup({
+      db: fx.db,
+      purgeNotebookState: broken,
+      now: fx.now
+    });
+
+    expect(metrics.failedSteps).toBe(1);
+    expect(pending()).toEqual(["notebook-state:nb_gone"]);
+    errorSpy.mockRestore();
+  });
+
+  it("leert nie den Zustand eines Notebooks, das noch existiert, und verwirft den Eintrag", async () => {
+    await fx.db.run("INSERT INTO pending_r2_purge (prefix, created_at) VALUES (?, ?)", [
+      "notebook-state:nb_alice_in_bob",
+      fx.now
+    ]);
+    const purge = vi.fn(async (_id: string) => {});
+
+    const metrics = await runScheduledCleanup({
+      db: fx.db,
+      purgeNotebookState: purge,
+      now: fx.now
+    });
+
+    expect(metrics.failedSteps).toBe(0);
+    expect(purge).not.toHaveBeenCalled();
+    expect(pending()).toEqual([]);
+  });
+
+  it("lässt Einträge ohne passenden Handler stehen (ohne R2-Bucket, ohne Purger)", async () => {
+    await fx.db.run("INSERT INTO pending_r2_purge (prefix, created_at) VALUES (?, ?)", [
+      "notebook-state:nb_gone",
+      fx.now
+    ]);
+    await fx.db.run("INSERT INTO pending_r2_purge (prefix, created_at) VALUES (?, ?)", [
+      "notebooks/nb_gone/",
+      fx.now
+    ]);
+
+    // nur R2: der DO-Eintrag bleibt
+    const onlyBucket = await drainPendingR2(fx.db, fx.bucket);
+    expect(onlyBucket).toEqual({ deletedObjects: 0, failed: 0 });
+    expect(pending()).toEqual(["notebook-state:nb_gone"]);
+
+    // nur Purger: ein neuer R2-Eintrag bleibt, der DO-Eintrag wird abgearbeitet
+    await fx.db.run("INSERT INTO pending_r2_purge (prefix, created_at) VALUES (?, ?)", [
+      "notebooks/nb_gone/",
+      fx.now
+    ]);
+    const purge = vi.fn(async (_id: string) => {});
+    await drainPendingR2(fx.db, null, undefined, 100, purge);
+    expect(purge).toHaveBeenCalledExactlyOnceWith("nb_gone");
+    expect(pending()).toEqual(["notebooks/nb_gone/"]);
+
+    // ohne Bucket und ohne Purger tut der Cron nichts
+    const metrics = await runScheduledCleanup({ db: fx.db, now: fx.now });
+    expect(metrics.failedSteps).toBe(0);
+    expect(pending()).toEqual(["notebooks/nb_gone/"]);
+  });
+
+  it("räumt beim Ablauf von Demo-Notebooks auch den DO-Zustand ab", async () => {
+    await fx.db.run("UPDATE notebooks SET expires_at = ? WHERE id = 'nb_one'", [fx.now - 1]);
+    const purge = vi.fn(async (_id: string) => {});
+
+    const metrics = await runScheduledCleanup({
+      db: fx.db,
+      purgeNotebookState: purge,
+      now: fx.now
+    });
+
+    expect(metrics.deletedNotebooks).toBe(1);
+    expect(purge).toHaveBeenCalledExactlyOnceWith("nb_one");
+    expect(pending()).toEqual([]);
+    expect(count(fx, "SELECT COUNT(*) AS n FROM notebooks WHERE id = 'nb_one'")).toBe(0);
+  });
+});
+
+describe("createNotebookStatePurger", () => {
+  it("liefert ohne Namespace keinen Rückruf", () => {
+    expect(createNotebookStatePurger(undefined)).toBeUndefined();
+  });
+
+  it("ruft POST /purge am Durable Object des Notebooks auf und meldet Fehler", async () => {
+    const calls: { name: string; url: string; method: string | undefined }[] = [];
+    let status = 200;
+    const namespace = {
+      idFromName: (name: string) => name,
+      get: (id: string) => ({
+        fetch: async (url: string, init?: RequestInit) => {
+          calls.push({ name: id, url, method: init?.method });
+          return new Response("{}", { status });
+        }
+      })
+    } as unknown as Env["NOTEBOOK_DO"];
+    const purge = createNotebookStatePurger(namespace);
+
+    await purge?.("nb_1");
+    expect(calls).toEqual([{ name: "nb_1", url: "http://internal/purge", method: "POST" }]);
+
+    status = 500;
+    await expect(purge?.("nb_2")).rejects.toThrow("nb_2");
   });
 });

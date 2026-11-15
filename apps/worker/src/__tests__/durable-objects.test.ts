@@ -9,12 +9,25 @@ import {
 
 function createMockSqliteState(
   id: string,
-  emptySelectResult = false
+  emptySelectResult = false,
+  purgeSockets = false
 ): {
   state: SqliteDurableObjectState;
   executedQueries: string[];
+  deletedAll: () => number;
+  closedSockets: string[];
 } {
   const executedQueries: string[] = [];
+  let deleteAllCalls = 0;
+  const closedSockets: string[] = [];
+  const sockets = [
+    { close: (_code?: number, reason?: string) => closedSockets.push(`ok:${reason}`) },
+    {
+      close: () => {
+        throw new Error("already closed");
+      }
+    }
+  ];
   const state: SqliteDurableObjectState = {
     id: { toString: () => id },
     storage: {
@@ -28,12 +41,15 @@ function createMockSqliteState(
       },
       getAlarm: async () => null,
       setAlarm: async () => {},
-      deleteAlarm: async () => {}
+      deleteAlarm: async () => {},
+      deleteAll: async () => {
+        deleteAllCalls++;
+      }
     },
     acceptWebSocket: () => {},
-    getWebSockets: () => []
+    getWebSockets: () => (purgeSockets ? sockets : [])
   };
-  return { state, executedQueries };
+  return { state, executedQueries, deletedAll: () => deleteAllCalls, closedSockets };
 }
 
 describe("SQLite Durable Objects (NotebookDO & JobDO)", () => {
@@ -452,5 +468,42 @@ describe("SQLite Durable Objects (NotebookDO & JobDO)", () => {
     );
     expect(await doInstance.ensureVectorsLoaded()).toBe(2);
     expect(boundIds).toEqual(["nb_echt", "nb_echt"]);
+  });
+});
+
+describe("NotebookDO /purge (Art. 17 DSGVO, Kontolöschung)", () => {
+  it("leert Speicher, Vektor-Cache und Alarm, schließt Sockets und legt das Schema danach neu an", async () => {
+    const { state, executedQueries, deletedAll, closedSockets } = createMockSqliteState(
+      "nb_purge",
+      false,
+      true
+    );
+    const doInstance = new NotebookDO(state, {} as Env);
+    doInstance.updateVectors([{ chunkId: "c1", quantized: new Int8Array([1]), scale: 1 }]);
+    doInstance.ping();
+    const createsBefore = executedQueries.filter((q) => q.startsWith("CREATE TABLE")).length;
+    expect(createsBefore).toBe(1);
+    expect(doInstance.getCachedVectors()).toHaveLength(1);
+
+    const res = await doInstance.fetch(
+      new Request("https://do.internal/purge", { method: "POST" })
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true });
+    expect(deletedAll()).toBe(1);
+    expect(closedSockets).toEqual(["ok:notebook deleted"]);
+    expect(doInstance.getCachedVectors()).toHaveLength(0);
+
+    doInstance.ping();
+    expect(executedQueries.filter((q) => q.startsWith("CREATE TABLE")).length).toBe(2);
+  });
+
+  it("lehnt GET /purge ab (nur POST löscht)", async () => {
+    const { state, deletedAll } = createMockSqliteState("nb_purge_get");
+    const doInstance = new NotebookDO(state, {} as Env);
+    const res = await doInstance.fetch(new Request("https://do.internal/purge"));
+    expect(res.status).toBe(404);
+    expect(deletedAll()).toBe(0);
   });
 });

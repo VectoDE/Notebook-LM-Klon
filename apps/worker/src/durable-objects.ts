@@ -28,6 +28,8 @@ export interface DurableObjectStorageWithAlarm {
   getAlarm(options?: unknown): Promise<number | null>;
   setAlarm(scheduledTime: number | Date, options?: unknown): Promise<void>;
   deleteAlarm(options?: unknown): Promise<void>;
+  /** Löscht den gesamten Zustand des Objekts (SQL-Tabellen, Schlüssel, Alarm). */
+  deleteAll(): Promise<void>;
 }
 
 export interface SqliteDurableObjectState {
@@ -247,6 +249,27 @@ export class NotebookDO {
     return delivered;
   }
 
+  /**
+   * Löscht den gesamten personenbezogenen Zustand dieses Notebooks (Art. 17 DSGVO): das
+   * Yjs-Dokument (`notebook_doc`), den Vektor-Cache (`do_vectors`, Arbeitsspeicher und
+   * Speicher) und den Alarm; offene WebSocket-Verbindungen werden geschlossen. Das Objekt
+   * legt sein Schema bei der nächsten Nutzung neu an.
+   */
+  public async purge(): Promise<void> {
+    for (const socket of this.ctx.getWebSockets()) {
+      try {
+        (socket as { close(code?: number, reason?: string): void }).close(1000, "notebook deleted");
+      } catch {
+        // Socket already closed
+      }
+    }
+    this.vectorCache.clear();
+    this.vectorsLoaded = false;
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+    this.initialized = false;
+  }
+
   /** Gespeicherter Yjs-Stand des Notebooks (Issue #347), null wenn noch leer. */
   private readDocState(): Uint8Array | null {
     this.ensureSchema();
@@ -311,6 +334,15 @@ export class NotebookDO {
       } catch (error) {
         return this.docProblem(error, url.pathname);
       }
+    }
+
+    // POST /purge: clears all stored state of the notebook (called when the notebook is deleted)
+    if (request.method === "POST" && url.pathname === "/purge") {
+      await this.purge();
+      return Response.json(
+        { success: true },
+        { status: 200, headers: { "content-type": "application/json; charset=utf-8" } }
+      );
     }
 
     if (request.method === "GET" && url.pathname === "/health") {

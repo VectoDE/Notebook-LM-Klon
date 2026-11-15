@@ -26,9 +26,35 @@ export interface CleanupMetrics {
   durationMs: number;
 }
 
+/** Leert den Durable-Object-Zustand (Yjs-Dokument, Vektor-Cache) eines Notebooks. */
+export type NotebookStatePurger = (notebookId: string) => Promise<void>;
+
+/** Präfix der Einträge in pending_r2_purge, die kein R2-Präfix, sondern ein Notebook-DO meinen. */
+const NOTEBOOK_STATE_PREFIX = "notebook-state:";
+
+/**
+ * Baut den Rückruf, der `POST /purge` am NotebookDO des Notebooks aufruft. Ohne Namespace
+ * (z. B. ohne Binding) gibt es keinen Rückruf, die Löschung läuft dann ohne DO-Schritt.
+ */
+export function createNotebookStatePurger(
+  namespace: Env["NOTEBOOK_DO"] | undefined
+): NotebookStatePurger | undefined {
+  if (!namespace) {
+    return undefined;
+  }
+  return async (notebookId) => {
+    const stub = namespace.get(namespace.idFromName(notebookId));
+    const res = await stub.fetch("http://internal/purge", { method: "POST" });
+    if (!res.ok) {
+      throw new Error(`NotebookDO ${notebookId}: purge antwortete ${res.status}`);
+    }
+  };
+}
+
 export interface RunCleanupOptions {
   db: DatabaseAdapter;
   mediaBucket?: MinimalR2Bucket | null;
+  purgeNotebookState?: NotebookStatePurger | undefined;
   now?: number;
   batchSize?: number;
 }
@@ -83,7 +109,7 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
   const startTime = Date.now();
   const now = opts.now ?? startTime;
   const batchSize = Math.max(1, Math.min(opts.batchSize ?? 100, 500));
-  const { db, mediaBucket } = opts;
+  const { db, mediaBucket, purgeNotebookState } = opts;
 
   let deletedGuests = 0;
   let deletedSessions = 0;
@@ -117,22 +143,23 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
       db,
       mediaBucket,
       expiredGuests.map((g) => g.id),
-      now
+      now,
+      purgeNotebookState
     );
     deletedGuests += purged.deletedUsers;
     deletedNotebooks += purged.deletedNotebooks;
     deletedR2Objects += purged.deletedR2Objects;
   });
 
-  // 2. Finish R2 deletions that failed after an account deletion
+  // 2. Finish R2 and Durable Object deletions that failed after an account deletion
   await step("pending_r2", async () => {
-    if (!mediaBucket) {
+    if (!mediaBucket && !purgeNotebookState) {
       return;
     }
-    const drained = await drainPendingR2(db, mediaBucket, undefined, batchSize);
+    const drained = await drainPendingR2(db, mediaBucket, undefined, batchSize, purgeNotebookState);
     deletedR2Objects += drained.deletedObjects;
     if (drained.failed > 0) {
-      throw new Error(`${drained.failed} R2-Präfixe konnten nicht geleert werden`);
+      throw new Error(`${drained.failed} Löscheinträge konnten nicht abgearbeitet werden`);
     }
   });
 
@@ -152,6 +179,12 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
       }
       const res = await db.run(`DELETE FROM notebooks WHERE id IN (${marks(block.length)})`, block);
       deletedNotebooks += res.changes;
+      if (purgeNotebookState) {
+        // Only after the rows are gone: the DO holds the live document of an existing notebook.
+        const entries = block.map((id) => `${NOTEBOOK_STATE_PREFIX}${id}`);
+        await runBatch(db, pendingStatements(entries, now));
+        await drainPendingR2(db, mediaBucket, entries, batchSize, purgeNotebookState);
+      }
     }
   });
 
@@ -223,7 +256,7 @@ export interface PurgeUsersResult {
   deletedR2Objects: number;
   /** Eigene Arbeitsbereiche, die an ein anderes Mitglied übergeben wurden (F365). */
   transferredWorkspaces: number;
-  /** R2-Präfixe, die noch nicht geleert werden konnten; der Cron holt sie nach. */
+  /** R2-Präfixe und Notebook-DO-Zustände, die noch nicht geleert werden konnten; der Cron holt sie nach. */
   pendingR2Prefixes: number;
 }
 
@@ -247,7 +280,8 @@ export async function purgeUsers(
   db: DatabaseAdapter,
   mediaBucket: MinimalR2Bucket | null | undefined,
   userIds: readonly string[],
-  now: number = Date.now()
+  now: number = Date.now(),
+  purgeNotebookState?: NotebookStatePurger
 ): Promise<PurgeUsersResult> {
   const total: PurgeUsersResult = {
     deletedUsers: 0,
@@ -257,8 +291,9 @@ export async function purgeUsers(
     pendingR2Prefixes: 0
   };
   const unique = [...new Set(userIds)].filter((id) => id !== DELETED_USER_ID);
+  const excluded = new Set(unique);
   for (const block of chunked(unique)) {
-    const part = await purgeUserBlock(db, mediaBucket, block, now);
+    const part = await purgeUserBlock(db, mediaBucket, block, now, excluded, purgeNotebookState);
     total.deletedUsers += part.deletedUsers;
     total.deletedNotebooks += part.deletedNotebooks;
     total.deletedR2Objects += part.deletedR2Objects;
@@ -272,7 +307,9 @@ async function purgeUserBlock(
   db: DatabaseAdapter,
   mediaBucket: MinimalR2Bucket | null | undefined,
   ids: string[],
-  now: number
+  now: number,
+  excluded: ReadonlySet<string>,
+  purgeNotebookState: NotebookStatePurger | undefined
 ): Promise<PurgeUsersResult> {
   const ph = marks(ids.length);
   const statements: BatchStatement[] = [];
@@ -287,15 +324,18 @@ async function purgeUserBlock(
   const dropWorkspaceIds: string[] = [];
   let transferredWorkspaces = 0;
   for (const ws of owned) {
-    const successor = await db.queryOne<{ user_id: string }>(
+    // Candidates by priority: non-guests before guests, admins (role owner) before others, then
+    // longest membership. Accounts deleted in the same run (all blocks, not only this one) are
+    // skipped in code: the LIMIT leaves room for them, so no bound parameters are needed.
+    const candidates = await db.query<{ user_id: string }>(
       `SELECT m.user_id AS user_id
        FROM workspace_members m JOIN users u ON u.id = m.user_id
-       WHERE m.workspace_id = ? AND m.user_id NOT IN (${ph})
-         AND m.user_id <> ? AND u.deleted_at IS NULL
-       ORDER BY (m.role = 'owner') DESC, m.created_at ASC, m.user_id ASC
-       LIMIT 1`,
-      [ws.id, ...ids, DELETED_USER_ID]
+       WHERE m.workspace_id = ? AND m.user_id <> ? AND u.deleted_at IS NULL
+       ORDER BY (u.is_guest = 0) DESC, (m.role = 'owner') DESC, m.created_at ASC, m.user_id ASC
+       LIMIT ?`,
+      [ws.id, DELETED_USER_ID, excluded.size + 1]
     );
+    const successor = candidates.find((candidate) => !excluded.has(candidate.user_id));
     if (successor) {
       transferredWorkspaces += 1;
       statements.push({
@@ -323,21 +363,14 @@ async function purgeUserBlock(
     }
   }
 
-  // Queue R2 prefixes in the same batch as the deletion
-  const prefixes = [
-    ...ids.map((id) => `users/${id}/`),
-    ...dropNotebookIds.map((id) => `notebooks/${id}/`)
+  // Queue R2 prefixes and Durable Object states in the same batch as the deletion
+  const queued = [
+    ...(mediaBucket
+      ? [...ids.map((id) => `users/${id}/`), ...dropNotebookIds.map((id) => `notebooks/${id}/`)]
+      : []),
+    ...(purgeNotebookState ? dropNotebookIds.map((id) => `${NOTEBOOK_STATE_PREFIX}${id}`) : [])
   ];
-  if (mediaBucket) {
-    for (const block of chunked(prefixes, 25)) {
-      statements.push({
-        sql: `INSERT OR IGNORE INTO pending_r2_purge (prefix, created_at) VALUES ${block
-          .map(() => "(?,?)")
-          .join(",")}`,
-        params: block.flatMap((prefix) => [prefix, now])
-      });
-    }
-  }
+  statements.push(...pendingStatements(queued, now));
 
   for (const block of chunked(dropWorkspaceIds)) {
     statements.push({
@@ -395,13 +428,9 @@ async function purgeUserBlock(
 
   await runBatch(db, statements);
 
-  let deletedR2Objects = 0;
-  let pendingR2Prefixes = 0;
-  if (mediaBucket) {
-    const drained = await drainPendingR2(db, mediaBucket, prefixes);
-    deletedR2Objects = drained.deletedObjects;
-    pendingR2Prefixes = drained.failed;
-  }
+  const drained = await drainPendingR2(db, mediaBucket, queued, undefined, purgeNotebookState);
+  const deletedR2Objects = drained.deletedObjects;
+  const pendingR2Prefixes = drained.failed;
 
   return {
     deletedUsers: existing.length,
@@ -412,16 +441,29 @@ async function purgeUserBlock(
   };
 }
 
+/** INSERT statements for the queue table, at most 25 entries (50 parameters) each. */
+function pendingStatements(entries: readonly string[], now: number): BatchStatement[] {
+  return chunked(entries, 25).map((block) => ({
+    sql: `INSERT OR IGNORE INTO pending_r2_purge (prefix, created_at) VALUES ${block
+      .map(() => "(?,?)")
+      .join(",")}`,
+    params: block.flatMap((entry) => [entry, now])
+  }));
+}
+
 /**
- * Empties queued R2 prefixes and removes the queue entry only after success. Without `only`
- * the oldest queued prefixes (at most `limit`) are processed. A failing prefix does not abort
- * the others; its entry stays for the next run.
+ * Works off the queue table: R2 prefixes are emptied, `notebook-state:<id>` entries clear the
+ * Durable Object of a notebook. An entry is removed only after success. Without `only` the
+ * oldest queued entries (at most `limit`) are processed. A failing entry does not abort the
+ * others; it stays for the next run. Entries without a matching handler (no bucket, no
+ * purger) are left alone. A Durable Object is never cleared while its notebook still exists.
  */
 export async function drainPendingR2(
   db: DatabaseAdapter,
-  bucket: MinimalR2Bucket,
+  bucket: MinimalR2Bucket | null | undefined,
   only?: readonly string[],
-  limit = 100
+  limit = 100,
+  purgeNotebookState?: NotebookStatePurger
 ): Promise<{ deletedObjects: number; failed: number }> {
   const prefixes =
     only !== undefined
@@ -436,7 +478,24 @@ export async function drainPendingR2(
   let failed = 0;
   for (const prefix of prefixes) {
     try {
-      deletedObjects += await purgeR2Prefix(bucket, prefix);
+      if (prefix.startsWith(NOTEBOOK_STATE_PREFIX)) {
+        if (!purgeNotebookState) {
+          continue;
+        }
+        const notebookId = prefix.slice(NOTEBOOK_STATE_PREFIX.length);
+        const stillThere = await db.queryOne<{ id: string }>(
+          "SELECT id FROM notebooks WHERE id = ?",
+          [notebookId]
+        );
+        if (!stillThere) {
+          await purgeNotebookState(notebookId);
+        }
+      } else {
+        if (!bucket) {
+          continue;
+        }
+        deletedObjects += await purgeR2Prefix(bucket, prefix);
+      }
       await db.run("DELETE FROM pending_r2_purge WHERE prefix = ?", [prefix]);
     } catch (err) {
       failed += 1;
