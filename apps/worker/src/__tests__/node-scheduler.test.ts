@@ -46,11 +46,17 @@ describe("cleanup scheduler (cron replacement, #334)", () => {
     } as unknown as Env["NOTEBOOK_DO"];
     const run = vi.fn(async (_opts: Parameters<typeof runScheduledCleanup>[0]) => METRICS);
 
-    await runCleanupOnce({ ...ENV, NOTEBOOK_DO }, run, { info: vi.fn(), error: vi.fn() });
+    const JOB_DO = {
+      idFromName: (name: string) => name,
+      get: () => ({ fetch: fetchSpy })
+    } as unknown as Env["JOB_DO"];
+
+    await runCleanupOnce({ ...ENV, NOTEBOOK_DO, JOB_DO }, run, { info: vi.fn(), error: vi.fn() });
 
     const purge = run.mock.calls[0]?.[0].purgeNotebookState;
     expect(purge).toBeTypeOf("function");
     await purge?.("nb_1");
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
     expect(fetchSpy).toHaveBeenCalledWith("http://internal/purge", { method: "POST" });
   });
 

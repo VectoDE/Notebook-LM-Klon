@@ -12,9 +12,10 @@ import { createD1DatabaseAdapter } from "../d1-adapter.js";
 /** Same cadence as the Cloudflare cron trigger "0 * * * *". */
 export const DEFAULT_CLEANUP_INTERVAL_MINUTES = 60;
 
-/** DB and MEDIA are required; with NOTEBOOK_DO the cleanup also clears Durable Object state. */
+/** DB and MEDIA are required; with NOTEBOOK_DO and JOB_DO the cleanup also clears Durable Object state. */
 export type SchedulerEnv = Pick<Env, "DB" | "MEDIA"> & {
   readonly NOTEBOOK_DO?: Env["NOTEBOOK_DO"];
+  readonly JOB_DO?: Env["JOB_DO"];
 };
 
 export interface CleanupSchedulerOptions {
