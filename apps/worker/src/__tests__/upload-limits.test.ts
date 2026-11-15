@@ -60,7 +60,7 @@ function createDb(): {
     async exec(sql: string): Promise<void> {
       sqlite.exec(sql);
     },
-    async batch(statements: BatchStatement[]): Promise<void> {
+    async execBatch(statements: BatchStatement[]): Promise<void> {
       sqlite.exec("BEGIN");
       try {
         for (const statement of statements) {
