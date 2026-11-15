@@ -4,6 +4,7 @@ import {
   type GroundedChunkInput,
   type ProviderType,
   buildGroundedContext,
+  combineWithRrf,
   createProblemDetails,
   validateAndCleanCitations
 } from "@notebook-lm/shared";
@@ -11,6 +12,7 @@ import type { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { AutoRouter } from "./auto-router.js";
 import type { CoreRepository } from "./core-repository.js";
+import { embedQuery } from "./embeddings.js";
 import { buildSafeFts5MatchQuery } from "./fts5-probe.js";
 import { GeminiProvider } from "./gemini-provider.js";
 import { type KeyVault, deserializeEncryptedPayload } from "./key-vault.js";
@@ -284,33 +286,43 @@ export function registerChatRoutes(
       );
     }
 
-    // Attempt vector search if available
+    // Vektorsuche, wenn der Server einen Anfragevektor rechnen kann (Workers AI);
+    // sonst bleibt es bei den FTS5-Treffern.
     let vectorItems: { chunkId: string }[] = [];
-    try {
-      vectorItems = await queryNotebookVectorSearch(
-        c.env,
-        deps.ragRepo,
-        notebookId,
-        sourceIds && sourceIds.length > 0
-          ? { limit: searchLimit, sourceIds }
-          : { limit: searchLimit }
-      );
-    } catch {
-      // Vector search optional
+    const vectorQuery = await embedQuery(c.env, message, sessionUser);
+    if (vectorQuery) {
+      try {
+        vectorItems = await queryNotebookVectorSearch(
+          c.env,
+          deps.ragRepo,
+          notebookId,
+          sourceIds && sourceIds.length > 0
+            ? { ...vectorQuery, limit: searchLimit, sourceIds }
+            : { ...vectorQuery, limit: searchLimit }
+        );
+      } catch {
+        // Vector search optional
+      }
     }
 
-    const candidateChunkIds = new Set<string>();
-    for (const f of ftsChunks) {
-      candidateChunkIds.add(f.id);
-    }
-    for (const v of vectorItems) {
-      candidateChunkIds.add(v.chunkId);
-    }
+    // Beide Trefferlisten per RRF (k = 60) zu einer Reihenfolge verbinden, die besten zuerst.
+    const rankedChunkIds = combineWithRrf<{ chunkId: string }, string>(
+      vectorItems,
+      ftsChunks.map((f) => ({ chunkId: f.id })),
+      (item) => item.chunkId,
+      { k: 60 }
+    )
+      .slice(0, searchLimit)
+      .map((entry) => entry.item.chunkId);
 
     let chunks: GroundedChunkInput[] = [];
-    if (candidateChunkIds.size > 0) {
-      const fetchedChunks = await deps.ragRepo.getChunksByIds(Array.from(candidateChunkIds));
-      chunks = fetchedChunks.slice(0, searchLimit).map((c) => ({
+    if (rankedChunkIds.length > 0) {
+      const fetched = await deps.ragRepo.getChunksByIds(rankedChunkIds);
+      const byId = new Map(fetched.map((row) => [row.id, row]));
+      const fetchedChunks = rankedChunkIds
+        .map((id) => byId.get(id))
+        .filter((row): row is NonNullable<typeof row> => row !== undefined);
+      chunks = fetchedChunks.map((c) => ({
         chunkId: c.id,
         sourceId: c.source_id,
         sourceTitle: c.source_title || "Quelle",

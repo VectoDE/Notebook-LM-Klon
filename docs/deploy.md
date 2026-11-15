@@ -69,3 +69,25 @@ Freimenge. Ob das Konto über der Freimenge liegt, zeigt nur das Cloudflare-Dash
 6. `APP_ORIGIN` in `apps/worker/wrangler.jsonc` auf die echte HTTPS-Adresse setzen.
 7. Nach dem Deploy einmal im Browser als Gast anmelden und eine Chat-Frage stellen. Das braucht
    ein echtes Turnstile-Token und lässt sich deshalb nicht automatisch prüfen.
+
+## Workers AI (Embeddings)
+
+`apps/worker/wrangler.jsonc` bindet Workers AI als `AI` (`"ai": { "binding": "AI" }`). Ein eigenes
+Anlegen im Dashboard ist nicht nötig; Workers AI ist im Free-Plan enthalten (10.000 Neuronen pro
+Tag, siehe [platform-limits.md](./platform-limits.md)). Die Migration
+`0008_ai_embedding_usage.sql` legt den Tageszähler an und läuft mit Schritt 3 des Workflows.
+
+- **Token-Recht:** Laut Cloudflare braucht der Deploy eines Workers mit Bindings nur Editor-Rechte
+  am Worker, keine eigenen Rechte an den gebundenen Ressourcen
+  (<https://developers.cloudflare.com/workers/authorization/>, abgerufen 2026-11-14). Workers AI ist
+  dort nicht ausdrücklich genannt. Scheitert der Deploy mit einem Berechtigungsfehler zu Workers AI,
+  dem `CLOUDFLARE_API_TOKEN` zusätzlich *Account → Workers AI → Read* geben.
+- **Lokal:** Workers AI läuft nie lokal. `wrangler dev` verbindet das Binding deshalb mit dem
+  angemeldeten Konto und verbraucht dessen Kontingent. Der Lasttest
+  (`load-test/run-local.mjs`) startet mit einer Kopie der Konfiguration ohne `ai` und läuft ohne
+  Konto; Suche und Chat nutzen dort den Volltext-Rückfall. Die Node/Docker-Laufzeit hat kein
+  Binding und arbeitet ebenfalls nur mit Volltext.
+- **Nach dem Deploy prüfen:** eine Quelle hochladen und in D1
+  `SELECT model, COUNT(*) FROM chunk_vectors GROUP BY model` abfragen; es sollte
+  `@cf/google/embeddinggemma-2` erscheinen. Den Verbrauch zeigt
+  `SELECT * FROM ai_embedding_usage`.
