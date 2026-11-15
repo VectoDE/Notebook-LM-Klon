@@ -3,7 +3,7 @@
  *
  * Implements Sub-Issue #109 (Issue #21, Decisions #45, #63, #69).
  * Seeds the two showcase demo notebooks:
- * 1. RelationFlow & KI im Mittelstand (DSGVO, EU AI Act & RAG)
+ * 1. KI im Mittelstand (DSGVO, EU AI Act & RAG)
  * 2. Cloudflare Edge Architecture & High-Craft Web Engineering
  *
  * Idempotently inserts:
@@ -28,7 +28,7 @@ export const DEMO_SYSTEM_EMAIL = "system-demo@relationnotes.local";
 export const DEMO_SYSTEM_DISPLAY_NAME = "RelationNotes Demo System";
 
 export const DEMO_WORKSPACE_ID = "ws_demo_relationflow";
-export const DEMO_WORKSPACE_NAME = "RelationFlow & KI im Mittelstand";
+export const DEMO_WORKSPACE_NAME = "KI im Mittelstand";
 
 export interface DemoSeedMetrics {
   readonly seededWorkspaces: number;
