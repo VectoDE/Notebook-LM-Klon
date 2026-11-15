@@ -38,7 +38,7 @@ function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } 
       const info = stmt.run(...(params as (string | number | bigint | null)[]));
       return { changes: Number(info.changes) };
     },
-    async batch(statements: BatchStatement[]): Promise<void> {
+    async execBatch(statements: BatchStatement[]): Promise<void> {
       db.exec("BEGIN");
       try {
         for (const statement of statements) {

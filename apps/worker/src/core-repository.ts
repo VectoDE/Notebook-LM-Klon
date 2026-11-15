@@ -21,7 +21,7 @@ export interface DatabaseAdapter {
   queryOne<T = unknown>(sql: string, params?: unknown[]): Promise<T | null>;
   run(sql: string, params?: unknown[]): Promise<{ changes: number }>;
   /** Atomic execution (D1.batch: all or nothing). Optional for hand-written test adapters. */
-  batch?(statements: BatchStatement[]): Promise<void>;
+  execBatch?(statements: BatchStatement[]): Promise<void>;
 }
 
 export class CoreRepository {

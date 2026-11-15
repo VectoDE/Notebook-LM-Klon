@@ -56,8 +56,8 @@ export async function runBatch(db: DatabaseAdapter, statements: BatchStatement[]
   if (statements.length === 0) {
     return;
   }
-  if (db.batch) {
-    await db.batch(statements);
+  if (db.execBatch) {
+    await db.execBatch(statements);
     return;
   }
   for (const statement of statements) {

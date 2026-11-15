@@ -55,11 +55,11 @@ function enforceD1ParamLimit(inner: DatabaseAdapter): DatabaseAdapter {
       check(params);
       return inner.run(sql, params);
     },
-    batch: async (statements) => {
+    execBatch: async (statements) => {
       for (const statement of statements) {
         check(statement.params);
       }
-      await inner.batch?.(statements);
+      await inner.execBatch?.(statements);
     }
   };
 }
@@ -436,9 +436,9 @@ describe("purgeUsers: Teilfehler und Nachlauf", () => {
   it("lässt bei einem D1-Fehler mitten im Batch nichts zurück und rührt R2 nicht an", async () => {
     const failing: DatabaseAdapter = {
       ...fx.db,
-      batch: async (statements: BatchStatement[]) => {
+      execBatch: async (statements: BatchStatement[]) => {
         // Letzte Anweisung kaputt: der echte Batch muss alles zurückrollen
-        await fx.db.batch?.([
+        await fx.db.execBatch?.([
           ...statements,
           { sql: "INSERT INTO gibt_es_nicht VALUES (1)", params: [] }
         ]);
@@ -497,7 +497,7 @@ describe("purgeUsers: Teilfehler und Nachlauf", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const broken: DatabaseAdapter = {
       ...fx.db,
-      batch: async () => {
+      execBatch: async () => {
         throw new Error("D1 nicht erreichbar");
       }
     };

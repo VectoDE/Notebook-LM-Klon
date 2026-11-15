@@ -26,7 +26,7 @@ export function createD1DatabaseAdapter(db: D1Database): DatabaseAdapter {
         .run();
       return { changes: Number(res.meta.changes) };
     },
-    batch: async (statements) => {
+    execBatch: async (statements) => {
       await db.batch(
         statements.map((statement) => db.prepare(statement.sql).bind(...statement.params))
       );
