@@ -7,6 +7,15 @@
  * Verläufe und Lichtakzente sind reine Dekoration hinter oder neben dem Text.
  */
 
+/*
+ * Code-Schrift (JetBrains Mono, rund 40 KB) erst nach dem Laden (Issue #257, LCP mobil):
+ * Schon das Modell-Abzeichen im ersten Bild würde sie sonst vor dem ersten Inhalt holen.
+ * main.tsx setzt rn-mono-ready, sobald die Seite fertig ist; bis dahin gilt die Systemschrift.
+ */
+:root:not(.rn-mono-ready) {
+  --rn-font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
 /* ==========================================================================
    Grundgerüst
    ========================================================================== */
@@ -2208,6 +2217,22 @@ html[data-design="immersive-cinema"] .rn-source-meta .rn-source-type {
 /* Größe bleibt zusammen („24 KB“), umbrochen wird höchstens vor ihr */
 .rn-source-size {
   white-space: nowrap;
+}
+
+/* Stand eigener Uploads (P6): dritte Zeile unter Dateiname und Größe */
+.rn-source-status {
+  grid-column: 2 / span 2;
+  grid-row: 3;
+  min-width: 0;
+  padding-inline-end: var(--rn-space-2);
+  font-size: var(--rn-text-small);
+  line-height: 1.45;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-source-status[data-status="error"] {
+  font-weight: 600;
+  color: var(--rn-color-error);
 }
 
 .rn-source-inspect[aria-label$="schließen"] {

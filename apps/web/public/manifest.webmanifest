@@ -1,7 +1,7 @@
 {
   "name": "RelationNotes",
   "short_name": "RelationNotes",
-  "description": "NotebookLM & RelationFlow Knowledge Studio",
+  "description": "Quellen verstehen, mit Belegen chatten",
   "lang": "de",
   "start_url": "/",
   "scope": "/",

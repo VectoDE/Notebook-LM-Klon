@@ -61,7 +61,7 @@ export const TRANSLATIONS: Record<BuiltinLanguage, TranslationDictionary> = {
     ...AREA_DE,
     ...ENTITY_GRAPH_DE,
     ...STRUCTURED_DE,
-    appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
+    appTitle: "RelationNotes",
     appSubtitle:
       "Bereit für Forschung, Quellenanalyse, Wissengraphen und barrierefreie Studio-Synthese.",
     sourcesTitle: "Quellen",
@@ -193,7 +193,7 @@ export const TRANSLATIONS: Record<BuiltinLanguage, TranslationDictionary> = {
     ...AREA_EN,
     ...ENTITY_GRAPH_EN,
     ...STRUCTURED_EN,
-    appTitle: "RelationNotes - NotebookLM & RelationFlow Knowledge Studio",
+    appTitle: "RelationNotes",
     appSubtitle:
       "Ready for research, source grounding, knowledge graphs, and accessible synthesis.",
     sourcesTitle: "Sources",

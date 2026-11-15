@@ -6,7 +6,15 @@
  * Der Komponententyp wird je Instanz beim Einhängen festgelegt; ein späteres Laden des Moduls
  * hängt eine bereits sichtbare Instanz nicht neu ein (Zustand und Fokus bleiben erhalten).
  */
-import { type ComponentType, type ReactNode, Suspense, createElement, lazy, useState } from "react";
+import {
+  type ComponentType,
+  type ReactNode,
+  Suspense,
+  createElement,
+  lazy,
+  useRef,
+  useState
+} from "react";
 
 export interface PreloadableComponent<P extends object> {
   (props: P): ReactNode;
@@ -68,6 +76,36 @@ export const LazyCommentThread = lazyWithPreload(() =>
   import("./CommentThread.js").then((m) => m.CommentThread)
 );
 
+/**
+ * Teilen, Anmelden und Einstellungen sind beim Start unsichtbar (LCP mobil).
+ * Ihr Code lädt erst, wenn sie geöffnet werden; danach bleiben sie eingehängt, damit
+ * Rückgabe des Fokus und Schließen wie bisher laufen.
+ */
+
+/** Wie lazyWithPreload, hängt den Dialog aber erst beim ersten Öffnen ein. */
+function lazyDialog<P extends { readonly isOpen: boolean }>(
+  load: () => Promise<ComponentType<P>>
+): PreloadableComponent<P> {
+  const Inner = lazyWithPreload<P>(load);
+  const Dialog = (props: P): ReactNode => {
+    // Einmal geöffnet, bleibt der Dialog eingehängt (Wert nur steigend, daher beim Rendern sicher)
+    const wasOpened = useRef(props.isOpen);
+    if (props.isOpen) wasOpened.current = true;
+    return wasOpened.current ? createElement(Inner, props) : null;
+  };
+  return Object.assign(Dialog, { preload: Inner.preload });
+}
+
+export const LazyShareDialog = lazyDialog(() =>
+  import("./ShareDialog.js").then((m) => m.ShareDialog)
+);
+export const LazySignInDialog = lazyDialog(() =>
+  import("./SignInDialog.js").then((m) => m.SignInDialog)
+);
+export const LazySettingsDrawer = lazyDialog(() =>
+  import("./SettingsDrawer.js").then((m) => m.SettingsDrawer)
+);
+
 /** Viewer, die der Browser im Leerlauf vorlädt. */
 const IDLE_VIEWERS = [
   LazyMindmapViewer,
@@ -75,7 +113,11 @@ const IDLE_VIEWERS = [
   LazyQuizViewer,
   LazyTimelineViewer,
   LazyInfographicViewer,
-  LazyDataTableViewer
+  LazyDataTableViewer,
+  // Dialoge sind geschlossen unsichtbar; beim Öffnen sollen sie ohne Wartezeit da sein
+  LazyShareDialog,
+  LazySignInDialog,
+  LazySettingsDrawer
 ];
 
 /**
