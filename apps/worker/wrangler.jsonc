@@ -35,6 +35,7 @@
     "binding": "AI"
   },
   // Region (F249): R2 mit Location Hint Westeuropa, nur beim ersten Anlegen wirksam, kein Binding-Feld.
+  // Der Hint ist ein Wunsch ohne Garantie: Uploads dürfen nicht als EU-gespeichert beworben werden.
   // "jurisdiction" gehört nur zu Jurisdiktions-Buckets (eu, fedramp, us) und fehlt hier bewusst:
   // wrangler r2 bucket create notebook-lm-media --location=weur
   // Quelle: https://developers.cloudflare.com/r2/reference/data-location/

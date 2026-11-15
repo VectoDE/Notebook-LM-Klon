@@ -69,5 +69,9 @@ describe("Wrangler Single-Worker Configuration", () => {
     const deploy = readFileSync(join(import.meta.dirname, "../../../../docs/deploy.md"), "utf-8");
     expect(deploy).toContain("wrangler d1 create notebook-lm-db --jurisdiction=eu");
     expect(deploy).toContain("wrangler r2 bucket create notebook-lm-media --location=weur");
+    // Ehrlichkeit: der R2-Standort ist ein Wunsch ohne Garantie, keine EU-Zusage für Uploads.
+    expect(deploy).toContain("Wunsch ohne Garantie");
+    expect(deploy).toContain("bevorzugt Westeuropa, ohne Garantie");
+    expect(raw).toContain("Wunsch ohne Garantie");
   });
 });
