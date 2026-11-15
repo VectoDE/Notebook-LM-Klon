@@ -4,7 +4,7 @@ Stand: 13.11.2026. Bezug: Issue #255 (Entscheidung E37: aktuelle Chrome, Edge, F
 
 ## Automatisch geprüft
 
-Stand: 15.11.2026. `apps/web/playwright.config.ts` hat 15 Projekte. Der Job `e2e` führt die vollständige E2E-Suite nur in Chromium aus. Der Job `e2e-matrix` startet je Projekt einen eigenen Job (`fail-fast: false`, kein `allow-failure`, nichts übersprungen) mit den Specs `browser-matrix` (Darstellung je Design), `browser-zoom` (nur Desktop) und `browser-touch` (nur Touch-Geräte). Die Jobs laufen auf den von GitHub gestellten Runnern (öffentliches Repository, kostenlos): ubuntu für alle Projekte, zusätzlich windows (Chrome, Edge stable und Beta, Firefox) und macos (WebKit, Firefox, iPhone und iPad in Hoch- und Querformat). Keine selbst gehosteten Runner. Jede Spec ist per `testMatch` nur den Projekten zugeordnet, für die sie gilt.
+Stand: 15.11.2026. `apps/web/playwright.config.ts` hat 17 Projekte (15 davon im Job `e2e-matrix`; `chrome-dev` und `msedge-dev` nur im Nachtlauf). Der Job `e2e` führt die vollständige E2E-Suite nur in Chromium aus. Der Job `e2e-matrix` startet je Projekt einen eigenen Job (`fail-fast: false`, kein `allow-failure`, nichts übersprungen) mit den Specs `browser-matrix` (Darstellung je Design), `browser-zoom` (nur Desktop) und `browser-touch` (nur Touch-Geräte). Die Jobs laufen auf den von GitHub gestellten Runnern (öffentliches Repository, kostenlos): ubuntu für alle Projekte, zusätzlich windows (Chrome, Edge stable und Beta, Firefox) und macos (WebKit, Firefox, iPhone und iPad in Hoch- und Querformat). Keine selbst gehosteten Runner. Jede Spec ist per `testMatch` nur den Projekten zugeordnet, für die sie gilt.
 
 | Projekt | Engine und Version | Gerät | Specs |
 |---|---|---|---|
@@ -29,9 +29,19 @@ Quellen: Playwright-Dokumentation [Browsers](https://playwright.dev/docs/browser
 - **Ältere Versionen und ESR:** Playwright bindet jede Release an genau eine Fassung je Engine. Firefox entspricht dem aktuellen Firefox stable, WebKit dem Entwicklungsstand. Firefox ESR, Firefox Beta/Nightly, die vorige Safari-Hauptversion und ältere Chrome-/Edge-Fassungen sind damit nicht prüfbar. Playwright arbeitet nicht mit gebrandetem Firefox oder Safari.
 - **Echtes Safari und iOS:** Die WebKit-Projekte prüfen die Engine, nicht Safari-Release, iOS-Version, Adressleiste oder Tastatur. Geräteprofile emulieren Größe, Touch und User-Agent, keine Hardware.
 - **Samsung Internet, Firefox für Android, ältere Android-Versionen:** nicht abgedeckt.
-- **Edge/Chrome Dev und Canary:** möglich (`chrome-dev`, `msedge-dev`), aber instabil und nicht aufgenommen.
+- **Edge/Chrome Dev und Canary:** `chrome-dev` und `msedge-dev` laufen seit Issue #431 nächtlich im nicht blockierenden Workflow `e2e-matrix-nightly.yml` (zusammen mit Chrome/Edge Beta, WebKit und iPhone 13 auf macOS). Canary ist nicht aufgenommen, da instabil.
 
-Optionen für die Lücken (nur genannt, nichts angemeldet): kostenlose Kontingente für Open-Source-Projekte bei Gerätefarmen (zum Beispiel BrowserStack Open Source, LambdaTest Open Source), Prüfung auf eigenen Geräten durch den Inhaber, oder Firefox ESR über eine eigene Installation im CI (ohne Playwright-Unterstützung nicht empfohlen). Die Entscheidung liegt beim Inhaber.
+### Verbleibende Lücken (Stand 15.11.2026, Issue #431)
+
+| Lücke | Warum kostenlos nicht prüfbar |
+|---|---|
+| Firefox ESR, Firefox Beta/Nightly | Playwright bindet Firefox an die Stable-Fassung eines Releases und unterstützt gebrandetes Firefox nicht. Eine eigene Mozilla-Installation im CI wäre ohne Playwright-Unterstützung fehleranfällig. |
+| Echtes Safari, vorige Safari-Hauptversion, iOS | Playwright-WebKit ist nicht Safari (anderer Stand, keine Adressleiste, keine iOS-Tastatur). iPhone-Profile emulieren Größe, Touch und User-Agent, keine Hardware. |
+| Samsung Internet | Kein Playwright-Kanal, nur auf echten Geräten oder in einer Gerätefarm. |
+| Firefox für Android | Kein Playwright-Support. |
+| Ältere Android-Versionen, echte Geräte | Playwright emuliert Android-Profile mit aktuellem Chromium. Ältere WebViews und Herstellerbrowser nur über Gerätefarm oder eigene Geräte. |
+
+Der Nachtlauf schließt diese Lücken nicht. Optionen (nichts angemeldet): kostenlose Kontingente für Open-Source-Projekte bei Gerätefarmen (zum Beispiel BrowserStack Open Source; Voraussetzungen vorher beim Anbieter klären), Stichprobe auf eigenen Geräten vor Releases, Anpassung des Support-Ziels. Die Entscheidung liegt beim Inhaber, siehe Issue #431.
 
 ## Safari 15: Befund
 
