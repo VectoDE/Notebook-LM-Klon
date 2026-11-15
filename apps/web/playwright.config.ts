@@ -1,8 +1,35 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
+ * Browser- und Geräte-Matrix (Issue #255, Vorgabe F351). Jeder Eintrag läuft in der CI als
+ * eigener Matrix-Job (`e2e-matrix` in .github/workflows/ci.yml). Die Kanäle `chrome-beta` und
+ * `msedge-beta` prüfen kommende Versionen; Firefox und WebKit sind die von Playwright
+ * mitgelieferten Fassungen. Nichts wird übersprungen: jede Spec ist nur den Projekten
+ * zugeordnet, für die sie gilt.
+ */
+const DESKTOP_MATRIX = [
+  { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+  { name: "webkit", use: { ...devices["Desktop Safari"] } },
+  { name: "chrome", use: { ...devices["Desktop Chrome"], channel: "chrome" } },
+  { name: "chrome-beta", use: { ...devices["Desktop Chrome"], channel: "chrome-beta" } },
+  { name: "msedge", use: { ...devices["Desktop Edge"], channel: "msedge" } },
+  { name: "msedge-beta", use: { ...devices["Desktop Edge"], channel: "msedge-beta" } }
+] as const;
+
+const TOUCH_MATRIX = [
+  { name: "phone-android", use: { ...devices["Pixel 7"] } },
+  { name: "phone-android-landscape", use: { ...devices["Pixel 7 landscape"] } },
+  { name: "phone-ios", use: { ...devices["iPhone 13"] } },
+  { name: "phone-ios-landscape", use: { ...devices["iPhone 13 landscape"] } },
+  { name: "tablet-ios", use: { ...devices["iPad Pro 11"] } },
+  { name: "tablet-ios-landscape", use: { ...devices["iPad Pro 11 landscape"] } },
+  { name: "tablet-android", use: { ...devices["Galaxy Tab S4"] } },
+  { name: "tablet-android-landscape", use: { ...devices["Galaxy Tab S4 landscape"] } }
+] as const;
+
+/**
  * E2E-Prüfungen der Web-App (Zoom 200 %, mobiler Kopf, Bewegung, Schriftgrößen) sowie
- * eine Browser-Matrix für Firefox, WebKit und Touch-Geräte.
+ * eine Browser-Matrix für Desktop-Browser, Kanäle und Touch-Geräte.
  * Aufruf: pnpm --filter @notebook-lm/web test:e2e
  */
 export default defineConfig({
@@ -18,29 +45,18 @@ export default defineConfig({
     trace: "retain-on-failure"
   },
   projects: [
+    // Vollständige E2E-Suite: nur Chromium (der e2e-Job in ci.yml).
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    // Browser- und Touch-Matrix (Issue #255): eigene Prüfungen in Firefox, WebKit
-    // (Safari-Engine) und auf zwei Touch-Geräten
-    {
-      name: "firefox",
-      use: { ...devices["Desktop Firefox"] },
-      testMatch: /browser-matrix\.spec\.ts/
-    },
-    {
-      name: "webkit",
-      use: { ...devices["Desktop Safari"] },
-      testMatch: /browser-matrix\.spec\.ts/
-    },
-    {
-      name: "mobile-chrome",
-      use: { ...devices["Pixel 7"] },
-      testMatch: /browser-matrix\.spec\.ts/
-    },
-    {
-      name: "mobile-safari",
-      use: { ...devices["iPhone 13"] },
-      testMatch: /browser-matrix\.spec\.ts/
-    }
+    ...DESKTOP_MATRIX.map(({ name, use }) => ({
+      name,
+      use,
+      testMatch: /browser-(matrix|zoom)\.spec\.ts/
+    })),
+    ...TOUCH_MATRIX.map(({ name, use }) => ({
+      name,
+      use,
+      testMatch: /browser-(matrix|touch)\.spec\.ts/
+    }))
   ],
   webServer: {
     command: "pnpm exec vite --host 127.0.0.1 --port 4173 --strictPort",

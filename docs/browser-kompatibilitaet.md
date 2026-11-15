@@ -4,19 +4,34 @@ Stand: 13.11.2026. Bezug: Issue #255 (Entscheidung E37: aktuelle Chrome, Edge, F
 
 ## Automatisch geprüft
 
-`apps/web/playwright.config.ts` hat fünf Projekte. Chromium führt alle E2E-Prüfungen aus, die übrigen vier die Browser-Matrix `apps/web/e2e/browser-matrix.spec.ts`:
+Stand: 15.11.2026. `apps/web/playwright.config.ts` hat 15 Projekte. Der Job `e2e` führt die vollständige E2E-Suite nur in Chromium aus. Der Job `e2e-matrix` startet je Projekt einen eigenen Job (`fail-fast: false`, kein `allow-failure`, nichts übersprungen) mit den Specs `browser-matrix` (Darstellung je Design), `browser-zoom` (nur Desktop) und `browser-touch` (nur Touch-Geräte). Jede Spec ist per `testMatch` nur den Projekten zugeordnet, für die sie gilt.
 
-| Projekt | Engine | Entspricht | Geprüft |
+| Projekt | Engine und Version | Gerät | Specs |
 |---|---|---|---|
-| chromium | Chromium | Chrome, Edge | alle E2E-Specs |
-| firefox | Gecko | Firefox | Matrix |
-| webkit | WebKit | Safari (Desktop) | Matrix |
-| mobile-chrome | Chromium, Pixel 7, Touch | Chrome auf Android | Matrix |
-| mobile-safari | WebKit, iPhone 13, Touch | Safari auf iOS | Matrix |
+| chromium | Playwright-Chromium (aktuell) | Desktop | alle E2E-Specs |
+| chrome | Google Chrome stable | Desktop | Matrix, Zoom |
+| chrome-beta | Google Chrome Beta (kommende Version) | Desktop | Matrix, Zoom |
+| msedge | Microsoft Edge stable | Desktop | Matrix, Zoom |
+| msedge-beta | Microsoft Edge Beta (kommende Version) | Desktop | Matrix, Zoom |
+| firefox | Playwright-Firefox (entspricht Firefox stable) | Desktop | Matrix, Zoom |
+| webkit | Playwright-WebKit (Entwicklungsstand, oft vor Safari) | Desktop | Matrix, Zoom |
+| phone-android, phone-android-landscape | Chromium, Pixel 7 | Telefon hoch, quer | Matrix, Touch |
+| phone-ios, phone-ios-landscape | WebKit, iPhone 13 | Telefon hoch, quer | Matrix, Touch |
+| tablet-ios, tablet-ios-landscape | WebKit, iPad Pro 11 | Tablet hoch, quer | Matrix, Touch |
+| tablet-android, tablet-android-landscape | Chromium, Galaxy Tab S4 | Tablet hoch, quer | Matrix, Touch |
 
-Die Matrix prüft je Design: Hell und Dunkel ohne Layoutfehler, keine Schrift unter 14 px, Seitentext mindestens 16 px; am Desktop 200 % Zoom (640 x 400 CSS-Pixel) ohne horizontalen Scroll in allen drei Bereichen; auf Touch-Geräten Bereichswechsel per Tippen, Menü per Tippen, Bedienziele im Kopf und in der unteren Leiste mindestens 44 x 44 px.
+Die Matrix prüft je Design: Hell und Dunkel ohne Layoutfehler, keine Schrift unter 14 px, Seitentext mindestens 16 px; am Desktop 200 % Zoom (640 x 400 CSS-Pixel) ohne horizontalen Scroll in allen drei Bereichen; auf Touch-Geräten Wechsel der Bereiche per Tippen (untere Leiste, Reiter oder nebeneinanderliegende Spalten, je nach Breite), Bedienziele mindestens 44 x 44 px und Menü per Tippen.
 
-Grenze: Playwright-WebKit ist die aktuelle WebKit-Engine, nicht ein bestimmtes Safari-Release. Ein echter Test auf iOS 15 braucht ein Gerät oder einen Gerätedienst und ist damit nicht automatisiert.
+## Was kostenlos nicht prüfbar ist (Lücken)
+
+Quellen: Playwright-Dokumentation [Browsers](https://playwright.dev/docs/browsers) und [Emulation](https://playwright.dev/docs/emulation), Abruf 15.11.2026.
+
+- **Ältere Versionen und ESR:** Playwright bindet jede Release an genau eine Fassung je Engine. Firefox entspricht dem aktuellen Firefox stable, WebKit dem Entwicklungsstand. Firefox ESR, Firefox Beta/Nightly, die vorige Safari-Hauptversion und ältere Chrome-/Edge-Fassungen sind damit nicht prüfbar. Playwright arbeitet nicht mit gebrandetem Firefox oder Safari.
+- **Echtes Safari und iOS:** Die WebKit-Projekte prüfen die Engine, nicht Safari-Release, iOS-Version, Adressleiste oder Tastatur. Geräteprofile emulieren Größe, Touch und User-Agent, keine Hardware.
+- **Samsung Internet, Firefox für Android, ältere Android-Versionen:** nicht abgedeckt.
+- **Edge/Chrome Dev und Canary:** möglich (`chrome-dev`, `msedge-dev`), aber instabil und nicht aufgenommen.
+
+Optionen für die Lücken (nur genannt, nichts angemeldet): kostenlose Kontingente für Open-Source-Projekte bei Gerätefarmen (zum Beispiel BrowserStack Open Source, LambdaTest Open Source), Prüfung auf eigenen Geräten durch den Inhaber, oder Firefox ESR über eine eigene Installation im CI (ohne Playwright-Unterstützung nicht empfohlen). Die Entscheidung liegt beim Inhaber.
 
 ## Safari 15: Befund
 
