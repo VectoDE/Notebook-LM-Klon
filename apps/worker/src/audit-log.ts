@@ -161,7 +161,7 @@ function parseQueuedAuditKey(key: string): AuditLogRow | null {
     return null;
   }
   return {
-    id: `aud_retry_${created}_${(ipHash as string).slice(0, 12)}_${action}`,
+    id: `aud_retry_${created}_${(ipHash as string).slice(0, 12)}_${action}_${target}`,
     user_id: null,
     action: action as AuditAction,
     target,
