@@ -59,6 +59,6 @@ describe("Öffentliche Inhalte ohne Bewerbungsbezug", () => {
   });
 
   it("verlinkt kein nicht existierendes RelationFlow-Repository", () => {
-    expect(offenders(/github\.com\/VectoDE\/RelationFlow/i)).toEqual([]);
+    expect(offenders(/VectoDE\/RelationFlow/i)).toEqual([]);
   });
 });
