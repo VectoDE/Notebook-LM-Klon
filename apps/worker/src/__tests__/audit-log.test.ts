@@ -53,7 +53,7 @@ function createDb(): { sqlite: DatabaseSync; adapter: DatabaseAdapter } {
       const info = sqlite.prepare(sql).run(...(params as (string | number | null)[]));
       return { changes: Number(info.changes) };
     },
-    async batch(statements: BatchStatement[]) {
+    async execBatch(statements: BatchStatement[]) {
       sqlite.exec("BEGIN");
       try {
         for (const statement of statements) {
@@ -393,7 +393,7 @@ describe("Audit-Ereignisse an den Routen (Issue #259)", () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const broken: DatabaseAdapter = {
       ...repo.db,
-      batch: async () => {
+      execBatch: async () => {
         throw new Error("D1 nicht erreichbar");
       }
     };
