@@ -320,7 +320,14 @@ test.describe("Teilen-Dialog (nur Oberfläche)", () => {
     await page.goto("/");
     const requests: string[] = [];
     page.on("request", (request) => {
-      if (!request.url().includes("/@") && !request.url().includes("/src/")) {
+      const url = request.url();
+      // Der Schlüsselabruf der Offline-Synchronisation (#347/#348) läuft beim Laden im
+      // Hintergrund und hat mit dem Dialog nichts zu tun.
+      if (
+        !url.includes("/@") &&
+        !url.includes("/src/") &&
+        !url.endsWith("/api/v1/auth/local-key")
+      ) {
         requests.push(`${request.method()} ${request.url()}`);
       }
     });
@@ -402,14 +409,16 @@ test.describe("Konto-Menü: Gast", () => {
 
     await trigger.focus();
     await page.keyboard.press("Enter");
-    // Fokusfalle mit zwei Knöpfen: Anmelden, Einstellungen (Issue #233)
+    // Fokusfalle mit drei Knöpfen: Anmelden, Einstellungen (Issue #233), Abmelden (Issue #348)
     await expect(page.getByTestId("account-open-sign-in")).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(page.getByTestId("account-open-settings")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.getByTestId("account-sign-out")).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(page.getByTestId("account-open-sign-in")).toBeFocused();
     await page.keyboard.press("Shift+Tab");
-    await expect(page.getByTestId("account-open-settings")).toBeFocused();
+    await expect(page.getByTestId("account-sign-out")).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(menu).toBeHidden();
     await expect(trigger).toBeFocused();

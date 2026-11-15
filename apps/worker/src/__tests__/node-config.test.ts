@@ -157,6 +157,73 @@ describe("loadNodeConfig", () => {
     expect(loadNodeConfig({ ...BASE, PORT: "0" }).config.appOrigin).toBe("http://localhost:8787");
   });
 
+  it("defaults to the hourly cleanup like the Cloudflare cron and accepts 0 for an external cron", () => {
+    expect(loadNodeConfig(BASE).config.cleanupIntervalMinutes).toBe(60);
+    expect(
+      loadNodeConfig({ ...BASE, CLEANUP_INTERVAL_MINUTES: "15" }).config.cleanupIntervalMinutes
+    ).toBe(15);
+    const off = loadNodeConfig({ ...BASE, CLEANUP_INTERVAL_MINUTES: "0" });
+    expect(off.config.cleanupIntervalMinutes).toBe(0);
+    expect(off.warnings).toContainEqual(expect.stringMatching(/node-server\.js cleanup/));
+    expect(problemsOf({ ...BASE, CLEANUP_INTERVAL_MINUTES: "-1" })).toEqual([
+      expect.stringMatching(/CLEANUP_INTERVAL_MINUTES muss eine ganze Zahl/)
+    ]);
+    expect(problemsOf({ ...BASE, CLEANUP_INTERVAL_MINUTES: "1.5" })).toHaveLength(1);
+  });
+
+  it("reads SMTP settings and prefers SMTP over Resend with a warning", () => {
+    const { config, warnings } = loadNodeConfig({
+      ...BASE,
+      TURNSTILE_SECRET_KEY: "0x-real-secret",
+      SMTP_HOST: "smtp.example.org",
+      SMTP_USER: "mailer",
+      SMTP_PASS: "pw",
+      MAIL_FROM: "notes@example.org",
+      RESEND_API_KEY: "re_x"
+    });
+    expect(config.smtp).toEqual({
+      host: "smtp.example.org",
+      port: 587,
+      secure: false,
+      requireTls: true,
+      user: "mailer",
+      pass: "pw",
+      from: "notes@example.org"
+    });
+    expect(warnings).toEqual([expect.stringMatching(/Mails gehen per SMTP/)]);
+  });
+
+  it("is silent with SMTP alone and has no SMTP without SMTP_HOST", () => {
+    const smtpOnly = loadNodeConfig({
+      ...BASE,
+      TURNSTILE_SECRET_KEY: "0x-real-secret",
+      SMTP_HOST: "mail.internal",
+      MAIL_FROM: "notes@example.org"
+    });
+    expect(smtpOnly.warnings).toEqual([]);
+    expect(loadNodeConfig(BASE).config.smtp).toBeUndefined();
+  });
+
+  it("refuses incomplete SMTP settings", () => {
+    const problems = problemsOf({
+      ...BASE,
+      SMTP_HOST: "smtp.example.org",
+      SMTP_PORT: "70000",
+      SMTP_USER: "mailer"
+    });
+    expect(problems).toEqual([
+      expect.stringMatching(/SMTP_PORT muss/),
+      expect.stringMatching(/MAIL_FROM fehlt/),
+      expect.stringMatching(/SMTP_PASS fehlt/)
+    ]);
+    expect(
+      problemsOf({ ...BASE, SMTP_HOST: "h", SMTP_PORT: "0", MAIL_FROM: "a@b.example" })
+    ).toHaveLength(1);
+    expect(
+      problemsOf({ ...BASE, SMTP_HOST: "h", SMTP_PORT: "x", MAIL_FROM: "a@b.example" })
+    ).toHaveLength(1);
+  });
+
   it("reads process.env by default", () => {
     expect(() => loadNodeConfig()).toThrow(NodeConfigError);
   });

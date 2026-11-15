@@ -1,5 +1,5 @@
 <svg lang="en" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" width="1200" height="500" role="img" aria-labelledby="rf-title rf-desc">
-  <title id="rf-title">Docking architecture for Everlast RelationFlow</title>
+  <title id="rf-title">Docking architecture for RelationFlow</title>
   <desc id="rf-desc">Shows how the NotebookLM clone plugs into the RelationFlow platform as a knowledge, RAG and Studio module via workspaces, roles (Owner, Editor, Viewer), an auto LLM router and the dedicated /api/v1/notebooks/:id/search endpoint.</desc>
   <style>
     :root {
@@ -32,7 +32,7 @@
 
   <rect width="1200" height="500" rx="20" fill="url(#rfBg)" />
 
-  <text x="48" y="52" fill="#F8FAFC" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="24" font-weight="700">Docking onto RelationFlow (Everlast Consulting) – modular bridge architecture</text>
+  <text x="48" y="52" fill="#F8FAFC" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="24" font-weight="700">Docking onto RelationFlow – modular bridge architecture</text>
   <text x="48" y="78" fill="#CBD5E1" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif" font-size="14">Shared role model (Owner/Editor/Viewer) · Smart auto model router · Standalone hybrid RAG API for AI assistants</text>
 
   <!-- Left: RelationFlow Core -->

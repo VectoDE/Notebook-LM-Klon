@@ -29,6 +29,9 @@ function createMockD1(): { db: D1Database; adapter: DatabaseAdapter; close: () =
     "utf-8"
   );
   sqlite.exec(migration2);
+  sqlite.exec(
+    readFileSync(resolve(process.cwd(), "apps/worker/migrations/0007_upload_grenzen.sql"), "utf-8")
+  );
 
   const adapter: DatabaseAdapter = {
     async query<T>(query: string, params: unknown[] = []): Promise<T[]> {
@@ -473,6 +476,23 @@ describe("Sources Upload Flow Endpoints", () => {
       const problem = (await res.json()) as { code: string; detail: string };
       expect(problem.code).toBe("FILE_TOO_LARGE");
       expect(problem.detail).toContain("50 MB");
+      expect(problem.detail).toContain("Dateigröße");
+    });
+
+    it("answers FILE_TOO_LARGE in English when the client prefers English", async () => {
+      const res = await app.request(`/api/v1/notebooks/${testNotebookId}/sources`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept-Language": "en-US,en;q=0.9" },
+        body: JSON.stringify({
+          filename: "big.pdf",
+          mimeType: "application/pdf",
+          byteSize: MAX_SOURCE_BYTE_SIZE_LIMIT + 1
+        })
+      });
+      expect(res.status).toBe(413);
+      const problem = (await res.json()) as { code: string; detail: string };
+      expect(problem.code).toBe("FILE_TOO_LARGE");
+      expect(problem.detail).toBe("The file is 50 MB. Each file may be at most 50 MB.");
     });
 
     it("accepts a file of exactly 50 MB", async () => {
@@ -573,7 +593,7 @@ describe("Sources Upload Flow Endpoints", () => {
         c.env = {
           DB: mockD1.db,
           MEDIA: mockR2,
-          APP_PROFILE: "demo",
+          APP_PROFILE: "full",
           APP_ORIGIN: "http://localhost:8787",
           R2_ACCESS_KEY_ID: "mock-access-key",
           R2_SECRET_ACCESS_KEY: "mock-secret-key",

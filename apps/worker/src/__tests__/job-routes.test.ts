@@ -274,17 +274,32 @@ describe("Job API Routes (POST /api/v1/jobs/enqueue, GET /api/v1/jobs/:id, etc.)
     expect(noCoreEnqueueRes.status).toBe(200);
   });
 
-  it("handles GET /api/v1/jobs/:id and POST /api/v1/jobs/:id/cancel", async () => {
+  it("handles GET and cancel under /api/v1/notebooks/:id/jobs/:jobId with ownership check", async () => {
+    const calls: Array<{ notebookId: string; path: string; method: string }> = [];
+    const jobs: Record<string, unknown> = {
+      "job-1": { id: "job-1", notebookId: "nb-1", status: "running", progress: 50 },
+      "job-other": { id: "job-other", notebookId: "nb-2", status: "running" },
+      "job-garbled": "not-json"
+    };
     const mockEnv = {
       JOB_DO: {
         idFromName: (name: string) => name,
-        get: () => ({
+        get: (notebookId: string) => ({
           fetch: async (req: Request) => {
             const url = new URL(req.url);
-            if (url.pathname.endsWith("/cancel")) {
-              return Response.json({ id: "job-1", status: "cancelled" }, { status: 200 });
+            calls.push({ notebookId, path: url.pathname, method: req.method });
+            const id = decodeURIComponent(url.pathname.split("/")[2] ?? "");
+            if (id === "job-down") {
+              return Response.json({ code: "BROKEN" }, { status: 500 });
             }
-            return Response.json({ id: "job-1", status: "running", progress: 50 }, { status: 200 });
+            const job = jobs[id];
+            if (job === undefined) {
+              return Response.json({ code: "JOB_NOT_FOUND" }, { status: 404 });
+            }
+            if (url.pathname.endsWith("/cancel")) {
+              return Response.json({ id, status: "cancelled" }, { status: 200 });
+            }
+            return typeof job === "string" ? new Response(job) : Response.json(job);
           }
         })
       }
@@ -296,37 +311,52 @@ describe("Job API Routes (POST /api/v1/jobs/enqueue, GET /api/v1/jobs/:id, etc.)
       await next();
     });
     registerJobRoutes(app);
+    const base = "http://localhost/api/v1/notebooks/nb-1/jobs";
 
-    // GET /jobs/:id
-    const getRes = await app.request("http://localhost/api/v1/jobs/job-1", {}, mockEnv);
+    const getRes = await app.request(`${base}/job-1`, {}, mockEnv);
     expect(getRes.status).toBe(200);
-    const getJson = (await getRes.json()) as { status: string };
-    expect(getJson.status).toBe("running");
+    expect(getRes.headers.get("cache-control")).toBe("no-store");
+    expect(((await getRes.json()) as { status: string }).status).toBe("running");
+    expect(calls.at(-1)).toEqual({ notebookId: "nb-1", path: "/jobs/job-1", method: "GET" });
 
-    // POST /jobs/:id/cancel
-    const cancelRes = await app.request(
-      "http://localhost/api/v1/jobs/job-1/cancel",
+    // Job of another notebook, unknown job and unparsable record: 404 JOB_NOT_FOUND
+    for (const jobId of ["job-other", "job-missing", "job-garbled"]) {
+      const res = await app.request(`${base}/${jobId}`, {}, mockEnv);
+      expect(res.status, jobId).toBe(404);
+      expect(ProblemDetailsSchema.parse(await res.json()).code).toBe("JOB_NOT_FOUND");
+    }
+
+    // JobDO failures are passed through unchanged
+    expect((await app.request(`${base}/job-down`, {}, mockEnv)).status).toBe(500);
+
+    // Cancel: ownership verified first, then forwarded to the same notebook's JobDO
+    calls.length = 0;
+    const cancelRes = await app.request(`${base}/job-1/cancel`, { method: "POST" }, mockEnv);
+    expect(cancelRes.status).toBe(200);
+    expect(((await cancelRes.json()) as { status: string }).status).toBe("cancelled");
+    expect(calls).toEqual([
+      { notebookId: "nb-1", path: "/jobs/job-1", method: "GET" },
+      { notebookId: "nb-1", path: "/jobs/job-1/cancel", method: "POST" }
+    ]);
+
+    calls.length = 0;
+    const foreignCancel = await app.request(
+      `${base}/job-other/cancel`,
       { method: "POST" },
       mockEnv
     );
-    expect(cancelRes.status).toBe(200);
-    const cancelJson = (await cancelRes.json()) as { status: string };
-    expect(cancelJson.status).toBe("cancelled");
+    expect(foreignCancel.status).toBe(404);
+    expect(calls.some((call) => call.path.endsWith("/cancel"))).toBe(false);
 
-    // Unauth GET
+    // Old routes without notebook are gone
+    expect((await app.request("http://localhost/api/v1/jobs/job-1", {}, mockEnv)).status).toBe(404);
+
+    // Unauthenticated
     const unauthApp = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
     registerJobRoutes(unauthApp);
+    expect((await unauthApp.request(`${base}/job-1`, {}, mockEnv)).status).toBe(401);
     expect(
-      (await unauthApp.request("http://localhost/api/v1/jobs/job-1", {}, mockEnv)).status
-    ).toBe(401);
-    expect(
-      (
-        await unauthApp.request(
-          "http://localhost/api/v1/jobs/job-1/cancel",
-          { method: "POST" },
-          mockEnv
-        )
-      ).status
+      (await unauthApp.request(`${base}/job-1/cancel`, { method: "POST" }, mockEnv)).status
     ).toBe(401);
   });
 

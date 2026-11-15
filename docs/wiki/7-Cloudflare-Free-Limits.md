@@ -19,7 +19,7 @@ Der NotebookLM-Klon läuft vollständig auf **einem einzigen Cloudflare Worker**
 | **Cloudflare D1 (SQLite)** | 5 Mio. Rows read/Tag, 100.000 Rows written/Tag, 500 MB pro DB, max. 50 Queries/Invocation | Ein Vollscan über 50.000 Vektor-Zeilen bei jeder Chat-Anfrage würde das tägliche Read-Limit nach 100 Suchanfragen erschöpfen. | **Symmetrische `int8`-Quantisierung** (768 Bytes statt 3.072 Bytes pro Vektor) + **In-Memory-Cache im `NotebookDO`**: Die Vektoren eines Notebooks werden nur beim Kaltstart einmal aus D1 geladen und danach im RAM des `NotebookDO` per schnellem Dot-Product durchsucht. D1 führt parallel nur die indexierte `FTS5`-BM25-Suche aus. |
 | **Cloudflare R2** | 10 GB Speicher/Monat, 1 Mio. Class-A-Ops (Writes), 10 Mio. Class-B-Ops (Reads), **0 € Egress** | Große Quelldateien (bis 50 MB je Datei und 200 MB je Notebook, in beiden Profilen) dürfen den Worker-Speicher (128 MB) nicht sprengen. | Dualer Upload-Pfad (Entscheidung #57): Primär **S3-kompatible Presigned URL** (`aws4fetch`, direkter Browser-PUT nach R2) mit automatischem Fallback auf gestreamten Multipart-Upload über das native `MEDIA`-R2-Binding. Automatische Cron-TTL-Bereinigung nach 24 h (Gäste) bzw. 30 Tagen (Demo). |
 | **Durable Objects (SQLite)** | 100.000 Requests/Tag, 13.000 GB-s/Tag, 5 GB SQLite-Speicher (`new_sqlite_classes`), **30 s CPU-Budget pro Aufruf** | Im Free-Plan sind ausschließlich SQLite-backed Durable Objects (`new_sqlite_classes`) zulässig. | `NotebookDO` (Echtzeit-WebSockets mit Hibernation + In-Memory-`Int8Array`-Vektorsuche) und `JobDO` (persistente Hintergrund-Job-Queue via `alarm()` ohne separates Cloudflare-Queues-Abo). |
-| **Email Sending** | Im Free-Plan Versand **nur an vorab verifizierte eigene Zieladressen**; Versand an beliebige fremde Adressen erfordert Workers Paid oder Drittanbieter. | E-Mail-Magic-Link kann im reinen Cloudflare-Free-Plan nicht an unbekannte Bewerbungsprüfer senden. | Primäre Anmeldung über **WebAuthn Passkeys** + **1-Klick-Gastzugang (24 h)** (sofort ohne E-Mail testbar). Für Magic-Link ist ein Multi-Provider-Adapter (`cloudflare`, optionaler kostenloser `resend`/`brevo`-Key oder `console` im Dev-Modus) integriert (Entscheidung #56). |
+| **Email Sending** | Im Free-Plan Versand **nur an vorab verifizierte eigene Zieladressen**; Versand an beliebige fremde Adressen erfordert Workers Paid oder Drittanbieter. | E-Mail-Magic-Link kann im reinen Cloudflare-Free-Plan nicht an unbekannte Testpersonen senden. | Primäre Anmeldung über **WebAuthn Passkeys** + **1-Klick-Gastzugang (24 h)** (sofort ohne E-Mail testbar). Für Magic-Link ist ein Multi-Provider-Adapter (`cloudflare`, optionaler kostenloser `resend`/`brevo`-Key oder `console` im Dev-Modus) integriert (Entscheidung #56). |
 
 ---
 
@@ -77,3 +77,28 @@ Cloudflare D1 basiert auf SQLite und unterstützt virtuelle Volltext-Tabellen ü
 | Max. LLM-Aufrufe pro Nutzer/Tag | 50 | 2.000 |
 | Gast-Konto Lebensdauer (TTL) | 24 Stunden | 24 Stunden |
 | Demo-Notebook Lebensdauer (TTL) | 30 Tage | Unbegrenzt (`null`) |
+
+### 4.1 Durchsetzung und Fehlercodes
+
+Der Worker prüft die Grenzen serverseitig, bevor etwas gespeichert wird (`quotaGuardMiddleware` vor `POST /api/v1/notebooks/:id/sources`, Prüfung im URL-Import, Byte-Zählung beim Upload). Abgelehnte Anfragen erhalten eine Antwort nach RFC 9457 (`application/problem+json`). Das Feld `detail` ist deutsch; sendet der Client `Accept-Language: en…` an erster Stelle, kommt es auf Englisch.
+
+| Grenze | Wert | Genau am Limit | Ab +1 Byte bzw. +1 Quelle | HTTP | `code` |
+|---|---|---|---|---|---|
+| Dateigröße je Quelle | 50 MB (52.428.800 Byte) | erlaubt | abgelehnt | 403 bzw. 413 | `QUOTA_MAX_SOURCE_BYTES_EXCEEDED` (403, Kontingentprüfung, greift im API-Pfad zuerst), `FILE_TOO_LARGE` (413, Prüfung im Upload-Handler) |
+| Summe aller Quellen je Notebook | 200 MB (209.715.200 Byte) | erlaubt | abgelehnt | 413 | `NOTEBOOK_SIZE_LIMIT` |
+| Quellen je Notebook | 50 | die 50. Quelle ist erlaubt | die 51. wird abgelehnt | 403 | `QUOTA_MAX_SOURCES_PER_NOTEBOOK_EXCEEDED` |
+
+Beispiel für `NOTEBOOK_SIZE_LIMIT`:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Payload Too Large",
+  "status": 413,
+  "detail": "Notizbuch-Limit von 200 MB überschritten: aktuell 160 MB, die neue Quelle (40 MB) würde das Limit sprengen.",
+  "instance": "/api/v1/notebooks/nb_123/sources",
+  "code": "NOTEBOOK_SIZE_LIMIT"
+}
+```
+
+Die Grenzwerte stehen in [`apps/worker/src/config.ts`](https://github.com/VectoDE/Notebook-LM-Klon/blob/main/apps/worker/src/config.ts), die Prüfungen in [`apps/worker/src/quota-guard.ts`](https://github.com/VectoDE/Notebook-LM-Klon/blob/main/apps/worker/src/quota-guard.ts). Tests an den Grenzen (genau am Limit und 1 Byte darüber): `apps/worker/src/__tests__/security-headers-quotas.test.ts` und `apps/worker/src/__tests__/sources-upload.test.ts`.

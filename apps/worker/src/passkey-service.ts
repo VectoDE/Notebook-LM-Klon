@@ -38,10 +38,17 @@ export type WebAuthnEngine = {
   verifyAuthenticationResponse: (options: any) => Promise<any>;
 };
 
-export class PasskeyService {
-  // In-memory / fast ephemeral challenge store with 5-minute TTL
-  private challenges = new Map<string, StoredChallenge>();
+/** Lifetime of a WebAuthn challenge. */
+export const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
+interface ChallengeRow {
+  challenge: string;
+  user_id: string | null;
+  created_at: number;
+  expires_at: number;
+}
+
+export class PasskeyService {
   constructor(
     readonly opts: PasskeyServiceOptions,
     readonly webauthn: WebAuthnEngine = {
@@ -53,33 +60,49 @@ export class PasskeyService {
   ) {}
 
   /**
-   * Stores a challenge with 5-minute TTL and cleans up expired ones.
+   * Stores a challenge in D1 with a 5-minute lifetime (table webauthn_challenges).
+   * A new challenge for the same key replaces the old one. Expired rows are purged
+   * on the way, the hourly cron removes the rest.
    */
-  storeChallenge(key: string, challenge: string, userId?: string): void {
+  async storeChallenge(key: string, challenge: string, userId?: string): Promise<void> {
     const now = Date.now();
-    this.challenges.set(key, { challenge, userId, createdAt: now });
-    // Clean expired
-    for (const [k, v] of this.challenges.entries()) {
-      if (now - v.createdAt > 5 * 60 * 1000) {
-        this.challenges.delete(k);
-      }
-    }
+    const { db } = this.opts.repo;
+    await db.run("DELETE FROM webauthn_challenges WHERE expires_at <= ?", [now]);
+    await db.run(
+      `INSERT INTO webauthn_challenges (challenge_key, challenge, user_id, created_at, expires_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(challenge_key) DO UPDATE SET
+         challenge = excluded.challenge,
+         user_id = excluded.user_id,
+         created_at = excluded.created_at,
+         expires_at = excluded.expires_at`,
+      [key, challenge, userId ?? null, now, now + CHALLENGE_TTL_MS]
+    );
   }
 
   /**
-   * Retrieves and immediately consumes a challenge (single-use guarantee).
+   * Takes a challenge out of D1 in one statement (DELETE ... RETURNING), so it can be
+   * used exactly once even with parallel requests on several instances. Returns null
+   * when the challenge is unknown, already used, expired, or was issued to another user.
    */
-  consumeChallenge(key: string): StoredChallenge | null {
-    const item = this.challenges.get(key);
-    if (!item) {
+  async consumeChallenge(key: string, expectedUserId?: string): Promise<StoredChallenge | null> {
+    const rows = await this.opts.repo.db.query<ChallengeRow>(
+      `DELETE FROM webauthn_challenges WHERE challenge_key = ?
+       RETURNING challenge, user_id, created_at, expires_at`,
+      [key]
+    );
+    const row = rows[0];
+    if (!row || row.expires_at <= Date.now()) {
       return null;
     }
-    this.challenges.delete(key);
-    const now = Date.now();
-    if (now - item.createdAt > 5 * 60 * 1000) {
+    if ((row.user_id ?? undefined) !== expectedUserId) {
       return null;
     }
-    return item;
+    return {
+      challenge: row.challenge,
+      userId: row.user_id ?? undefined,
+      createdAt: row.created_at
+    };
   }
 
   /**
@@ -108,7 +131,7 @@ export class PasskeyService {
       }
     })) as PublicKeyCredentialCreationOptionsJSON;
 
-    this.storeChallenge(`reg:${user.id}`, options.challenge, user.id);
+    await this.storeChallenge(`reg:${user.id}`, options.challenge, user.id);
     return options;
   }
 
@@ -120,7 +143,7 @@ export class PasskeyService {
     user: UserRow,
     response: RegistrationResponseJSON
   ): Promise<{ verified: boolean; upgradedToPermanent: boolean }> {
-    const stored = this.consumeChallenge(`reg:${user.id}`);
+    const stored = await this.consumeChallenge(`reg:${user.id}`, user.id);
     if (!stored) {
       throw new Error("Challenge expired or invalid.");
     }
@@ -173,7 +196,7 @@ export class PasskeyService {
     })) as PublicKeyCredentialRequestOptionsJSON;
 
     const challengeKey = `login:${options.challenge}`;
-    this.storeChallenge(challengeKey, options.challenge);
+    await this.storeChallenge(challengeKey, options.challenge);
     return options;
   }
 
@@ -184,7 +207,7 @@ export class PasskeyService {
     response: AuthenticationResponseJSON
   ): Promise<{ verified: boolean; user: UserRow; signCountUpdated: boolean }> {
     const challengeKey = `login:${response.response.clientDataJSON ? extractChallengeFromClientData(response.response.clientDataJSON) : ""}`;
-    const stored = this.consumeChallenge(challengeKey);
+    const stored = await this.consumeChallenge(challengeKey);
     if (!stored) {
       throw new Error("Challenge expired or invalid.");
     }

@@ -223,6 +223,8 @@ test.describe("Fokusring um den Videoplayer: mind. 3:1 gegen den Panelgrund", ()
         await openPanel(page, "studio");
         await page.getByTestId("btn-open-video-tool").click();
         const player = page.getByTestId("video-overview-player");
+        // Der Player lädt erst auf Absicht nach (Issue #350), nicht mehr im Leerlauf
+        await expect(player).toBeVisible();
         await page.getByTestId("btn-back-to-studio-overview").focus();
         for (let i = 0; i < 6; i++) {
           await page.keyboard.press("Tab");

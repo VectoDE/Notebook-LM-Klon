@@ -1,11 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import { DOCX_MIME_TYPE } from "../workers/docx-parser.js";
 import {
   type IngestParserWorkerRequest,
   type IngestParserWorkerResponse,
   extractMarkdownSections,
   handleParserMessage,
+  parseDocument,
   parseDocumentToChunks
 } from "../workers/ingest-parser.js";
+import { buildDocx } from "./zip-fixture.js";
+
+// mammoth beim ersten Import kalt zu laden dauert auf ausgelasteten Rechnern mehrere Sekunden
+beforeAll(async () => {
+  await import("mammoth");
+}, 120_000);
 
 describe("Markdown Section Extraction (#87)", () => {
   it("extracts hierarchy for markdown with #, ##, ### headers", () => {
@@ -103,6 +111,35 @@ The ingestion layer parses markdown and text directly in the Web Worker.`;
     expect(chunks[1]?.text).toContain("Page 2");
   });
 
+  it("liest Word-Dateien (.docx) über mammoth, erkannt an Typ oder Endung", async () => {
+    const docx = buildDocx(["Kapitel eins über Flüsse.", "Kapitel zwei über Brücken."]);
+    const byMime = await parseDocument({
+      fileData: docx,
+      fileName: "bericht",
+      mimeType: DOCX_MIME_TYPE
+    });
+    expect(byMime.text).toBe("Kapitel eins über Flüsse.\n\nKapitel zwei über Brücken.");
+    expect(byMime.chunks[0]?.text).toContain("Kapitel eins");
+    expect(byMime.chunks[0]?.pageNumber).toBeUndefined();
+
+    const byExtension = await parseDocument({
+      fileData: docx,
+      fileName: "Bericht.DOCX",
+      mimeType: "application/octet-stream"
+    });
+    expect(byExtension.text).toBe(byMime.text);
+  });
+
+  it("nutzt einen eingesetzten DOCX-Leser (Tests, andere Umgebungen)", async () => {
+    const result = await parseDocument({
+      fileData: new Uint8Array([0x50, 0x4b]),
+      fileName: "a.docx",
+      mimeType: DOCX_MIME_TYPE,
+      customDocxExtractor: async () => "Ersatztext"
+    });
+    expect(result.text).toBe("Ersatztext");
+  });
+
   it("throws for unsupported mime types", async () => {
     await expect(
       parseDocumentToChunks({
@@ -167,6 +204,39 @@ describe("Worker Event Protocol (#88)", () => {
     expect(errorMsg).toBeDefined();
     if (errorMsg && errorMsg.type === "ERROR") {
       expect(errorMsg.error).toContain("Unsupported mime type");
+      expect(errorMsg.code).toBeUndefined();
     }
+  });
+
+  it("meldet Grenzverletzungen beim DOCX-Lesen mit Code (Zip-Bombe)", async () => {
+    const out: IngestParserWorkerResponse[] = [];
+    await handleParserMessage(
+      {
+        type: "PARSE_DOCUMENT",
+        payload: {
+          fileData: buildDocx(["Z".repeat(5 * 1024 * 1024)]),
+          fileName: "bombe.docx",
+          mimeType: DOCX_MIME_TYPE
+        }
+      },
+      (m) => out.push(m)
+    );
+    expect(out.at(-1)).toMatchObject({ type: "ERROR", code: "DOCX_TOO_COMPLEX" });
+  });
+
+  it("meldet zu lange Texte mit Code (Wortgrenze des Chunkers)", async () => {
+    const out: IngestParserWorkerResponse[] = [];
+    await handleParserMessage(
+      {
+        type: "PARSE_DOCUMENT",
+        payload: {
+          fileData: new TextEncoder().encode("w ".repeat(500_001)),
+          fileName: "lang.txt",
+          mimeType: "text/plain"
+        }
+      },
+      (m) => out.push(m)
+    );
+    expect(out.at(-1)).toMatchObject({ type: "ERROR", code: "TEXT_TOO_LONG" });
   });
 });

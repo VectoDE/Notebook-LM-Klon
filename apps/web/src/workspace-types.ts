@@ -12,6 +12,13 @@ export interface WorkspaceSource {
    * zeichnen die Bereiche den Inhalt mit lang aus (WCAG 3.1.2, Issue #323).
    */
   readonly lang?: string | undefined;
+  /**
+   * Verarbeitungsstand eigener Uploads (P6). Ohne Angabe gilt die Quelle als bereit.
+   * Nur bereite Quellen lassen sich für den Chat auswählen.
+   */
+  readonly status?: "processing" | "ready" | "error" | undefined;
+  /** Schlüssel im Sprachkatalog mit dem Grund eines Fehlschlags. */
+  readonly errorKey?: string | undefined;
 }
 
 /**
