@@ -127,7 +127,10 @@ test.describe("Eigene Quellen hochladen (P6)", () => {
 
     await page.getByTestId("chat-input-field").fill("Wo fließt die Elbe?");
     await page.getByTestId("chat-input-field").press("Enter");
-    await expect(page.getByText("Durch Dresden")).toBeVisible();
+    // Auf die Antwort begrenzt: die geöffnete Vorschau enthält denselben Satz
+    await expect(
+      page.locator("[data-testid^='message-content-']").getByText("Durch Dresden")
+    ).toBeVisible();
     expect(log.chat?.sourceIds).toEqual(expect.arrayContaining(["srv_elbe_md", "srv_rhein_pdf"]));
   });
 
