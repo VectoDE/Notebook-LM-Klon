@@ -29,10 +29,34 @@ pnpm --filter @notebook-lm/worker exec tsx src/smoke-check.ts http://localhost:8
 
 1. Environment `production` unter **Settings → Environments** anlegen bzw. prüfen und sich selbst
    als *Required reviewer* eintragen, Deploy-Branch auf `main` beschränken.
-2. D1-Datenbank anlegen und die ID eintragen:
-   `pnpm --filter @notebook-lm/worker exec wrangler d1 create notebook-lm-db`, dann
-   `database_id` in `apps/worker/wrangler.jsonc` per Pull Request ersetzen.
-3. R2-Bucket `notebook-lm-media` anlegen (`wrangler r2 bucket create notebook-lm-media`).
+2. D1-Datenbank mit EU-Jurisdiktion anlegen und die ID eintragen:
+   `pnpm --filter @notebook-lm/worker exec wrangler d1 create notebook-lm-db --jurisdiction=eu`,
+   dann `database_id` in `apps/worker/wrangler.jsonc` per Pull Request ersetzen.
+3. R2-Bucket mit Location Hint Westeuropa anlegen:
+   `pnpm --filter @notebook-lm/worker exec wrangler r2 bucket create notebook-lm-media --location=weur`.
+
+### Region (Entscheidung F249)
+
+| Dienst | Festlegung | Wo sie gilt | Quelle (abgerufen 2026-11-14) |
+| --- | --- | --- | --- |
+| D1 `notebook-lm-db` | Jurisdiktion `eu`: Daten bleiben in der EU | Nur beim Anlegen (`--jurisdiction=eu`). Lässt sich danach nicht mehr setzen oder ändern. Im Binding in `wrangler.jsonc` gibt es dafür kein Feld. Wird zusätzlich `--location` angegeben, ignoriert Cloudflare den Hint, die Jurisdiktion gewinnt. | [D1 Data location](https://developers.cloudflare.com/d1/configuration/data-location/) |
+| R2 `notebook-lm-media` | Location Hint `weur` (Westeuropa) | Nur beim ersten Anlegen des Bucket-Namens (`--location=weur`), auch nach Löschen und Neuanlegen bleibt der alte Ort. Kein Feld im Binding. Der Hint ist „best effort“, keine Zusage. | [R2 Data location](https://developers.cloudflare.com/r2/reference/data-location/), [`wrangler r2 bucket create`](https://developers.cloudflare.com/workers/wrangler/commands/r2/) |
+
+Ein Location Hint ist keine Jurisdiktion: Er garantiert nicht, dass R2-Daten in der EU bleiben.
+Das leistet nur ein Bucket mit `--jurisdiction=eu`. Dann braucht das Binding in `wrangler.jsonc`
+zusätzlich `"jurisdiction": "eu"`, und Presigned URLs laufen über
+`https://<ACCOUNT_ID>.eu.r2.cloudflarestorage.com`. Der Upload-Code baut Presigned URLs derzeit
+nur für Buckets ohne Jurisdiktion; im Profil `demo` sind sie ohnehin abgeschaltet
+(siehe `docs/platform-limits.md`, Abschnitt 5).
+
+### R2-Freimenge und Upload-Grenzen
+
+Im Profil `demo` hält der Worker R2 innerhalb der Hälfte der Cloudflare-Freimenge
+(Rechnung und Fehlercodes in `docs/platform-limits.md`, Abschnitt 5). Das ist eine Grenze der App,
+kein Schutz auf Kontoebene: Andere Buckets oder Worker im selben Konto zählen zur selben
+Freimenge. Ob das Konto über der Freimenge liegt, zeigt nur das Cloudflare-Dashboard
+(R2-Übersicht des Kontos). Migration `0007_upload_grenzen.sql` legt die Zähler `r2_usage` und
+`upload_daily` an und wird mit den übrigen Migrationen im Deploy-Workflow angewendet.
 4. Environment-Secrets für den Workflow: `CLOUDFLARE_API_TOKEN` (Token mit Rechten für Workers,
    D1 und R2), `CLOUDFLARE_ACCOUNT_ID`; Environment-Variable `DEPLOY_URL`
    (z. B. die `*.workers.dev`-Adresse nach dem ersten Deploy).

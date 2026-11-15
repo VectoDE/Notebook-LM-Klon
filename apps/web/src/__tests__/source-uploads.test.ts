@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -70,6 +72,29 @@ describe("Zustände einer hochgeladenen Quelle", () => {
     for (const key of ["srcErrorType", "srcErrorEmpty", "srcErrorSize", "srcErrorRead"]) {
       expect(TRANSLATIONS.de[key], key).toBeTruthy();
       expect(TRANSLATIONS.en[key], key).toBeTruthy();
+    }
+  });
+
+  it("unterscheidet vollen Nutzerspeicher und erschöpfte Instanz-Grenzen (F247)", () => {
+    for (const code of ["QUOTA_MAX_USER_STORAGE_EXCEEDED", "QUOTA_MAX_GUEST_STORAGE_EXCEEDED"]) {
+      expect(uploadErrorKey(new SourceUploadError("x", 403, code)), code).toBe("srcErrorStorage");
+    }
+    expect(uploadErrorKey(new SourceUploadError("x", 503, "UPLOAD_DAILY_LIMIT_REACHED"))).toBe(
+      "srcErrorCapacity"
+    );
+    expect(uploadErrorKey(new SourceUploadError("x", 507, "STORAGE_BUDGET_EXHAUSTED"))).toBe(
+      "srcErrorCapacity"
+    );
+    expect(uploadErrorKey(new SourceUploadError("x", 413, "UPLOAD_TOO_LARGE"))).toBe(
+      "srcErrorSize"
+    );
+    const easy = JSON.parse(
+      readFileSync(resolve(process.cwd(), "apps/web/src/locales/de-x-ls.json"), "utf-8")
+    ) as Record<string, string>;
+    for (const key of ["srcErrorStorage", "srcErrorCapacity"]) {
+      expect(TRANSLATIONS.de[key], key).toBeTruthy();
+      expect(TRANSLATIONS.en[key], key).toBeTruthy();
+      expect(easy[key], key).toBeTruthy();
     }
   });
 });
