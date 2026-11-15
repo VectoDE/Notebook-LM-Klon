@@ -1,4 +1,5 @@
 import { type TextChunk, chunkText } from "@notebook-lm/shared";
+import { DOCX_MIME_TYPE, DocxLimitError, extractDocxText } from "./docx-parser.js";
 
 export interface DocumentSection {
   header: string | null;
@@ -15,6 +16,8 @@ export interface ParseDocumentOptions {
   customPdfExtractor?:
     | ((data: Uint8Array) => Promise<Array<{ pageNumber: number; text: string }>>)
     | undefined;
+  /** Ersetzt den DOCX-Leser (Tests); Standard ist extractDocxText mit mammoth. */
+  customDocxExtractor?: ((data: Uint8Array) => Promise<string>) | undefined;
 }
 
 export interface IngestParserWorkerRequest {
@@ -31,7 +34,14 @@ export interface IngestParserWorkerRequest {
 export type IngestParserWorkerResponse =
   | { type: "PROGRESS"; progress: number }
   | { type: "CHUNKS_EXTRACTED"; chunks: TextChunk[]; text: string }
-  | { type: "ERROR"; error: string };
+  | { type: "ERROR"; error: string; code?: string | undefined };
+
+/** Fehlercode für die Oberfläche: Grenzen beim DOCX-Lesen und die Wortgrenze des Chunkers. */
+function errorCodeOf(error: unknown): string | undefined {
+  if (error instanceof DocxLimitError) return error.code;
+  if (error instanceof Error && error.name === "TextTooLargeError") return "TEXT_TOO_LONG";
+  return undefined;
+}
 
 /**
  * Extracts sections from markdown preserving header hierarchy (#, ##, ###).
@@ -142,7 +152,15 @@ export async function parseDocumentToChunks(options: ParseDocumentOptions): Prom
  * Liest ein Dokument und liefert Chunks und Volltext.
  */
 export async function parseDocument(options: ParseDocumentOptions): Promise<ParsedDocument> {
-  const { fileData, fileName, mimeType, maxTokens, overlapTokens, customPdfExtractor } = options;
+  const {
+    fileData,
+    fileName,
+    mimeType,
+    maxTokens,
+    overlapTokens,
+    customPdfExtractor,
+    customDocxExtractor
+  } = options;
 
   const normalizedMime = mimeType.toLowerCase();
   const isMarkdown =
@@ -154,6 +172,8 @@ export async function parseDocument(options: ParseDocumentOptions): Promise<Pars
   const isPlainText = normalizedMime === "text/plain" || fileName.endsWith(".txt");
 
   const isPdf = normalizedMime === "application/pdf" || fileName.endsWith(".pdf");
+
+  const isDocx = normalizedMime === DOCX_MIME_TYPE || fileName.toLowerCase().endsWith(".docx");
 
   if (isMarkdown) {
     const text = new TextDecoder("utf-8").decode(fileData);
@@ -220,6 +240,12 @@ export async function parseDocument(options: ParseDocumentOptions): Promise<Pars
     return { chunks: allChunks, text: pageTexts.join("\n\n") };
   }
 
+  if (isDocx) {
+    // Bilder und eingebettete Objekte fallen weg; Seitenzahlen kennt eine DOCX nicht
+    const text = await (customDocxExtractor ?? extractDocxText)(fileData);
+    return { chunks: chunkText({ text, maxTokens, overlapTokens }), text };
+  }
+
   throw new Error(`Unsupported mime type: ${mimeType} for file: ${fileName}`);
 }
 
@@ -250,6 +276,6 @@ export async function handleParserMessage(
     postMessage({ type: "CHUNKS_EXTRACTED", chunks, text });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    postMessage({ type: "ERROR", error: message });
+    postMessage({ type: "ERROR", error: message, code: errorCodeOf(error) });
   }
 }

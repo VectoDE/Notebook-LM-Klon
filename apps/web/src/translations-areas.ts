@@ -25,7 +25,7 @@ const ENTRIES: readonly Entry[] = [
   ["srcFileInputAria", "Dateien hochladen", "Upload files"],
   ["srcDropzoneLabel", "Datei-Dropzone", "File drop zone"],
   ["srcDropTitle", "Dateien hier ablegen", "Drop files here"],
-  ["srcDropHint", "PDF, TXT oder Markdown", "PDF, TXT or Markdown"],
+  ["srcDropHint", "PDF, Word (DOCX), TXT oder Markdown", "PDF, Word (DOCX), TXT or Markdown"],
   ["srcSearchLabel", "Quellen durchsuchen", "Search sources"],
   ["srcSearchPlaceholder", "Quellen filtern …", "Filter sources …"],
   ["srcSelectAll", "Alle Quellen auswählen", "Select all sources"],
@@ -725,8 +725,8 @@ const ENTRIES: readonly Entry[] = [
   ["srcEmptyNoneTitle", "Noch keine Quellen", "No sources yet"],
   [
     "srcEmptyNoneText",
-    "Laden Sie PDF-, Text- oder Markdown-Dateien hoch oder fügen Sie einen Link hinzu. Antworten stützen sich nur auf diese Quellen.",
-    "Upload PDF, text or Markdown files, or add a link. Answers rely on these sources only."
+    "Laden Sie PDF-, Word-, Text- oder Markdown-Dateien hoch oder fügen Sie einen Link hinzu. Antworten stützen sich nur auf diese Quellen.",
+    "Upload PDF, Word, text or Markdown files, or add a link. Answers rely on these sources only."
   ],
   ["srcEmptyFilterTitle", "Kein Treffer", "No match"],
   [
@@ -774,8 +774,8 @@ const ENTRIES: readonly Entry[] = [
   ["srcStatusProcessing", "Wird gelesen und indexiert …", "Reading and indexing …"],
   [
     "srcErrorType",
-    "Dieses Format wird nicht unterstützt. Laden Sie eine PDF-, TXT- oder Markdown-Datei hoch.",
-    "This format is not supported. Upload a PDF, TXT or Markdown file."
+    "Dieses Format wird nicht unterstützt. Laden Sie eine Datei als PDF, Word (DOCX), TXT oder Markdown hoch.",
+    "This format is not supported. Upload a PDF, Word (DOCX), TXT or Markdown file."
   ],
   [
     "srcErrorEmpty",
@@ -801,6 +801,16 @@ const ENTRIES: readonly Entry[] = [
     "srcErrorRead",
     "Die Datei ließ sich nicht lesen. Prüfen Sie, ob sie beschädigt ist, und versuchen Sie es noch einmal.",
     "The file could not be read. Check whether it is damaged and try again."
+  ],
+  [
+    "srcErrorTimeout",
+    "Das Lesen hat zu lange gedauert und wurde abgebrochen. Teilen Sie lange Dokumente auf und laden Sie die Teile einzeln hoch.",
+    "Reading took too long and was stopped. Split long documents and upload the parts one by one."
+  ],
+  [
+    "srcErrorComplex",
+    "Die Datei ist ungewöhnlich aufgebaut oder entpackt zu groß. Speichern Sie sie in Word neu oder als PDF und laden Sie sie noch einmal hoch.",
+    "The file has an unusual structure or is too large once unpacked. Save it again in Word or as a PDF and upload it again."
   ],
   ["toastDownload", "Download gestartet: {file}", "Download started: {file}"],
 

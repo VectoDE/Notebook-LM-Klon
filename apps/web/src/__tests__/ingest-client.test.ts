@@ -1,11 +1,23 @@
-import { describe, expect, it } from "vitest";
-import { type IngestWorkerLike, parseFileInWorker } from "../ingest-client.js";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  INGEST_PARSE_TIMEOUT_MS,
+  type IngestWorkerLike,
+  parseFileInWorker
+} from "../ingest-client.js";
+import { SourceUploadError } from "../source-upload-client.js";
+import { DOCX_MIME_TYPE } from "../workers/docx-parser.js";
 import {
   type IngestParserWorkerRequest,
   type IngestParserWorkerResponse,
   handleParserMessage,
   parseDocument
 } from "../workers/ingest-parser.js";
+import { buildDocx } from "./zip-fixture.js";
+
+// mammoth beim ersten Import kalt zu laden dauert auf ausgelasteten Rechnern mehrere Sekunden
+beforeAll(async () => {
+  await import("mammoth");
+}, 120_000);
 
 /** Worker-Attrappe: führt den echten Parser im selben Thread aus, asynchron wie ein Worker. */
 function inProcessWorker(log: { terminated: number; transferred: number }): IngestWorkerLike {
@@ -109,6 +121,81 @@ describe("parseFileInWorker", () => {
       createWorker: () => worker
     }).catch((e: unknown) => e);
     expect((error as Error).message).toBe("Skript fehlt");
+  });
+
+  it("liest eine Word-Datei (.docx) im Worker", async () => {
+    const log = { terminated: 0, transferred: 0 };
+    const file = new File([buildDocx(["Die Elbe fließt durch Dresden."])], "elbe.docx");
+    const result = await parseFileInWorker(file, DOCX_MIME_TYPE, {
+      createWorker: () => inProcessWorker(log)
+    });
+    expect(result.text).toBe("Die Elbe fließt durch Dresden.");
+    expect(result.chunks).toHaveLength(1);
+    expect(log.terminated).toBe(1);
+  });
+
+  it("gibt Grenzverletzungen mit Code als SourceUploadError weiter (Zip-Bombe)", async () => {
+    const log = { terminated: 0, transferred: 0 };
+    const bomb = buildDocx(["A".repeat(5 * 1024 * 1024)]);
+    const error = await parseFileInWorker(new File([bomb], "bombe.docx"), DOCX_MIME_TYPE, {
+      createWorker: () => inProcessWorker(log)
+    }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(SourceUploadError);
+    expect(error).toMatchObject({ status: 0, code: "DOCX_TOO_COMPLEX" });
+    expect(log.terminated).toBe(1);
+  });
+
+  it("beendet einen hängenden Worker nach dem Zeitlimit", async () => {
+    expect(INGEST_PARSE_TIMEOUT_MS).toBe(60_000);
+    let terminated = 0;
+    const worker: IngestWorkerLike = {
+      onmessage: null,
+      onerror: null,
+      postMessage() {
+        // Antwortet nie, wie ein Parser in einer Endlosschleife
+      },
+      terminate() {
+        terminated += 1;
+      }
+    };
+    const error = await parseFileInWorker(new File(["x"], "a.docx"), DOCX_MIME_TYPE, {
+      createWorker: () => worker,
+      timeoutMs: 20
+    }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(SourceUploadError);
+    expect(error).toMatchObject({ status: 0, code: "PARSE_TIMEOUT" });
+    expect(terminated).toBe(1);
+    expect(worker.onmessage).toBeNull();
+  });
+
+  it("räumt das Zeitlimit nach einer Antwort ab (keine doppelte Beendigung)", async () => {
+    vi.useFakeTimers();
+    try {
+      let terminated = 0;
+      const worker: IngestWorkerLike = {
+        onmessage: null,
+        onerror: null,
+        postMessage() {
+          queueMicrotask(() =>
+            worker.onmessage?.({
+              data: { type: "CHUNKS_EXTRACTED", chunks: [], text: "ok" }
+            } as unknown as MessageEvent<IngestParserWorkerResponse>)
+          );
+        },
+        terminate() {
+          terminated += 1;
+        }
+      };
+      const result = await parseFileInWorker(new File(["x"], "a.txt"), "text/plain", {
+        createWorker: () => worker,
+        timeoutMs: 50
+      });
+      vi.advanceTimersByTime(100);
+      expect(result.text).toBe("ok");
+      expect(terminated).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("ignoriert fremde Nachrichten im Worker-Kanal (PDF.js meldet sich selbst)", async () => {
