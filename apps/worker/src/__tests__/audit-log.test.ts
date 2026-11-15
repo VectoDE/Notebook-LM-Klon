@@ -5,12 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ACCOUNT_DELETE_CONFIRMATION, registerAccountRoutes } from "../account-routes.js";
 import {
   AUDIT_NO_IP_HASH,
-  AUDIT_RETENTION_DAYS,
-  AUDIT_RETENTION_MS,
-  type AuditEvent,
   AUDIT_PURGE_CHUNK,
   AUDIT_PURGE_MAX_CHUNKS,
+  AUDIT_RETENTION_DAYS,
+  AUDIT_RETENTION_MS,
   AUDIT_RETRY_PREFIX,
+  type AuditEvent,
   AuditLogger,
   purgeExpiredAuditEntries,
   replayPendingAuditEntries
@@ -200,9 +200,9 @@ describe("AuditLogger (Issue #259)", () => {
       }
     });
     const logger = new AuditLogger({ repo: failing, saltSecret: SALT });
-    expect(await recordVia(logger, { userId: null, action: "source.delete", target: "nb:n1" })).toBe(
-      false
-    );
+    expect(
+      await recordVia(logger, { userId: null, action: "source.delete", target: "nb:n1" })
+    ).toBe(false);
 
     const throwsString = new CoreRepository({
       exec: async () => {},
@@ -521,7 +521,11 @@ describe("Audit: Nachlauf bei Schreibfehler und Aufbewahrung in Blöcken", () =>
     ).map((row) => row.prefix);
   }
 
-  const DELETE_EVENT: AuditEvent = { userId: null, action: "account.delete", target: "user:deleted" };
+  const DELETE_EVENT: AuditEvent = {
+    userId: null,
+    action: "account.delete",
+    target: "user:deleted"
+  };
 
   it("schreibt kritische Einträge direkt, wenn die Datenbank erreichbar ist", async () => {
     const logger = new AuditLogger({ repo, saltSecret: SALT, now: () => 5_000 });
@@ -569,7 +573,9 @@ describe("Audit: Nachlauf bei Schreibfehler und Aufbewahrung in Blöcken", () =>
 
     expect(await replayPendingAuditEntries(repo.db)).toBe(2);
     expect(
-      auditRows(sqlite).map((r) => [r.action, r.user_id, r.target, r.created_at]).sort()
+      auditRows(sqlite)
+        .map((r) => [r.action, r.user_id, r.target, r.created_at])
+        .sort()
     ).toEqual([
       ["account.delete", null, "user:deleted", 5_000],
       ["account.delete", null, "user:gone", 5_000]
@@ -615,7 +621,10 @@ describe("Audit: Nachlauf bei Schreibfehler und Aufbewahrung in Blöcken", () =>
       `${AUDIT_RETRY_PREFIX}8:-:account.delete:user:deleted`
     ];
     for (const key of keys) {
-      await repo.db.run("INSERT INTO pending_r2_purge (prefix, created_at) VALUES (?, ?)", [key, 1]);
+      await repo.db.run("INSERT INTO pending_r2_purge (prefix, created_at) VALUES (?, ?)", [
+        key,
+        1
+      ]);
     }
 
     expect(await replayPendingAuditEntries(repo.db)).toBe(2);
