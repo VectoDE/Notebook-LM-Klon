@@ -52,7 +52,10 @@ describe.skipIf(!configured)("C2PA mit c2patool (Issue #353)", () => {
       c.set("sessionUser", { id: "u_ci" });
       await next();
     });
-    registerProvenanceRoutes(app, { resolveSigner: () => c2paSignerFromVars(env) });
+    registerProvenanceRoutes(app, {
+      resolveSigner: () => c2paSignerFromVars(env),
+      signerUserIds: () => new Set(["u_ci"])
+    });
   });
 
   afterAll(async () => {

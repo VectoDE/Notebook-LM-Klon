@@ -117,7 +117,7 @@ describe("OpenSSF Scorecard, Governance & Clean Root Structure (#59, #60, #61, #
 
     const readme = readFileSync(join(REPO_ROOT, "README.md"), "utf-8");
     expect(readme).toContain("RelationNotes");
-    expect(readme).toContain("NotebookLM & RelationFlow Knowledge Studio");
+    expect(readme).toContain("Quellen verstehen, mit Belegen chatten");
     expect(readme).toContain("docs/assets/hero-banner-dark.svg");
     expect(readme).toContain("docs/assets/hero-banner-light.svg");
     expect(readme).toContain(".github/SECURITY.md");

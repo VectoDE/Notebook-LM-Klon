@@ -25,7 +25,7 @@ const ENTRIES: readonly Entry[] = [
   ["srcFileInputAria", "Dateien hochladen", "Upload files"],
   ["srcDropzoneLabel", "Datei-Dropzone", "File drop zone"],
   ["srcDropTitle", "Dateien hier ablegen", "Drop files here"],
-  ["srcDropHint", "PDF, TXT oder Markdown", "PDF, TXT or Markdown"],
+  ["srcDropHint", "PDF, Word (DOCX), TXT oder Markdown", "PDF, Word (DOCX), TXT or Markdown"],
   ["srcSearchLabel", "Quellen durchsuchen", "Search sources"],
   ["srcSearchPlaceholder", "Quellen filtern …", "Filter sources …"],
   ["srcSelectAll", "Alle Quellen auswählen", "Select all sources"],
@@ -284,6 +284,38 @@ const ENTRIES: readonly Entry[] = [
   ["videoChaptersNav", "Kapitelauswahl", "Chapter selection"],
   ["videoChaptersLabel", "Kapitel:", "Chapters:"],
   ["videoChapterSr", ", Kapitel {n} von {total}", ", chapter {n} of {total}"],
+
+  // Medienalternativen (Issue #350)
+  ["videoAdSpeech", "Vorlesen", "Read aloud"],
+  [
+    "videoAdSpeechOn",
+    "Audiodeskription wird vorgelesen. Das Video hält dafür kurz an.",
+    "The audio description is read aloud. The video pauses briefly for it."
+  ],
+  ["videoAdSpeechOff", "Vorlesen aus.", "Read aloud off."],
+  ["videoAdVisible", "Bildbeschreibung:", "Visual description:"],
+  ["videoSignLanguage", "Gebärdensprache", "Sign language"],
+  [
+    "videoSignAria",
+    "Gebärdensprachvideo, läuft zeitgleich zur Übersicht",
+    "Sign language video, runs in sync with the overview"
+  ],
+  ["videoSignOn", "Gebärdensprachvideo an.", "Sign language video on."],
+  ["videoSignOff", "Gebärdensprachvideo aus.", "Sign language video off."],
+  [
+    "videoSignUnavailable",
+    "Gebärdensprache: Für diese Übersicht ist noch kein Video in Deutscher Gebärdensprache hinterlegt. Transkript und Untertitel enthalten den vollständigen Inhalt.",
+    "Sign language: no German Sign Language video is available for this overview yet. The transcript and subtitles contain the full content."
+  ],
+  ["mediaTranscript", "Transkript", "Transcript"],
+  ["mediaTranscriptShow", "Transkript zeigen", "Show transcript"],
+  ["mediaTranscriptHide", "Transkript ausblenden", "Hide transcript"],
+  ["mediaTranscriptList", "Abschnitte des Transkripts", "Transcript sections"],
+  ["mediaTranscriptJump", "– an diese Stelle springen", "– jump to this point"],
+  ["mediaTranscriptVisual", "Bild:", "Visual:"],
+  ["mediaDownloadText", "Transkript (.txt)", "Transcript (.txt)"],
+  ["mediaDownloadCaptions", "Untertitel (.vtt)", "Subtitles (.vtt)"],
+  ["mediaDownloadDescriptions", "Audiodeskription (.vtt)", "Audio description (.vtt)"],
 
   // Audio-Player
   ["audioDefaultTitle", "Audio Overview: Deep Dive Podcast", "Audio Overview: Deep Dive Podcast"],
@@ -693,8 +725,8 @@ const ENTRIES: readonly Entry[] = [
   ["srcEmptyNoneTitle", "Noch keine Quellen", "No sources yet"],
   [
     "srcEmptyNoneText",
-    "Laden Sie PDF-, Text- oder Markdown-Dateien hoch oder fügen Sie einen Link hinzu. Antworten stützen sich nur auf diese Quellen.",
-    "Upload PDF, text or Markdown files, or add a link. Answers rely on these sources only."
+    "Laden Sie PDF-, Word-, Text- oder Markdown-Dateien hoch oder fügen Sie einen Link hinzu. Antworten stützen sich nur auf diese Quellen.",
+    "Upload PDF, Word, text or Markdown files, or add a link. Answers rely on these sources only."
   ],
   ["srcEmptyFilterTitle", "Kein Treffer", "No match"],
   [
@@ -733,6 +765,53 @@ const ENTRIES: readonly Entry[] = [
   ["toastClose", "Hinweis schließen", "Dismiss notice"],
   ["toastSourceAdded", "Quelle hinzugefügt: {title}", "Source added: {title}"],
   ["toastSourcesAdded", "{n} Quellen hinzugefügt", "{n} sources added"],
+  [
+    "toastSourceFailed",
+    "Quelle nicht hinzugefügt: {title}. Den Grund sehen Sie in der Quellenliste.",
+    "Source not added: {title}. The reason is shown in the source list."
+  ],
+  // Eigene Uploads (P6): Stand und Gründe für einen Fehlschlag
+  ["srcStatusProcessing", "Wird gelesen und indexiert …", "Reading and indexing …"],
+  [
+    "srcErrorType",
+    "Dieses Format wird nicht unterstützt. Laden Sie eine Datei als PDF, Word (DOCX), TXT oder Markdown hoch.",
+    "This format is not supported. Upload a PDF, Word (DOCX), TXT or Markdown file."
+  ],
+  [
+    "srcErrorEmpty",
+    "Die Datei enthält keinen lesbaren Text. Gescannte PDFs ohne Textebene lassen sich noch nicht lesen.",
+    "The file contains no readable text. Scanned PDFs without a text layer cannot be read yet."
+  ],
+  [
+    "srcErrorSize",
+    "Die Datei ist zu groß oder überschreitet das Kontingent des Notebooks.",
+    "The file is too large or exceeds the notebook's quota."
+  ],
+  [
+    "srcErrorStorage",
+    "Ihr Speicher ist voll. Entfernen Sie Quellen, die Sie nicht mehr brauchen, und laden Sie die Datei dann erneut hoch.",
+    "Your storage is full. Remove sources you no longer need, then upload the file again."
+  ],
+  [
+    "srcErrorCapacity",
+    "Diese Instanz nimmt gerade keine Uploads an, ihr Kontingent ist ausgeschöpft. Versuchen Sie es später noch einmal.",
+    "This instance is not accepting uploads right now because its quota is used up. Try again later."
+  ],
+  [
+    "srcErrorRead",
+    "Die Datei ließ sich nicht lesen. Prüfen Sie, ob sie beschädigt ist, und versuchen Sie es noch einmal.",
+    "The file could not be read. Check whether it is damaged and try again."
+  ],
+  [
+    "srcErrorTimeout",
+    "Das Lesen hat zu lange gedauert und wurde abgebrochen. Teilen Sie lange Dokumente auf und laden Sie die Teile einzeln hoch.",
+    "Reading took too long and was stopped. Split long documents and upload the parts one by one."
+  ],
+  [
+    "srcErrorComplex",
+    "Die Datei ist ungewöhnlich aufgebaut oder entpackt zu groß. Speichern Sie sie in Word neu oder als PDF und laden Sie sie noch einmal hoch.",
+    "The file has an unusual structure or is too large once unpacked. Save it again in Word or as a PDF and upload it again."
+  ],
   ["toastDownload", "Download gestartet: {file}", "Download started: {file}"],
 
   // Herkunftsnachweis (C2PA) für Exporte, Issue #353

@@ -10,7 +10,7 @@
  *   eigene Farbe Indigo/Lavendel, keine Google-Farbwerte.
  * - Immersive Cinema: Nacht-Violett mit Fuchsia- und Cyan-Licht, eigene Bewegungssprache
  *   (siehe themes.css, abgeschaltet bei prefers-reduced-motion).
- * - Editorial Calm: Everlast/RelationFlow. Everlast-Blau #2563EB nur für Flächen und
+ * - Editorial Calm: ruhige Blau-Slate-Welt. Blau #2563EB nur für Flächen und
  *   Grafik, Text, Links und Buttons #1E40AF (8,72:1 auf Weiß), Slate-Neutraltöne.
  * - Fusion: Petrol/Teal mit Bernstein, eigenständig (nicht die Palette von Pure).
  *

@@ -194,11 +194,14 @@ const STORYBOARD = {
         accentColor: "#0ff"
       },
       audioDescription: "Described",
+      spokenNarration: "Spoken text.",
       citations: [{ sourceTitle: "Doc", quote: "Quote" }]
     }
   ],
   subtitles: [],
-  chapters: [{ id: "c1", index: 0, title: "Intro", startTimeMs: 0, endTimeMs: 10000 }]
+  chapters: [
+    { id: "c1", index: 0, title: "Intro", startTimeMs: 0, endTimeMs: 10000, slideIds: ["s1"] }
+  ]
 } as never;
 
 describe("Englische Oberfläche der Bereiche und Werkzeuge", () => {

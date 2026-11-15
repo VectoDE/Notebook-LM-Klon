@@ -250,6 +250,24 @@ describe("GET/POST /api/v1/notebooks/:id/doc", () => {
     });
     expect(huge.status).toBe(413);
 
+    // Ohne Content-Length: die Grenze greift beim Lesen des Streams.
+    const streamed = await app.request(
+      `${ORIGIN}/api/v1/notebooks/nb_a/doc`,
+      {
+        method: "POST",
+        headers: { cookie: alice, "content-type": "application/json" },
+        body: new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new Uint8Array(MAX_UPDATE_BYTES * 2 + 1));
+            controller.close();
+          }
+        }),
+        duplex: "half"
+      } as RequestInit,
+      env
+    );
+    expect(streamed.status).toBe(413);
+
     const sv = await call("/api/v1/notebooks/nb_a/doc?sv=a+b", { cookie: alice });
     expect(sv.status).toBe(400);
     const badVector = await call(

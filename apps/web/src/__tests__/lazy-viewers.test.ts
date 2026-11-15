@@ -6,8 +6,10 @@ import {
   LazyInteractiveAudioHostPlayer,
   LazyMindmapViewer,
   LazyQuizViewer,
+  LazyShareDialog,
   LazyVideoOverviewPlayer,
   lazyWithPreload,
+  preloadMediaPlayers,
   preloadStudioViewers,
   scheduleStudioViewerPreload
 } from "../lazy-viewers.js";
@@ -31,6 +33,17 @@ describe("Studio-Viewer lazy laden (#257)", () => {
     expect(calls).toBeGreaterThanOrEqual(1);
   });
 
+  it("hängt Dialoge erst beim ersten Öffnen ein", async () => {
+    const props = { notebookTitle: "Titel", onClose: () => undefined };
+    expect(renderToStaticMarkup(createElement(LazyShareDialog, { ...props, isOpen: false }))).toBe(
+      ""
+    );
+    await LazyShareDialog.preload();
+    expect(
+      renderToStaticMarkup(createElement(LazyShareDialog, { ...props, isOpen: true }))
+    ).toContain("<dialog");
+  });
+
   it("lädt alle Studio-Viewer vorab", async () => {
     await preloadStudioViewers();
     for (const viewer of [
@@ -42,6 +55,11 @@ describe("Studio-Viewer lazy laden (#257)", () => {
     ]) {
       await expect(viewer.preload()).resolves.toBeTypeOf("function");
     }
+  });
+
+  it("lädt die Medien-Player auf Absicht vor (#350)", async () => {
+    await expect(preloadMediaPlayers()).resolves.toHaveLength(2);
+    await expect(LazyVideoOverviewPlayer.preload()).resolves.toBeTypeOf("function");
   });
 
   it("plant das Vorladen über den Leerlauf-Planer ein", async () => {

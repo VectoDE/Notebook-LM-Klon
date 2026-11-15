@@ -2,7 +2,7 @@
 
 Stand: 2026-11-13 · Referenzen: Entscheidungen #20, #51, #52, #71, #100, #105 · Issue #148
 
-Diese Seite hält fest, was bei **RelationNotes – NotebookLM & RelationFlow Knowledge Studio** für die Open Source Security Foundation (OpenSSF) belegt ist und was nicht. Jede Aussage verweist auf eine Datei, einen Workflow oder einen Messwert. Was nicht erreicht ist, steht in Kapitel 5.
+Diese Seite hält fest, was bei **RelationNotes** für die Open Source Security Foundation (OpenSSF) belegt ist und was nicht. Jede Aussage verweist auf eine Datei, einen Workflow oder einen Messwert. Was nicht erreicht ist, steht in Kapitel 5.
 
 ## 1. OpenSSF Scorecard Checks – Status & Nachweis
 
