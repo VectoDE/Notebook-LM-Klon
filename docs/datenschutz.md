@@ -17,7 +17,7 @@ Stand: 2026-11-13 · Issue #258
 
 ## Löschung
 
-Sie können Ihr Konto jederzeit löschen. Alle Datensätze und Dateien werden sofort entfernt. Im Wiederherstellungsverlauf der Datenbank (Cloudflare D1 Time Travel) bleiben sie technisch bedingt noch bis zu 30 Tage enthalten und sind danach endgültig gelöscht. Einzelheiten: [Löschkonzept](./loeschkonzept.md).
+Sie können Ihr Konto jederzeit löschen. Ihre Kontodaten und Dateien werden sofort entfernt. Inhalte in Arbeitsbereichen, an denen weitere Personen beteiligt sind (zum Beispiel Notebooks, die Sie in einem fremden Arbeitsbereich angelegt haben, oder Ihre Kommentare dort), bleiben für diese Personen erhalten; Ihr Name wird entfernt und durch „Gelöschtes Konto“ ersetzt. Im Wiederherstellungsverlauf der Datenbank (Cloudflare D1 Time Travel) bleiben sie technisch bedingt noch bis zu 30 Tage enthalten und sind danach endgültig gelöscht. Einzelheiten: [Löschkonzept](./loeschkonzept.md).
 
 ## Rechte
 

@@ -25,6 +25,11 @@ export function createD1DatabaseAdapter(db: D1Database): DatabaseAdapter {
         .bind(...params)
         .run();
       return { changes: Number(res.meta.changes) };
+    },
+    batch: async (statements) => {
+      await db.batch(
+        statements.map((statement) => db.prepare(statement.sql).bind(...statement.params))
+      );
     }
   };
 }

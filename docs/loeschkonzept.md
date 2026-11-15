@@ -12,7 +12,7 @@ Personenbezogene Daten werden sofort aus der Datenbank (D1) und dem Dateispeiche
 
 | Auslöser | Was gelöscht wird | Wann | Umsetzung |
 |---|---|---|---|
-| Person löscht ihr Konto (`DELETE /api/v1/me` mit `{"confirm":"DELETE_MY_ACCOUNT"}`) | Nutzerzeile, Passkeys, Sitzungen, Kontingente, Mitgliedschaften, Freigaben, eigene Arbeitsbereiche, alle Notebooks der Person samt Quellen, Chunks, Vektoren, Chats, Nachrichten, Notizen, Artefakten, BYOK-Schlüsseln; R2-Objekte unter `users/{id}/` und `notebooks/{notebookId}/` | sofort, in derselben Anfrage | `apps/worker/src/account-routes.ts`, `purgeUsers()` in `apps/worker/src/cleanup.ts` |
+| Person löscht ihr Konto (`DELETE /api/v1/me` mit `{"confirm":"DELETE_MY_ACCOUNT"}`) | Nutzerzeile, Passkeys, Sitzungen, Kontingente, Mitgliedschaften, Freigaben, BYOK-Schlüssel; eigene Arbeitsbereiche ohne weitere Mitglieder samt Notebooks, Quellen, Chunks, Vektoren, Chats, Nachrichten, Notizen und Artefakten; R2-Objekte unter `users/{id}/` und den Notebook-Präfixen gelöschter Arbeitsbereiche. Eigene Arbeitsbereiche mit weiteren Mitgliedern und Notebooks in fremden Arbeitsbereichen bleiben erhalten (siehe unten) | sofort, in derselben Anfrage | `apps/worker/src/account-routes.ts`, `purgeUsers()` in `apps/worker/src/cleanup.ts` |
 | Gastkonto läuft ab (24 h) | wie Kontolöschung | stündlicher Cron (`0 * * * *`) | `runScheduledCleanup()` |
 | Demo-Notebook läuft ab (30 Tage) | Notebook mit allen Inhalten und R2-Objekten | stündlicher Cron | `runScheduledCleanup()` |
 | Sitzung oder Magic Link läuft ab | Sitzungs- bzw. Link-Hash | stündlicher Cron | `runScheduledCleanup()` |
@@ -20,11 +20,15 @@ Personenbezogene Daten werden sofort aus der Datenbank (D1) und dem Dateispeiche
 
 Die Kontolöschung verlangt eine aktive Sitzung, besteht die CSRF-Prüfung und setzt das Sitzungscookie zurück. Ohne den Bestätigungswert im Body antwortet der Worker mit `400 CONFIRMATION_REQUIRED` und löscht nichts.
 
-Der Test `apps/worker/src/__tests__/account-routes.test.ts` belegt, dass nach der Löschung in keiner der betroffenen Tabellen mehr eine Zeile der Person steht, dass ihre R2-Objekte weg sind und dass Daten anderer Personen erhalten bleiben.
+Die Tests `apps/worker/src/__tests__/account-routes.test.ts` und `account-purge.test.ts` belegen, dass nach der Löschung in keiner der betroffenen Tabellen mehr eine Zeile der Person steht, dass ihre R2-Objekte weg sind und dass Daten anderer Personen erhalten bleiben.
 
 ## Bewusste Entscheidungen
 
-- **Notebooks in fremden Arbeitsbereichen:** Hat die Person ein Notebook in einem fremden Arbeitsbereich angelegt, wird es mitgelöscht (`created_by` ist `ON DELETE RESTRICT`). Eine Übergabe an den Inhaber des Arbeitsbereichs ist nicht umgesetzt; das wäre eine eigene Entscheidung des Inhabers.
+- **Notebooks in fremden Arbeitsbereichen (Entscheidung F361):** Sie bleiben erhalten. `created_by` geht an den Besitzer des Arbeitsbereichs.
+- **Eigener Arbeitsbereich mit weiteren Mitgliedern (Entscheidung F365):** Er geht an das am längsten beteiligte Admin-Mitglied (Rolle `owner`), sonst an das älteste Mitglied, das dabei die Rolle `owner` erhält. Nur Arbeitsbereiche ohne weitere Mitglieder werden samt Notebooks gelöscht.
+- **Autorfelder:** Kommentare, Notizen, Chats und Artefakte der Person in bleibenden Notebooks werden auf das Platzhalterkonto `user_deleted` (Anzeigename „Gelöschtes Konto“, gesperrt, Migration 0009) umgehängt statt gelöscht.
+- **Reihenfolge und Teilfehler:** Die D1-Schritte laufen je Block von höchstens 50 Konten in einem atomaren `D1.batch`; IDs werden in Blöcken zu höchstens 50 gebunden (D1 erlaubt 100 gebundene Parameter je Anfrage, <https://developers.cloudflare.com/d1/platform/limits/>). Erst danach folgt R2. Die R2-Präfixe stehen im selben Batch in `pending_r2_purge` und werden erst nach erfolgreichem Löschen entfernt; bei einem R2-Fehler räumt der stündliche Cron nach. Jeder Cron-Schritt läuft in eigenem `try/catch`, ein Fehler bei der Kontolöschung stoppt die übrigen Schritte nicht.
+- **Kurzlebige Tabellen:** Mit dem Konto werden auch Magic Links zur E-Mail-Adresse, Rate-Limit-Zähler (`usr:{id}`) und der Gast-Tageszähler der Embeddings gelöscht.
 - **Audit-Log:** Einträge bleiben bis zum Ende ihrer Aufbewahrungsfrist stehen, die Verknüpfung zur Person wird aber gelöscht (`user_id` wird `NULL`). Die IP liegt dort nur als gesalzener Hash vor.
 - **Durable Objects:** Zwischengespeicherte Vektoren im `NotebookDO` werden nicht aktiv geleert. Sie hängen an der Notebook-ID, die nach der Löschung nicht mehr erreichbar ist, und werden beim nächsten Neuaufbau verworfen.
 

@@ -14,7 +14,7 @@ Stand: 2026-11-13 · Issue #258
 | 2 | Passkeys | Credential-ID, öffentlicher Schlüssel, Zähler | Nutzer | Anmeldung ohne Passwort | D1 `passkeys` | mit dem Konto |
 | 3 | Sitzungen | SHA-256 des Tokens, IP- und User-Agent-Hash (tagesweise gesalzen) | Nutzer | Angemeldet bleiben, Missbrauch erkennen | D1 `sessions`, Cookie `__Host-sid` | 7 Tage nach letzter Nutzung, sofort bei Kontolöschung |
 | 4 | Magic Links | SHA-256 des Tokens, E-Mail | Nutzer | Anmeldung per E-Mail | D1 `magic_links` | 15 Minuten |
-| 5 | Inhalte | Notebooks, Quellen, Chunks, Vektoren, Chats, Notizen, Artefakte | Nutzer, in Quellen genannte Dritte | Kernfunktion | D1, R2 `notebooks/{id}/` | sofort bei Löschung von Quelle, Notebook oder Konto; Demo-Notebooks nach 30 Tagen |
+| 5 | Inhalte | Notebooks, Quellen, Chunks, Vektoren, Chats, Notizen, Artefakte | Nutzer, in Quellen genannte Dritte | Kernfunktion | D1, R2 `notebooks/{id}/` | sofort bei Löschung von Quelle, Notebook oder Konto, sofern der Arbeitsbereich keine weiteren Mitglieder hatte; sonst bleiben Notebooks im übernommenen Arbeitsbereich und Autorfelder gehen auf das Platzhalterkonto; Demo-Notebooks nach 30 Tagen |
 | 6 | Eigene API-Schlüssel (BYOK) | verschlüsselter Schlüssel, letzte 4 Zeichen | Nutzer | Aufrufe beim gewählten KI-Anbieter | D1 `provider_keys` | sofort bei Entfernen oder Kontolöschung |
 | 7 | Kontingente und Rate-Limits | Zähler je Konto, Zähler je IP-Hash | Nutzer, Besucher | Missbrauch und Kosten begrenzen | D1 `quotas`, `rate_limits`, Arbeitsspeicher | Kontingente mit dem Konto; Rate-Limit-Fenster 1 Minute |
 | 8 | Audit-Log | Aktion, Ziel-ID, gesalzener IP-Hash, Zeitpunkt | Nutzer | Sicherheit, Nachweis | D1 `audit_log` | siehe Issue #259; Personenbezug entfällt bei Kontolöschung |
