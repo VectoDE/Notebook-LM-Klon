@@ -4,7 +4,7 @@ Stand: 13.11.2026. Bezug: Issue #255 (Entscheidung E37: aktuelle Chrome, Edge, F
 
 ## Automatisch geprüft
 
-Stand: 15.11.2026. `apps/web/playwright.config.ts` hat 15 Projekte. Der Job `e2e` führt die vollständige E2E-Suite nur in Chromium aus. Der Job `e2e-matrix` startet je Projekt einen eigenen Job (`fail-fast: false`, kein `allow-failure`, nichts übersprungen) mit den Specs `browser-matrix` (Darstellung je Design), `browser-zoom` (nur Desktop) und `browser-touch` (nur Touch-Geräte). Jede Spec ist per `testMatch` nur den Projekten zugeordnet, für die sie gilt.
+Stand: 15.11.2026. `apps/web/playwright.config.ts` hat 15 Projekte. Der Job `e2e` führt die vollständige E2E-Suite nur in Chromium aus. Der Job `e2e-matrix` startet je Projekt einen eigenen Job (`fail-fast: false`, kein `allow-failure`, nichts übersprungen) mit den Specs `browser-matrix` (Darstellung je Design), `browser-zoom` (nur Desktop) und `browser-touch` (nur Touch-Geräte). Die Jobs laufen auf den von GitHub gestellten Runnern (öffentliches Repository, kostenlos): ubuntu für alle Projekte, zusätzlich windows (Chrome, Edge stable und Beta, Firefox) und macos (WebKit, Firefox, iPhone und iPad in Hoch- und Querformat). Keine selbst gehosteten Runner. Jede Spec ist per `testMatch` nur den Projekten zugeordnet, für die sie gilt.
 
 | Projekt | Engine und Version | Gerät | Specs |
 |---|---|---|---|

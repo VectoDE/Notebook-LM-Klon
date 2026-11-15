@@ -79,28 +79,38 @@ jobs:
         run: pnpm --filter @notebook-lm/web test:e2e --project=chromium
 
   e2e-matrix:
-    name: Browser- und Geräte-Matrix (${{ matrix.project }})
-    runs-on: ubuntu-latest
+    name: Browser- und Geräte-Matrix (${{ matrix.project }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { project: firefox, install: firefox }
-          - { project: webkit, install: webkit }
-          - { project: chrome, install: chrome }
-          - { project: chrome-beta, install: chrome-beta }
-          - { project: msedge, install: msedge }
-          - { project: msedge-beta, install: msedge-beta }
-          - { project: phone-android, install: chromium }
-          - { project: phone-android-landscape, install: chromium }
-          - { project: phone-ios, install: webkit }
-          - { project: phone-ios-landscape, install: webkit }
-          - { project: tablet-ios, install: webkit }
-          - { project: tablet-ios-landscape, install: webkit }
-          - { project: tablet-android, install: chromium }
-          - { project: tablet-android-landscape, install: chromium }
+          - { project: firefox, install: firefox, os: ubuntu-latest }
+          - { project: webkit, install: webkit, os: ubuntu-latest }
+          - { project: chrome, install: chrome, os: ubuntu-latest }
+          - { project: chrome-beta, install: chrome-beta, os: ubuntu-latest }
+          - { project: msedge, install: msedge, os: ubuntu-latest }
+          - { project: msedge-beta, install: msedge-beta, os: ubuntu-latest }
+          - { project: phone-android, install: chromium, os: ubuntu-latest }
+          - { project: phone-android-landscape, install: chromium, os: ubuntu-latest }
+          - { project: phone-ios, install: webkit, os: ubuntu-latest }
+          - { project: phone-ios-landscape, install: webkit, os: ubuntu-latest }
+          - { project: tablet-ios, install: webkit, os: ubuntu-latest }
+          - { project: tablet-ios-landscape, install: webkit, os: ubuntu-latest }
+          - { project: tablet-android, install: chromium, os: ubuntu-latest }
+          - { project: tablet-android-landscape, install: chromium, os: ubuntu-latest }
+          - { project: chrome, install: chrome, os: windows-latest }
+          - { project: msedge, install: msedge, os: windows-latest }
+          - { project: msedge-beta, install: msedge-beta, os: windows-latest }
+          - { project: firefox, install: firefox, os: windows-latest }
+          - { project: webkit, install: webkit, os: macos-latest }
+          - { project: firefox, install: firefox, os: macos-latest }
+          - { project: phone-ios, install: webkit, os: macos-latest }
+          - { project: phone-ios-landscape, install: webkit, os: macos-latest }
+          - { project: tablet-ios, install: webkit, os: macos-latest }
+          - { project: tablet-ios-landscape, install: webkit, os: macos-latest }
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
