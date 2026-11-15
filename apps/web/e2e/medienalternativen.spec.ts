@@ -322,6 +322,11 @@ test.describe("axe in allen vier Designs (WCAG 2.2 A/AA)", () => {
         await page.getByTestId("btn-back-to-studio-overview").click();
         await page.getByTestId("btn-open-deep-dive-stage").click();
         await expect(page.getByTestId("deep-dive-stage")).toBeVisible();
+        // Die Bühne blendet mit 0 -> 1 Deckkraft ein. Misst axe mitten in der Animation, ist der
+        // Kontrast durch die halbe Deckkraft zu niedrig (nur unter Last sichtbar).
+        await page
+          .getByTestId("deep-dive-stage")
+          .evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
         const stage = await new AxeBuilder({ page })
           .include("[data-testid='deep-dive-stage']")
           .withTags(AXE_TAGS)
