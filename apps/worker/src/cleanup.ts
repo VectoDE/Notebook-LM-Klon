@@ -53,9 +53,6 @@ function marks(count: number): string {
 
 /** Führt Anweisungen atomar aus (D1.batch); ohne batch-Unterstützung nacheinander. */
 export async function runBatch(db: DatabaseAdapter, statements: BatchStatement[]): Promise<void> {
-  if (statements.length === 0) {
-    return;
-  }
   if (db.execBatch) {
     await db.execBatch(statements);
     return;

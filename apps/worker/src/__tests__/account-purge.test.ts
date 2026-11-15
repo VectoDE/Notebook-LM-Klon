@@ -520,6 +520,36 @@ describe("purgeUsers: Teilfehler und Nachlauf", () => {
     errorSpy.mockRestore();
   });
 
+  it("meldet im Cron einen Fehlschritt, wenn vorgemerkte R2-Präfixe nicht geleert werden können", async () => {
+    await fx.db.run(
+      "INSERT INTO pending_r2_purge (prefix, created_at) VALUES ('users/alice/', ?)",
+      [fx.now]
+    );
+    fx.bucket.failDeletes = true;
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const metrics = await runScheduledCleanup({ db: fx.db, mediaBucket: fx.bucket, now: fx.now });
+
+    expect(metrics.failedSteps).toBe(1);
+    expect(count(fx, "SELECT COUNT(*) AS n FROM pending_r2_purge")).toBe(1);
+    errorSpy.mockRestore();
+  });
+
+  it("arbeitet ohne execBatch-Unterstützung des Adapters nacheinander", async () => {
+    const sequential: DatabaseAdapter = {
+      exec: fx.db.exec,
+      query: fx.db.query,
+      queryOne: fx.db.queryOne,
+      run: fx.db.run
+    };
+
+    const res = await purgeUsers(sequential, fx.bucket, ["alice"], fx.now);
+
+    expect(res.deletedUsers).toBe(1);
+    expect(count(fx, "SELECT COUNT(*) AS n FROM users WHERE id = 'alice'")).toBe(0);
+    expect(count(fx, "SELECT COUNT(*) AS n FROM notes WHERE user_id = 'user_deleted'")).toBe(1);
+  });
+
   it("ist nach einem Abbruch erneut aufrufbar (idempotent)", async () => {
     await purgeUsers(fx.db, fx.bucket, ["alice"], fx.now);
     const again = await purgeUsers(fx.db, fx.bucket, ["alice"], fx.now);
