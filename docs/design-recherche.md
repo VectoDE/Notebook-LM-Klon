@@ -130,7 +130,7 @@ Wiedererkennbarkeit ist hier eine eigene Einschätzung: eigene Grundfarbe, eigen
 |---|---|---|
 | **Pure** (NotebookLM-ähnliche Anmutung, eigene Marke) | Notion, Scaleway | Ruhige, helle Arbeitsfläche, weiche Panels, wenig Farbe; Notion zeigt, dass die Markenfarbe als Linkfarbe AAA verfehlt, deshalb eigenes Indigo mit 7:1 statt eines mittleren Blaus. Keine Farbwerte oder Formen von Google übernommen. |
 | **Immersive Cinema** | Vercel, NVIDIA, Linear | Dunkle Bühne mit Lichtakzenten; Vercel erreicht trotz dunkler Optik 100 % AAA-Anteil und LCP unter 1 s. Übernommen wird das Prinzip (sehr hell auf sehr dunkel, Akzente nur als Licht), nicht die Farben. |
-| **Editorial Calm** (Standard-Palette Everlast-Blau `#2563EB` mit Slate) | Accenture, Oracle, Capgemini | Ruhige Lese-Typografie, Serifen nur für Überschriften, viel Weißraum; Oracle und Accenture halten 93 bis 98 % AAA bei geringer Datenmenge. |
+| **Editorial Calm** (Standard-Palette Blau `#2563EB` mit Slate) | Accenture, Oracle, Capgemini | Ruhige Lese-Typografie, Serifen nur für Überschriften, viel Weißraum; Oracle und Accenture halten 93 bis 98 % AAA bei geringer Datenmenge. |
 | **Fusion** | Cloudflare, DigitalOcean, Fly.io | Klarer Grundton mit einer warmen Signalfarbe; Cloudflare verbindet starke Wiedererkennung (Signalfarbe) mit 100 % AAA-Anteil und Lighthouse-Barrierefreiheit 99. |
 
 **Engere Wahl insgesamt:** Scaleway (alle Werte top), Cloudflare (AAA plus starke Wiedererkennung), Vercel (dunkel und trotzdem AAA), Oracle und DigitalOcean (98 % AAA), Notion (Vorbild für die ruhige Arbeitsfläche, mit bekanntem Kontrastfehler als Lehre).
