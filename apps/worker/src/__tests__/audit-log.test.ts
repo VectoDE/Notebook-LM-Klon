@@ -438,7 +438,8 @@ describe("Audit-Ereignisse an den Routen (Issue #259)", () => {
 
     const withSession = new Hono<Vars>();
     withSession.use("*", async (c, next) => {
-      c.set("sessionUser", { id: "alice" });
+      // Gastkonto: braucht für die Kontolöschung keine frische Anmeldung (siehe account-routes.test.ts)
+      c.set("sessionUser", { id: "alice", isGuest: true } as { id: string });
       await next();
     });
     registerChunkIngestionRoutes(withSession, { ragRepo, coreRepo: repo, auditLogger: logger });

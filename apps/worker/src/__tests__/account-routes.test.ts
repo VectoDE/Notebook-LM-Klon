@@ -4,9 +4,15 @@ import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ACCOUNT_DELETE_CONFIRMATION, registerAccountRoutes } from "../account-routes.js";
+import * as Y from "yjs";
+import {
+  ACCOUNT_DELETE_CONFIRMATION,
+  REAUTH_MAX_AGE_MS,
+  registerAccountRoutes
+} from "../account-routes.js";
 import { CoreRepository } from "../core-repository.js";
 import { createD1DatabaseAdapter } from "../d1-adapter.js";
+import { fromBase64Url } from "../doc-sync.js";
 import { createApp } from "../index.js";
 import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
 import { clearRateLimitMemory } from "../rate-limiter.js";
@@ -297,7 +303,8 @@ describe("DELETE /api/v1/me (Löschkonzept #258)", () => {
   it("löscht die D1-Daten auch ohne R2-Bindung und setzt in Produktion das __Host-Cookie zurück", async () => {
     const plain = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
     plain.use("*", async (c, next) => {
-      c.set("sessionUser", { id: "alice" });
+      // Guest sessions need no fresh sign-in, see the REAUTH tests below for non-guests
+      c.set("sessionUser", { id: "alice", isGuest: true } as { id: string });
       await next();
     });
     const repo = new CoreRepository(createD1DatabaseAdapter(fx.env.DB));
@@ -314,6 +321,113 @@ describe("DELETE /api/v1/me (Löschkonzept #258)", () => {
     expect(res.headers.get("set-cookie")).toContain("__Host-sid=;");
     expect(((await res.json()) as { deletedR2Objects: number }).deletedR2Objects).toBe(0);
     expect(countFor(fx.sqlite, USER_SCOPED_COUNTS.users as string, "alice")).toBe(0);
+  });
+
+  it("verlangt für Konten mit Anmeldung eine frische Sitzung (B6) und löscht sonst nichts", async () => {
+    const stale = Date.now() - REAUTH_MAX_AGE_MS - 1_000;
+    fx.sqlite.prepare("UPDATE sessions SET created_at = ? WHERE user_id = 'alice'").run(stale);
+
+    const res = await deleteMe(
+      fx.aliceCookie,
+      JSON.stringify({ confirm: ACCOUNT_DELETE_CONFIRMATION })
+    );
+
+    expect(res.status).toBe(403);
+    expect(res.headers.get("content-type")).toContain("application/problem+json");
+    const problem = (await res.json()) as { code: string; detail: string };
+    expect(problem.code).toBe("REAUTH_REQUIRED");
+    expect(problem.detail).toContain("erneut an");
+    expect(countFor(fx.sqlite, USER_SCOPED_COUNTS.users as string, "alice")).toBe(1);
+    expect(fx.bucket.objects.size).toBe(5);
+  });
+
+  it("erlaubt die Löschung nach einer neuen Anmeldung, auch wenn die alte Sitzung noch gültig ist", async () => {
+    fx.sqlite
+      .prepare("UPDATE sessions SET created_at = ? WHERE user_id = 'alice'")
+      .run(Date.now() - 60 * 60 * 1000);
+    const repo = new CoreRepository(createD1DatabaseAdapter(fx.env.DB));
+    const fresh = await new SessionManager({ repo, saltSecret: TEST_SALT }).createSession(
+      "alice",
+      null,
+      null
+    );
+
+    const stale = await deleteMe(
+      fx.aliceCookie,
+      JSON.stringify({ confirm: ACCOUNT_DELETE_CONFIRMATION })
+    );
+    expect(stale.status).toBe(403);
+
+    const res = await deleteMe(
+      `sid=${fresh.rawToken}`,
+      JSON.stringify({ confirm: ACCOUNT_DELETE_CONFIRMATION })
+    );
+    expect(res.status).toBe(200);
+    expect(countFor(fx.sqlite, USER_SCOPED_COUNTS.users as string, "alice")).toBe(0);
+  });
+
+  it("verlangt keine frische Sitzung für Gastkonten", async () => {
+    fx.sqlite.prepare("UPDATE users SET is_guest = 1 WHERE id = 'alice'").run();
+    fx.sqlite
+      .prepare("UPDATE sessions SET created_at = ? WHERE user_id = 'alice'")
+      .run(Date.now() - 60 * 60 * 1000);
+
+    const res = await deleteMe(
+      fx.aliceCookie,
+      JSON.stringify({ confirm: ACCOUNT_DELETE_CONFIRMATION })
+    );
+
+    expect(res.status).toBe(200);
+    expect(countFor(fx.sqlite, USER_SCOPED_COUNTS.users as string, "alice")).toBe(0);
+  });
+
+  it("lehnt eine Sitzung ohne Kennung im Kontext ab (fail-closed)", async () => {
+    const plain = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
+    plain.use("*", async (c, next) => {
+      c.set("sessionUser", { id: "alice", isGuest: false } as { id: string });
+      await next();
+    });
+    const repo = new CoreRepository(createD1DatabaseAdapter(fx.env.DB));
+    registerAccountRoutes(plain, { coreRepo: repo, isProduction: false });
+
+    const res = await plain.request(
+      "/api/v1/me",
+      { method: "DELETE", body: JSON.stringify({ confirm: ACCOUNT_DELETE_CONFIRMATION }) },
+      fx.env
+    );
+
+    expect(res.status).toBe(403);
+    expect(countFor(fx.sqlite, USER_SCOPED_COUNTS.users as string, "alice")).toBe(1);
+  });
+
+  it("leert den Durable-Object-Zustand der gelöschten Notebooks, aber nicht den fremder Notebooks (B7)", async () => {
+    const stateOf = async (notebookId: string): Promise<string> => {
+      const stub = fx.env.NOTEBOOK_DO.get(fx.env.NOTEBOOK_DO.idFromName(notebookId));
+      const res = await stub.fetch("http://internal/doc");
+      const doc = new Y.Doc();
+      Y.applyUpdate(doc, fromBase64Url(((await res.json()) as { update: string }).update));
+      return doc.getText("t").toString();
+    };
+    for (const id of ["nb_alice", "nb_bob"]) {
+      const doc = new Y.Doc();
+      doc.getText("t").insert(0, `geheim ${id}`);
+      const stub = fx.env.NOTEBOOK_DO.get(fx.env.NOTEBOOK_DO.idFromName(id));
+      await stub.fetch("http://internal/doc", {
+        method: "POST",
+        body: Y.encodeStateAsUpdate(doc)
+      });
+    }
+    expect(await stateOf("nb_alice")).toBe("geheim nb_alice");
+
+    const res = await deleteMe(
+      fx.aliceCookie,
+      JSON.stringify({ confirm: ACCOUNT_DELETE_CONFIRMATION })
+    );
+
+    expect(res.status).toBe(200);
+    expect(await stateOf("nb_alice")).toBe("");
+    expect(await stateOf("nb_bob")).toBe("geheim nb_bob");
+    expect(countFor(fx.sqlite, "SELECT COUNT(*) AS n FROM pending_r2_purge", "")).toBe(0);
   });
 
   it("prüft die Sitzung auch im Handler selbst (Verteidigung in der Tiefe)", async () => {

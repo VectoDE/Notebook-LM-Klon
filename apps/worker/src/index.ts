@@ -16,7 +16,7 @@ import {
 import { registerBYOKRoutes } from "./byok-routes.js";
 import { registerChatRoutes } from "./chat-routes.js";
 import { registerChunkIngestionRoutes } from "./chunk-ingestion.js";
-import { runScheduledCleanup } from "./cleanup.js";
+import { createNotebookStatePurger, runScheduledCleanup } from "./cleanup.js";
 import { registerCommentRoutes } from "./comments-routes.js";
 import { resolveAppConfig } from "./config.js";
 import { CoreRepository } from "./core-repository.js";
@@ -386,7 +386,8 @@ export const scheduled = async (
 
   const cleanupPromise = runScheduledCleanup({
     db: dbAdapter,
-    mediaBucket: env.MEDIA
+    mediaBucket: env.MEDIA,
+    purgeNotebookState: createNotebookStatePurger(env.NOTEBOOK_DO)
   }).then((metrics) => {
     console.info(
       JSON.stringify({
