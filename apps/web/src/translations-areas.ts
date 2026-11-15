@@ -765,6 +765,33 @@ const ENTRIES: readonly Entry[] = [
   ["toastClose", "Hinweis schließen", "Dismiss notice"],
   ["toastSourceAdded", "Quelle hinzugefügt: {title}", "Source added: {title}"],
   ["toastSourcesAdded", "{n} Quellen hinzugefügt", "{n} sources added"],
+  [
+    "toastSourceFailed",
+    "Quelle nicht hinzugefügt: {title}. Den Grund sehen Sie in der Quellenliste.",
+    "Source not added: {title}. The reason is shown in the source list."
+  ],
+  // Eigene Uploads (P6): Stand und Gründe für einen Fehlschlag
+  ["srcStatusProcessing", "Wird gelesen und indexiert …", "Reading and indexing …"],
+  [
+    "srcErrorType",
+    "Dieses Format wird nicht unterstützt. Laden Sie eine PDF-, TXT- oder Markdown-Datei hoch.",
+    "This format is not supported. Upload a PDF, TXT or Markdown file."
+  ],
+  [
+    "srcErrorEmpty",
+    "Die Datei enthält keinen lesbaren Text. Gescannte PDFs ohne Textebene lassen sich noch nicht lesen.",
+    "The file contains no readable text. Scanned PDFs without a text layer cannot be read yet."
+  ],
+  [
+    "srcErrorSize",
+    "Die Datei ist zu groß oder überschreitet das Kontingent des Notebooks.",
+    "The file is too large or exceeds the notebook's quota."
+  ],
+  [
+    "srcErrorRead",
+    "Die Datei ließ sich nicht lesen. Prüfen Sie, ob sie beschädigt ist, und versuchen Sie es noch einmal.",
+    "The file could not be read. Check whether it is damaged and try again."
+  ],
   ["toastDownload", "Download gestartet: {file}", "Download started: {file}"],
 
   // Herkunftsnachweis (C2PA) für Exporte, Issue #353

@@ -2219,6 +2219,22 @@ html[data-design="immersive-cinema"] .rn-source-meta .rn-source-type {
   white-space: nowrap;
 }
 
+/* Stand eigener Uploads (P6): dritte Zeile unter Dateiname und Größe */
+.rn-source-status {
+  grid-column: 2 / span 2;
+  grid-row: 3;
+  min-width: 0;
+  padding-inline-end: var(--rn-space-2);
+  font-size: var(--rn-text-small);
+  line-height: 1.45;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-source-status[data-status="error"] {
+  font-weight: 600;
+  color: var(--rn-color-error);
+}
+
 .rn-source-inspect[aria-label$="schließen"] {
   color: var(--rn-color-primary);
 }
