@@ -1249,6 +1249,17 @@ html[data-color-mode="aaa-contrast"] .rn-rail-items {
   }
 }
 
+/* Niedrige Fenster mit Maus (200 % Zoom, 640 x 400): Reiter 32 px hoch (WCAG 2.5.8 verlangt 24 px),
+   damit Inhalt sichtbar bleibt. Touch-Geräte behalten 44 px (WCAG 2.5.5). */
+@media (min-width: 600px) and (max-width: 899.98px) and (max-height: 520px) and (pointer: fine) {
+  .rn-topnav {
+    padding: 2px 16px;
+  }
+  .rn-topnav-item {
+    height: 32px;
+  }
+}
+
 /* Telefon: Logo, Titel und Menü-Knopf; Bereiche liegen unten in der Reiterleiste */
 @media (max-width: 599.98px) {
   .workspace-header {

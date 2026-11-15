@@ -49,7 +49,7 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: [/browser-touch\.spec\.ts/]
+      testIgnore: ["node/**", /browser-touch\.spec\.ts/]
     },
     ...DESKTOP_MATRIX.map(({ name, use }) => ({
       name,
