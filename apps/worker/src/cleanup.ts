@@ -1,4 +1,4 @@
-import { purgeExpiredAuditEntries } from "./audit-log.js";
+import { purgeExpiredAuditEntries, replayPendingAuditEntries } from "./audit-log.js";
 import type { BatchStatement, DatabaseAdapter } from "./core-repository.js";
 import { STALE_UPLOAD_MS, UPLOAD_DAILY_RETENTION_DAYS } from "./r2-budget.js";
 
@@ -257,7 +257,12 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
     await db.run("DELETE FROM upload_daily WHERE day < ?", [retentionDay]);
   });
 
-  // 9. Audit log retention (90 days). Own step: independent of purgeUsers and all other steps.
+  // 9. Audit entries that could not be written at request time (account.delete): write them now
+  await step("audit_retry", async () => {
+    await replayPendingAuditEntries(db, batchSize);
+  });
+
+  // 9b. Audit log retention (90 days). Own step: independent of purgeUsers and all other steps.
   await step("audit_retention", async () => {
     deletedAuditEntries = await purgeExpiredAuditEntries(db, now);
   });
@@ -509,7 +514,7 @@ export async function drainPendingR2(
       ? [...only]
       : (
           await db.query<{ prefix: string }>(
-            "SELECT prefix FROM pending_r2_purge ORDER BY created_at ASC LIMIT ?",
+            "SELECT prefix FROM pending_r2_purge WHERE prefix NOT LIKE 'audit-retry:%' ORDER BY created_at ASC LIMIT ?",
             [limit]
           )
         ).map((row) => row.prefix);

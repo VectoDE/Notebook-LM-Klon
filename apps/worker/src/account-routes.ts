@@ -103,7 +103,7 @@ export function registerAccountRoutes(
       createNotebookStatePurger(c.env.NOTEBOOK_DO, c.env.JOB_DO)
     );
     // Written after the purge: the user row is gone, so the entry carries no user_id.
-    await deps.auditLogger?.record(c, {
+    await deps.auditLogger?.recordCritical(c, {
       userId: null,
       action: "account.delete",
       target: "user:deleted"
