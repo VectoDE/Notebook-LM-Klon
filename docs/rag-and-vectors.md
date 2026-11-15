@@ -142,7 +142,7 @@ Rechnung: 10.000 / 154 × 1 Mio. ≈ **64,9 Mio. Eingabe-Tokens pro Tag**.
 | Fehlerpause | 60 s je Worker-Instanz | nach einem Fehler (z. B. Kontingent bei Cloudflare erschöpft) kein Dauerfeuer |
 | Zeitgrenze | 20 s je AI-Aufruf | hängende Aufrufe blockieren den Upload nicht |
 
-Gezählt wird in D1 (`ai_embedding_usage`, Migration `0007`): je UTC-Tag eine Zeile `global` und je
+Gezählt wird in D1 (`ai_embedding_usage`, Migration `0008`): je UTC-Tag eine Zeile `global` und je
 Gast eine Zeile `guest:<id>`. Vor dem Aufruf prüft der Worker eine vorsichtige Schätzung
 (Zeichen / 3), danach schreibt er die von Workers AI gemeldeten Tokens (`usage.total_tokens`).
 Gleichzeitige Anfragen können das Budget knapp überschreiten; der Puffer von 23 % fängt das ab.

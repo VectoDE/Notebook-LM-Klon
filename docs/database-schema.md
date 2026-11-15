@@ -199,12 +199,12 @@ Kommentare hängen an einer Quelle oder einer Notiz desselben Notebooks. SQLite 
 
 Rechte: Lesen ab `viewer`, Schreiben ab `editor`, Bearbeiten nur durch die verfassende Person (mit `editor`), Löschen durch die verfassende Person oder den `owner`. Ratenbegrenzung: eigene Kategorie `comments` mit 60 Anfragen je Minute und Person.
 
-### Embedding-Tageszähler (`0007_ai_embedding_usage.sql`)
+### Embedding-Tageszähler (`0008_ai_embedding_usage.sql`)
 
 Zählt die Eingabe-Tokens, die der Worker pro UTC-Tag an Workers AI schickt (serverseitige
 Embeddings, siehe [rag-and-vectors.md, Abschnitt 5](./rag-and-vectors.md)). Keine Inhalte, nur
-Zahlen. Zeilen früherer Tage löscht der Worker beim nächsten Schreiben. Die Nummer 0007 lässt 0004
-und 0006 frei, weil offene Zweige sie belegen.
+Zahlen. Zeilen früherer Tage löscht der Worker beim nächsten Schreiben. Die Nummer 0008 lässt 0004
+und 0006 frei, weil offene Zweige sie belegen, und folgt auf 0007 (Upload-Grenzen).
 
 | Spalte (`ai_embedding_usage`) | Typ | Bedeutung |
 |---|---|---|

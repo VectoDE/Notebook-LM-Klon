@@ -48,7 +48,7 @@ pnpm --filter @notebook-lm/worker exec tsx src/smoke-check.ts http://localhost:8
 `apps/worker/wrangler.jsonc` bindet Workers AI als `AI` (`"ai": { "binding": "AI" }`). Ein eigenes
 Anlegen im Dashboard ist nicht nötig; Workers AI ist im Free-Plan enthalten (10.000 Neuronen pro
 Tag, siehe [platform-limits.md](./platform-limits.md)). Die Migration
-`0007_ai_embedding_usage.sql` legt den Tageszähler an und läuft mit Schritt 3 des Workflows.
+`0008_ai_embedding_usage.sql` legt den Tageszähler an und läuft mit Schritt 3 des Workflows.
 
 - **Token-Recht:** Laut Cloudflare braucht der Deploy eines Workers mit Bindings nur Editor-Rechte
   am Worker, keine eigenen Rechte an den gebundenen Ressourcen

@@ -1,6 +1,6 @@
--- 0007_ai_embedding_usage.sql
+-- 0008_ai_embedding_usage.sql
 -- Tageszähler für serverseitige Embeddings über Workers AI (kostenlose Stufe).
--- Nummer 0007, weil 0004 und 0006 von offenen Zweigen belegt sind.
+-- Nummer 0008, weil 0004 und 0006 von offenen Zweigen sowie 0007 (Upload-Grenzen) belegt sind.
 --
 -- Eine Zeile je UTC-Tag und Bereich: scope = 'global' für das ganze Konto, 'guest:<user_id>'
 -- für das kleinere Gast-Limit. Gezählt werden Eingabe-Tokens, keine Inhalte. Zeilen früherer
