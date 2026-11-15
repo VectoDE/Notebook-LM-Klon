@@ -334,7 +334,7 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   align-items: center;
   justify-content: center;
   gap: var(--rn-space-2);
-  height: var(--rn-control-h);
+  height: var(--rn-control-h, 44px); /* Variable gilt nur im Kopf: Rückfall 44 px (WCAG 2.5.5) */
   padding: 0 var(--rn-space-4);
   border: 0;
   border-radius: var(--rn-radius-pill);
@@ -1246,6 +1246,17 @@ html[data-color-mode="aaa-contrast"] .rn-rail-items {
   .rn-topnav-item {
     flex: 1 1 0;
     max-width: 220px;
+  }
+}
+
+/* Niedrige Fenster mit Maus (200 % Zoom, 640 x 400): Reiter 32 px hoch (WCAG 2.5.8 verlangt 24 px),
+   damit Inhalt sichtbar bleibt. Touch-Geräte behalten 44 px (WCAG 2.5.5). */
+@media (min-width: 600px) and (max-width: 899.98px) and (max-height: 520px) and (pointer: fine) {
+  .rn-topnav {
+    padding: 2px 16px;
+  }
+  .rn-topnav-item {
+    height: 32px;
   }
 }
 
