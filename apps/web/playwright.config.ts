@@ -15,7 +15,6 @@ const DESKTOP_MATRIX = [
   { name: "msedge", use: { ...devices["Desktop Edge"], channel: "msedge" } },
   { name: "msedge-beta", use: { ...devices["Desktop Edge"], channel: "msedge-beta" } },
   // Nur im nächtlichen, nicht blockierenden Workflow e2e-matrix-nightly.yml (Issue #431).
-  { name: "chrome-dev", use: { ...devices["Desktop Chrome"], channel: "chrome-dev" } },
   { name: "msedge-dev", use: { ...devices["Desktop Edge"], channel: "msedge-dev" } }
 ] as const;
 

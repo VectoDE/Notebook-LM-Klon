@@ -1,7 +1,8 @@
 name: E2E-Matrix nightly (Dev-Kanäle, WebKit auf macOS)
 
-# Nicht blockierend: kein Pflicht-Check. Dev-Kanäle von Chrome und Edge sind instabil und können
-# Fehlalarme erzeugen. Sie zeigen kommende Änderungen früh (Issue #431, Option B).
+# Nicht blockierend: kein Pflicht-Check. Der Dev-Kanal von Edge ist instabil und kann
+# Fehlalarme erzeugen. Er zeigt kommende Änderungen früh (Issue #431, Option B). Chrome Dev ist
+# über Playwright nicht installierbar (siehe docs/browser-kompatibilitaet.md).
 on:
   schedule:
     - cron: "43 2 * * *"
@@ -25,7 +26,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { project: chrome-dev, install: chrome-dev, os: ubuntu-latest }
           - { project: msedge-dev, install: msedge-dev, os: ubuntu-latest }
           - { project: chrome-beta, install: chrome-beta, os: ubuntu-latest }
           - { project: msedge-beta, install: msedge-beta, os: ubuntu-latest }
