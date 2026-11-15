@@ -42,6 +42,7 @@ export default defineConfig({
         "apps/web/src/sync-status-text.ts",
         "apps/web/src/provenance-client.ts",
         "apps/web/src/chat-export.ts",
+        "apps/web/src/workers/docx-parser.ts",
         "apps/web/src/local-llm-config.ts",
         "apps/web/src/local-llm.ts",
         "apps/web/src/local-llm-webllm.ts",

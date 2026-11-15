@@ -2,7 +2,7 @@
 
 Stand: 2026-11-13 · Referenzen: Entscheidungen #20, #51, #52, #71, #100, #105 · Issue #148
 
-Diese Seite hält fest, was bei **RelationNotes – NotebookLM & RelationFlow Knowledge Studio** für die Open Source Security Foundation (OpenSSF) belegt ist und was nicht. Jede Aussage verweist auf eine Datei, einen Workflow oder einen Messwert. Was nicht erreicht ist, steht in Kapitel 5.
+Diese Seite hält fest, was bei **RelationNotes** für die Open Source Security Foundation (OpenSSF) belegt ist und was nicht. Jede Aussage verweist auf eine Datei, einen Workflow oder einen Messwert. Was nicht erreicht ist, steht in Kapitel 5.
 
 ## 1. OpenSSF Scorecard Checks – Status & Nachweis
 
@@ -13,7 +13,7 @@ Der Workflow `.github/workflows/scorecard.yml` läuft bei Push auf `main`, bei �
 | Scorecard Check | Messwert | Umsetzung im Repository und Einordnung |
 |---|---|---|
 | **Token-Permissions** | 10 | Alle Workflows setzen `permissions` auf Top-Level auf `contents: read` (in `scorecard.yml`: `read-all`). Schreibrechte (`security-events`, `id-token`, `attestations`, `contents: write`) stehen nur auf Job-Ebene. |
-| **Pinned-Dependencies** | 6 | Alle GitHub Actions sind auf einen 40-stelligen Commit-SHA gepinnt (geprüft in `packages/shared/src/__tests__/ci-workflows.test.ts`). Offen: Die drei Basis-Images in `apps/worker/Dockerfile` sind nicht per Digest gepinnt, daher nur 6 statt 10. |
+| **Pinned-Dependencies** | Ziel 10 (Scorecard-Lauf ausstehend) | Alle GitHub Actions sind auf einen 40-stelligen Commit-SHA gepinnt (geprüft in `packages/shared/src/__tests__/ci-workflows.test.ts`). Das Basis-Image in `apps/worker/Dockerfile` ist per `@sha256`-Digest gepinnt (geprüft in `openssf.test.ts`, Renovate hält ihn aktuell). Der Messwert steht nach dem nächsten Scorecard-Lauf auf `main`. |
 | **Dependency-Update-Tool** | 10 | `.github/renovate.json` (`rangeStrategy: "pin"`, `helpers:pinGitHubActionDigests`) und `.github/dependabot.yml`. |
 | **SAST** | 10 | `.github/workflows/codeql.yml` analysiert JavaScript/TypeScript bei Push, Pull Request und wöchentlich. |
 | **Vulnerabilities** | 10 | `ci.yml` führt `osv-scanner` über `pnpm-lock.yaml` und `gitleaks` über die Historie aus. Scorecard meldet 0 bekannte Schwachstellen. |
@@ -21,7 +21,7 @@ Der Workflow `.github/workflows/scorecard.yml` läuft bei Push auf `main`, bei �
 | **License** | 10 | `LICENSE` (MIT). |
 | **Dangerous-Workflow** | 10 | Kein `pull_request_target`, keine Skript-Injektion über Eingaben. In `release.yml` und `deploy.yml` laufen Eingaben nur über Umgebungsvariablen. |
 | **Binary-Artifacts** | 10 | Keine Binärdateien im Repository. |
-| **Fuzzing** | 10 | Property-Based-Tests mit `fast-check` (`apps/worker/src/__tests__/worker-fuzz.test.ts`, `packages/shared/src/__tests__/property-fuzz.test.ts`). |
+| **Fuzzing** | 10 | Property-Based-Tests mit `fast-check` (`apps/worker/src/__tests__/worker-fuzz.test.ts`, `apps/worker/src/__tests__/ssrf-guard-fuzz.test.ts`, `packages/shared/src/__tests__/property-fuzz.test.ts`, `packages/shared/src/__tests__/property-fuzz-core.test.ts`). Chunker, SSRF-Prüfung, Zitat-Parser und int8-Quantisierung laufen mit je 1.000 Fällen und festem Seed. Beim Aufbau fiel auf: Bereichsmarker wie `[1-999999999]` wurden Zahl für Zahl aufgezählt; sie werden jetzt ab 100 Einträgen ignoriert. |
 | **CI-Tests** | 10 | 30 von 30 gemergten Pull Requests liefen mit CI-Tests. |
 | **Contributors** | 3 | Ein Beitragender aus einer Organisation. Strukturell, siehe Kapitel 3. |
 | **Code-Review** | 0 | 0 von 30 Änderungen mit zweiter Freigabe. Strukturell, siehe Kapitel 3. |
@@ -141,6 +141,6 @@ Der Workflow `.github/workflows/release.yml` startet bei einem Tag `v*.*.*`. Der
 |---|---|---|
 | bestpractices.dev-Projekt anlegen | Inhaber-Schritt | Konto bei bestpractices.dev, Projekt für das Repository anlegen, Antworten aus Kapitel 2 übernehmen. Das Badge erst danach in die `README.md` aufnehmen. |
 | Erstes Release `v0.1.0` | Inhaber-Schritt | Tag setzen (Kapitel 4). Danach entfallen „Offen“ bei Release-Tags und Release Notes sowie `Signed-Releases` mit -1. |
-| Docker-Basis-Images per Digest pinnen | Technische Schuld | Hebt `Pinned-Dependencies` von 6 auf 10. Noch nicht umgesetzt. |
+| Docker-Basis-Images per Digest pinnen | Erledigt | Basis-Image ist per Digest gepinnt (`openssf.test.ts`). Messwert nach nächstem Scorecard-Lauf prüfen. |
 | Zweite Freigabe, weitere Beitragende | Strukturell | Nicht erreichbar mit einem Maintainer (Kapitel 3). |
 | DAST gegen eine Staging-Instanz | Verbesserung | Erst sinnvoll, wenn eine Instanz deployt ist. |

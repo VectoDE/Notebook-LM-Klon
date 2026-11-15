@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Beschreibe deinen Vorschlag für **RelationNotes – NotebookLM & RelationFlow Knowledge Studio**.
+        Beschreibe deinen Vorschlag für **RelationNotes**.
   - type: textarea
     id: problem
     attributes:

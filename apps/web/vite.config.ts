@@ -40,6 +40,19 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
   return {
     plugins: [react(), seoPlugin(env.VITE_PUBLIC_BASE_URL ?? process.env.VITE_PUBLIC_BASE_URL)],
+    // Der Ingest-Worker ist ein ES-Modul und lädt PDF.js dynamisch nach
+    worker: {
+      format: "es"
+    },
+    // PDF.js und mammoth werden erst beim ersten Upload im Worker importiert; ohne Vorab-Bündelung
+    // entdeckt der Dev-Server es erst dann und lädt die Seite neu
+    optimizeDeps: {
+      include: [
+        "mammoth",
+        "pdfjs-dist/legacy/build/pdf.mjs",
+        "pdfjs-dist/legacy/build/pdf.worker.mjs"
+      ]
+    },
     build: {
       outDir: "dist",
       sourcemap: false,
