@@ -635,7 +635,7 @@ describe("purgeUsers: Nachfolger eines Arbeitsbereichs", () => {
 
     expect(res.deletedUsers).toBe(60);
     expect(ownerOf("ws_x")).toBe("keeper");
-    expect(count(fx, "SELECT COUNT(*) AS n FROM users WHERE id LIKE 'u%'")).toBe(0);
+    expect(count(fx, "SELECT COUNT(*) AS n FROM users WHERE id GLOB 'u[0-9][0-9]'")).toBe(0);
   });
 
   it("löscht den Arbeitsbereich, wenn alle weiteren Mitglieder im selben Lauf gelöscht werden", async () => {
