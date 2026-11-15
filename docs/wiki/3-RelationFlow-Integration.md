@@ -1,4 +1,4 @@
-# Andocken an RelationFlow (Everlast Consulting GmbH)
+# Andocken an RelationFlow
 
 Stand: 2026-11-09 · Referenzen: Entscheidungen #37, #40, #61, #63, #87, #88
 
@@ -11,12 +11,12 @@ Stand: 2026-11-09 · Referenzen: Entscheidungen #37, #40, #61, #63, #87, #88
 
 ## 1. Hintergrund & Strategische Passung
 
-**RelationFlow** (`relationflow.io`) ist der DSGVO-konforme KI-Workspace der Everlast Consulting GmbH für den europäischen Mittelstand. Kernmerkmale von RelationFlow sind:
+**RelationFlow** (`relationflow.io`) ist ein KI-Workspace für den europäischen Mittelstand. Nach den öffentlichen Angaben des Anbieters gehören dazu:
 - Mandantenfähige **Team-Workspaces mit Rollensteuerung**,
 - **Multi-Modell-Orchestrierung** (inklusive automatischer Modellwahl „Auto“ und EU-gehosteten Modellen),
 - Spezialisierte **KI-Assistenten / Agents** sowie eine **Unternehmens-Wissensdatenbank mit Chat**.
 
-Dieser NotebookLM-Klon wurde architektonisch so entworfen, dass er nicht nur als eigenständige Web-Applikation glänzt, sondern sich **ohne Umbau als tiefgehendes Quellenanalyse-, RAG- und Audio/Video-Studio-Modul direkt an RelationFlow andocken lässt**.
+Dieser NotebookLM-Klon ist so aufgebaut, dass er als eigenständige Web-Anwendung läuft und sich als Quellenanalyse-, RAG- und Studio-Modul an RelationFlow anbinden lässt. Ein Zugang zur RelationFlow-API lag nicht vor. Deshalb ist keine der Schnittstellen gegen RelationFlow selbst geprüft; die Anbindung ist generisch über die eigene Such-API und einen OpenAI-kompatiblen Weg geplant.
 
 ---
 

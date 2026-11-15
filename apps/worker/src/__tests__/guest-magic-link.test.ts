@@ -116,7 +116,7 @@ describe("Turnstile Bot Verification Client (Sub-Issue #71)", () => {
       "https://challenges.cloudflare.com/turnstile/v0/siteverify"
     );
     expect(TURNSTILE_TEST_SECRET_TOKEN_ALREADY_SPENT).toBe("3x0000000000000000000000000000000AA");
-    expect(DEMO_WORKSPACE_NAME).toBe("RelationFlow & KI im Mittelstand");
+    expect(DEMO_WORKSPACE_NAME).toBe("KI im Mittelstand");
   });
 
   it("handles failing tokens, non-200 HTTP responses and network errors", async () => {

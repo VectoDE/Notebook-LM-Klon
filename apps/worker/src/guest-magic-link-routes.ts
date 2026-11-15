@@ -16,7 +16,7 @@ export const GUEST_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const MAGIC_LINK_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 export const DEMO_WORKSPACE_ID = "ws_demo_relationflow";
-export const DEMO_WORKSPACE_NAME = "RelationFlow & KI im Mittelstand";
+export const DEMO_WORKSPACE_NAME = "KI im Mittelstand";
 
 export interface GuestAndMagicLinkRoutesOptions {
   repo: CoreRepository;

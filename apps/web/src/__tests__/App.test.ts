@@ -13,7 +13,8 @@ describe("RelationNotes Web Shell (App.tsx)", () => {
     const html = renderToStaticMarkup(createElement(App));
     expect(html).toContain('aria-labelledby="app-title"');
     expect(html).toContain("RelationNotes");
-    expect(html).toContain("NotebookLM &amp; RelationFlow Knowledge Studio");
+    expect(html).toContain('<h1 id="app-title">RelationNotes</h1>');
+    expect(html).not.toMatch(/Knowledge\sStudio/);
     expect(html).toContain(WORKSPACE_VERSION);
     expect(html).toContain('aria-label="Studio Werkzeuge"');
     expect(html).toContain("Übersicht");

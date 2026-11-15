@@ -1,6 +1,6 @@
 # Barrierefreiheit nach WCAG 2.2 Level AAA – RelationNotes
 
-**RelationNotes – NotebookLM & RelationFlow Knowledge Studio** erfüllt durchgängig die Anforderungen der **Web Content Accessibility Guidelines (WCAG) 2.2 auf Level AAA** (Entscheidung #31, #61) sowie des Barrierefreiheitsstärkungsgesetzes (BFSG / EN 301 549).
+**RelationNotes** erfüllt durchgängig die Anforderungen der **Web Content Accessibility Guidelines (WCAG) 2.2 auf Level AAA** (Entscheidung #31, #61) sowie des Barrierefreiheitsstärkungsgesetzes (BFSG / EN 301 549).
 
 ---
 

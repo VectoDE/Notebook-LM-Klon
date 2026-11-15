@@ -1,6 +1,6 @@
 # Contributing to RelationNotes
 
-Vielen Dank für dein Interesse an **RelationNotes – NotebookLM & RelationFlow Knowledge Studio**! Dieses Dokument beschreibt den verbindlichen Entwicklungs-, Test- und Pull-Request-Prozess.
+Vielen Dank für dein Interesse an **RelationNotes**! Dieses Dokument beschreibt den verbindlichen Entwicklungs-, Test- und Pull-Request-Prozess.
 
 ## 1. Verbindlicher Git- & Pull-Request-Workflow
 
