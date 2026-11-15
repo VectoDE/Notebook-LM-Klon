@@ -275,6 +275,40 @@ describe("Scheduled Cron Cleanup (Sub-Issues #74, #75, #76)", () => {
     close();
   });
 
+  it("entfernt alte Rate-Limit-Zeilen und Embedding-Tageszähler früherer Tage", async () => {
+    const { adapter, close } = createSqliteAdapter();
+    const now = Date.UTC(2026, 10, 15, 12, 0, 0);
+    const insertLimit = (bucket: string, windowStart: number) =>
+      adapter.run("INSERT INTO rate_limits (bucket, count, window_start) VALUES (?, 1, ?)", [
+        bucket,
+        windowStart
+      ]);
+    await insertLimit("rl:api:ip:203.0.113.7", now - 24 * 3600 * 1000 - 1);
+    await insertLimit("rl:api:ip:203.0.113.8", now - 24 * 3600 * 1000);
+    await insertLimit("rl:api:usr:neu", now - 60_000);
+    await adapter.run("INSERT INTO ai_embedding_usage (day, scope, tokens) VALUES (?, ?, 5)", [
+      "2026-11-14",
+      "guest:alt"
+    ]);
+    await adapter.run("INSERT INTO ai_embedding_usage (day, scope, tokens) VALUES (?, ?, 5)", [
+      "2026-11-15",
+      "guest:heute"
+    ]);
+
+    const metrics = await runScheduledCleanup({ db: adapter, mediaBucket: null, now });
+
+    expect(metrics.failedSteps).toBe(0);
+    expect(
+      (
+        await adapter.query<{ bucket: string }>("SELECT bucket FROM rate_limits ORDER BY bucket")
+      ).map((row) => row.bucket)
+    ).toEqual(["rl:api:ip:203.0.113.8", "rl:api:usr:neu"]);
+    expect(await adapter.query<{ scope: string }>("SELECT scope FROM ai_embedding_usage")).toEqual([
+      { scope: "guest:heute" }
+    ]);
+    close();
+  });
+
   it("handles empty database and handles missing media bucket gracefully", async () => {
     const { adapter, close } = createSqliteAdapter();
     const metrics = await runScheduledCleanup({

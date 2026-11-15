@@ -100,7 +100,7 @@ export function registerAccountRoutes(
       mediaBucket,
       [sessionUser.id],
       Date.now(),
-      createNotebookStatePurger(c.env.NOTEBOOK_DO)
+      createNotebookStatePurger(c.env.NOTEBOOK_DO, c.env.JOB_DO)
     );
     // Written after the purge: the user row is gone, so the entry carries no user_id.
     await deps.auditLogger?.record(c, {
