@@ -23,7 +23,17 @@ import { trapTabKey } from "./focus-trap.js";
 import { CONNECTION_KEYS, POLICY_RETRIEVED, STATUS_KEYS, policyFor } from "./model-data-policy.js";
 import { DEFAULT_MODEL, MODEL_IDS, type ModelId } from "./theme-preferences.js";
 import { useReturnFocus } from "./useReturnFocus.js";
-import { LANGUAGES, useTheme } from "./useTheme.jsx";
+import { LANGUAGES, type Language, documentLanguage, useTheme } from "./useTheme.jsx";
+
+/**
+ * Namen der Sprachen, jeweils in der Sprache selbst (Issue #349): Sie bleiben gleich, egal
+ * welche Sprache gerade gilt, damit man die eigene Sprache immer wiederfindet.
+ */
+export const LANGUAGE_NAMES: Readonly<Record<Language, string>> = {
+  de: "Deutsch",
+  "de-x-ls": "Deutsch – Leichte Sprache",
+  en: "English"
+};
 
 export interface SettingsDrawerProps {
   readonly isOpen: boolean;
@@ -50,7 +60,7 @@ const MODEL_LABELS: Readonly<Record<ModelId, { key: string } | { text: string }>
 /** Datum der Anbieterangaben in der Schreibweise der Sprache (UTC, damit es nicht verrutscht). */
 function formatRetrieved(language: string): string {
   return new Date(`${POLICY_RETRIEVED}T00:00:00Z`).toLocaleDateString(
-    language === "de" ? "de-DE" : "en-GB",
+    language === "en" ? "en-GB" : "de-DE",
     { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }
   );
 }
@@ -151,7 +161,7 @@ export function SettingsDrawer({
               <legend id="lang-section-title" className="rn-drawer-section-title">
                 {t("languageLabel")}
               </legend>
-              <div className="rn-segmented rn-segmented--grid">
+              <div className="rn-segmented rn-segmented--grid rn-segmented--stack">
                 {LANGUAGES.map((lang) => (
                   <label key={lang} className="rn-segment">
                     <input
@@ -163,7 +173,7 @@ export function SettingsDrawer({
                       data-testid={`lang-option-${lang}`}
                       className="rn-segment-input"
                     />
-                    <span lang={lang}>{lang === "de" ? "Deutsch" : "English"}</span>
+                    <span lang={documentLanguage(lang)}>{LANGUAGE_NAMES[lang]}</span>
                   </label>
                 ))}
               </div>

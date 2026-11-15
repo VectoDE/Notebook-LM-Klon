@@ -3,21 +3,20 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-banner-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero-banner-light.svg">
-  <img alt="RelationNotes – NotebookLM & RelationFlow Knowledge Studio" src="docs/assets/hero-banner-light.svg" width="100%">
+  <img alt="RelationNotes" src="docs/assets/hero-banner-light.svg" width="100%">
 </picture>
 <sub>Grafik in <a href="docs/assets/hero-banner-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="docs/assets/hero-banner-en.svg" hreflang="en" lang="en">English</a></sub>
 
 # RelationNotes
 
-### **NotebookLM & RelationFlow Knowledge Studio**
+### **Quellen verstehen, mit Belegen chatten**
 
 *Quellengebundene KI-Forschung, Hybrid-RAG (D1 FTS5 + Int8-Vektorsuche), multimodales Audio-/Video-Studio und bidirektionale Wissensgraph-Synthese – zu 100 % lauffähig im kostenlosen Cloudflare Free Tier.*
 
 [![CI – Quality, Security & Checklist Gate](https://github.com/VectoDE/Notebook-LM-Klon/actions/workflows/ci.yml/badge.svg)](https://github.com/VectoDE/Notebook-LM-Klon/actions/workflows/ci.yml)
 [![CodeQL SAST](https://github.com/VectoDE/Notebook-LM-Klon/actions/workflows/codeql.yml/badge.svg)](https://github.com/VectoDE/Notebook-LM-Klon/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/VectoDE/Notebook-LM-Klon/badge)](https://scorecard.dev/viewer/?uri=github.com/VectoDE/Notebook-LM-Klon)
-[![Test Coverage: 100%](https://img.shields.io/badge/Coverage-100%25-10B981?style=flat&logo=vitest&logoColor=white)](vitest.config.ts)
-[![Accessibility: WCAG 2.2 AAA](https://img.shields.io/badge/Accessibility-WCAG_2.2_AAA-2563EB?style=flat)](docs/accessibility-wcag-aaa.md)
+[![Release](https://img.shields.io/github/v/release/VectoDE/Notebook-LM-Klon?display_name=tag)](https://github.com/VectoDE/Notebook-LM-Klon/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-F59E0B.svg)](LICENSE)
 
 [**Offizielles GitHub Wiki**](https://github.com/VectoDE/Notebook-LM-Klon/wiki) · [**Systemarchitektur**](docs/architecture.md) · [**Hybrid-RAG & Vektoren**](docs/rag-and-vectors.md) · [**RelationFlow-Brücke**](docs/relationflow-integration.md) · [**Security & DSGVO**](docs/security-and-compliance.md) · [**WCAG 2.2 AAA**](docs/accessibility-wcag-aaa.md)
@@ -30,7 +29,7 @@
 
 | Zielgruppe | Was Sie hier in 2 Minuten finden | Direkte Einstiegspunkte |
 | :--- | :--- | :--- |
-| **HR, Recruiting & Produkt-Entscheider** | Ein schlüsselfertiges KI-Forschungs- & Wissens-Studio, das Dokumente mit **absatzgenauen Inline-Zitaten `[1]`** belegt, als **Zwei-Host-Podcast** vertont und nahtlos mit dem Wissensgraphen [**RelationFlow**](https://github.com/VectoDE/RelationFlow) verbindet – ohne laufende Cloud-Fixkosten (`0 €` Cloudflare Free Tier). | [Kernfunktionen](#warum-relationnotes--kernfunktionen--alleinstellungsmerkmale) · [Loom-Präsentations-Leitfaden](docs/loom-presentation-guide.md) · [Barrierefreiheit WCAG 2.2 AAA](docs/accessibility-wcag-aaa.md) |
+| **Produkt-Entscheider & Fachanwender** | Ein schlüsselfertiges KI-Forschungs- & Wissens-Studio, das Dokumente mit **absatzgenauen Inline-Zitaten `[1]`** belegt, als **Zwei-Host-Podcast** vertont und für die Anbindung an die KI-Plattform [**RelationFlow**](https://relationflow.io) vorbereitet ist – ohne laufende Cloud-Fixkosten (`0 €` Cloudflare Free Tier). | [Kernfunktionen](#warum-relationnotes--kernfunktionen--alleinstellungsmerkmale) · [Loom-Präsentations-Leitfaden](docs/loom-presentation-guide.md) · [Barrierefreiheit WCAG 2.2 AAA](docs/accessibility-wcag-aaa.md) |
 | **Senior Engineers & Tech Leads** | Strikte Edge-Architektur unter realen **10 ms CPU-Limits** pro Request: **Reciprocal Rank Fusion (`k = 60`)** aus SQLite `FTS5` (`bm25`) und `int8`-quantisierten Matryoshka-Vektoren (`768 Dim`) im `NotebookDO`-RAM (`< 2 ms`), `node:sqlite`-Verifikation, **100 % Testabdeckung** (Unit, Integration, Contract, `fast-check` Property-Fuzzing). | [Systemarchitektur](docs/architecture.md) · [Hybrid-RAG-Mathematik](docs/rag-and-vectors.md) · [Cloudflare-Budgets](docs/platform-limits.md) · [D1-Datenbankschema](docs/database-schema.md) |
 | **Security-, Privacy- & OpenSSF-Auditoren** | **WebAuthn Passkeys (`ES256`)**, Envelope-Encryption (**AES-256-GCM mit AAD**) für BYOK-API-Schlüssel, strikter SSRF-Guard, SHA-gepinnte GitHub Actions, `gitleaks`, `osv-scanner`, `CodeQL`, OpenSSF Scorecard sowie vollständige **DSGVO- & EU-AI-Act-Art.-50-Konformität** (C2PA / SynthID / JSON-Manifeste). | [Security, DSGVO & AI Act](docs/security-and-compliance.md) · [OpenSSF-Richtlinie](docs/openssf.md) · [`.github/SECURITY.md`](.github/SECURITY.md) |
 
@@ -38,7 +37,7 @@
 
 ## Warum RelationNotes? – Kernfunktionen & Alleinstellungsmerkmale
 
-Klassische KI-Chats halluzinieren Zusammenhänge und verlieren nach dem Gespräch den Bezug zu den Originaldokumenten. **RelationNotes** verbindet die präzise Quellentreue von **Google NotebookLM** mit der strukturierten Wissensmodellierung von [**RelationFlow**](https://github.com/VectoDE/RelationFlow):
+Klassische KI-Chats halluzinieren Zusammenhänge und verlieren nach dem Gespräch den Bezug zu den Originaldokumenten. **RelationNotes** übernimmt die Quellentreue von **Google NotebookLM** und ist für die Anbindung an die KI-Plattform [**RelationFlow**](https://relationflow.io) vorbereitet:
 
 1. **Multi-Format-Quellen-Ingestion & Zitat-Präzision:**
    - Verarbeitung von **PDFs** (`unpdf`), **DOCX** (`mammoth`), **Markdown/TXT/CSV**, **Webseiten** (Readability + strikter SSRF-Guard), **YouTube-Transkripten** und **Audio-Aufnahmen**.
@@ -125,7 +124,7 @@ Die Oberfläche lässt sich im laufenden Betrieb zwischen vier eigenständigen D
 | :--- | :--- | :--- |
 | **Pure NotebookLM** | Ruhige, helle Arbeitsfläche mit weichen Panels, Anmutung wie NotebookLM, eigene Farbe in Indigo und Lavendel. Standard. | Inter |
 | **Immersive Cinema** | Nacht-Violett mit Fuchsia- und Cyan-Licht, eigene Bewegungssprache (abgeschaltet bei `prefers-reduced-motion`). | Space Grotesk |
-| **Editorial Calm** | Farbwelt von Everlast und RelationFlow: Everlast-Blau für Flächen, Slate-Neutraltöne. | Source Serif 4 |
+| **Editorial Calm** | Ruhige Blau-Slate-Welt: Blau `#2563EB` nur für Flächen, Text in `#1E40AF`, Slate-Neutraltöne. | Source Serif 4 |
 | **Fusion** | Petrol und Teal mit Bernstein, eigenständige Palette. | Geist |
 
 ---
@@ -137,7 +136,7 @@ Das Studio-Panel bietet sechs Werkzeuge. Sie arbeiten mit den Quellen des Notebo
 | Werkzeug | Was es tut |
 | :--- | :--- |
 | **Audio-Overview** | Zwei-Host-Gespräch mit mitlaufendem Transkript. Per Rückfrage (`POST /api/v1/notebooks/:id/audio-interject`) lässt sich mitten im Gespräch nachfragen. |
-| **Video-Overview** | Folien mit Kapiteln, im Browser abspielbar, Export als `.webm`. |
+| **Video-Overview** | Folien mit Kapiteln, im Browser abspielbar. Der `.webm`-Export liegt als Modul vor, ist in der Oberfläche aber noch nicht eingebunden. |
 | **Mindmap** | Konzeptgraph als SVG, zusätzlich als ARIA-Baumansicht, mit Export. |
 | **Lernkarten** | Karten zum Umdrehen, mit Export. |
 | **Quiz** | Fragen mit Begründung aus der Quelle, mit Export. |
@@ -147,7 +146,7 @@ Das Studio-Panel bietet sechs Werkzeuge. Sie arbeiten mit den Quellen des Notebo
 
 ## Andocken an RelationFlow
 
-[RelationFlow](https://github.com/VectoDE/RelationFlow) ist der Wissens-Workspace, an den RelationNotes sich anschließen soll. Die Beschreibung steht in [`docs/relationflow-integration.md`](docs/relationflow-integration.md). Hier der ehrliche Stand:
+[RelationFlow](https://relationflow.io) ist die KI-Plattform, an die RelationNotes sich anschließen soll. Die Beschreibung steht in [`docs/relationflow-integration.md`](docs/relationflow-integration.md). Hier der ehrliche Stand:
 
 | Baustein | Stand | Wo |
 | :--- | :--- | :--- |
@@ -219,7 +218,7 @@ Alle Endpunkte unter `/api/v1` sind in [`docs/openapi.json`](docs/openapi.json) 
 ## Schnellstart – Einrichtung, Tests & Verifikation
 
 ### Voraussetzungen
-- **Node.js** `>= 22.0.0`
+- **Node.js** `>= 26` (aktuelle LTS „Lithium“, CI nutzt Node 26)
 - **pnpm** `>= 10.0.0` (oder Corepack aktiviert)
 
 ### 1. Repository klonen & Abhängigkeiten installieren
@@ -276,6 +275,162 @@ Wichtig: Setzen Sie `TRUSTED_PROXY_HEADER` nur, wenn der Server ausschließlich 
 
 ---
 
+## Betrieb mit Node.js und Docker
+
+RelationNotes läuft auch ohne Cloudflare: ein Node-Prozess liefert Web-App und API über einen Port (Standard `8787`). D1 wird zu SQLite (`node:sqlite`), R2 zu Dateien auf der Platte. `NotebookDO` und `JobDO` laufen als echte Klassen im Prozess, der stündliche Cron als Zeitplan im Server. Getestet wird in der CI auf Node 26 LTS. Belegt sind dort das Docker-Image mit Healthcheck, derselbe Smoke-Check gegen `wrangler dev` und gegen Node sowie Playwright gegen den Node-Build.
+
+### Starten
+
+```bash
+# Docker (empfohlen): Secrets setzen, Image bauen, starten
+export SESSION_SALT_SECRET=$(openssl rand -hex 32) KEK_V1=$(openssl rand -hex 32)
+export TURNSTILE_SECRET_KEY=<Ihr Secret> VITE_TURNSTILE_SITE_KEY=<Ihr Site-Key>
+docker compose up -d --build
+curl http://localhost:8787/api/v1/health
+
+# Ohne Docker (Node >= 26): bauen und das Bundle starten
+pnpm install --frozen-lockfile && pnpm build
+SESSION_SALT_SECRET=… KEK_V1=… node apps/worker/dist/node-server.js
+```
+
+`pnpm build` erzeugt `apps/worker/dist/node-server.js` mit allen Abhängigkeiten. Das Laufzeit-Image (`apps/worker/Dockerfile`) enthält deshalb nur dieses Bundle, die Migrationen und `apps/web/dist`. Es enthält kein `node_modules`, keine Quellen und kein `tsx`, läuft als Benutzer `node` und baut auf `node:26.13.1-alpine` mit festem sha256-Digest auf. Vorlage für alle Variablen: [`apps/worker/.env.example`](apps/worker/.env.example). Als `.env` ins Wurzelverzeichnis kopiert, wird sie von `docker compose` gelesen.
+
+### Umgebungsvariablen
+
+| Variable | Pflicht | Bedeutung |
+| :--- | :--- | :--- |
+| `SESSION_SALT_SECRET` | ja | Salz für Sitzungs-Hashes, mindestens 32 Zeichen. Fehlt es, startet der Server nicht. |
+| `KEK_V1` (oder `BYOK_MASTER_KEY`) | ja | Schlüssel für gespeicherte API-Schlüssel, mindestens 32 Zeichen. Zum Wechseln `KEK_V2` ergänzen und `KEK_CURRENT_VERSION=2` setzen. |
+| `TURNSTILE_SECRET_KEY` | empfohlen | Server-Secret von Cloudflare Turnstile. Ohne dieses Secret startet der Server mit einer Warnung, Gastzugang und Magic-Link antworten aber mit `503 TURNSTILE_NOT_CONFIGURED`. |
+| `VITE_TURNSTILE_SITE_KEY` | empfohlen | Öffentlicher Site-Key für das Widget. Er wird beim Bauen in die Web-App geschrieben und ist deshalb ein **Build-Argument** (`docker build --build-arg`, in Compose unter `build.args`), keine Laufzeitvariable. |
+| `APP_ORIGIN` | nein | Öffentliche Adresse ohne Pfad, z. B. `https://notes.example.org`. Standard: `http://localhost:<PORT>`. |
+| `APP_PROFILE` | nein | `demo` (Standard) oder `full`. |
+| `PORT`, `DATA_DIR`, `STATIC_DIR` | nein | Port (Standard `8787`), Datenordner (Standard `.data`, im Image `/app/.data`) und Ordner der Web-App. |
+| `TRUSTED_PROXY_HEADER` | nein | Nur hinter einem Reverse Proxy, siehe Abschnitt 4 im Schnellstart. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE`, `MAIL_FROM` | nein | Mailversand per SMTP. Standard ist Port 587 mit Pflicht zu STARTTLS, Port 465 nutzt TLS direkt. Ist SMTP gesetzt, bleibt Resend ungenutzt. |
+| `RESEND_API_KEY`, `MAIL_FROM` | nein | Mailversand über Resend, wenn kein SMTP gesetzt ist. Ohne Mailversand kommen keine Magic-Link-Mails an. |
+| `CLEANUP_INTERVAL_MINUTES` | nein | Aufräumlauf im Server, Standard `60` wie der Cron `0 * * * *` auf Cloudflare. `0` schaltet ihn ab; dann führt ein externer Cron `node apps/worker/dist/node-server.js cleanup` aus. |
+| `DEMO_GEMINI_KEY` | nein | Schlüssel für das Demo-Profil. |
+| `C2PATOOL_PATH`, `C2PA_SIGN_CERT`, `C2PA_PRIVATE_KEY` | nein | C2PA-Herkunftsnachweis für Exporte: Pfad zu `c2patool`, PEM-Zertifikatskette und PEM-Schlüssel. Fehlt einer der drei Werte, bleiben Exporte unsigniert und die App sagt das. `C2PA_CERT_KIND=production` nur bei eigenem Zertifikat, sonst gilt es als Testzertifikat. `C2PA_TSA_URL` optional für einen Zeitstempeldienst. Siehe [docs/c2pa.md](docs/c2pa.md). |
+
+**Turnstile-Testschlüssel, nur für Entwicklung und Tests:** Site-Key `1x00000000000000000000AA` und Secret `1x0000000000000000000000000000000AA`. Beide bestehen immer und schützen deshalb vor keinem Bot. Für den echten Betrieb legen Sie im Cloudflare-Dashboard ein eigenes Turnstile-Widget an. Läuft das Test-Secret auf einer `https`-Adresse, warnt der Server beim Start.
+
+**Abweichung von „vollständig unabhängig von Cloudflare“:** Auf Node bleibt Turnstile vor Gastzugang und Magic-Link eingeschaltet. Das hat der Inhaber so entschieden, damit beide Laufzeiten gleich gut gegen Bots geschützt sind. Der Node-Betrieb braucht deshalb ein kostenloses Turnstile-Widget von Cloudflare und ausgehende Verbindungen zu `challenges.cloudflare.com`. Ohne Secret bleibt die Anmeldung gesperrt; es gibt keinen Rückfall auf „ohne Prüfung“. Alles andere läuft auf Node ohne Cloudflare: Datenbank, Speicher, Durable Objects, Cron und Mail.
+
+### Grenzen der Node-Laufzeit
+
+- Ein Prozess je Datenordner. Durable Objects und Rate-Limits liegen im Prozess, mehrere Instanzen auf demselben `DATA_DIR` sind nicht vorgesehen.
+- Keine WebSocket-Hibernation: `getWebSockets()` liefert eine leere Liste.
+- `dump()` der D1-Schnittstelle gibt es nicht. Gesichert wird über die Dateien (siehe unten).
+
+### Sichern
+
+Alle Daten liegen in `DATA_DIR` (Compose-Volume `app-data`, im Container `/app/.data`):
+- `local.sqlite` ist die Datenbank (WAL-Modus, also auch `-wal` und `-shm`).
+- `media/`, `media-meta/` enthalten die hochgeladenen Dateien.
+- `do/` enthält die SQLite-Dateien der Durable Objects.
+
+```bash
+# Konsistente Sicherung: kurz anhalten, Volume als Archiv sichern, wieder starten
+docker compose stop app
+docker run --rm -v notebook-lm-klon_app-data:/data -v "$PWD":/backup alpine \
+  tar czf /backup/relationnotes-$(date +%F).tar.gz -C /data .
+docker compose start app
+```
+
+Den Volume-Namen zeigt `docker volume ls`. Wiederherstellen: Container anhalten, das Archiv in ein leeres Volume entpacken (`tar xzf … -C /data`), Container starten. Die Secrets (`SESSION_SALT_SECRET`, `KEK_*`) gehören getrennt von der Sicherung an einen sicheren Ort. Ohne den passenden KEK lassen sich gespeicherte API-Schlüssel nicht mehr entschlüsseln.
+
+### Aktualisieren
+
+```bash
+git pull
+docker compose build --pull
+docker compose up -d
+curl http://localhost:8787/api/v1/health
+```
+
+Vorher sichern. Neue Migrationen aus `apps/worker/migrations` spielt der Server beim Start selbst ein; die Buchführung steht in der Tabelle `d1_migrations`. Ist der Healthcheck nicht grün (`docker compose ps`), zeigt `docker compose logs app` den Grund, etwa fehlende Pflicht-Secrets.
+
+---
+
+## Running with Node.js and Docker (English)
+
+RelationNotes also runs without Cloudflare: one Node process serves the web app and the API on one port (default `8787`). D1 becomes SQLite (`node:sqlite`) and R2 becomes files on disk. `NotebookDO` and `JobDO` run as the real classes in the process, and the hourly cron runs as a schedule inside the server. CI runs on Node 26 LTS. It verifies the Docker image with its health check, runs the same smoke check against `wrangler dev` and against Node, and runs Playwright against the Node build.
+
+### Start
+
+```bash
+# Docker (recommended): set secrets, build, start
+export SESSION_SALT_SECRET=$(openssl rand -hex 32) KEK_V1=$(openssl rand -hex 32)
+export TURNSTILE_SECRET_KEY=<your secret> VITE_TURNSTILE_SITE_KEY=<your site key>
+docker compose up -d --build
+curl http://localhost:8787/api/v1/health
+
+# Without Docker (Node >= 26): build and start the bundle
+pnpm install --frozen-lockfile && pnpm build
+SESSION_SALT_SECRET=… KEK_V1=… node apps/worker/dist/node-server.js
+```
+
+`pnpm build` produces `apps/worker/dist/node-server.js`, with all dependencies bundled. The runtime image (`apps/worker/Dockerfile`) therefore holds only that bundle, the migrations and `apps/web/dist`. It has no `node_modules`, no sources and no `tsx`, runs as user `node` and is based on `node:26.13.1-alpine` pinned by sha256 digest. Template for all variables: [`apps/worker/.env.example`](apps/worker/.env.example). Copied to `.env` in the repository root, `docker compose` reads it.
+
+### Environment variables
+
+| Variable | Required | Meaning |
+| :--- | :--- | :--- |
+| `SESSION_SALT_SECRET` | yes | Salt for session hashes, at least 32 characters. If it is missing, the server does not start. |
+| `KEK_V1` (or `BYOK_MASTER_KEY`) | yes | Key for stored API keys, at least 32 characters. To rotate, add `KEK_V2` and set `KEK_CURRENT_VERSION=2`. |
+| `TURNSTILE_SECRET_KEY` | recommended | Cloudflare Turnstile server secret. Without it the server starts with a warning, but guest login and magic link answer `503 TURNSTILE_NOT_CONFIGURED`. |
+| `VITE_TURNSTILE_SITE_KEY` | recommended | Public site key for the widget. It is written into the web app at build time, so it is a **build argument** (`docker build --build-arg`, in Compose under `build.args`), not a runtime variable. |
+| `APP_ORIGIN` | no | Public address without a path, e.g. `https://notes.example.org`. Default: `http://localhost:<PORT>`. |
+| `APP_PROFILE` | no | `demo` (default) or `full`. |
+| `PORT`, `DATA_DIR`, `STATIC_DIR` | no | Port (default `8787`), data directory (default `.data`, `/app/.data` in the image) and web app directory. |
+| `TRUSTED_PROXY_HEADER` | no | Only behind a reverse proxy, see section 4 of the quick start. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE`, `MAIL_FROM` | no | Mail via SMTP. Default is port 587 with mandatory STARTTLS; port 465 uses TLS directly. When SMTP is set, Resend is not used. |
+| `RESEND_API_KEY`, `MAIL_FROM` | no | Mail via Resend when SMTP is not set. Without mail delivery, magic-link mails do not arrive. |
+| `CLEANUP_INTERVAL_MINUTES` | no | Cleanup inside the server, default `60` like the Cloudflare cron `0 * * * *`. `0` turns it off; an external cron then runs `node apps/worker/dist/node-server.js cleanup`. |
+| `DEMO_GEMINI_KEY` | no | Key for the demo profile. |
+| `C2PATOOL_PATH`, `C2PA_SIGN_CERT`, `C2PA_PRIVATE_KEY` | no | C2PA provenance for exports: path to `c2patool`, PEM certificate chain and PEM key. If one of the three is missing, exports stay unsigned and the app says so. Set `C2PA_CERT_KIND=production` only with your own certificate, otherwise it counts as a test certificate. `C2PA_TSA_URL` is optional for a timestamp service. See [docs/c2pa.md](docs/c2pa.md). |
+
+**Turnstile test keys, for development and tests only:** site key `1x00000000000000000000AA` and secret `1x0000000000000000000000000000000AA`. Both always pass, so they protect against no bot at all. For real operation, create your own Turnstile widget in the Cloudflare dashboard. If the test secret runs on an `https` address, the server warns at start.
+
+**Deviation from "fully independent of Cloudflare":** on Node, Turnstile stays switched on in front of guest login and magic link. The owner decided this so that both runtimes are equally protected against bots. Running on Node therefore needs a free Cloudflare Turnstile widget and outbound connections to `challenges.cloudflare.com`. Without the secret, sign-in stays blocked; there is no fallback to "no check". Everything else runs on Node without Cloudflare: database, storage, Durable Objects, cron and mail.
+
+### Limits of the Node runtime
+
+- One process per data directory. Durable Objects and rate limits live in the process; several instances on the same `DATA_DIR` are not supported.
+- No WebSocket hibernation: `getWebSockets()` returns an empty list.
+- The D1 `dump()` call does not exist. Back up the files instead (see below).
+
+### Backup
+
+All data lives in `DATA_DIR` (Compose volume `app-data`, `/app/.data` in the container):
+- `local.sqlite` is the database (WAL mode, so also `-wal` and `-shm`).
+- `media/` and `media-meta/` hold the uploaded files.
+- `do/` holds the SQLite files of the Durable Objects.
+
+```bash
+# Consistent backup: stop briefly, archive the volume, start again
+docker compose stop app
+docker run --rm -v notebook-lm-klon_app-data:/data -v "$PWD":/backup alpine \
+  tar czf /backup/relationnotes-$(date +%F).tar.gz -C /data .
+docker compose start app
+```
+
+`docker volume ls` shows the volume name. To restore: stop the container, unpack the archive into an empty volume (`tar xzf … -C /data`), start the container. Keep the secrets (`SESSION_SALT_SECRET`, `KEK_*`) in a safe place, separate from the backup. Without the matching KEK, stored API keys cannot be decrypted.
+
+### Update
+
+```bash
+git pull
+docker compose build --pull
+docker compose up -d
+curl http://localhost:8787/api/v1/health
+```
+
+Back up first. The server applies new migrations from `apps/worker/migrations` itself at start; the record is kept in the table `d1_migrations`. If the health check is not green (`docker compose ps`), `docker compose logs app` shows the reason, for example missing mandatory secrets.
+
+---
+
 ## Saubere Repository-Struktur (Entscheidung #108)
 
 Alle Community-, Sicherheits- und Automatisierungs-Konfigurationen sind im Ordner [`.github/`](.github/) gebündelt, sodass das Hauptverzeichnis übersichtlich auf die technisch notwendigen Projektdateien fokussiert bleibt:
@@ -322,14 +477,14 @@ Sämtliche Architekturentscheidungen (ADRs #1–#110) sind im Ordner [`docs/`](d
 
 1. [**Systemarchitektur & Edge-Runtime**](docs/architecture.md) – Single-Worker-Topologie, `NotebookDO` vs. `JobDO`, `demo`- vs. `full`-Profile.
 2. [**Hybrid-RAG & Int8-Vektorsuche**](docs/rag-and-vectors.md) – SQLite `FTS5` (`bm25`), Matryoshka `int8`-Quantisierung und Reciprocal Rank Fusion (`k = 60`).
-3. [**RelationFlow-Wissensgraph-Integration**](docs/relationflow-integration.md) – Kanonisches Austauschformat `relationflow/export/v1` und bidirektionale Synchronisation.
+3. [**Andocken an RelationFlow**](docs/relationflow-integration.md) – Such-API, Rollen und Modell-Router; das Austauschformat `relationflow/export/v1` ist beschrieben, aber noch nicht gebaut.
 4. [**Datenbank-Schema (Cloudflare D1)**](docs/database-schema.md) – Alle 17 Tabellen, Trigger, Indizes und kaskadierende Löschpfade.
 5. [**Security, DSGVO & EU AI Act**](docs/security-and-compliance.md) – WebAuthn Passkeys, AES-256-GCM BYOK, SSRF-Guard und Artikel-50-Provenienz.
 6. [**Barrierefreiheit nach WCAG 2.2 Level AAA**](docs/accessibility-wcag-aaa.md) – Farbkontraste (`>= 7:1`), Fokus-Ringe, Tastatursteuerung und multimodale Alternativen.
 7. [**Cloudflare Free-Tier-Limits & CPU-Budgets**](docs/platform-limits.md) – Empirische Benchmarks (`< 0,6 ms` WebCrypto) und Kapazitätsrechnung.
-8. [**Loom-Präsentations- & Bewerbungs-Leitfaden**](docs/loom-presentation-guide.md) – Drehbuch für eine überzeugende 10-Minuten-Vorführung.
+8. [**Loom-Präsentations-Leitfaden**](docs/loom-presentation-guide.md) – Ablauf und Schaubilder für einen Video-Walkthrough von 10 Minuten.
 9. [**Anforderungs- & Entscheidungsregister (ADRs #1–#110)**](docs/anforderungen.md) – Lückenlose Dokumentation aller 110 Architektur- und Qualitätsentscheidungen.
-10. [**Lasttests (k6, lokal und Live-Rauchtest)**](docs/load-test.md) – 100 simulierte Nutzer, p95 31 ms, 0 % Fehler; Reports als HTML und JSON.
+10. [**Lasttests (k6, lokal und Live-Rauchtest)**](docs/load-test.md) – 200 gleichzeitige simulierte Nutzer mit Upload, Chat, Suche und Studio, p95 249 ms, 0 % Fehler; [HTML-Report](docs/load-test/report-local.html) und [JSON](docs/load-test/summary-local.json).
 11. [**Datenschutz je KI-Modell**](docs/datenschutz-modelle.md) – Training mit Eingaben je Anbieter und Zugangsweg, mit Quellen, Wortlaut und Abrufdatum.
 
 ---
@@ -340,4 +495,4 @@ Sämtliche Architekturentscheidungen (ADRs #1–#110) sind im Ordner [`docs/`](d
 - **Beitragsrichtlinien:** Siehe [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) und [`.github/CODE_OF_CONDUCT.md`](.github/CODE_OF_CONDUCT.md).
 - **Sicherheitsmeldungen:** Bitte nutze für Schwachstellenmeldungen ausschließlich unser [Private Vulnerability Reporting](https://github.com/VectoDE/Notebook-LM-Klon/security/advisories/new) gemäß [`.github/SECURITY.md`](.github/SECURITY.md).
 - **Lizenz:** Veröffentlicht unter der [MIT-Lizenz](LICENSE). Copyright (c) 2026 Tim Hauke.
-- **Schriften (SIL Open Font License 1.1):** Die Web-App liefert alle Schriften selbst gehostet aus (kein externes CDN), je Design eine eigene: Pure Inter, Editorial Calm Source Serif 4, Immersive Cinema Space Grotesk, Fusion Geist, dazu JetBrains Mono für Zeitstempel. Lizenztexte: [Inter](apps/web/public/fonts/LICENSES/Inter-OFL.txt), [Source Serif 4](apps/web/public/fonts/LICENSES/SourceSerif4-OFL.txt), [Space Grotesk](apps/web/public/fonts/LICENSES/SpaceGrotesk-OFL.txt), [Geist](apps/web/public/fonts/LICENSES/Geist-OFL.txt), [JetBrains Mono](apps/web/public/fonts/LICENSES/JetBrainsMono-OFL.txt). Im Build liegen sie unter `/fonts/LICENSES/`. Die Dateien selbst (WOFF2, Latin-Subset für Deutsch und Englisch, variabel über die Strichstärke, zusammen rund 190 KB; der Browser lädt nur, was das aktive Design anzeigt, im Standard-Design Pure Inter und JetBrains Mono mit 87 KB) liegen mit Herkunft und SHA-256-Prüfsummen in [`apps/web/src/fonts/`](apps/web/src/fonts/SOURCES.txt).
+- **Schriften (SIL Open Font License 1.1):** Die Web-App liefert alle Schriften selbst gehostet aus (kein externes CDN), je Design eine eigene: Pure Inter, Editorial Calm Source Serif 4, Immersive Cinema Space Grotesk, Fusion Geist, dazu JetBrains Mono für Zeitstempel. Lizenztexte: [Inter](apps/web/public/fonts/LICENSES/Inter-OFL.txt), [Source Serif 4](apps/web/public/fonts/LICENSES/SourceSerif4-OFL.txt), [Space Grotesk](apps/web/public/fonts/LICENSES/SpaceGrotesk-OFL.txt), [Geist](apps/web/public/fonts/LICENSES/Geist-OFL.txt), [JetBrains Mono](apps/web/public/fonts/LICENSES/JetBrainsMono-OFL.txt). Im Build liegen sie unter `/fonts/LICENSES/`. Die Dateien selbst (WOFF2, Latin-Subset für Deutsch und Englisch, variabel über die Strichstärke, zusammen rund 190 KB; der Browser lädt nur, was das aktive Design anzeigt, im Standard-Design Pure Inter und JetBrains Mono mit 87 KB) liegen mit Herkunft und SHA-256-Prüfsummen in [`apps/web/src/fonts/`](apps/web/src/fonts/SOURCES.txt). Die Lizenzangaben sind keine Rechtsberatung; bei Zweifeln bitte anwaltlich prüfen lassen.

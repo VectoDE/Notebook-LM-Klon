@@ -41,8 +41,11 @@ LIMIT ?3;
 /**
  * Sanitizes an arbitrary user search string into a safe FTS5 token query
  * by quoting each alphanumeric/umlaut word token and joining via implicit AND.
+ *
+ * match "any" verknüpft mit OR: Für Fragen im Chat muss nicht jedes Wort der Frage im
+ * Abschnitt stehen, BM25 sortiert die Treffer mit den meisten Übereinstimmungen nach vorn.
  */
-export function buildSafeFts5MatchQuery(rawQuery: string): string {
+export function buildSafeFts5MatchQuery(rawQuery: string, match: "all" | "any" = "all"): string {
   const tokens = rawQuery
     .trim()
     .split(/[^\p{L}\p{N}_]+/u)
@@ -52,5 +55,7 @@ export function buildSafeFts5MatchQuery(rawQuery: string): string {
     return "";
   }
 
-  return tokens.map((token) => `"${token.replaceAll('"', '""')}"`).join(" ");
+  return tokens
+    .map((token) => `"${token.replaceAll('"', '""')}"`)
+    .join(match === "any" ? " OR " : " ");
 }

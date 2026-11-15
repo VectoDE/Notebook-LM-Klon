@@ -16,13 +16,16 @@ import { registerBYOKRoutes } from "./byok-routes.js";
 import { registerChatRoutes } from "./chat-routes.js";
 import { registerChunkIngestionRoutes } from "./chunk-ingestion.js";
 import { runScheduledCleanup } from "./cleanup.js";
+import { registerCommentRoutes } from "./comments-routes.js";
 import { resolveAppConfig } from "./config.js";
 import { CoreRepository } from "./core-repository.js";
 import { createD1DatabaseAdapter } from "./d1-adapter.js";
 import { createDemoRoutes } from "./demo-routes.js";
+import { registerDocSyncRoutes } from "./doc-sync.js";
 import { createGuestAndMagicLinkRoutes } from "./guest-magic-link-routes.js";
 import { registerJobRoutes } from "./job-routes.js";
 import { createKeyVaultFromEnv } from "./key-vault.js";
+import { registerLocalDataRoutes } from "./local-data-routes.js";
 import {
   CloudflareMailAdapter,
   type CloudflareSendEmailBinding,
@@ -31,6 +34,7 @@ import {
 } from "./mail-adapter.js";
 import { createPasskeyRoutes } from "./passkey-routes.js";
 import { PasskeyService } from "./passkey-service.js";
+import { registerProvenanceRoutes } from "./provenance-routes.js";
 import { registerProviderRoutes } from "./provider-routes.js";
 import { type QuotaAction, quotaGuardMiddleware } from "./quota-guard.js";
 import { RagRepository } from "./rag-repository.js";
@@ -191,7 +195,8 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   registerHealthAndDemoRoutes(app);
 
   // 3. Auth (public, rate-limit category "auth")
-  // Guest login and magic-link fail closed (503) when TURNSTILE_SECRET_KEY is missing.
+  // Guest login, magic-link and passkey registration fail closed (503) when
+  // TURNSTILE_SECRET_KEY is missing.
   // Every route that creates a session fails closed (503) when SESSION_SALT_SECRET is missing.
   const requireSalt = requireConfiguredSessionSalt();
   app.use("/api/v1/auth/guest", requireSalt);
@@ -220,9 +225,13 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
         expectedOrigin: config.origin
       }),
       sessionManager,
+      turnstileSecretKey: secrets.TURNSTILE_SECRET_KEY,
       isProduction
     })
   );
+
+  // Abmelden und Schlüssel der verschlüsselten lokalen Ablage (Issue #348)
+  registerLocalDataRoutes(app, { sessionManager, saltSecret, isProduction });
 
   // 4. Chat, search, audio (session + notebook role, LLM quota)
   const llmQuota = (): QuotaAction => ({ type: "llm_call" });
@@ -253,6 +262,19 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   );
   registerAudioRoutes(app, { ragRepo, coreRepo, keyVault });
 
+  // Yjs-Stand des Notebooks: lesen ab viewer, schreiben ab editor (Issue #347)
+  app.get(
+    "/api/v1/notebooks/:id/doc",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "viewer", "id")
+  );
+  app.post(
+    "/api/v1/notebooks/:id/doc",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "editor", "id")
+  );
+  registerDocSyncRoutes(app);
+
   // 5. Sources (editor for writes, viewer for download)
   app.use(
     "/api/v1/notebooks/:id/sources",
@@ -276,9 +298,17 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   registerSourcesUploadRoutes(app, { coreRepo, ragRepo });
   registerChunkIngestionRoutes(app, { ragRepo, coreRepo });
 
+  // 5b. Comments on sources and notes with mentions (guards inside registerCommentRoutes:
+  // viewer reads, editor writes, author edits, author or owner deletes)
+  registerCommentRoutes(app, { coreRepo });
+
   // 6. Providers: catalog and routing decision are public, the network probe needs a session
   app.use("/api/v1/providers/ollama/probe", requireAuth());
   registerProviderRoutes(app, { ragRepo, keyVault });
+
+  // 6b. C2PA provenance for exports: status is public, signing needs a session. The signer
+  // only exists in the Node runtime (PROVENANCE_SIGNER); on Workers signing answers 503.
+  registerProvenanceRoutes(app);
 
   // 7. Jobs: status and cancel live under the notebook, so the notebook role is checked
   // and the job must belong to that notebook (IDOR protection, see fetchNotebookJob).

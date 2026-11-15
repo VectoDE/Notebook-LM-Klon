@@ -396,4 +396,61 @@ describe("SQLite Durable Objects (NotebookDO & JobDO)", () => {
     } as Env);
     expect(await formatDo.ensureVectorsLoaded()).toBe(2);
   });
+
+  it("lädt Vektoren über den Notebook-Namen statt der Hex-ID und mischt keine Modelle", async () => {
+    const boundIds: unknown[] = [];
+    const rows = [
+      { chunk_id: "alt", scale: 1, vector: [1, 0], source_id: "s1", model: "anderes-modell" },
+      { chunk_id: "neu", scale: 1, vector: [0, 1], source_id: "s1", model: "m-768" }
+    ];
+    const db = {
+      prepare: () => ({
+        bind: (...args: unknown[]) => {
+          boundIds.push(...args);
+          return { all: async () => ({ results: rows, success: true }) };
+        }
+      })
+    } as unknown as D1Database;
+    const { state } = createMockSqliteState("a1b2c3-hex");
+    const named: SqliteDurableObjectState = {
+      ...state,
+      id: { toString: () => "a1b2c3-hex", name: "nb_echt" }
+    };
+    const doInstance = new NotebookDO(named, { DB: db } as Env);
+
+    // Ein frisch geweckter DO bekommt zuerst ein Update; danach müssen auch die alten Vektoren da sein.
+    const update = await doInstance.fetch(
+      new Request("https://do.internal/vectors/update", {
+        method: "POST",
+        body: JSON.stringify({
+          vectors: [
+            { chunkId: "frisch", sourceId: "s2", quantized: [0, 2], scale: 1, model: "m-768" }
+          ]
+        })
+      })
+    );
+    expect(((await update.json()) as { totalCached: number }).totalCached).toBe(3);
+    expect(boundIds).toEqual(["nb_echt"]);
+
+    const search = await doInstance.fetch(
+      new Request("https://do.internal/vectors/search", {
+        method: "POST",
+        body: JSON.stringify({ queryVector: [0, 1], model: "m-768", limit: 10 })
+      })
+    );
+    const ids = ((await search.json()) as { results: Array<{ chunkId: string }> }).results.map(
+      (r) => r.chunkId
+    );
+    expect(ids).toEqual(["frisch", "neu"]);
+
+    // Ohne Modellfilter bleibt das alte Verhalten: alle Vektoren zählen.
+    expect(doInstance.searchVectors(new Int8Array([1, 0]), 1, 10)).toHaveLength(3);
+
+    // Alles invalidieren lädt beim nächsten Zugriff neu aus D1.
+    await doInstance.fetch(
+      new Request("https://do.internal/vectors/invalidate", { method: "POST" })
+    );
+    expect(await doInstance.ensureVectorsLoaded()).toBe(2);
+    expect(boundIds).toEqual(["nb_echt", "nb_echt"]);
+  });
 });

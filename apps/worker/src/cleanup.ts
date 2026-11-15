@@ -1,4 +1,5 @@
 import type { DatabaseAdapter } from "./core-repository.js";
+import { STALE_UPLOAD_MS, UPLOAD_DAILY_RETENTION_DAYS } from "./r2-budget.js";
 
 export interface MinimalR2Bucket {
   list: (options?: { prefix?: string; cursor?: string; limit?: number }) => Promise<{
@@ -16,6 +17,8 @@ export interface CleanupMetrics {
   deletedChallenges: number;
   deletedNotebooks: number;
   deletedR2Objects: number;
+  /** Abgebrochene Uploads (Status uploading, älter als STALE_UPLOAD_MS), samt R2-Objekt. */
+  deletedStaleUploads: number;
   durationMs: number;
 }
 
@@ -34,6 +37,8 @@ export interface RunCleanupOptions {
  * - Expired WebAuthn challenges (expires_at <= now)
  * - Expired demo notebooks (expires_at IS NOT NULL AND expires_at < now)
  * - Associated R2 objects (sources, artifacts) under guest / notebook prefixes
+ * - Abandoned uploads (status 'uploading' older than STALE_UPLOAD_MS) incl. their R2 object
+ * - Daily upload counters older than UPLOAD_DAILY_RETENTION_DAYS
  */
 export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<CleanupMetrics> {
   const startTime = Date.now();
@@ -98,6 +103,35 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
   ]);
   const deletedChallenges = challengeDelRes.changes;
 
+  // 6. Abandoned uploads: delete the R2 object first (DeleteObject is free), then the row.
+  //    The r2_usage trigger releases the reserved bytes.
+  const staleUploads = await db.query<{ id: string; r2_key: string | null }>(
+    `SELECT id, r2_key FROM sources
+     WHERE status = 'uploading' AND created_at < ?
+     LIMIT ?`,
+    [now - STALE_UPLOAD_MS, batchSize]
+  );
+  let deletedStaleUploads = 0;
+  if (staleUploads.length > 0) {
+    const keys = staleUploads.map((s) => s.r2_key).filter((k): k is string => k !== null);
+    if (mediaBucket && keys.length > 0) {
+      await mediaBucket.delete(keys);
+      deletedR2Objects += keys.length;
+    }
+    const ids = staleUploads.map((s) => s.id);
+    const staleDel = await db.run(
+      `DELETE FROM sources WHERE id IN (${ids.map(() => "?").join(",")})`,
+      ids
+    );
+    deletedStaleUploads = staleDel.changes;
+  }
+
+  // 7. Daily upload counters are only needed for the current day; keep a week for diagnosis.
+  const retentionDay = new Date(now - UPLOAD_DAILY_RETENTION_DAYS * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  await db.run("DELETE FROM upload_daily WHERE day < ?", [retentionDay]);
+
   const durationMs = Date.now() - startTime;
 
   return {
@@ -107,6 +141,7 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
     deletedChallenges,
     deletedNotebooks,
     deletedR2Objects,
+    deletedStaleUploads,
     durationMs
   };
 }

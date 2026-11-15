@@ -4,6 +4,7 @@ import {
   type GroundedChunkInput,
   type ProviderType,
   buildGroundedContext,
+  combineWithRrf,
   createProblemDetails,
   validateAndCleanCitations
 } from "@notebook-lm/shared";
@@ -11,12 +12,46 @@ import type { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { AutoRouter } from "./auto-router.js";
 import type { CoreRepository } from "./core-repository.js";
+import { embedQuery } from "./embeddings.js";
 import { buildSafeFts5MatchQuery } from "./fts5-probe.js";
 import { GeminiProvider } from "./gemini-provider.js";
 import { type KeyVault, deserializeEncryptedPayload } from "./key-vault.js";
 import { OllamaLocalProvider } from "./ollama-provider.js";
 import type { RagRepository } from "./rag-repository.js";
 import { queryNotebookVectorSearch } from "./search-routes.js";
+
+/**
+ * Ehrliche Antwort, wenn die ausgewählten Quellen nichts zur Frage hergeben (Issue #243).
+ * Kein Modellaufruf: ohne Belege gibt es nichts, worauf eine Antwort sich stützen könnte.
+ */
+export const NO_EVIDENCE_ANSWER = {
+  de: "Dazu finde ich in den ausgewählten Quellen keine Angaben. Wähle weitere Quellen aus oder stelle die Frage anders.",
+  en: "I can't find anything about this in the selected sources. Select more sources or ask the question differently."
+} as const;
+
+/** Seitengröße des Verlaufs: Standard und Obergrenze je Anfrage (Issue #243). */
+export const HISTORY_PAGE_DEFAULT = 100;
+export const HISTORY_PAGE_MAX = 200;
+
+/** Cursor einer Nachricht für die Keyset-Paginierung: Zeitstempel und id. */
+export function encodeHistoryCursor(row: {
+  readonly created_at: number;
+  readonly id: string;
+}): string {
+  return `${row.created_at}~${row.id}`;
+}
+
+/** Liest einen Cursor; null bei ungültiger Form. */
+export function decodeHistoryCursor(
+  cursor: string
+): { readonly createdAt: number; readonly id: string } | null {
+  const sep = cursor.indexOf("~");
+  if (sep <= 0) return null;
+  const createdAt = Number(cursor.slice(0, sep));
+  const id = cursor.slice(sep + 1);
+  if (!Number.isSafeInteger(createdAt) || createdAt < 0 || id.length === 0) return null;
+  return { createdAt, id };
+}
 
 export interface ChatRoutesDependencies {
   readonly ragRepo: RagRepository;
@@ -54,7 +89,12 @@ export function registerChatRoutes(
   async function checkNotebookAccess(
     notebookId: string,
     userId: string
-  ): Promise<{ ok: boolean; status: number; problem?: ReturnType<typeof createProblemDetails> }> {
+  ): Promise<{
+    ok: boolean;
+    status: number;
+    role?: "owner" | "editor" | "viewer";
+    problem?: ReturnType<typeof createProblemDetails>;
+  }> {
     if (!deps.coreRepo) {
       return { ok: true, status: 200 };
     }
@@ -95,7 +135,7 @@ export function registerChatRoutes(
         })
       };
     }
-    return { ok: true, status: 200 };
+    return { ok: true, status: 200, role: userRole };
   }
 
   /**
@@ -165,7 +205,8 @@ export function registerChatRoutes(
       chatId: existingChatId,
       model: requestedModel,
       sourceIds,
-      maxChunks
+      maxChunks,
+      language
     } = parseResult.data;
 
     // 1. Resolve or create chat
@@ -185,6 +226,23 @@ export function registerChatRoutes(
           updated_at: now
         });
       } else {
+        // Fail closed: an existing chat may only be written to from its own notebook,
+        // and only by its owner or by a notebook member with edit rights (not viewers).
+        const sameNotebook = existingChat.notebook_id === notebookId;
+        const isOwner = existingChat.user_id === sessionUser.id;
+        const canEdit = access.role === "owner" || access.role === "editor";
+        if (!sameNotebook || (!isOwner && !canEdit)) {
+          const problem = createProblemDetails({
+            status: 404,
+            title: "Not Found",
+            detail: `Chat '${chatId}' wurde nicht gefunden.`,
+            instance: c.req.path,
+            code: "CHAT_NOT_FOUND"
+          });
+          return c.json(problem, 404, {
+            "content-type": "application/problem+json; charset=utf-8"
+          });
+        }
         await deps.ragRepo.updateChatTimestamp(chatId, now);
       }
     } else {
@@ -216,7 +274,8 @@ export function registerChatRoutes(
 
     // 3. Retrieve relevant context chunks via Hybrid / FTS5 search
     const searchLimit = maxChunks;
-    const matchQuery = buildSafeFts5MatchQuery(message);
+    // Fragen in natürlicher Sprache: ein Treffer genügt, BM25 ordnet nach Relevanz (P6)
+    const matchQuery = buildSafeFts5MatchQuery(message, "any");
     let ftsChunks: Array<{ id: string }> = [];
     if (matchQuery.length > 0) {
       ftsChunks = await deps.ragRepo.searchChunksFts(
@@ -227,33 +286,43 @@ export function registerChatRoutes(
       );
     }
 
-    // Attempt vector search if available
+    // Vektorsuche, wenn der Server einen Anfragevektor rechnen kann (Workers AI);
+    // sonst bleibt es bei den FTS5-Treffern.
     let vectorItems: { chunkId: string }[] = [];
-    try {
-      vectorItems = await queryNotebookVectorSearch(
-        c.env,
-        deps.ragRepo,
-        notebookId,
-        sourceIds && sourceIds.length > 0
-          ? { limit: searchLimit, sourceIds }
-          : { limit: searchLimit }
-      );
-    } catch {
-      // Vector search optional
+    const vectorQuery = await embedQuery(c.env, message, sessionUser);
+    if (vectorQuery) {
+      try {
+        vectorItems = await queryNotebookVectorSearch(
+          c.env,
+          deps.ragRepo,
+          notebookId,
+          sourceIds && sourceIds.length > 0
+            ? { ...vectorQuery, limit: searchLimit, sourceIds }
+            : { ...vectorQuery, limit: searchLimit }
+        );
+      } catch {
+        // Vector search optional
+      }
     }
 
-    const candidateChunkIds = new Set<string>();
-    for (const f of ftsChunks) {
-      candidateChunkIds.add(f.id);
-    }
-    for (const v of vectorItems) {
-      candidateChunkIds.add(v.chunkId);
-    }
+    // Beide Trefferlisten per RRF (k = 60) zu einer Reihenfolge verbinden, die besten zuerst.
+    const rankedChunkIds = combineWithRrf<{ chunkId: string }, string>(
+      vectorItems,
+      ftsChunks.map((f) => ({ chunkId: f.id })),
+      (item) => item.chunkId,
+      { k: 60 }
+    )
+      .slice(0, searchLimit)
+      .map((entry) => entry.item.chunkId);
 
     let chunks: GroundedChunkInput[] = [];
-    if (candidateChunkIds.size > 0) {
-      const fetchedChunks = await deps.ragRepo.getChunksByIds(Array.from(candidateChunkIds));
-      chunks = fetchedChunks.slice(0, searchLimit).map((c) => ({
+    if (rankedChunkIds.length > 0) {
+      const fetched = await deps.ragRepo.getChunksByIds(rankedChunkIds);
+      const byId = new Map(fetched.map((row) => [row.id, row]));
+      const fetchedChunks = rankedChunkIds
+        .map((id) => byId.get(id))
+        .filter((row): row is NonNullable<typeof row> => row !== undefined);
+      chunks = fetchedChunks.map((c) => ({
         chunkId: c.id,
         sourceId: c.source_id,
         sourceTitle: c.source_title || "Quelle",
@@ -262,6 +331,43 @@ export function registerChatRoutes(
         endOffset: c.end_offset,
         text: c.text
       }));
+    }
+
+    // Keine Belege in den Quellen: ehrlich sagen, statt das Modell raten zu lassen (#243)
+    if (chunks.length === 0) {
+      const answer = NO_EVIDENCE_ANSWER[language ?? "de"];
+      const resolvedChatId = chatId;
+      return streamSSE(c, async (stream) => {
+        await stream.writeSSE({
+          event: "token",
+          data: JSON.stringify({ delta: answer, chatId: resolvedChatId })
+        });
+        await stream.writeSSE({
+          event: "citations",
+          data: JSON.stringify({
+            chatId: resolvedChatId,
+            citations: [],
+            validIndices: [],
+            hallucinatedIndices: []
+          })
+        });
+        const messageId = `msg_${crypto.randomUUID()}`;
+        await stream.writeSSE({
+          event: "done",
+          data: JSON.stringify({ chatId: resolvedChatId, messageId, noEvidence: true })
+        });
+        await deps.ragRepo.createMessage({
+          id: messageId,
+          chat_id: resolvedChatId,
+          role: "assistant",
+          content: answer,
+          citations_json: JSON.stringify([]),
+          latency_ms: 0,
+          token_usage_json: null,
+          ai_generated: 0,
+          created_at: Date.now()
+        });
+      });
     }
 
     // 4. Build Grounded Context & System Prompt with Prompt Injection Neutralisation
@@ -312,6 +418,10 @@ export function registerChatRoutes(
     // 6. Return Server-Sent Events (SSE) Stream
     return streamSSE(c, async (stream) => {
       let fullAssistantText = "";
+      // Abbruch durch den Client (Stopp-Knopf oder Verbindungsende) beendet auch die
+      // Anfrage an das Modell; eine abgebrochene Antwort wird nicht gespeichert (#243).
+      const upstream = new AbortController();
+      stream.onAbort(() => upstream.abort());
 
       try {
         const streamIterable = provider.chatStream(
@@ -321,11 +431,13 @@ export function registerChatRoutes(
           ],
           {
             model: routingDecision.model,
-            apiKey
+            apiKey,
+            signal: upstream.signal
           }
         );
 
         for await (const chunk of streamIterable) {
+          if (upstream.signal.aborted) break;
           fullAssistantText += chunk.deltaText;
           await stream.writeSSE({
             event: "token",
@@ -336,6 +448,7 @@ export function registerChatRoutes(
           });
         }
 
+        if (upstream.signal.aborted) return;
         const latencyMs = Date.now() - startTime;
 
         // Sub-Issue #105: Validate citations & Hallucination validation
@@ -395,6 +508,7 @@ export function registerChatRoutes(
           created_at: Date.now()
         });
       } catch (err: unknown) {
+        if (upstream.signal.aborted) return;
         const errorMessage = (err as Error).message;
         await stream.writeSSE({
           event: "error",
@@ -458,7 +572,32 @@ export function registerChatRoutes(
       }
     }
 
-    const rawMessages = await deps.ragRepo.getMessagesByChat(chatId);
+    // Gesamtverlauf ohne Obergrenze, seitenweise: je Seite höchstens HISTORY_PAGE_MAX
+    // Nachrichten, ältere über nextCursor (Issue #243)
+    const limitParam = c.req.query("limit");
+    const beforeParam = c.req.query("before");
+    const limit = limitParam === undefined ? HISTORY_PAGE_DEFAULT : Number(limitParam);
+    const before = beforeParam === undefined ? undefined : decodeHistoryCursor(beforeParam);
+    if (!Number.isInteger(limit) || limit < 1 || limit > HISTORY_PAGE_MAX || before === null) {
+      const problem = createProblemDetails({
+        status: 422,
+        title: "Unprocessable Content",
+        detail: `limit muss zwischen 1 und ${HISTORY_PAGE_MAX} liegen, before ein gültiger Cursor sein.`,
+        instance: c.req.path,
+        code: "VALIDATION_ERROR"
+      });
+      return c.json(problem, 422, {
+        "content-type": "application/problem+json; charset=utf-8"
+      });
+    }
+
+    const page = await deps.ragRepo.getMessagesPage(chatId, limit, before);
+    const hasMore = page.length > limit;
+    const rawMessages = page.slice(0, limit).reverse();
+    // page ist absteigend sortiert: page[limit - 1] ist die älteste Nachricht dieser Seite
+    const nextCursor = hasMore
+      ? encodeHistoryCursor(page[limit - 1] as { created_at: number; id: string })
+      : null;
 
     const messages = rawMessages.map((m) => {
       let citations: Record<string, unknown>[] | null = null;
@@ -494,7 +633,8 @@ export function registerChatRoutes(
 
     const responsePayload: ChatMessagesResponse = {
       chatId,
-      messages
+      messages,
+      nextCursor
     };
 
     return c.json(responsePayload, 200, {

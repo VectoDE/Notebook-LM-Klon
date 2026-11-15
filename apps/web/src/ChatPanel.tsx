@@ -34,6 +34,8 @@ export interface ChatPanelProps {
   readonly onReadAloud?: ((text: string) => void) | undefined;
   readonly onStop?: (() => void) | undefined;
   readonly onRetry?: (() => void) | undefined;
+  /** Verlauf als Markdown mit Zitaten sichern (Issue #243). */
+  readonly onExport?: (() => void) | undefined;
   readonly isGenerating?: boolean | undefined;
   /** Fokusziel für die Bereichsnavigation (data-panel, tabIndex). */
   readonly panelAttributes?: PanelFocusAttributes | undefined;
@@ -51,6 +53,7 @@ export function ChatPanel({
   onReadAloud,
   onStop,
   onRetry,
+  onExport,
   isGenerating = false,
   panelAttributes
 }: ChatPanelProps) {
@@ -317,6 +320,22 @@ export function ChatPanel({
               </article>
             );
           })}
+
+          {onExport && messages.some((m) => m.role === "user") && (
+            <div className="rn-chat-tools">
+              <button
+                type="button"
+                onClick={onExport}
+                disabled={isGenerating}
+                data-testid="btn-export-chat-md"
+                aria-label={t("chatExportAria")}
+                className="rn-btn rn-btn--ghost rn-btn--compact"
+              >
+                <Icon name="download" size={18} />
+                {t("chatExport")}
+              </button>
+            </div>
+          )}
 
           {isEmpty && !isGenerating && (
             <EmptyState

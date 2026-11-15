@@ -50,6 +50,9 @@ describe("SignInDialog (Issue #233)", () => {
     });
     expect(html).not.toContain("Testmodus");
     expect(html).toMatch(/aria-disabled="true"[^>]*data-testid="btn-sign-in-guest"/);
+    // Passkey-Registrierung nur mit bestätigter Bot-Prüfung (#343)
+    expect(html).toContain("Passkey einrichten");
+    expect(html).toMatch(/aria-disabled="true"[^>]*data-testid="btn-register-passkey"/);
   });
 
   it("uses the development test key by default in the test build", () => {
