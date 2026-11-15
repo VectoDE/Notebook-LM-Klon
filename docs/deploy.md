@@ -43,6 +43,9 @@ pnpm --filter @notebook-lm/worker exec tsx src/smoke-check.ts http://localhost:8
 | R2 `notebook-lm-media` | Location Hint `weur` (Westeuropa) | Nur beim ersten Anlegen des Bucket-Namens (`--location=weur`), auch nach Löschen und Neuanlegen bleibt der alte Ort. Kein Feld im Binding. Der Hint ist „best effort“, keine Zusage. | [R2 Data location](https://developers.cloudflare.com/r2/reference/data-location/), [`wrangler r2 bucket create`](https://developers.cloudflare.com/workers/wrangler/commands/r2/) |
 
 Ein Location Hint ist keine Jurisdiktion: Er garantiert nicht, dass R2-Daten in der EU bleiben.
+Der Standort der hochgeladenen Dateien ist ein Wunsch ohne Garantie. Datenschutzerklärung und
+Verarbeitungsverzeichnis dürfen deshalb nicht zusagen, dass Uploads in der EU gespeichert werden;
+zutreffend ist: „bevorzugt Westeuropa, ohne Garantie“. Die EU-Zusage gilt nur für die Datenbank (D1).
 Das leistet nur ein Bucket mit `--jurisdiction=eu`. Dann braucht das Binding in `wrangler.jsonc`
 zusätzlich `"jurisdiction": "eu"`, und Presigned URLs laufen über
 `https://<ACCOUNT_ID>.eu.r2.cloudflarestorage.com`. Der Upload-Code baut Presigned URLs derzeit
