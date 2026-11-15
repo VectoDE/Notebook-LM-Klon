@@ -33,20 +33,33 @@ export type NotebookStatePurger = (notebookId: string) => Promise<void>;
 const NOTEBOOK_STATE_PREFIX = "notebook-state:";
 
 /**
- * Baut den Rückruf, der `POST /purge` am NotebookDO des Notebooks aufruft. Ohne Namespace
- * (z. B. ohne Binding) gibt es keinen Rückruf, die Löschung läuft dann ohne DO-Schritt.
+ * Baut den Rückruf, der `POST /purge` am NotebookDO und am JobDO des Notebooks aufruft (beide
+ * speichern Inhalte bzw. Nutzer-IDs je Notebook). Ohne Namespace (z. B. ohne Binding) entfällt
+ * der jeweilige Schritt; ohne beide Namespaces gibt es keinen Rückruf, die Löschung läuft dann
+ * ohne DO-Schritt.
  */
 export function createNotebookStatePurger(
-  namespace: Env["NOTEBOOK_DO"] | undefined
+  namespace: Env["NOTEBOOK_DO"] | undefined,
+  jobNamespace?: Env["JOB_DO"] | undefined
 ): NotebookStatePurger | undefined {
-  if (!namespace) {
+  const targets: { name: string; namespace: Env["NOTEBOOK_DO"] }[] = [];
+  if (namespace) {
+    targets.push({ name: "NotebookDO", namespace });
+  }
+  if (jobNamespace) {
+    targets.push({ name: "JobDO", namespace: jobNamespace as unknown as Env["NOTEBOOK_DO"] });
+  }
+  if (targets.length === 0) {
     return undefined;
   }
   return async (notebookId) => {
-    const stub = namespace.get(namespace.idFromName(notebookId));
-    const res = await stub.fetch("http://internal/purge", { method: "POST" });
-    if (!res.ok) {
-      throw new Error(`NotebookDO ${notebookId}: purge antwortete ${res.status}`);
+    for (const target of targets) {
+      const ns = target.namespace;
+      const stub = ns.get(ns.idFromName(notebookId));
+      const res = await stub.fetch("http://internal/purge", { method: "POST" });
+      if (!res.ok) {
+        throw new Error(`${target.name} ${notebookId}: purge antwortete ${res.status}`);
+      }
     }
   };
 }
@@ -61,6 +74,9 @@ export interface RunCleanupOptions {
 
 /** Cloudflare D1 erlaubt höchstens 100 gebundene Parameter je Anfrage; wir bleiben bei 50. */
 export const D1_MAX_BOUND_IDS = 50;
+
+/** Rate-limit buckets older than this are removed by the cron (windows are one minute). */
+const SHORT_LIVED_RETENTION_MS = 24 * 60 * 60 * 1000;
 
 /** Konto, auf das Autorfelder gelöschter Nutzer umgehängt werden (Migration 0009). */
 export const DELETED_USER_ID = "user_deleted";
@@ -104,6 +120,7 @@ function escapeLike(value: string): string {
  * - Associated R2 objects (sources, artifacts) under guest / notebook prefixes
  * - Abandoned uploads (status 'uploading' older than STALE_UPLOAD_MS) incl. their R2 object
  * - Daily upload counters older than UPLOAD_DAILY_RETENTION_DAYS
+ * - Rate-limit buckets older than 24 h and embedding counters of earlier UTC days
  */
 export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<CleanupMetrics> {
   const startTime = Date.now();
@@ -233,6 +250,17 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
       .toISOString()
       .slice(0, 10);
     await db.run("DELETE FROM upload_daily WHERE day < ?", [retentionDay]);
+  });
+
+  // 9. Short-lived counters: rate-limit buckets (may contain client IPs) and the guest daily
+  //    embedding counters are only needed for their window or day; keep a day for diagnosis.
+  await step("short_lived_counters", async () => {
+    await db.run("DELETE FROM rate_limits WHERE window_start < ?", [
+      now - SHORT_LIVED_RETENTION_MS
+    ]);
+    await db.run("DELETE FROM ai_embedding_usage WHERE day < ?", [
+      new Date(now).toISOString().slice(0, 10)
+    ]);
   });
 
   const durationMs = Date.now() - startTime;

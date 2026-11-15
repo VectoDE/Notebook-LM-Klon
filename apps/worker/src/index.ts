@@ -383,7 +383,7 @@ export const scheduled = async (
   const cleanupPromise = runScheduledCleanup({
     db: dbAdapter,
     mediaBucket: env.MEDIA,
-    purgeNotebookState: createNotebookStatePurger(env.NOTEBOOK_DO)
+    purgeNotebookState: createNotebookStatePurger(env.NOTEBOOK_DO, env.JOB_DO)
   }).then((metrics) => {
     console.info(
       JSON.stringify({

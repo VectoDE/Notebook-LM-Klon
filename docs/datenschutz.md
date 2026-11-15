@@ -10,7 +10,7 @@ Stand: 2026-11-13 · Issue #258
 
 ## Welche Daten wir verarbeiten
 
-- **Konto:** E-Mail-Adresse (bei Anmeldung per Magic Link), Anzeigename, Sprache, Passkey-Daten. Gastkonten laufen nach 24 Stunden ab.
+- **Konto:** E-Mail-Adresse (bei Anmeldung per Magic Link), Anzeigename, Sprache, Passkey-Daten. Gastkonten laufen nach 24 Stunden ab und werden beim nächsten stündlichen Aufräumlauf gelöscht.
 - **Inhalte:** Notebooks, hochgeladene Quellen, Chats, Notizen und erzeugte Artefakte. Sie liegen in Cloudflare D1 und R2.
 - **Sitzung:** Ein technisch notwendiges Cookie (`__Host-sid`) hält Sie angemeldet. Im Speicher steht nur ein Hash des Tokens, IP-Adresse und Browserkennung nur als tagesweise gesalzener Hash.
 - **Einstellungen im Browser:** Design, Farbmodus, Sprache, Spaltenlayout und Ihre Einwilligungsentscheidung liegen im lokalen Speicher Ihres Browsers und verlassen das Gerät nicht.

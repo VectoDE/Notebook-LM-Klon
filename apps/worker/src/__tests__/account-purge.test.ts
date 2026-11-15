@@ -824,4 +824,37 @@ describe("createNotebookStatePurger", () => {
     status = 500;
     await expect(purge?.("nb_2")).rejects.toThrow("nb_2");
   });
+
+  it("leert auch das JobDO des Notebooks und meldet dessen Fehler", async () => {
+    const calls: string[] = [];
+    let jobStatus = 200;
+    const namespaceFor = (label: string, statusOf: () => number) =>
+      ({
+        idFromName: (name: string) => name,
+        get: (id: string) => ({
+          fetch: async (url: string, init?: RequestInit) => {
+            calls.push(`${label}:${id}:${url}:${init?.method}`);
+            return new Response("{}", { status: statusOf() });
+          }
+        })
+      }) as unknown as Env["NOTEBOOK_DO"];
+    const notebookNs = namespaceFor("nb", () => 200);
+    const jobNs = namespaceFor("job", () => jobStatus) as unknown as Env["JOB_DO"];
+
+    await createNotebookStatePurger(notebookNs, jobNs)?.("nb_1");
+    expect(calls).toEqual([
+      "nb:nb_1:http://internal/purge:POST",
+      "job:nb_1:http://internal/purge:POST"
+    ]);
+
+    calls.length = 0;
+    await createNotebookStatePurger(undefined, jobNs)?.("nb_2");
+    expect(calls).toEqual(["job:nb_2:http://internal/purge:POST"]);
+
+    jobStatus = 503;
+    await expect(createNotebookStatePurger(notebookNs, jobNs)?.("nb_3")).rejects.toThrow(
+      "JobDO nb_3"
+    );
+    expect(createNotebookStatePurger(undefined, undefined)).toBeUndefined();
+  });
 });

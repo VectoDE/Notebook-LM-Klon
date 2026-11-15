@@ -507,3 +507,31 @@ describe("NotebookDO /purge (Art. 17 DSGVO, Kontolöschung)", () => {
     expect(deletedAll()).toBe(0);
   });
 });
+
+describe("JobDO /purge (Art. 17 DSGVO, Kontolöschung)", () => {
+  it("leert Speicher und Alarm und legt das Schema danach neu an", async () => {
+    const { state, executedQueries, deletedAll } = createMockSqliteState("job_purge");
+    const doInstance = new JobDO(state, {} as Env);
+    doInstance.ping();
+    expect(executedQueries.filter((q) => q.includes("CREATE TABLE")).length).toBe(1);
+
+    const res = await doInstance.fetch(
+      new Request("https://do.internal/purge", { method: "POST" })
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true });
+    expect(deletedAll()).toBe(1);
+
+    doInstance.ping();
+    expect(executedQueries.filter((q) => q.includes("CREATE TABLE")).length).toBe(2);
+  });
+
+  it("lehnt GET /purge ab (nur POST löscht)", async () => {
+    const { state, deletedAll } = createMockSqliteState("job_purge_get");
+    const doInstance = new JobDO(state, {} as Env);
+    const res = await doInstance.fetch(new Request("https://do.internal/purge"));
+    expect(res.status).toBe(404);
+    expect(deletedAll()).toBe(0);
+  });
+});

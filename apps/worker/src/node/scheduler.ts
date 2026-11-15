@@ -38,7 +38,7 @@ export async function runCleanupOnce(
   const metrics = await run({
     db: createD1DatabaseAdapter(env.DB),
     mediaBucket: env.MEDIA,
-    purgeNotebookState: createNotebookStatePurger(env.NOTEBOOK_DO)
+    purgeNotebookState: createNotebookStatePurger(env.NOTEBOOK_DO, env.JOB_DO)
   });
   // Same log line as scheduled() on Cloudflare, so both runtimes are monitored alike.
   log.info(JSON.stringify({ event: "scheduled_cleanup_completed", metrics }));

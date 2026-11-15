@@ -617,6 +617,17 @@ export class JobDO {
     this.initialized = true;
   }
 
+  /**
+   * Löscht die gesamte Auftragswarteschlange des Notebooks (Art. 17 DSGVO): Payloads tragen die
+   * Nutzer-ID, Ergebnisse die erzeugten Inhalte. Löscht auch den Alarm; das Schema wird bei der
+   * nächsten Nutzung neu angelegt.
+   */
+  public async purge(): Promise<void> {
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+    this.initialized = false;
+  }
+
   public ping(): DurableObjectHealthReport {
     this.ensureSchema();
     const rows = this.ctx.storage.sql.exec("SELECT 1 AS ok").toArray();
@@ -1014,6 +1025,15 @@ export class JobDO {
           headers: { "content-type": "application/problem+json; charset=utf-8" }
         });
       }
+    }
+
+    // POST /purge: clears the whole queue (called when the notebook is deleted)
+    if (request.method === "POST" && url.pathname === "/purge") {
+      await this.purge();
+      return Response.json(
+        { success: true },
+        { status: 200, headers: { "content-type": "application/json; charset=utf-8" } }
+      );
     }
 
     // GET /jobs: list jobs
