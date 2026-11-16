@@ -39,6 +39,16 @@ describe("Wrangler Single-Worker Configuration", () => {
     expect(parsed.migrations[0]?.new_sqlite_classes).toEqual(["NotebookDO", "JobDO"]);
   });
 
+  it("trägt die echte D1-ID und die HTTPS-Adresse ein, keine Platzhalter (P2)", () => {
+    const parsed = JSON.parse(readWranglerConfig()) as {
+      vars: { APP_ORIGIN: string };
+      d1_databases: { database_id: string }[];
+    };
+    expect(parsed.d1_databases[0]?.database_id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(parsed.d1_databases[0]?.database_id).not.toBe("00000000-0000-0000-0000-000000000001");
+    expect(parsed.vars.APP_ORIGIN).toBe("https://notebook-lm-klon.timhauke.workers.dev");
+  });
+
   it("schedules the hourly cleanup cron handled by the worker's scheduled() export (#334)", () => {
     const parsed = JSON.parse(readWranglerConfig()) as {
       main: string;
