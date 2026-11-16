@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const REPO_ROOT = join(import.meta.dirname, "../../../..");
+const REPO_ROOT = join(import.meta.dirname, "../..");
 const read = (path: string) => readFileSync(join(REPO_ROOT, path), "utf-8");
 const workflow = read(".github/workflows/load-test.yml");
 const script = read("load-test/k6/scenarios.js");

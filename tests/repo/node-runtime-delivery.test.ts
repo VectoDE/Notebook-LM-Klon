@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const REPO_ROOT = join(import.meta.dirname, "../../../..");
+const REPO_ROOT = join(import.meta.dirname, "../..");
 const read = (path: string) => readFileSync(join(REPO_ROOT, path), "utf-8");
 
 describe("Node-Betrieb: Image, Compose, CI und Doku (#330, #338)", () => {

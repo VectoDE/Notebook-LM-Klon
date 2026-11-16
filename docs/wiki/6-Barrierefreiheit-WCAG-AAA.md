@@ -16,7 +16,7 @@ Unsere Design-System-Richtung **„Warm Editorial Research Studio“** kombinier
 | **Dark Mode** (*Deep Ink Studio*) | Sekundärer Text / Zitate | `#CBD5E1` (*Crisp Silver*) | `#0B0F17` (*Obsidian Slate*) | **12,6 : 1** | **AAA (`>= 7:1`)** |
 | **Fokus-Indikator** (WCAG 2.4.13) | 3 px Fokus-Ring mit 2 px Offset | `#1E40AF` (Light) / `#60A5FA` (Dark) | `#FAF8F5` / `#0B0F17` | **> 8,2 : 1** | **AAA (`>= 3:1` + 2 px)** |
 
-Alle Kontrastwerte werden in `packages/shared/src/__tests__/a11y-baseline.test.ts` mathematisch über die relative Luminanz nach WCAG-2.x-Formel bei jedem CI-Lauf verifiziert.
+Alle Kontrastwerte werden in `tests/repo/a11y-baseline.test.ts` mathematisch über die relative Luminanz nach WCAG-2.x-Formel bei jedem CI-Lauf verifiziert.
 
 ---
 

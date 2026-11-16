@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const REPO_ROOT = join(import.meta.dirname, "../../../..");
+const REPO_ROOT = join(import.meta.dirname, "../..");
 
 /**
  * Öffentliche Inhalte bleiben sachlich: keine Bewerbungsbezüge, keine Aussagen
@@ -12,7 +12,7 @@ const REPO_ROOT = join(import.meta.dirname, "../../../..");
 const SCAN_ROOTS = ["README.md", "CHANGELOG.md", ".github", "docs", "apps", "packages"];
 const EXTENSIONS = [".md", ".svg", ".json", ".ts", ".tsx", ".sql", ".yml", ".yaml", ".html"];
 const SKIP_DIRS = new Set(["node_modules", "dist", "coverage", ".wrangler"]);
-const SELF = "packages/shared/src/__tests__/neutral-public-content.test.ts";
+const SELF = "tests/repo/neutral-public-content.test.ts";
 
 function collect(path: string, out: string[]): void {
   const absolute = join(REPO_ROOT, path);

@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const REPO_ROOT = join(import.meta.dirname, "../../../..");
+const REPO_ROOT = join(import.meta.dirname, "../..");
 const read = (rel: string) => readFileSync(join(REPO_ROOT, rel), "utf-8");
 
 function walk(dir: string, out: string[] = []): string[] {

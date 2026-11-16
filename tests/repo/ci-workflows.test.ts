@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const REPO_ROOT = join(import.meta.dirname, "../../../..");
+const REPO_ROOT = join(import.meta.dirname, "../..");
 const WORKFLOWS_DIR = join(REPO_ROOT, ".github/workflows");
 
 describe("GitHub Actions Security & SHA-Pinning Policy (#4, #56)", () => {
