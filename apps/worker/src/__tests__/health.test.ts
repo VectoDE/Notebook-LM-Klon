@@ -12,7 +12,7 @@ function createMockEnv(overrides?: Partial<{ APP_PROFILE: string; d1Fail: boolea
   const shouldFailD1 = overrides?.d1Fail ?? false;
   return {
     APP_PROFILE: (overrides?.APP_PROFILE ?? "demo") as "demo",
-    APP_ORIGIN: "http://localhost:8787",
+    APP_ORIGIN: "http://localhost:8787" as Env["APP_ORIGIN"],
     ASSETS: {
       fetch: async () => new Response("SPA HTML", { status: 200 })
     } as unknown as Fetcher,

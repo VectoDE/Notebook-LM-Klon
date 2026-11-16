@@ -12,7 +12,7 @@
   },
   "vars": {
     "APP_PROFILE": "demo",
-    "APP_ORIGIN": "http://localhost:8787"
+    "APP_ORIGIN": "https://notebook-lm-klon.timhauke.workers.dev"
   },
   "assets": {
     "directory": "../web/dist",
@@ -27,7 +27,7 @@
     {
       "binding": "DB",
       "database_name": "notebook-lm-db",
-      "database_id": "00000000-0000-0000-0000-000000000001",
+      "database_id": "ae367cb2-a6c1-4500-a804-1d43f2491463",
       "migrations_dir": "migrations"
     }
   ],
