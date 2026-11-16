@@ -7,18 +7,41 @@ import type { CoreRepository } from "./core-repository.js";
 import type { PasskeyService } from "./passkey-service.js";
 import { resolveClientIp } from "./rate-limiter.js";
 import { type SessionManager, buildSessionCookie } from "./session.js";
+import { requireTurnstile } from "./turnstile.js";
 
 export function createPasskeyRoutes(opts: {
   repo: CoreRepository;
   passkeyService: PasskeyService;
   sessionManager: SessionManager;
   isProduction?: boolean;
+  /**
+   * Turnstile secret (TURNSTILE_SECRET_KEY). Registration options are only issued after a
+   * confirmed bot check (#343); without the secret registration is disabled (503, fail-closed).
+   */
+  turnstileSecretKey?: string | undefined;
+  customFetch?: typeof fetch | undefined;
   auditLogger?: AuditLogger | undefined;
 }): Hono<{ Bindings: Env }> {
   const router = new Hono<{ Bindings: Env }>();
 
   // 1. Registration Options (Requires active authenticated session, e.g. guest or user)
+  // and a confirmed Turnstile check (#343). Without options there is no challenge, so
+  // /register/verify cannot succeed without passing this gate first.
   router.post("/register/options", requireAuth(), async (c) => {
+    let body: { turnstileToken?: unknown } = {};
+    try {
+      body = (await c.req.json()) as { turnstileToken?: unknown };
+    } catch {
+      body = {};
+    }
+    const botCheck = await requireTurnstile(c, body?.turnstileToken, {
+      secretKey: opts.turnstileSecretKey,
+      customFetch: opts.customFetch
+    });
+    if (botCheck) {
+      return botCheck;
+    }
+
     const sessionUser = c.get("sessionUser");
     /* v8 ignore next */
     const user = sessionUser ? await opts.repo.getUserById(sessionUser.id) : null;
@@ -160,7 +183,7 @@ export function createPasskeyRoutes(opts: {
       await opts.auditLogger?.record(c, {
         userId: result.user.id,
         action: "auth.login.passkey",
-        target: `user:${result.user.id}`
+        target: "user:self"
       });
 
       const cookieHeader = buildSessionCookie(

@@ -1,21 +1,32 @@
 import type {
   AudioInterjectResponse,
   PodcastStateMachine,
-  PodcastStateMachineContext
+  PodcastStateMachineContext,
+  SpokenTranscriptLine
 } from "@notebook-lm/shared";
 import {
   type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
+  Suspense,
+  lazy,
   useEffect,
+  useId,
   useRef,
   useState
 } from "react";
+import { triggerBrowserDownload } from "./artifact-exporters.js";
 import { ChatApiError, errorKeyForStatus, technicalErrorDetail } from "./chat-client.js";
 import { focusFirstAvailable } from "./focus-return.js";
 import { trapTabKey } from "./focus-trap.js";
+import type { SpokenTranscriptFormat } from "./media-downloads.js";
 import { podcastStateKey } from "./stage-visuals.js";
 import { useTheme } from "./useTheme.js";
+
+// Erst beim Aufklappen laden: hält das Startpaket unter dem Skript-Budget (Issue #350)
+const MediaTranscript = lazy(() =>
+  import("./MediaTranscript.js").then((m) => ({ default: m.MediaTranscript }))
+);
 
 export interface SpeechRecognitionResultLike {
   readonly [index: number]: { readonly transcript: string };
@@ -51,11 +62,27 @@ export interface InteractiveAudioHostPlayerProps {
     voiceMode?: "dialogue" | "single" | "summary";
   }) => Promise<AudioInterjectResponse>;
   readonly currentTrackTitle?: string;
+  /** Gesprochener Text der Hosts als Textalternative (Issue #350). */
+  readonly transcriptLines?: readonly SpokenTranscriptLine[] | undefined;
+  /** Sprache des Transkripts (BCP 47). */
+  readonly transcriptLang?: "de" | "en" | undefined;
+  /** Rückmeldung nach einem Download (Hinweis-Leiste). */
+  readonly onNotify?: ((message: string) => void) | undefined;
 }
 
 export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProps) {
-  const { notebookId, stateMachine, onInterjectSubmit, currentTrackTitle: trackTitleProp } = props;
+  const {
+    notebookId,
+    stateMachine,
+    onInterjectSubmit,
+    currentTrackTitle: trackTitleProp,
+    transcriptLines = [],
+    transcriptLang = "de",
+    onNotify
+  } = props;
   const { t, tf, language } = useTheme();
+  const transcriptId = `${useId()}-transcript`;
+  const [showTranscript, setShowTranscript] = useState(false);
   const currentTrackTitle = trackTitleProp ?? t("audioDefaultTitle");
   const speechLang = language === "en" ? "en-US" : "de-DE";
   const interjectTextStatus = t("audioInterjectStatus");
@@ -336,6 +363,19 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
     }
   };
 
+  const downloadTranscript = (format: SpokenTranscriptFormat) => {
+    void import("./media-downloads.js").then((m) => {
+      const file = m.spokenTranscriptFile(
+        format,
+        currentTrackTitle,
+        transcriptLines,
+        transcriptLang
+      );
+      triggerBrowserDownload(file.filename, file.content, file.mimeType);
+      onNotify?.(tf("toastDownload", { file: file.filename }));
+    });
+  };
+
   const formattedTime = (ms: number) => {
     const totalSecs = Math.floor(ms / 1000);
     const mins = Math.floor(totalSecs / 60);
@@ -427,6 +467,52 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
           </button>
         )}
       </fieldset>
+
+      {/* Textalternative: Transkript der Hosts mit Download (Issue #350) */}
+      {transcriptLines.length > 0 && (
+        <div className="audio-transcript">
+          <button
+            type="button"
+            className="rn-stage-btn"
+            onClick={() => setShowTranscript((prev) => !prev)}
+            aria-expanded={showTranscript}
+            aria-controls={transcriptId}
+            data-testid="btn-audio-transcript"
+          >
+            {t(showTranscript ? "mediaTranscriptHide" : "mediaTranscriptShow")}
+          </button>
+          <div id={transcriptId} hidden={!showTranscript}>
+            {showTranscript && (
+              <Suspense fallback={null}>
+                <MediaTranscript
+                  items={transcriptLines.map((line) => ({
+                    id: line.id,
+                    startMs: line.startMs,
+                    endMs: line.endMs,
+                    speaker: line.speakerName,
+                    text: line.text
+                  }))}
+                  currentTimeMs={machineCtx.currentTimeMs}
+                  contentLang={transcriptLang}
+                  testId="audio-transcript"
+                  downloads={[
+                    {
+                      id: "txt",
+                      label: t("mediaDownloadText"),
+                      run: () => downloadTranscript("txt")
+                    },
+                    {
+                      id: "captions",
+                      label: t("mediaDownloadCaptions"),
+                      run: () => downloadTranscript("vtt")
+                    }
+                  ]}
+                />
+              </Suspense>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Interjection Modal / Input Drawer */}
       {machineCtx.state === "interjecting" && (

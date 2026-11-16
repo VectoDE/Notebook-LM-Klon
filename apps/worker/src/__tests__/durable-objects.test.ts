@@ -9,12 +9,25 @@ import {
 
 function createMockSqliteState(
   id: string,
-  emptySelectResult = false
+  emptySelectResult = false,
+  purgeSockets = false
 ): {
   state: SqliteDurableObjectState;
   executedQueries: string[];
+  deletedAll: () => number;
+  closedSockets: string[];
 } {
   const executedQueries: string[] = [];
+  let deleteAllCalls = 0;
+  const closedSockets: string[] = [];
+  const sockets = [
+    { close: (_code?: number, reason?: string) => closedSockets.push(`ok:${reason}`) },
+    {
+      close: () => {
+        throw new Error("already closed");
+      }
+    }
+  ];
   const state: SqliteDurableObjectState = {
     id: { toString: () => id },
     storage: {
@@ -28,12 +41,15 @@ function createMockSqliteState(
       },
       getAlarm: async () => null,
       setAlarm: async () => {},
-      deleteAlarm: async () => {}
+      deleteAlarm: async () => {},
+      deleteAll: async () => {
+        deleteAllCalls++;
+      }
     },
     acceptWebSocket: () => {},
-    getWebSockets: () => []
+    getWebSockets: () => (purgeSockets ? sockets : [])
   };
-  return { state, executedQueries };
+  return { state, executedQueries, deletedAll: () => deleteAllCalls, closedSockets };
 }
 
 describe("SQLite Durable Objects (NotebookDO & JobDO)", () => {
@@ -395,5 +411,127 @@ describe("SQLite Durable Objects (NotebookDO & JobDO)", () => {
       DB: multiFormatDb
     } as Env);
     expect(await formatDo.ensureVectorsLoaded()).toBe(2);
+  });
+
+  it("lädt Vektoren über den Notebook-Namen statt der Hex-ID und mischt keine Modelle", async () => {
+    const boundIds: unknown[] = [];
+    const rows = [
+      { chunk_id: "alt", scale: 1, vector: [1, 0], source_id: "s1", model: "anderes-modell" },
+      { chunk_id: "neu", scale: 1, vector: [0, 1], source_id: "s1", model: "m-768" }
+    ];
+    const db = {
+      prepare: () => ({
+        bind: (...args: unknown[]) => {
+          boundIds.push(...args);
+          return { all: async () => ({ results: rows, success: true }) };
+        }
+      })
+    } as unknown as D1Database;
+    const { state } = createMockSqliteState("a1b2c3-hex");
+    const named: SqliteDurableObjectState = {
+      ...state,
+      id: { toString: () => "a1b2c3-hex", name: "nb_echt" }
+    };
+    const doInstance = new NotebookDO(named, { DB: db } as Env);
+
+    // Ein frisch geweckter DO bekommt zuerst ein Update; danach müssen auch die alten Vektoren da sein.
+    const update = await doInstance.fetch(
+      new Request("https://do.internal/vectors/update", {
+        method: "POST",
+        body: JSON.stringify({
+          vectors: [
+            { chunkId: "frisch", sourceId: "s2", quantized: [0, 2], scale: 1, model: "m-768" }
+          ]
+        })
+      })
+    );
+    expect(((await update.json()) as { totalCached: number }).totalCached).toBe(3);
+    expect(boundIds).toEqual(["nb_echt"]);
+
+    const search = await doInstance.fetch(
+      new Request("https://do.internal/vectors/search", {
+        method: "POST",
+        body: JSON.stringify({ queryVector: [0, 1], model: "m-768", limit: 10 })
+      })
+    );
+    const ids = ((await search.json()) as { results: Array<{ chunkId: string }> }).results.map(
+      (r) => r.chunkId
+    );
+    expect(ids).toEqual(["frisch", "neu"]);
+
+    // Ohne Modellfilter bleibt das alte Verhalten: alle Vektoren zählen.
+    expect(doInstance.searchVectors(new Int8Array([1, 0]), 1, 10)).toHaveLength(3);
+
+    // Alles invalidieren lädt beim nächsten Zugriff neu aus D1.
+    await doInstance.fetch(
+      new Request("https://do.internal/vectors/invalidate", { method: "POST" })
+    );
+    expect(await doInstance.ensureVectorsLoaded()).toBe(2);
+    expect(boundIds).toEqual(["nb_echt", "nb_echt"]);
+  });
+});
+
+describe("NotebookDO /purge (Art. 17 DSGVO, Kontolöschung)", () => {
+  it("leert Speicher, Vektor-Cache und Alarm, schließt Sockets und legt das Schema danach neu an", async () => {
+    const { state, executedQueries, deletedAll, closedSockets } = createMockSqliteState(
+      "nb_purge",
+      false,
+      true
+    );
+    const doInstance = new NotebookDO(state, {} as Env);
+    doInstance.updateVectors([{ chunkId: "c1", quantized: new Int8Array([1]), scale: 1 }]);
+    doInstance.ping();
+    const createsBefore = executedQueries.filter((q) => q.startsWith("CREATE TABLE")).length;
+    expect(createsBefore).toBe(1);
+    expect(doInstance.getCachedVectors()).toHaveLength(1);
+
+    const res = await doInstance.fetch(
+      new Request("https://do.internal/purge", { method: "POST" })
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true });
+    expect(deletedAll()).toBe(1);
+    expect(closedSockets).toEqual(["ok:notebook deleted"]);
+    expect(doInstance.getCachedVectors()).toHaveLength(0);
+
+    doInstance.ping();
+    expect(executedQueries.filter((q) => q.startsWith("CREATE TABLE")).length).toBe(2);
+  });
+
+  it("lehnt GET /purge ab (nur POST löscht)", async () => {
+    const { state, deletedAll } = createMockSqliteState("nb_purge_get");
+    const doInstance = new NotebookDO(state, {} as Env);
+    const res = await doInstance.fetch(new Request("https://do.internal/purge"));
+    expect(res.status).toBe(404);
+    expect(deletedAll()).toBe(0);
+  });
+});
+
+describe("JobDO /purge (Art. 17 DSGVO, Kontolöschung)", () => {
+  it("leert Speicher und Alarm und legt das Schema danach neu an", async () => {
+    const { state, executedQueries, deletedAll } = createMockSqliteState("job_purge");
+    const doInstance = new JobDO(state, {} as Env);
+    doInstance.ping();
+    expect(executedQueries.filter((q) => q.includes("CREATE TABLE")).length).toBe(1);
+
+    const res = await doInstance.fetch(
+      new Request("https://do.internal/purge", { method: "POST" })
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true });
+    expect(deletedAll()).toBe(1);
+
+    doInstance.ping();
+    expect(executedQueries.filter((q) => q.includes("CREATE TABLE")).length).toBe(2);
+  });
+
+  it("lehnt GET /purge ab (nur POST löscht)", async () => {
+    const { state, deletedAll } = createMockSqliteState("job_purge_get");
+    const doInstance = new JobDO(state, {} as Env);
+    const res = await doInstance.fetch(new Request("https://do.internal/purge"));
+    expect(res.status).toBe(404);
+    expect(deletedAll()).toBe(0);
   });
 });

@@ -3,12 +3,20 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it, vi } from "vitest";
 import { type CleanupMetrics, type MinimalR2Bucket, runScheduledCleanup } from "../cleanup.js";
-import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
+import { type BatchStatement, CoreRepository, type DatabaseAdapter } from "../core-repository.js";
 import { scheduled } from "../index.js";
 
 function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } {
   const db = new DatabaseSync(":memory:");
-  for (const file of ["0001_initial_core.sql", "0003_webauthn_challenges.sql"]) {
+  for (const file of [
+    "0001_initial_core.sql",
+    "0002_rag_and_studio.sql",
+    "0003_webauthn_challenges.sql",
+    "0005_comments.sql",
+    "0007_upload_grenzen.sql",
+    "0008_ai_embedding_usage.sql",
+    "0009_konto_loeschung.sql"
+  ]) {
     db.exec(readFileSync(resolve(process.cwd(), "apps/worker/migrations", file), "utf-8"));
   }
 
@@ -29,6 +37,20 @@ function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } 
       const stmt = db.prepare(sqlStr);
       const info = stmt.run(...(params as (string | number | bigint | null)[]));
       return { changes: Number(info.changes) };
+    },
+    async execBatch(statements: BatchStatement[]): Promise<void> {
+      db.exec("BEGIN");
+      try {
+        for (const statement of statements) {
+          db.prepare(statement.sql).run(
+            ...(statement.params as (string | number | bigint | null)[])
+          );
+        }
+        db.exec("COMMIT");
+      } catch (err) {
+        db.exec("ROLLBACK");
+        throw err;
+      }
     }
   };
 
@@ -250,6 +272,40 @@ describe("Scheduled Cron Cleanup (Sub-Issues #74, #75, #76)", () => {
     expect(mockR2.objects.has(`users/${activeGuestId}/avatar.png`)).toBe(true);
     expect(mockR2.objects.has(`notebooks/${activeNbId}/source_1.pdf`)).toBe(true);
 
+    close();
+  });
+
+  it("entfernt alte Rate-Limit-Zeilen und Embedding-Tageszähler früherer Tage", async () => {
+    const { adapter, close } = createSqliteAdapter();
+    const now = Date.UTC(2026, 10, 15, 12, 0, 0);
+    const insertLimit = (bucket: string, windowStart: number) =>
+      adapter.run("INSERT INTO rate_limits (bucket, count, window_start) VALUES (?, 1, ?)", [
+        bucket,
+        windowStart
+      ]);
+    await insertLimit("rl:api:ip:203.0.113.7", now - 24 * 3600 * 1000 - 1);
+    await insertLimit("rl:api:ip:203.0.113.8", now - 24 * 3600 * 1000);
+    await insertLimit("rl:api:usr:neu", now - 60_000);
+    await adapter.run("INSERT INTO ai_embedding_usage (day, scope, tokens) VALUES (?, ?, 5)", [
+      "2026-11-14",
+      "guest:alt"
+    ]);
+    await adapter.run("INSERT INTO ai_embedding_usage (day, scope, tokens) VALUES (?, ?, 5)", [
+      "2026-11-15",
+      "guest:heute"
+    ]);
+
+    const metrics = await runScheduledCleanup({ db: adapter, mediaBucket: null, now });
+
+    expect(metrics.failedSteps).toBe(0);
+    expect(
+      (
+        await adapter.query<{ bucket: string }>("SELECT bucket FROM rate_limits ORDER BY bucket")
+      ).map((row) => row.bucket)
+    ).toEqual(["rl:api:ip:203.0.113.8", "rl:api:usr:neu"]);
+    expect(await adapter.query<{ scope: string }>("SELECT scope FROM ai_embedding_usage")).toEqual([
+      { scope: "guest:heute" }
+    ]);
     close();
   });
 

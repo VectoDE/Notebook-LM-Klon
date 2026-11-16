@@ -8,15 +8,20 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit && tsc --noEmit -p e2e",
     "themes:generate": "node scripts/generate-theme-css.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:node": "playwright test -c playwright.node.config.ts"
   },
   "dependencies": {
+    "@mlc-ai/web-llm": "0.2.87",
     "@notebook-lm/shared": "workspace:*",
+    "mammoth": "1.13.0",
     "pdfjs-dist": "^6.5.438",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "yjs": "13.6.33"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@playwright/test": "1.64.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

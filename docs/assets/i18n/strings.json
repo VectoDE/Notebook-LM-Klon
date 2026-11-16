@@ -1,12 +1,12 @@
 {
   "hero-banner": {
     "title": {
-      "de": "RelationNotes – NotebookLM & RelationFlow Knowledge Studio",
-      "en": "RelationNotes – NotebookLM & RelationFlow Knowledge Studio"
+      "de": "RelationNotes",
+      "en": "RelationNotes"
     },
     "desc": {
-      "de": "RelationNotes – NotebookLM & RelationFlow Knowledge Studio. Quellengebundene KI-Synthese mit Inline-Zitaten, Hybrid-RAG und Wissensgraph-Brücke zu RelationFlow, dargestellt als Wissensgraph aus fünf verbundenen Knoten.",
-      "en": "RelationNotes – NotebookLM & RelationFlow Knowledge Studio. Source-grounded AI synthesis with inline citations, hybrid RAG and a knowledge-graph bridge to RelationFlow, shown as a knowledge graph of five connected nodes."
+      "de": "RelationNotes. Quellengebundene KI-Synthese mit Inline-Zitaten, Hybrid-RAG und Wissensgraph-Brücke zu RelationFlow, dargestellt als Wissensgraph aus fünf verbundenen Knoten.",
+      "en": "RelationNotes. Source-grounded AI synthesis with inline citations, hybrid RAG and a knowledge-graph bridge to RelationFlow, shown as a knowledge graph of five connected nodes."
     },
     "texts": {}
   },
@@ -444,8 +444,8 @@
   },
   "relationflow-bridge": {
     "title": {
-      "de": "Andock-Architektur an Everlast RelationFlow",
-      "en": "Docking architecture for Everlast RelationFlow"
+      "de": "Andock-Architektur an RelationFlow",
+      "en": "Docking architecture for RelationFlow"
     },
     "desc": {
       "de": "Zeigt die nahtlose Integration des NotebookLM-Klons als Wissens-, RAG- und Studio-Modul in die RelationFlow-Plattform über Workspaces, Rollen (Owner, Editor, Viewer), Auto-LLM-Router und die dedizierte /api/v1/notebooks/:id/search Schnittstelle.",
@@ -453,8 +453,8 @@
     },
     "texts": {
       "t01": {
-        "de": "Andocken an RelationFlow (Everlast Consulting) – Modulare Bridge-Architektur",
-        "en": "Docking onto RelationFlow (Everlast Consulting) – modular bridge architecture"
+        "de": "Andocken an RelationFlow – Modulare Bridge-Architektur",
+        "en": "Docking onto RelationFlow – modular bridge architecture"
       },
       "t02": {
         "de": "Gemeinsames Rollenmodell (Owner/Editor/Viewer) · Intelligenter Auto-Modell-Router · Eigenständige Hybrid-RAG-API für KI-Assistenten",

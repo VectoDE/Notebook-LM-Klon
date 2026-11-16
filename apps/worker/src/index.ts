@@ -16,14 +16,24 @@ import {
 import { registerBYOKRoutes } from "./byok-routes.js";
 import { registerChatRoutes } from "./chat-routes.js";
 import { registerChunkIngestionRoutes } from "./chunk-ingestion.js";
-import { runScheduledCleanup } from "./cleanup.js";
+import { createNotebookStatePurger, runScheduledCleanup } from "./cleanup.js";
+import { registerCommentRoutes } from "./comments-routes.js";
 import { resolveAppConfig } from "./config.js";
 import { CoreRepository } from "./core-repository.js";
+import {
+  EndpointRepository,
+  loadCustomProvider,
+  registerCustomEndpointRoutes,
+  resolveAllowlist,
+  resolveCustomKeyBinding
+} from "./custom-endpoint-routes.js";
 import { createD1DatabaseAdapter } from "./d1-adapter.js";
 import { createDemoRoutes } from "./demo-routes.js";
+import { registerDocSyncRoutes } from "./doc-sync.js";
 import { createGuestAndMagicLinkRoutes } from "./guest-magic-link-routes.js";
 import { registerJobRoutes } from "./job-routes.js";
 import { createKeyVaultFromEnv } from "./key-vault.js";
+import { registerLocalDataRoutes } from "./local-data-routes.js";
 import {
   CloudflareMailAdapter,
   type CloudflareSendEmailBinding,
@@ -32,6 +42,7 @@ import {
 } from "./mail-adapter.js";
 import { createPasskeyRoutes } from "./passkey-routes.js";
 import { PasskeyService } from "./passkey-service.js";
+import { registerProvenanceRoutes } from "./provenance-routes.js";
 import { registerProviderRoutes } from "./provider-routes.js";
 import { type QuotaAction, quotaGuardMiddleware } from "./quota-guard.js";
 import { RagRepository } from "./rag-repository.js";
@@ -174,6 +185,10 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   const saltSecret = getConfiguredSessionSalt(env);
   const sessionManager = new SessionManager({ repo: coreRepo, saltSecret });
   const keyVault = hasConfiguredKek(env) ? createKeyVaultFromEnv(env) : undefined;
+  const endpointRepo = new EndpointRepository(dbAdapter);
+  // Node-Betrieb: fetch mit Adressprüfung beim Verbindungsaufbau (node/pinned-fetch.ts, DNS-Rebinding).
+  const byomFetch = (env as unknown as { BYOM_FETCH?: typeof fetch }).BYOM_FETCH;
+  const customEndpointDeps = { ragRepo, endpointRepo, keyVault, fetchFn: byomFetch };
   const auditLogger = new AuditLogger({ repo: coreRepo, saltSecret });
 
   const app = new Hono<ApiEnv>();
@@ -182,8 +197,9 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   app.use("*", csrfProtection({ allowedOrigins: [config.origin], isProduction }));
   // Cookie-free aggregated usage counters (Issue #262). Registered before the session and
   // rate-limit middleware on purpose: the request never touches cookies, sessions or the
-  // rate-limit table, so no IP address or identifier is read or stored for it.
-  registerUsageMetricsRoutes(app, { db: dbAdapter });
+  // rate-limit table, so no IP address or identifier is read or stored for it. Instead it
+  // requires the exact app origin, throttles per isolate and caps the daily counter.
+  registerUsageMetricsRoutes(app, { db: dbAdapter, allowedOrigin: config.origin });
   app.use("*", sessionMiddleware(sessionManager));
   app.use("*", async (c, next) => {
     const sessionUser = c.get("sessionUser");
@@ -198,7 +214,8 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   registerHealthAndDemoRoutes(app);
 
   // 3. Auth (public, rate-limit category "auth")
-  // Guest login and magic-link fail closed (503) when TURNSTILE_SECRET_KEY is missing.
+  // Guest login, magic-link and passkey registration fail closed (503) when
+  // TURNSTILE_SECRET_KEY is missing.
   // Every route that creates a session fails closed (503) when SESSION_SALT_SECRET is missing.
   const requireSalt = requireConfiguredSessionSalt();
   app.use("/api/v1/auth/guest", requireSalt);
@@ -228,10 +245,14 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
         expectedOrigin: config.origin
       }),
       sessionManager,
+      turnstileSecretKey: secrets.TURNSTILE_SECRET_KEY,
       isProduction,
       auditLogger
     })
   );
+
+  // Abmelden und Schlüssel der verschlüsselten lokalen Ablage (Issue #348)
+  registerLocalDataRoutes(app, { sessionManager, saltSecret, isProduction });
 
   // 4. Chat, search, audio (session + notebook role, LLM quota)
   const llmQuota = (): QuotaAction => ({ type: "llm_call" });
@@ -244,7 +265,13 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
     recordQuotaUsage(llmQuota)
   );
   app.use("/api/v1/chats/:id/messages", requireAuth());
-  registerChatRoutes(app, { ragRepo, coreRepo, keyVault });
+  registerChatRoutes(app, {
+    ragRepo,
+    coreRepo,
+    keyVault,
+    resolveCustomProvider: (userId) =>
+      loadCustomProvider(customEndpointDeps, userId, resolveAllowlist({}, env))
+  });
 
   app.use(
     "/api/v1/notebooks/:id/search",
@@ -261,6 +288,19 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
     recordQuotaUsage(llmQuota)
   );
   registerAudioRoutes(app, { ragRepo, coreRepo, keyVault });
+
+  // Yjs-Stand des Notebooks: lesen ab viewer, schreiben ab editor (Issue #347)
+  app.get(
+    "/api/v1/notebooks/:id/doc",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "viewer", "id")
+  );
+  app.post(
+    "/api/v1/notebooks/:id/doc",
+    requireAuth(),
+    requireNotebookRole(coreRepo, "editor", "id")
+  );
+  registerDocSyncRoutes(app);
 
   // 5. Sources (editor for writes, viewer for download)
   app.use(
@@ -285,9 +325,21 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   registerSourcesUploadRoutes(app, { coreRepo, ragRepo });
   registerChunkIngestionRoutes(app, { ragRepo, coreRepo, auditLogger });
 
+  // 5b. Comments on sources and notes with mentions (guards inside registerCommentRoutes:
+  // viewer reads, editor writes, author edits, author or owner deletes)
+  registerCommentRoutes(app, { coreRepo });
+
   // 6. Providers: catalog and routing decision are public, the network probe needs a session
   app.use("/api/v1/providers/ollama/probe", requireAuth());
+  // Eigener OpenAI-kompatibler Endpunkt (BYOM, Issue #247): nur mit Sitzung
+  app.use("/api/v1/providers/custom", requireAuth());
+  app.use("/api/v1/providers/custom/*", requireAuth());
+  registerCustomEndpointRoutes(app, customEndpointDeps);
   registerProviderRoutes(app, { ragRepo, keyVault });
+
+  // 6b. C2PA provenance for exports: status is public, signing needs a session. The signer
+  // only exists in the Node runtime (PROVENANCE_SIGNER); on Workers signing answers 503.
+  registerProvenanceRoutes(app);
 
   // 7. Jobs: status and cancel live under the notebook, so the notebook role is checked
   // and the job must belong to that notebook (IDOR protection, see fetchNotebookJob).
@@ -312,7 +364,13 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   // 9. BYOK key management (last: its router adds its own same-origin CSRF check)
   app.use("/api/v1/keys", requireAuth(), requireConfiguredKek(), requireSalt);
   app.use("/api/v1/keys/*", requireAuth(), requireConfiguredKek(), requireSalt);
-  registerBYOKRoutes(app, { ragRepo, coreRepo, keyVault, saltSecret });
+  registerBYOKRoutes(app, {
+    ragRepo,
+    coreRepo,
+    keyVault,
+    saltSecret,
+    customKeyBinding: (userId) => resolveCustomKeyBinding(endpointRepo, userId)
+  });
 
   app.notFound((c) => c.json(notFoundProblem(c.req.path), 404, PROBLEM_HEADERS));
 
@@ -361,7 +419,8 @@ export const scheduled = async (
 
   const cleanupPromise = runScheduledCleanup({
     db: dbAdapter,
-    mediaBucket: env.MEDIA
+    mediaBucket: env.MEDIA,
+    purgeNotebookState: createNotebookStatePurger(env.NOTEBOOK_DO, env.JOB_DO)
   }).then((metrics) => {
     console.info(
       JSON.stringify({

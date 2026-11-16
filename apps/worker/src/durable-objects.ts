@@ -7,6 +7,13 @@ import {
   dotProductInt8,
   quantizeFloat32ToInt8
 } from "@notebook-lm/shared";
+import {
+  DocSyncError,
+  diffFromState,
+  fromBase64Url,
+  mergeIntoState,
+  toBase64Url
+} from "./doc-sync.js";
 
 export interface DurableObjectSqlCursor {
   toArray(): Record<string, unknown>[];
@@ -21,10 +28,12 @@ export interface DurableObjectStorageWithAlarm {
   getAlarm(options?: unknown): Promise<number | null>;
   setAlarm(scheduledTime: number | Date, options?: unknown): Promise<void>;
   deleteAlarm(options?: unknown): Promise<void>;
+  /** Löscht den gesamten Zustand des Objekts (SQL-Tabellen, Schlüssel, Alarm). */
+  deleteAll(): Promise<void>;
 }
 
 export interface SqliteDurableObjectState {
-  readonly id: { toString(): string };
+  readonly id: { toString(): string; readonly name?: string | undefined };
   readonly storage: DurableObjectStorageWithAlarm;
   acceptWebSocket(ws: unknown, tags?: string[]): void;
   getWebSockets(tag?: string): unknown[];
@@ -42,6 +51,8 @@ export interface CachedVectorEntry {
   readonly sourceId?: string | undefined;
   readonly quantized: Int8Array;
   readonly scale: number;
+  /** Embedding-Modell; Suchen mit Modellfilter vergleichen nur Vektoren desselben Modells. */
+  readonly model?: string | undefined;
 }
 
 /**
@@ -53,6 +64,7 @@ export class NotebookDO {
   protected readonly env: Env;
   private initialized = false;
   private vectorCache: Map<string, CachedVectorEntry> = new Map();
+  private vectorsLoaded = false;
 
   constructor(ctx: SqliteDurableObjectState, env: Env) {
     this.ctx = ctx;
@@ -70,6 +82,11 @@ export class NotebookDO {
         source_id TEXT NOT NULL,
         scale REAL NOT NULL,
         vector BLOB NOT NULL
+      );
+       CREATE TABLE IF NOT EXISTS notebook_doc (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        state BLOB NOT NULL,
+        updated_at INTEGER NOT NULL
       );`
     );
     this.initialized = true;
@@ -98,6 +115,7 @@ export class NotebookDO {
       }
     } else {
       this.vectorCache.clear();
+      this.vectorsLoaded = false;
     }
   }
 
@@ -115,19 +133,16 @@ export class NotebookDO {
    * if the cache is currently empty.
    */
   public async ensureVectorsLoaded(): Promise<number> {
-    if (this.vectorCache.size > 0) {
+    if (this.vectorsLoaded || !this.env.DB) {
       return this.vectorCache.size;
     }
 
-    if (!this.env.DB) {
-      return 0;
-    }
-
-    const notebookId = this.ctx.id.toString();
+    // idFromName(notebookId) liefert eine Hex-ID; die Notebook-ID steht in id.name.
+    const notebookId = this.ctx.id.name ?? this.ctx.id.toString();
     try {
       // Query chunk_vectors joined with chunks for source_id
       const rows = await this.env.DB.prepare(
-        `SELECT cv.chunk_id, cv.scale, cv.vector, c.source_id
+        `SELECT cv.chunk_id, cv.scale, cv.vector, cv.model, c.source_id
          FROM chunk_vectors cv
          LEFT JOIN chunks c ON c.id = cv.chunk_id
          WHERE cv.notebook_id = ?`
@@ -138,6 +153,7 @@ export class NotebookDO {
           scale: number;
           vector: ArrayBuffer | Uint8Array | number[];
           source_id: string | null;
+          model?: string | null;
         }>();
 
       const results = rows.results;
@@ -159,9 +175,11 @@ export class NotebookDO {
           chunkId: row.chunk_id,
           sourceId: row.source_id ?? undefined,
           quantized,
-          scale: row.scale
+          scale: row.scale,
+          model: row.model ?? undefined
         });
       }
+      this.vectorsLoaded = true;
     } catch {
       // Return currently loaded count if DB query fails
     }
@@ -176,13 +194,17 @@ export class NotebookDO {
     queryQuantized: Int8Array,
     queryScale: number,
     limit = 10,
-    sourceIds?: string[]
+    sourceIds?: string[],
+    model?: string
   ): Array<{ chunkId: string; sourceId?: string | undefined; score: number }> {
     const allowedSources = sourceIds && sourceIds.length > 0 ? new Set(sourceIds) : null;
     const scored: Array<{ chunkId: string; sourceId?: string | undefined; score: number }> = [];
 
     for (const entry of this.vectorCache.values()) {
       if (allowedSources && (!entry.sourceId || !allowedSources.has(entry.sourceId))) {
+        continue;
+      }
+      if (model !== undefined && entry.model !== model) {
         continue;
       }
 
@@ -227,8 +249,101 @@ export class NotebookDO {
     return delivered;
   }
 
+  /**
+   * Löscht den gesamten personenbezogenen Zustand dieses Notebooks (Art. 17 DSGVO): das
+   * Yjs-Dokument (`notebook_doc`), den Vektor-Cache (`do_vectors`, Arbeitsspeicher und
+   * Speicher) und den Alarm; offene WebSocket-Verbindungen werden geschlossen. Das Objekt
+   * legt sein Schema bei der nächsten Nutzung neu an.
+   */
+  public async purge(): Promise<void> {
+    for (const socket of this.ctx.getWebSockets()) {
+      try {
+        (socket as { close(code?: number, reason?: string): void }).close(1000, "notebook deleted");
+      } catch {
+        // Socket already closed
+      }
+    }
+    this.vectorCache.clear();
+    this.vectorsLoaded = false;
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+    this.initialized = false;
+  }
+
+  /** Gespeicherter Yjs-Stand des Notebooks (Issue #347), null wenn noch leer. */
+  private readDocState(): Uint8Array | null {
+    this.ensureSchema();
+    const rows = this.ctx.storage.sql
+      .exec("SELECT state FROM notebook_doc WHERE id = 1")
+      .toArray() as { state?: ArrayBuffer | Uint8Array }[];
+    const state = rows[0]?.state;
+    return state ? new Uint8Array(state) : null;
+  }
+
+  /** Spielt ein Yjs-Update ein und liefert den neuen Zustandsvektor. */
+  public applyDocUpdate(update: Uint8Array): Uint8Array {
+    const merged = mergeIntoState(this.readDocState(), update);
+    this.ctx.storage.sql.exec(
+      "INSERT INTO notebook_doc (id, state, updated_at) VALUES (1, ?, ?) ON CONFLICT(id) DO UPDATE SET state = excluded.state, updated_at = excluded.updated_at",
+      merged,
+      Date.now()
+    );
+    return diffFromState(merged).stateVector;
+  }
+
+  /** Was einem Client mit diesem Zustandsvektor fehlt. */
+  public readDocDiff(stateVector?: Uint8Array): { update: Uint8Array; stateVector: Uint8Array } {
+    return diffFromState(this.readDocState(), stateVector);
+  }
+
+  private docProblem(error: unknown, instance: string): Response {
+    const known = error instanceof DocSyncError;
+    const status = known ? error.status : 500;
+    return Response.json(
+      createProblemDetails({
+        status,
+        title: known
+          ? status === 413
+            ? "Payload Too Large"
+            : "Bad Request"
+          : "Internal Server Error",
+        detail: known ? error.message : "Notebook-Stand konnte nicht verarbeitet werden.",
+        instance,
+        code: known ? error.code : "DOC_SYNC_FAILED"
+      }),
+      { status, headers: { "content-type": "application/problem+json; charset=utf-8" } }
+    );
+  }
+
   public async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
+
+    // GET /doc?sv=…: fehlende Yjs-Änderungen; POST /doc: Yjs-Update einspielen (Issue #347)
+    if (url.pathname === "/doc" && (request.method === "GET" || request.method === "POST")) {
+      try {
+        if (request.method === "GET") {
+          const sv = url.searchParams.get("sv");
+          const diff = this.readDocDiff(sv ? fromBase64Url(sv) : undefined);
+          return Response.json({
+            update: toBase64Url(diff.update),
+            stateVector: toBase64Url(diff.stateVector)
+          });
+        }
+        const update = new Uint8Array(await request.arrayBuffer());
+        return Response.json({ stateVector: toBase64Url(this.applyDocUpdate(update)) });
+      } catch (error) {
+        return this.docProblem(error, url.pathname);
+      }
+    }
+
+    // POST /purge: clears all stored state of the notebook (called when the notebook is deleted)
+    if (request.method === "POST" && url.pathname === "/purge") {
+      await this.purge();
+      return Response.json(
+        { success: true },
+        { status: 200, headers: { "content-type": "application/json; charset=utf-8" } }
+      );
+    }
 
     if (request.method === "GET" && url.pathname === "/health") {
       const report = this.ping();
@@ -275,15 +390,19 @@ export class NotebookDO {
             sourceId?: string;
             quantized: number[];
             scale: number;
+            model?: string;
           }>;
         };
 
+        // Erst den Bestand aus D1 laden, sonst kennt ein frisch geweckter DO nur die neuen Vektoren
+        await this.ensureVectorsLoaded();
         const vectorsList = body.vectors;
         const entries: CachedVectorEntry[] = vectorsList.map((v) => ({
           chunkId: v.chunkId,
           sourceId: v.sourceId,
           quantized: new Int8Array(v.quantized),
-          scale: v.scale
+          scale: v.scale,
+          model: v.model
         }));
 
         this.updateVectors(entries);
@@ -361,6 +480,7 @@ export class NotebookDO {
           scale?: number;
           limit?: number;
           sourceIds?: string[];
+          model?: string;
         };
 
         let q: Int8Array;
@@ -390,7 +510,7 @@ export class NotebookDO {
         }
 
         const limit = typeof body.limit === "number" ? body.limit : 10;
-        const results = this.searchVectors(q, s, limit, body.sourceIds);
+        const results = this.searchVectors(q, s, limit, body.sourceIds, body.model);
 
         return Response.json(
           {
@@ -495,6 +615,17 @@ export class JobDO {
       CREATE INDEX IF NOT EXISTS idx_jobs_notebook ON jobs(notebook_id);`
     );
     this.initialized = true;
+  }
+
+  /**
+   * Löscht die gesamte Auftragswarteschlange des Notebooks (Art. 17 DSGVO): Payloads tragen die
+   * Nutzer-ID, Ergebnisse die erzeugten Inhalte. Löscht auch den Alarm; das Schema wird bei der
+   * nächsten Nutzung neu angelegt.
+   */
+  public async purge(): Promise<void> {
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+    this.initialized = false;
   }
 
   public ping(): DurableObjectHealthReport {
@@ -894,6 +1025,15 @@ export class JobDO {
           headers: { "content-type": "application/problem+json; charset=utf-8" }
         });
       }
+    }
+
+    // POST /purge: clears the whole queue (called when the notebook is deleted)
+    if (request.method === "POST" && url.pathname === "/purge") {
+      await this.purge();
+      return Response.json(
+        { success: true },
+        { status: 200, headers: { "content-type": "application/json; charset=utf-8" } }
+      );
     }
 
     // GET /jobs: list jobs
