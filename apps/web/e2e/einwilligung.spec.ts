@@ -24,6 +24,13 @@ async function storedConsent(page: Page): Promise<{ analytics: boolean } | null>
 }
 
 test.describe("Einwilligungsbanner", () => {
+  // Keine echte Anfrage an Google aus den Tests: alles lokal beantworten
+  test.beforeEach(async ({ page }) => {
+    await page.route(GOOGLE, (route) =>
+      route.fulfill({ status: 200, contentType: "text/javascript", body: "" })
+    );
+  });
+
   test("drei gleichwertige Knöpfe, zuerst per Tastatur erreichbar", async ({ page }) => {
     await page.goto("/");
     const banner = page.getByRole("region", { name: "Darf RelationNotes die Nutzung messen?" });
@@ -139,6 +146,37 @@ test.describe("Einwilligungsbanner", () => {
     await dialog.getByTestId("consent-analytics").uncheck();
     await dialog.getByTestId("consent-save").click();
     expect(await storedConsent(page)).toMatchObject({ analytics: false });
+  });
+
+  test("Tag Manager lädt erst nach Einwilligung (Issue #260)", async ({ page }) => {
+    const google = await watchGoogle(page);
+    await page.goto("/");
+    await expect(page.getByTestId("consent-banner")).toBeVisible();
+    await page.waitForLoadState("networkidle");
+    expect(google).toEqual([]);
+    expect(await page.evaluate(() => "dataLayer" in window)).toBe(false);
+
+    const gtmRequest = page.waitForRequest(
+      "https://www.googletagmanager.com/gtm.js?id=GTM-TEST0001"
+    );
+    await page.getByTestId("consent-accept-all").click();
+    await gtmRequest;
+    const consent = await page.evaluate(() =>
+      ((window as unknown as { dataLayer: ArrayLike<unknown>[] }).dataLayer ?? []).map((entry) =>
+        Array.from(entry as ArrayLike<unknown>)
+      )
+    );
+    expect(consent[0]).toEqual([
+      "consent",
+      "default",
+      expect.objectContaining({ analytics_storage: "denied", ad_storage: "denied" })
+    ]);
+    expect(consent[1]).toEqual(["consent", "update", { analytics_storage: "granted" }]);
+
+    // Nach dem Reload mit gespeicherter Einwilligung lädt der Tag Manager wieder
+    const again = page.waitForRequest("https://www.googletagmanager.com/gtm.js?id=GTM-TEST0001");
+    await page.reload();
+    await again;
   });
 
   test("Datenschutzhinweise aus dem Banner", async ({ page }) => {

@@ -6,7 +6,7 @@ Stand: 2026-11-13 · Issue #258
 
 **Verantwortlicher:** [Name, Anschrift, E-Mail des Betreibers]
 **Datenschutzbeauftragter:** [falls bestellt]
-**Auftragsverarbeiter:** Cloudflare, Inc. (Workers, D1, R2, Durable Objects, Turnstile); optional Google (Gemini-API, nur mit eigenem Schlüssel der Person)
+**Auftragsverarbeiter:** Cloudflare, Inc. (Workers, D1, R2, Durable Objects, Turnstile); optional Google (Gemini-API, nur mit eigenem Schlüssel der Person; Tag Manager/GA4 nur mit `VITE_GTM_ID` und Einwilligung)
 
 | Nr. | Verarbeitung | Daten | Betroffene | Zweck | Speicherort | Löschfrist |
 |---|---|---|---|---|---|---|
@@ -21,5 +21,6 @@ Stand: 2026-11-13 · Issue #258
 | 9 | Missbrauchsmeldungen | Ziel-ID, Grund, meldende Person | Nutzer | Moderation (AI Act) | D1 `abuse_reports` | [Frist festlegen] |
 | 10 | Backups | alle Daten aus D1 | alle oben | Wiederherstellung | D1 Time Travel | 30 Tage (Workers Paid), 7 Tage (Free) |
 | 11 | Reichweitenmessung | Tageszähler je Messgröße (Datum, Name, Anzahl); keine IP, keine Kennung, kein Cookie | keine (anonym) | Nutzung messen | D1 `usage_counters` | keine Frist nötig, kein Personenbezug |
+| 12 | Google Tag Manager / GA4 (optional) | Nutzungsdaten, Geräte- und Browserdaten, Cookies `_ga*`; Einwilligung im Browser (`rn-consent`) | Nutzer, die eingewilligt haben | Reichweite und Conversions messen | Google (Drittland USA), Browser | laut GA4-Einstellung des Betreibers [Frist festlegen]; Cookies bis Widerruf |
 
 **Technische und organisatorische Maßnahmen:** TLS, HSTS, strenge CSP, CSRF-Prüfung, Hashes statt Klartext für Tokens und IPs, AES-256-GCM für API-Schlüssel, Rollenprüfung je Notebook, Rate-Limits, automatische Löschung per Cron. Details in [security-and-compliance.md](./security-and-compliance.md) und im [Löschkonzept](./loeschkonzept.md).
