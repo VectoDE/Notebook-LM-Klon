@@ -6,17 +6,17 @@ import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
+import { createApp } from "@/index.js";
+import { createNodeEnv, runSqliteMigrations } from "@/node-server.js";
 import { CoreRepository } from "@/repositories/core-repository.js";
-import { clearRateLimitMemory } from "@/security/rate-limiter.js";
-import { SessionManager } from "@/security/session.js";
 import {
   ACCOUNT_DELETE_CONFIRMATION,
   REAUTH_MAX_AGE_MS,
   registerAccountRoutes
-} from "../account-routes.js";
-import { fromBase64Url } from "../doc-sync.js";
-import { createApp } from "../index.js";
-import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
+} from "@/routes/account-routes.js";
+import { fromBase64Url } from "@/routes/doc-sync.js";
+import { clearRateLimitMemory } from "@/security/rate-limiter.js";
+import { SessionManager } from "@/security/session.js";
 
 const ORIGIN = "http://localhost:8787";
 const TEST_SALT = "test-only-session-salt-account-routes";

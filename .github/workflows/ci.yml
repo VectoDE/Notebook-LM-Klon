@@ -213,7 +213,7 @@ jobs:
 
       - name: Sign PNG, SVG, WAV and MP4 through the API and verify them with c2patool
         run: >-
-          pnpm exec vitest run apps/worker/src/__tests__/c2pa-integration.test.ts
+          pnpm exec vitest run apps/worker/tests/integration/c2pa-integration.test.ts
           --reporter=verbose
 
   secret-and-dependency-scan:

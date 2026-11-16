@@ -6,7 +6,7 @@ import { Hono } from "hono";
 import { beforeEach, describe, expect, it } from "vitest";
 import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
 import { RagRepository } from "@/repositories/rag-repository.js";
-import { registerUrlImportRoutes } from "../url-importer.js";
+import { registerUrlImportRoutes } from "@/routes/url-importer.js";
 
 /**
  * Creates in-memory SQLite wrapper mocking D1 with migrations 0001 & 0002.

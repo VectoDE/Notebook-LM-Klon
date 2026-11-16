@@ -5,9 +5,9 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
+import { createApp, NotebookDO, type SqliteDurableObjectState } from "@/index.js";
+import { createNodeEnv, runSqliteMigrations } from "@/node-server.js";
 import { CoreRepository } from "@/repositories/core-repository.js";
-import { clearRateLimitMemory } from "@/security/rate-limiter.js";
-import { SessionManager } from "@/security/session.js";
 import {
   DocSyncError,
   diffFromState,
@@ -18,9 +18,9 @@ import {
   mergeIntoState,
   toBase64Url,
   validateUpdate
-} from "../doc-sync.js";
-import { createApp, NotebookDO, type SqliteDurableObjectState } from "../index.js";
-import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
+} from "@/routes/doc-sync.js";
+import { clearRateLimitMemory } from "@/security/rate-limiter.js";
+import { SessionManager } from "@/security/session.js";
 
 const ORIGIN = "http://localhost:8787";
 const SALT = "test-only-salt-doc-sync";

@@ -7,7 +7,7 @@ import { DIGITAL_SOURCE_TYPE_TRAINED_ALGORITHMIC } from "@notebook-lm/shared";
 import { Hono } from "hono";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { c2paSignerFromVars } from "@/platform/node/c2pa-signer.js";
-import { registerProvenanceRoutes } from "../provenance-routes.js";
+import { registerProvenanceRoutes } from "@/routes/provenance-routes.js";
 
 /**
  * Echte C2PA-Signatur mit dem offiziellen c2patool (Issue #353).
@@ -21,7 +21,7 @@ const env = process.env;
 const configured = Boolean(
   env.C2PATOOL_PATH && env.C2PA_SIGN_CERT && env.C2PA_PRIVATE_KEY && env.C2PA_TRUST_ANCHORS
 );
-const FIXTURES = resolve(process.cwd(), "apps/worker/src/__tests__/fixtures/c2pa");
+const FIXTURES = resolve(process.cwd(), "apps/worker/tests/fixtures/c2pa");
 
 interface ToolResult {
   code: number;

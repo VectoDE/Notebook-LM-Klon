@@ -7,8 +7,8 @@ import { GeminiProvider } from "@/providers/gemini-provider.js";
 import type { OllamaLocalProvider } from "@/providers/ollama-provider.js";
 import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
 import { RagRepository } from "@/repositories/rag-repository.js";
+import { createProviderRoutes, registerProviderRoutes } from "@/routes/provider-routes.js";
 import { AutoRouter } from "@/services/auto-router.js";
-import { createProviderRoutes, registerProviderRoutes } from "../provider-routes.js";
 
 function createMockD1(): { adapter: DatabaseAdapter; close: () => void } {
   const sqlite = new DatabaseSync(":memory:");

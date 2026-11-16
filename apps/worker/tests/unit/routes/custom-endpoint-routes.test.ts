@@ -5,8 +5,6 @@ import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
 import { RagRepository } from "@/repositories/rag-repository.js";
-import { KeyVault, serializeEncryptedPayload } from "@/security/key-vault.js";
-import { clearRateLimitMemory } from "@/security/rate-limiter.js";
 import {
   type CustomEndpointRoutesDependencies,
   EndpointRepository,
@@ -14,7 +12,9 @@ import {
   registerCustomEndpointRoutes,
   resolveAllowlist,
   resolveCustomKeyBinding
-} from "../custom-endpoint-routes.js";
+} from "@/routes/custom-endpoint-routes.js";
+import { KeyVault, serializeEncryptedPayload } from "@/security/key-vault.js";
+import { clearRateLimitMemory } from "@/security/rate-limiter.js";
 
 const KEK = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const KEY = "rf_live_0123456789abcdef";

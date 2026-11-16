@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
+import { createNodeEnv, runSqliteMigrations } from "@/node-server.js";
 import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
 import {
   type BatchStatement,
@@ -14,7 +15,6 @@ import {
   purgeUsers,
   runScheduledCleanup
 } from "@/scheduled/cleanup.js";
-import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
 
 class MemoryBucket implements MinimalR2Bucket {
   readonly objects = new Map<string, string>();

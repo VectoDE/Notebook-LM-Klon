@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import worker from "../index.js";
+import worker from "@/index.js";
 
 const WRANGLER_PATH = join(import.meta.dirname, "../../wrangler.jsonc");
 

@@ -2,13 +2,13 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ACCOUNT_DELETE_CONFIRMATION, registerAccountRoutes } from "@/account-routes.js";
-import { registerChunkIngestionRoutes } from "@/chunk-ingestion.js";
-import { createGuestAndMagicLinkRoutes } from "@/guest-magic-link-routes.js";
 import { runSqliteMigrations } from "@/node-server.js";
-import { createPasskeyRoutes } from "@/passkey-routes.js";
 import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
 import { RagRepository } from "@/repositories/rag-repository.js";
+import { ACCOUNT_DELETE_CONFIRMATION, registerAccountRoutes } from "@/routes/account-routes.js";
+import { registerChunkIngestionRoutes } from "@/routes/chunk-ingestion.js";
+import { createGuestAndMagicLinkRoutes } from "@/routes/guest-magic-link-routes.js";
+import { createPasskeyRoutes } from "@/routes/passkey-routes.js";
 import {
   type BatchStatement,
   type MinimalR2Bucket,

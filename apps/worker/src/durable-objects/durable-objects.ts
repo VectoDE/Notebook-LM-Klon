@@ -13,7 +13,7 @@ import {
   fromBase64Url,
   mergeIntoState,
   toBase64Url
-} from "@/doc-sync.js";
+} from "@/routes/doc-sync.js";
 
 export interface DurableObjectSqlCursor {
   toArray(): Record<string, unknown>[];

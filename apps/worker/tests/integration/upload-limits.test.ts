@@ -22,9 +22,12 @@ import {
 } from "@/config/r2-budget.js";
 import type { BatchStatement, DatabaseAdapter } from "@/repositories/core-repository.js";
 import { RagRepository } from "@/repositories/rag-repository.js";
+import {
+  MAX_SOURCE_BYTE_SIZE_LIMIT,
+  registerSourcesUploadRoutes
+} from "@/routes/sources-upload.js";
 import { runScheduledCleanup } from "@/scheduled/cleanup.js";
 import { verifyQuotaAction } from "@/services/quota-guard.js";
-import { MAX_SOURCE_BYTE_SIZE_LIMIT, registerSourcesUploadRoutes } from "../sources-upload.js";
 
 const MIGRATIONS = [
   "0001_initial_core.sql",

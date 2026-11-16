@@ -102,7 +102,7 @@ Beispiel für `NOTEBOOK_SIZE_LIMIT`:
 }
 ```
 
-Die Grenzwerte stehen in [`apps/worker/src/config/config.ts`](../apps/worker/src/config/config.ts), die Prüfungen in [`apps/worker/src/services/quota-guard.ts`](../apps/worker/src/services/quota-guard.ts). Tests an den Grenzen (genau am Limit und 1 Byte darüber): `apps/worker/tests/unit/middleware/security-headers-quotas.test.ts` und `apps/worker/src/__tests__/sources-upload.test.ts`.
+Die Grenzwerte stehen in [`apps/worker/src/config/config.ts`](../apps/worker/src/config/config.ts), die Prüfungen in [`apps/worker/src/services/quota-guard.ts`](../apps/worker/src/services/quota-guard.ts). Tests an den Grenzen (genau am Limit und 1 Byte darüber): `apps/worker/tests/unit/middleware/security-headers-quotas.test.ts` und `apps/worker/tests/unit/routes/sources-upload.test.ts`.
 
 
 ---

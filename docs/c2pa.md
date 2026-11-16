@@ -22,7 +22,7 @@ Das Manifest wird aus `packages/shared/src/provenance.ts` (`buildManifestDefinit
 | Teil | Datei | Aufgabe |
 | --- | --- | --- |
 | Formate, Manifest | `packages/shared/src/provenance.ts` | signierbare Medienarten, Manifest-Definition |
-| API | `apps/worker/src/provenance-routes.ts` | `GET /api/v1/provenance/status`, `POST /api/v1/provenance/sign` |
+| API | `apps/worker/src/routes/provenance-routes.ts` | `GET /api/v1/provenance/status`, `POST /api/v1/provenance/sign` |
 | Signierer | `apps/worker/src/platform/node/c2pa-signer.ts` | ruft `c2patool` im Node-Server auf |
 | Oberfläche | `apps/web/src/provenance-client.ts` | signiert vor dem Download (Mindmap, Infografik), sonst ehrlicher Hinweis |
 
@@ -102,7 +102,7 @@ C2PATOOL_PATH=/pfad/zu/c2patool \
 C2PA_SIGN_CERT=/pfad/zu/es256.pub \
 C2PA_PRIVATE_KEY=/pfad/zu/es256.pem \
 C2PA_TRUST_ANCHORS=/pfad/zu/c2patool/sample/trust_anchors.pem \
-pnpm exec vitest run apps/worker/src/__tests__/c2pa-integration.test.ts
+pnpm exec vitest run apps/worker/tests/integration/c2pa-integration.test.ts
 ```
 
 ## Echtbetrieb (Inhaber-Schritt)

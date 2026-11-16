@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import { sessionMiddleware } from "@/middleware/auth-middleware.js";
 import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
+import { createPasskeyRoutes } from "@/routes/passkey-routes.js";
 import {
   DEV_SESSION_COOKIE_NAME,
   SESSION_COOKIE_NAME,
@@ -17,7 +18,6 @@ import {
   PasskeyService,
   type WebAuthnEngine
 } from "@/services/passkey-service.js";
-import { createPasskeyRoutes } from "../passkey-routes.js";
 
 function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } {
   const db = new DatabaseSync(":memory:");

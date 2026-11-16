@@ -35,10 +35,10 @@ const REPO_ROOT = join(import.meta.dirname, "../../../..");
 const WORKER_SRC = join(REPO_ROOT, "apps/worker/src");
 
 const MOUNT_PREFIX: Readonly<Record<string, string>> = {
-  "demo-routes.ts": "/api/v1/demo",
-  "guest-magic-link-routes.ts": "/api/v1/auth",
-  "passkey-routes.ts": "/api/v1/auth/passkey",
-  "provider-routes.ts": "/api/v1"
+  "routes/demo-routes.ts": "/api/v1/demo",
+  "routes/guest-magic-link-routes.ts": "/api/v1/auth",
+  "routes/passkey-routes.ts": "/api/v1/auth/passkey",
+  "routes/provider-routes.ts": "/api/v1"
 };
 
 /** Dateien mit Routen, die nicht zur API gehören (SPA-Fallback des Node-Servers). */

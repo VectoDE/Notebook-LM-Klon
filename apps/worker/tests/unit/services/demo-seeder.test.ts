@@ -16,7 +16,6 @@ import {
 } from "@notebook-lm/shared";
 import { type Context, Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import { registerDemoRoutes } from "@/demo-routes.js";
 import {
   attachDemoHeaders,
   checkDemoKeyRateLimit,
@@ -28,6 +27,7 @@ import {
 } from "@/middleware/demo-key-guard.js";
 import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
 import { RagRepository } from "@/repositories/rag-repository.js";
+import { registerDemoRoutes } from "@/routes/demo-routes.js";
 import { clearRateLimitMemory } from "@/security/rate-limiter.js";
 import { DEMO_WORKSPACE_ID, seedDemoNotebooks } from "@/services/demo-seeder.js";
 

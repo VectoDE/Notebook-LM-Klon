@@ -5,16 +5,16 @@ import { DatabaseSync } from "node:sqlite";
 import type { NotebookComment } from "@notebook-lm/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
+import { createApp } from "@/index.js";
+import { createNodeEnv, runSqliteMigrations } from "@/node-server.js";
 import { CoreRepository } from "@/repositories/core-repository.js";
+import { COMMENT_LIST_LIMIT, MENTION_LIST_LIMIT } from "@/routes/comments-routes.js";
 import {
   clearRateLimitMemory,
   RATE_LIMIT_RULES,
   resolveCategoryFromPath
 } from "@/security/rate-limiter.js";
 import { SessionManager } from "@/security/session.js";
-import { COMMENT_LIST_LIMIT, MENTION_LIST_LIMIT } from "../comments-routes.js";
-import { createApp } from "../index.js";
-import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
 
 /**
  * Kommentare an Quellen und Notizen mit Erwähnungen (Issue #353), über die echte

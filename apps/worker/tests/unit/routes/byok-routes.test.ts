@@ -5,12 +5,12 @@ import { Hono } from "hono";
 import { beforeEach, describe, expect, it } from "vitest";
 import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
 import { RagRepository } from "@/repositories/rag-repository.js";
-import { deserializeEncryptedPayload, KeyVault } from "@/security/key-vault.js";
 import {
   type BYOKRoutesDependencies,
   defaultTestProviderKey,
   registerBYOKRoutes
-} from "../byok-routes.js";
+} from "@/routes/byok-routes.js";
+import { deserializeEncryptedPayload, KeyVault } from "@/security/key-vault.js";
 
 function createMockD1(): { adapter: DatabaseAdapter; close: () => void } {
   const sqlite = new DatabaseSync(":memory:");
