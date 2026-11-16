@@ -7,7 +7,9 @@
  * - POST   /api/v1/providers/custom/test   Verbindungstest (GET /models am Endpunkt)
  *
  * Der Schlüssel selbst wird über `PUT /api/v1/keys/custom` verschlüsselt gespeichert und
- * verlässt den Server nie, auch nicht in Fehlermeldungen.
+ * verlässt den Server nie, auch nicht in Fehlermeldungen. Er ist per Associated Data an den
+ * Origin des Endpunkts gebunden; wechselt der Origin, wird er gelöscht und muss neu
+ * eingegeben werden.
  */
 
 import { createProblemDetails, z } from "@notebook-lm/shared";
@@ -19,6 +21,7 @@ import {
   type HostResolver,
   assertHostResolvesPublic,
   createDohResolver,
+  endpointKeyBinding,
   parseHostAllowlist,
   validateUserEndpoint
 } from "./endpoint-guard.js";
@@ -27,6 +30,18 @@ import { OpenAiCompatibleProvider } from "./openai-compatible-provider.js";
 import type { RagRepository } from "./rag-repository.js";
 import { type RateLimitConfig, checkRateLimit } from "./rate-limiter.js";
 import type { SsrSecurityError } from "./ssrf-guard.js";
+
+/**
+ * Origin des gespeicherten Endpunkts als Bindung für den Schlüssel, null ohne Endpunkt.
+ * Wird an die BYOK-Routen gereicht (`customKeyBinding`).
+ */
+export async function resolveCustomKeyBinding(
+  endpointRepo: EndpointRepository,
+  userId: string
+): Promise<string | null> {
+  const endpoint = await endpointRepo.get(userId);
+  return endpoint ? endpointKeyBinding(endpoint.base_url) : null;
+}
 
 /** Eigenes Limit für den Verbindungstest je Nutzer (jeder Test löst DNS- und Endpunkt-Aufrufe aus). */
 export const CUSTOM_ENDPOINT_TEST_RATE_LIMIT: RateLimitConfig = { limit: 5, windowMs: 60_000 };
@@ -151,9 +166,11 @@ export async function loadCustomProvider(
   let apiKey: string | undefined;
   const stored = await deps.ragRepo.getProviderKey(userId, "custom");
   if (stored && deps.keyVault) {
+    // Nur für genau den Origin entschlüsselbar, für den der Schlüssel gespeichert wurde.
     apiKey = await deps.keyVault.decrypt(deserializeEncryptedPayload(stored.encrypted_key), {
       userId,
-      provider: "custom"
+      provider: "custom",
+      binding: endpointKeyBinding(endpoint.base_url)
     });
   }
 
@@ -230,6 +247,13 @@ export function createCustomEndpointRoutes(deps: CustomEndpointRoutesDependencie
     const now = Date.now();
     const existing = await deps.endpointRepo.get(user.id);
     const baseUrl = check.url.toString().replace(/\/+$/, "");
+    // Anderer Origin (Schema, Host, Port): gespeicherten Schlüssel nie an den neuen Host
+    // geben, sondern löschen. Er muss für den neuen Endpunkt neu eingegeben werden.
+    const keyCleared =
+      existing !== null && endpointKeyBinding(existing.base_url) !== check.url.origin;
+    if (keyCleared) {
+      await deps.ragRepo.deleteProviderKey(user.id, "custom");
+    }
     await deps.endpointRepo.upsert({
       user_id: user.id,
       provider: "custom",
@@ -245,7 +269,8 @@ export function createCustomEndpointRoutes(deps: CustomEndpointRoutesDependencie
         configured: true,
         baseUrl,
         chatModel: parsed.data.chatModel,
-        embedModel: parsed.data.embedModel ?? null
+        embedModel: parsed.data.embedModel ?? null,
+        keyCleared
       },
       200,
       JSON_HEADERS

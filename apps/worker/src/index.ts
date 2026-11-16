@@ -24,7 +24,8 @@ import {
   EndpointRepository,
   loadCustomProvider,
   registerCustomEndpointRoutes,
-  resolveAllowlist
+  resolveAllowlist,
+  resolveCustomKeyBinding
 } from "./custom-endpoint-routes.js";
 import { createD1DatabaseAdapter } from "./d1-adapter.js";
 import { createDemoRoutes } from "./demo-routes.js";
@@ -357,7 +358,13 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   // 9. BYOK key management (last: its router adds its own same-origin CSRF check)
   app.use("/api/v1/keys", requireAuth(), requireConfiguredKek(), requireSalt);
   app.use("/api/v1/keys/*", requireAuth(), requireConfiguredKek(), requireSalt);
-  registerBYOKRoutes(app, { ragRepo, coreRepo, keyVault, saltSecret });
+  registerBYOKRoutes(app, {
+    ragRepo,
+    coreRepo,
+    keyVault,
+    saltSecret,
+    customKeyBinding: (userId) => resolveCustomKeyBinding(endpointRepo, userId)
+  });
 
   app.notFound((c) => c.json(notFoundProblem(c.req.path), 404, PROBLEM_HEADERS));
 

@@ -21,14 +21,19 @@ export interface EncryptedApiKeyPayload {
 
 /**
  * Builds deterministic AAD (Additional Authenticated Data) for BYOK encryption:
- * AAD = UTF8(userId | provider | keyVersion)
+ * AAD = UTF8(userId | provider | keyVersion [| binding])
+ *
+ * `binding` ties a key to a target, e.g. the origin of a user's own endpoint: the key then
+ * only decrypts for exactly that origin.
  */
 export function buildBYOKAdditionalData(
   userId: string,
   provider: ProviderType,
-  keyVersion: number
+  keyVersion: number,
+  binding?: string
 ): Uint8Array {
-  const aadString = `${userId}|${provider}|v${keyVersion}`;
+  const base = `${userId}|${provider}|v${keyVersion}`;
+  const aadString = binding === undefined ? base : `${base}|${binding}`;
   return new TextEncoder().encode(aadString);
 }
 
@@ -187,7 +192,7 @@ export class KeyVault {
    */
   async encrypt(
     plaintextKey: string,
-    context: { userId: string; provider: ProviderType; version?: number }
+    context: { userId: string; provider: ProviderType; version?: number; binding?: string }
   ): Promise<EncryptedApiKeyPayload> {
     const version = context.version ?? this.activeVersion;
     const kekSecret = this.kekSecrets.get(version);
@@ -202,7 +207,12 @@ export class KeyVault {
     crypto.getRandomValues(iv);
 
     // Deterministic AAD binding: userId|provider|v{version}
-    const aad = buildBYOKAdditionalData(context.userId, context.provider, version);
+    const aad = buildBYOKAdditionalData(
+      context.userId,
+      context.provider,
+      version,
+      context.binding
+    );
     const plaintextBytes = new TextEncoder().encode(plaintextKey);
 
     const ciphertextBuffer = await crypto.subtle.encrypt(
@@ -229,7 +239,7 @@ export class KeyVault {
    */
   async decrypt(
     payload: EncryptedApiKeyPayload,
-    context: { userId: string; provider: ProviderType }
+    context: { userId: string; provider: ProviderType; binding?: string }
   ): Promise<string> {
     const kekSecret = this.kekSecrets.get(payload.version);
     if (!kekSecret) {
@@ -241,7 +251,12 @@ export class KeyVault {
     const ciphertextBytes = base64ToBytes(payload.ciphertext);
 
     // Reconstruct exact AAD: userId|provider|v{payload.version}
-    const aad = buildBYOKAdditionalData(context.userId, context.provider, payload.version);
+    const aad = buildBYOKAdditionalData(
+      context.userId,
+      context.provider,
+      payload.version,
+      context.binding
+    );
 
     try {
       const decryptedBuffer = await crypto.subtle.decrypt(
@@ -268,7 +283,7 @@ export class KeyVault {
    */
   async rekey(
     payload: EncryptedApiKeyPayload,
-    context: { userId: string; provider: ProviderType },
+    context: { userId: string; provider: ProviderType; binding?: string },
     targetVersion?: number
   ): Promise<EncryptedApiKeyPayload> {
     const newVersion = targetVersion ?? this.activeVersion;
@@ -280,7 +295,8 @@ export class KeyVault {
     return this.encrypt(plaintext, {
       userId: context.userId,
       provider: context.provider,
-      version: newVersion
+      version: newVersion,
+      ...(context.binding === undefined ? {} : { binding: context.binding })
     });
   }
 }

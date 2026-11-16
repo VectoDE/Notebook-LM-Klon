@@ -2017,6 +2017,16 @@
           "401": {
             "$ref": "#/components/responses/Problem401"
           },
+          "409": {
+            "description": "Für `custom`: noch kein eigener Endpunkt gespeichert (`ENDPOINT_REQUIRED`). Der Schlüssel wird an dessen Origin gebunden.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "422": {
             "$ref": "#/components/responses/Problem422"
           },
@@ -4169,7 +4179,7 @@
       },
       "CustomEndpointSaved": {
         "type": "object",
-        "required": ["configured", "baseUrl", "chatModel", "embedModel"],
+        "required": ["configured", "baseUrl", "chatModel", "embedModel", "keyCleared"],
         "properties": {
           "configured": {
             "type": "boolean",
@@ -4183,6 +4193,10 @@
           },
           "embedModel": {
             "type": ["string", "null"]
+          },
+          "keyCleared": {
+            "type": "boolean",
+            "description": "true, wenn sich der Origin (Schema, Host, Port) geändert hat und der gespeicherte Schlüssel deshalb gelöscht wurde."
           }
         }
       },

@@ -9,7 +9,8 @@ import {
   EndpointRepository,
   loadCustomProvider,
   registerCustomEndpointRoutes,
-  resolveAllowlist
+  resolveAllowlist,
+  resolveCustomKeyBinding
 } from "../custom-endpoint-routes.js";
 import { KeyVault, serializeEncryptedPayload } from "../key-vault.js";
 import { RagRepository } from "../rag-repository.js";
@@ -89,8 +90,13 @@ describe("Eigener Endpunkt: Routen (Issue #247)", () => {
       body: typeof body === "string" ? body : JSON.stringify(body)
     });
 
-  async function storeKey(): Promise<void> {
-    const payload = await keyVault.encrypt(KEY, { userId: "usr_a", provider: "custom" });
+  /** Speichert den Schlüssel so wie PUT /api/v1/keys/custom: an den Origin gebunden. */
+  async function storeKey(binding = "https://api.relationflow.example"): Promise<void> {
+    const payload = await keyVault.encrypt(KEY, {
+      userId: "usr_a",
+      provider: "custom",
+      binding
+    });
     await ragRepo.setProviderKey({
       id: "k1",
       user_id: "usr_a",
@@ -273,7 +279,8 @@ describe("Eigener Endpunkt: Routen (Issue #247)", () => {
       configured: true,
       baseUrl: "https://api.relationflow.example/v1",
       chatModel: "rf-auto",
-      embedModel: null
+      embedModel: null,
+      keyCleared: false
     });
     const created = (await endpointRepo.get("usr_a"))?.created_at;
 
@@ -355,5 +362,65 @@ describe("Eigener Endpunkt: Routen (Issue #247)", () => {
     await storeKey();
     expect(await loadCustomProvider(deps, "usr_a", ALLOW)).not.toBeNull();
     expect(await loadCustomProvider(deps, "usr_x", ALLOW)).toBeNull();
+  });
+
+  it("löscht den Schlüssel, wenn sich der Origin der Adresse ändert", async () => {
+    const app = buildApp({ allowlist: [] });
+    await put(app, { baseUrl: "https://api.relationflow.example/v1", chatModel: "rf-auto" });
+    await storeKey();
+
+    // gleicher Origin, anderer Pfad: Schlüssel bleibt
+    const samePath = await put(app, {
+      baseUrl: "https://api.relationflow.example/v2",
+      chatModel: "rf-auto"
+    });
+    expect(await samePath.json()).toMatchObject({ keyCleared: false });
+    expect(await ragRepo.getProviderKey("usr_a", "custom")).not.toBeNull();
+
+    // anderer Host: Schlüssel wird gelöscht, nichts geht an den neuen Host
+    const otherHost = await put(app, {
+      baseUrl: "https://llm.example.org/v1",
+      chatModel: "rf-auto"
+    });
+    expect(otherHost.status).toBe(200);
+    expect(await otherHost.json()).toMatchObject({ keyCleared: true });
+    expect(await ragRepo.getProviderKey("usr_a", "custom")).toBeNull();
+  });
+
+  it("entschlüsselt einen Schlüssel nie für einen anderen Origin", async () => {
+    await endpointRepo.upsert({
+      user_id: "usr_a",
+      provider: "custom",
+      base_url: "https://llm.example.org/v1",
+      chat_model: "rf-auto",
+      embed_model: null,
+      created_at: 1,
+      updated_at: 1
+    });
+    // Schlüssel für einen anderen Origin gespeichert (z. B. Zeile direkt geändert)
+    await storeKey("https://api.relationflow.example");
+    const deps = { ragRepo, endpointRepo, keyVault, fetchFn: fakeFetch };
+    await expect(loadCustomProvider(deps, "usr_a", [])).rejects.toThrow();
+
+    const app = buildApp({ allowlist: [] });
+    const res = await app.request("/api/v1/providers/custom/test", { method: "POST" });
+    expect(res.status).toBe(422);
+    expect(fetchCalls).toEqual([]);
+  });
+
+  it("liefert die Schlüsselbindung als Origin des Endpunkts", async () => {
+    expect(await resolveCustomKeyBinding(endpointRepo, "usr_a")).toBeNull();
+    await endpointRepo.upsert({
+      user_id: "usr_a",
+      provider: "custom",
+      base_url: "https://api.relationflow.example:8443/v1",
+      chat_model: "rf-auto",
+      embed_model: null,
+      created_at: 1,
+      updated_at: 1
+    });
+    expect(await resolveCustomKeyBinding(endpointRepo, "usr_a")).toBe(
+      "https://api.relationflow.example:8443"
+    );
   });
 });
