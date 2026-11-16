@@ -18,6 +18,12 @@
   ],
   "tags": [
     {
+      "name": "Analyse"
+    },
+    {
+      "name": "Konto"
+    },
+    {
       "name": "System"
     },
     {
@@ -1869,6 +1875,103 @@
         }
       }
     },
+    "/api/v1/me": {
+      "delete": {
+        "operationId": "deleteOwnAccount",
+        "tags": ["Konto"],
+        "summary": "Eigenes Konto sofort löschen (Art. 17 DSGVO)",
+        "description": "Löscht das Konto mit allen D1-Datensätzen, R2-Objekten und Durable-Object-Zuständen in derselben Anfrage und setzt das Sitzungscookie zurück. Konten mit Anmeldung brauchen eine Sitzung, die höchstens 5 Minuten alt ist (sonst 403 REAUTH_REQUIRED, neu anmelden und wiederholen); Gastkonten sind ausgenommen. Backups (D1 Time Travel) laufen nach spätestens 30 Tagen aus, siehe docs/loeschkonzept.md.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["confirm"],
+                "properties": {
+                  "confirm": {
+                    "const": "DELETE_MY_ACCOUNT"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Konto gelöscht",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["deleted", "deletedNotebooks", "deletedR2Objects"],
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean"
+                    },
+                    "deletedNotebooks": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "deletedR2Objects": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          }
+        }
+      }
+    },
+    "/api/v1/metrics": {
+      "post": {
+        "operationId": "countUsage",
+        "tags": ["Analyse"],
+        "summary": "Seitenaufruf cookielos zählen",
+        "description": "Öffentlich. Erhöht einen Tageszähler je Messgröße. Liest weder Cookie, Sitzung noch IP-Adresse und setzt kein Cookie.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["metric"],
+                "properties": {
+                  "metric": {
+                    "enum": ["page_view"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Gezählt"
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          }
+        }
+      }
+    },
     "/api/v1/keys": {
       "get": {
         "operationId": "listKeys",
@@ -1949,6 +2052,16 @@
           },
           "401": {
             "$ref": "#/components/responses/Problem401"
+          },
+          "409": {
+            "description": "Für `custom`: noch kein eigener Endpunkt gespeichert (`ENDPOINT_REQUIRED`). Der Schlüssel wird an dessen Origin gebunden.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "422": {
             "$ref": "#/components/responses/Problem422"
@@ -2668,6 +2781,169 @@
           },
           "503": {
             "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/api/v1/providers/custom": {
+      "get": {
+        "operationId": "getCustomEndpoint",
+        "tags": ["Modelle"],
+        "summary": "Eigenen OpenAI-kompatiblen Endpunkt lesen (ohne Schlüssel)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomEndpointState"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      },
+      "put": {
+        "operationId": "putCustomEndpoint",
+        "tags": ["Modelle"],
+        "summary": "Eigenen OpenAI-kompatiblen Endpunkt speichern",
+        "description": "Jeder öffentliche HTTPS-Host auf Port 443; ist `BYOM_ALLOWED_HOSTS` gesetzt, nur diese Hosts. Private, lokale, interne und reservierte Ziele werden abgelehnt, auch nach DNS-Auflösung. Den Schlüssel speichert `PUT /api/v1/keys/custom`.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomEndpointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomEndpointSaved"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteCustomEndpoint",
+        "tags": ["Modelle"],
+        "summary": "Eigenen Endpunkt und zugehörigen Schlüssel löschen",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["configured"],
+                  "properties": {
+                    "configured": {
+                      "type": "boolean",
+                      "const": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
+          }
+        }
+      }
+    },
+    "/api/v1/providers/custom/test": {
+      "post": {
+        "operationId": "testCustomEndpoint",
+        "tags": ["Modelle"],
+        "summary": "Verbindung zum eigenen Endpunkt testen (GET /models)",
+        "description": "Höchstens 5 Tests pro Minute je Nutzer, danach 429 mit `Retry-After`.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomEndpointTestResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "422": {
+            "description": "Verbindung fehlgeschlagen oder Schlüssel nicht lesbar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomEndpointTestResult"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem429"
           }
         }
       }
@@ -3909,6 +4185,110 @@
             "enum": ["test", "production", null]
           },
           "formats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CustomEndpointRequest": {
+        "type": "object",
+        "required": ["baseUrl", "chatModel"],
+        "properties": {
+          "baseUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "HTTPS-Adresse auf einem freigegebenen Host, ohne Port, Zugangsdaten, Query oder Fragment"
+          },
+          "chatModel": {
+            "type": "string",
+            "maxLength": 200,
+            "pattern": "^[\\w.:/@-]+$"
+          },
+          "embedModel": {
+            "type": "string",
+            "maxLength": 200,
+            "pattern": "^[\\w.:/@-]+$"
+          }
+        }
+      },
+      "CustomEndpointSaved": {
+        "type": "object",
+        "required": ["configured", "baseUrl", "chatModel", "embedModel", "keyCleared"],
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "const": true
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "chatModel": {
+            "type": "string"
+          },
+          "embedModel": {
+            "type": ["string", "null"]
+          },
+          "keyCleared": {
+            "type": "boolean",
+            "description": "true, wenn sich der Origin (Schema, Host, Port) geändert hat und der gespeicherte Schlüssel deshalb gelöscht wurde."
+          }
+        }
+      },
+      "CustomEndpointState": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "hostRestricted",
+          "configured",
+          "baseUrl",
+          "chatModel",
+          "embedModel",
+          "hasKey"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Immer true: jeder öffentliche HTTPS-Host ist erlaubt (Entscheidung F247)"
+          },
+          "hostRestricted": {
+            "type": "boolean",
+            "description": "true, wenn der Betreiber die Hosts per BYOM_ALLOWED_HOSTS zusätzlich einschränkt"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "baseUrl": {
+            "type": ["string", "null"]
+          },
+          "chatModel": {
+            "type": ["string", "null"]
+          },
+          "embedModel": {
+            "type": ["string", "null"]
+          },
+          "hasKey": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CustomEndpointTestResult": {
+        "type": "object",
+        "required": ["ok", "latencyMs"],
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "latencyMs": {
+            "type": "number",
+            "minimum": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Fehlertext ohne Schlüssel"
+          },
+          "models": {
             "type": "array",
             "items": {
               "type": "string"

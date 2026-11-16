@@ -1,5 +1,6 @@
 import react from "@vitejs/plugin-react";
 import { type Plugin, defineConfig, loadEnv } from "vite";
+import { injectSiteVerification } from "./src/analytics-config.ts";
 import {
   buildHeadTags,
   buildLlmsTxt,
@@ -36,10 +37,22 @@ function seoPlugin(rawBaseUrl: string | undefined): Plugin {
   };
 }
 
+/** Search-Console-Bestätigung nur per Umgebungsvariable (Issue #260). */
+function siteVerification(token: string | undefined): Plugin {
+  return {
+    name: "rn-site-verification",
+    transformIndexHtml: (html) => injectSiteVerification(html, token)
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
   return {
-    plugins: [react(), seoPlugin(env.VITE_PUBLIC_BASE_URL ?? process.env.VITE_PUBLIC_BASE_URL)],
+    plugins: [
+      react(),
+      seoPlugin(env.VITE_PUBLIC_BASE_URL ?? process.env.VITE_PUBLIC_BASE_URL),
+      siteVerification(env.VITE_GSC_VERIFICATION)
+    ],
     // Der Ingest-Worker ist ein ES-Modul und lädt PDF.js dynamisch nach
     worker: {
       format: "es"

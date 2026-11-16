@@ -16,12 +16,13 @@
  * Fokusfalle, Escape schließt, Klick auf den Hintergrund schließt.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MotionSetting } from "./AppearanceControls.js";
+import { CustomEndpointSettings } from "./CustomEndpointSettings.js";
 import { Icon } from "./Icon.js";
 import { trapTabKey } from "./focus-trap.js";
 import { CONNECTION_KEYS, POLICY_RETRIEVED, STATUS_KEYS, policyFor } from "./model-data-policy.js";
-import { DEFAULT_MODEL, MODEL_IDS, type ModelId } from "./theme-preferences.js";
+import { DEFAULT_MODEL, MODEL_IDS, type ModelId, isModelSelectable } from "./theme-preferences.js";
 import { useReturnFocus } from "./useReturnFocus.js";
 import { LANGUAGES, type Language, documentLanguage, useTheme } from "./useTheme.jsx";
 
@@ -42,6 +43,11 @@ export interface SettingsDrawerProps {
   readonly onModelChange?: ((model: string) => void) | undefined;
   /** Ziel für den Fokus nach dem Schließen, wenn der Auslöser ihn nicht mehr annimmt. */
   readonly returnFocusFallback?: (() => HTMLElement | null | undefined) | undefined;
+  /**
+   * Startwert, ob ein eigener Endpunkt eingerichtet ist (F249). Danach meldet der Abschnitt
+   * „Eigener Endpunkt“ den geladenen Zustand selbst.
+   */
+  readonly customEndpointConfigured?: boolean | undefined;
 }
 
 /**
@@ -54,7 +60,8 @@ const MODEL_LABELS: Readonly<Record<ModelId, { key: string } | { text: string }>
   "claude-3-7-sonnet": { text: "Anthropic Claude 3.7 Sonnet" },
   "gpt-4o": { text: "OpenAI GPT-4o" },
   "deepseek-r1": { text: "DeepSeek R1 (Groq)" },
-  "ollama-local": { key: "modelOllama" }
+  "ollama-local": { key: "modelOllama" },
+  custom: { key: "modelCustom" }
 };
 
 /** Datum der Anbieterangaben in der Schreibweise der Sprache (UTC, damit es nicht verrutscht). */
@@ -81,17 +88,19 @@ function ModelDataPolicyNote({ model }: { readonly model: string }) {
           {t(CONNECTION_KEYS[policy.connection])}
         </p>
       )}
-      <ul className="rn-model-policy-sources">
-        {policy.sources.map((source) => (
-          <li key={source.url}>
-            {t("policySource")}:{" "}
-            <a href={source.url} target="_blank" rel="noopener noreferrer" lang="en">
-              {source.label}
-            </a>{" "}
-            <span className="rn-visually-hidden">{t("policyNewWindow")}</span>
-          </li>
-        ))}
-      </ul>
+      {policy.sources.length > 0 && (
+        <ul className="rn-model-policy-sources">
+          {policy.sources.map((source) => (
+            <li key={source.url}>
+              {t("policySource")}:{" "}
+              <a href={source.url} target="_blank" rel="noopener noreferrer" lang="en">
+                {source.label}
+              </a>{" "}
+              <span className="rn-visually-hidden">{t("policyNewWindow")}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       <p className="rn-setting-hint" data-testid="model-policy-retrieved">
         {t("policyRetrieved")} {formatRetrieved(language)}. {t("policyDisclaimer")}
       </p>
@@ -104,10 +113,13 @@ export function SettingsDrawer({
   onClose,
   activeModel = DEFAULT_MODEL,
   onModelChange,
-  returnFocusFallback
+  returnFocusFallback,
+  customEndpointConfigured = false
 }: SettingsDrawerProps) {
   const { language, setLanguage, t } = useTheme();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const [customConfigured, setCustomConfigured] = useState(customEndpointConfigured);
+  const showCustomSetup = !customConfigured;
 
   // Vor showModal(): Auslöser merken, nach dem Schließen dorthin zurück
   useReturnFocus(isOpen, returnFocusFallback);
@@ -190,14 +202,18 @@ export function SettingsDrawer({
                 id="settings-model"
                 value={activeModel}
                 onChange={(e) => onModelChange?.(e.target.value)}
-                aria-describedby="settings-model-hint settings-model-policy"
+                aria-describedby={
+                  showCustomSetup
+                    ? "settings-model-hint settings-model-custom-hint settings-model-policy"
+                    : "settings-model-hint settings-model-policy"
+                }
                 className="rn-control-input"
                 data-testid="model-router-select"
               >
                 {MODEL_IDS.map((id) => {
                   const label = MODEL_LABELS[id];
                   return (
-                    <option key={id} value={id}>
+                    <option key={id} value={id} disabled={!isModelSelectable(id, customConfigured)}>
                       {"key" in label ? t(label.key) : label.text}
                     </option>
                   );
@@ -208,6 +224,17 @@ export function SettingsDrawer({
             <p id="settings-model-hint" className="rn-setting-hint">
               {t("modelHint")}
             </p>
+            {showCustomSetup && (
+              <p
+                id="settings-model-custom-hint"
+                className="rn-setting-hint"
+                data-testid="model-custom-setup"
+              >
+                {t("modelCustomSetup")}{" "}
+                {/* Sprungmarke im Dialog; die Überschrift hat tabIndex -1 und nimmt den Fokus an. */}
+                <a href="#custom-endpoint-title">{t("modelCustomSetupLink")}</a>
+              </p>
+            )}
             <ModelDataPolicyNote model={activeModel} />
           </section>
 
@@ -232,6 +259,10 @@ export function SettingsDrawer({
             </h3>
             <p className="rn-drawer-text">{t("byokText")}</p>
           </section>
+
+          <CustomEndpointSettings
+            onStateChange={(state) => setCustomConfigured(state.configured)}
+          />
 
           <section className="rn-drawer-notice" aria-labelledby="compliance-section-title">
             <h3 id="compliance-section-title" className="rn-drawer-section-title">

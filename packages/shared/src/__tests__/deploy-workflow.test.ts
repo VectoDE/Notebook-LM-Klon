@@ -28,6 +28,27 @@ describe("Deploy-Workflow mit manueller Freigabe (#264)", () => {
     expect(workflow).toContain('"database_id": "00000000-0000-0000-0000-000000000001"');
   });
 
+  it("baut die Web-Oberfläche mit Turnstile-Site-Key und Basis-URL und prüft beides vorab", () => {
+    expect(workflow).toContain("VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}");
+    expect(workflow).toContain("VITE_PUBLIC_BASE_URL: ${{ vars.DEPLOY_URL }}");
+    expect(workflow).toMatch(/for name in [^\n]*DEPLOY_URL VITE_TURNSTILE_SITE_KEY; do/);
+    expect(workflow).toContain("stimmt nicht mit APP_ORIGIN");
+  });
+
+  it("meldet fehlende Worker-Secrets vor Migration und Deploy", () => {
+    const check = workflow.indexOf("name: Worker-Secrets prüfen");
+    expect(check).toBeGreaterThan(0);
+    expect(check).toBeLessThan(workflow.indexOf("wrangler d1 migrations apply"));
+    for (const name of [
+      "TURNSTILE_SECRET_KEY",
+      "SESSION_SALT_SECRET",
+      "DEMO_GEMINI_KEY",
+      "KEK_V1"
+    ]) {
+      expect(workflow).toContain(name);
+    }
+  });
+
   it("baut, migriert D1, deployt und prüft danach per Smoke-Check in dieser Reihenfolge", () => {
     const order = [
       "pnpm install --frozen-lockfile",
@@ -35,7 +56,7 @@ describe("Deploy-Workflow mit manueller Freigabe (#264)", () => {
       "pnpm --filter @notebook-lm/web build",
       "wrangler d1 migrations apply notebook-lm-db --remote",
       "wrangler deploy",
-      'tsx src/smoke-check.ts "$DEPLOY_URL"'
+      "tsx src/smoke-check.ts"
     ].map((cmd) => workflow.indexOf(cmd));
     expect(order.every((i) => i > 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);

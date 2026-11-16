@@ -2,6 +2,7 @@ import {
   type ChatMessagesResponse,
   ChatRequestBodySchema,
   type GroundedChunkInput,
+  type LlmProvider,
   type ProviderType,
   buildGroundedContext,
   combineWithRrf,
@@ -60,6 +61,11 @@ export interface ChatRoutesDependencies {
   readonly keyVault?: KeyVault | undefined;
   readonly defaultGeminiKey?: string | undefined;
   readonly ollamaBaseUrl?: string | undefined;
+  /**
+   * Liefert den eigenen OpenAI-kompatiblen Endpunkt des Nutzers (BYOM, Issue #247),
+   * wenn der Chat mit `model: "custom"` angefragt wird.
+   */
+  readonly resolveCustomProvider?: ((userId: string) => Promise<LlmProvider | null>) | undefined;
 }
 
 export function registerChatRoutes(
@@ -208,6 +214,31 @@ export function registerChatRoutes(
       maxChunks,
       language
     } = parseResult.data;
+
+    // 0. Eigener Endpunkt (BYOM, #247) vor allem anderen auflösen: Fehlt er, gibt es sofort 503,
+    // ohne Chat oder Nutzernachricht anzulegen und unabhängig davon, ob die Quellen Belege liefern.
+    let customProvider: LlmProvider | null = null;
+    if (requestedModel === "custom") {
+      try {
+        customProvider = deps.resolveCustomProvider
+          ? await deps.resolveCustomProvider(sessionUser.id)
+          : null;
+      } catch {
+        customProvider = null;
+      }
+      if (!customProvider) {
+        const problem = createProblemDetails({
+          status: 503,
+          title: "Service Unavailable",
+          detail: "Kein eigener Endpunkt eingerichtet oder Schlüssel nicht lesbar.",
+          instance: c.req.path,
+          code: "CUSTOM_ENDPOINT_UNAVAILABLE"
+        });
+        return c.json(problem, 503, {
+          "content-type": "application/problem+json; charset=utf-8"
+        });
+      }
+    }
 
     // 1. Resolve or create chat
     const now = Date.now();
@@ -373,13 +404,15 @@ export function registerChatRoutes(
     // 4. Build Grounded Context & System Prompt with Prompt Injection Neutralisation
     const grounded = buildGroundedContext(chunks);
 
-    // 5. Select Provider and Model via AutoRouter or requested model
-    const routingDecision = routerInstance.route({
-      preferredModel: requestedModel,
-      task: "chat"
-    });
+    // 5. Select Provider and Model: own endpoint (BYOM, resolved above) or AutoRouter
+    const routingDecision: { provider: string; model: string | undefined } = customProvider
+      ? { provider: "custom", model: undefined }
+      : routerInstance.route({
+          preferredModel: requestedModel,
+          task: "chat"
+        });
 
-    const provider = routerInstance.getProvider(routingDecision.provider);
+    const provider = customProvider ?? routerInstance.getProvider(routingDecision.provider);
     if (!provider) {
       const problem = createProblemDetails({
         status: 503,
@@ -395,7 +428,7 @@ export function registerChatRoutes(
 
     // Load user's BYOK key if available in vault
     let apiKey: string | undefined;
-    if (deps.keyVault && deps.ragRepo) {
+    if (!customProvider && deps.keyVault && deps.ragRepo) {
       try {
         const storedKey = await deps.ragRepo.getProviderKey(
           sessionUser.id,
@@ -422,6 +455,8 @@ export function registerChatRoutes(
       // Anfrage an das Modell; eine abgebrochene Antwort wird nicht gespeichert (#243).
       const upstream = new AbortController();
       stream.onAbort(() => upstream.abort());
+      // Modell laut Endpunkt (BYOM meldet den echten Namen erst im Stream)
+      let streamedModel: string | undefined;
 
       try {
         const streamIterable = provider.chatStream(
@@ -439,6 +474,7 @@ export function registerChatRoutes(
         for await (const chunk of streamIterable) {
           if (upstream.signal.aborted) break;
           fullAssistantText += chunk.deltaText;
+          streamedModel = chunk.model;
           await stream.writeSSE({
             event: "token",
             data: JSON.stringify({
@@ -475,7 +511,7 @@ export function registerChatRoutes(
         const aiActMetadata = {
           aiGenerated: true as const,
           provider: routingDecision.provider,
-          model: routingDecision.model,
+          model: routingDecision.model ?? streamedModel ?? "custom",
           timestamp: new Date().toISOString(),
           latencyMs
         };

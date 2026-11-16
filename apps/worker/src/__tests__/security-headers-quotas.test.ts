@@ -118,6 +118,31 @@ async function seedNotebookWithSources(
   }
 }
 
+describe("CSP für Tag Manager nach Einwilligung (Issue #260)", () => {
+  function directive(name: string): string[] {
+    const part = CSP_HEADER_VALUE.split(";").find((d) => d.trim().startsWith(`${name} `));
+    return (part ?? "").trim().split(/\s+/).slice(1);
+  }
+
+  it("erlaubt gtm.js und die GA4-Endpunkte, aber keine Platzhalter für Skripte", () => {
+    expect(directive("script-src")).toContain("https://www.googletagmanager.com");
+    expect(directive("script-src").some((source) => source.includes("*"))).toBe(false);
+    expect(directive("script-src")).not.toContain("'unsafe-inline'");
+    for (const origin of [
+      "https://www.google-analytics.com",
+      "https://region1.google-analytics.com",
+      "https://analytics.google.com",
+      "https://www.googletagmanager.com"
+    ]) {
+      expect(directive("connect-src")).toContain(origin);
+    }
+    // Einzige Platzhalter: CDN-Hosts des Offline-Modells (Issue #346), keine für Google
+    const wildcards = directive("connect-src").filter((source) => source.includes("*"));
+    expect(wildcards).toEqual(["https://*.huggingface.co", "https://*.hf.co"]);
+    expect(directive("default-src")).toEqual(["'self'"]);
+  });
+});
+
 describe("Security Headers (Sub-Issue #77)", () => {
   it("sets all required strict security headers correctly via applySecurityHeaders", () => {
     const headers = new Headers();

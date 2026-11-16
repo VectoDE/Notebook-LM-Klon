@@ -51,7 +51,15 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: ["node/**", /browser-touch\.spec\.ts/]
+      testIgnore: ["node/**", /browser-touch\.spec\.ts/, /einwilligung\.spec\.ts/]
+    },
+    {
+      // Einwilligung (Issues #260, #261): eigener Server mit Test-Container-ID,
+      // damit Banner und Tag Manager geprüft werden können. Anfragen an Google werden
+      // im Test abgefangen und nie ins Netz geschickt. Läuft im e2e-Job in ci.yml.
+      name: "einwilligung",
+      testMatch: /einwilligung\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:4174" }
     },
     ...DESKTOP_MATRIX.map(({ name, use }) => ({
       name,
@@ -64,10 +72,19 @@ export default defineConfig({
       testMatch: /browser-(matrix|touch)\.spec\.ts/
     }))
   ],
-  webServer: {
-    command: "pnpm exec vite --host 127.0.0.1 --port 4173 --strictPort",
-    url: "http://127.0.0.1:4173",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000
-  }
+  webServer: [
+    {
+      command: "pnpm exec vite --host 127.0.0.1 --port 4173 --strictPort",
+      url: "http://127.0.0.1:4173",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000
+    },
+    {
+      command: "pnpm exec vite --host 127.0.0.1 --port 4174 --strictPort",
+      url: "http://127.0.0.1:4174",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      env: { VITE_GTM_ID: "GTM-TEST0001" }
+    }
+  ]
 });

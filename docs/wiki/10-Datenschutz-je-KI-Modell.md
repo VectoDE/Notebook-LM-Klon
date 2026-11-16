@@ -17,6 +17,7 @@ Der Worker registriert derzeit zwei Anbieter: **Google Gemini** über die Gemini
 - Wer **Claude 3.7 Sonnet** oder **GPT-4o** wählt, bekommt derzeit eine Fehlermeldung. Es gehen keine Daten an diese Anbieter.
 - Wer **DeepSeek R1 (Groq)** wählt, landet derzeit bei Gemini 2.5 Flash, weil das Modell im Katalog des Routers fehlt und der Router auf das Standardmodell zurückfällt. Für diese Anfragen gelten Googles Bedingungen. Die App sagt das beim Modell offen.
 - **Ollama** läuft nicht auf dem Gerät der Nutzerin oder des Nutzers, sondern auf dem Server dieser Installation. Die frühere Bezeichnung „100% On-Device“ war deshalb falsch und ist entfernt.
+- **Eigener Endpunkt (OpenAI-kompatibel)** ist in der Modellauswahl erst wählbar, wenn Adresse und Chat-Modell gespeichert sind (Entscheidung F249). Der Chat sendet dann `model: "custom"`; die Anfrage geht an die eingetragene Adresse, nicht an einen der oben genannten Anbieter.
 
 ## Tabelle je Modell
 
@@ -27,6 +28,7 @@ Der Worker registriert derzeit zwei Anbieter: **Google Gemini** über die Gemini
 | OpenAI GPT-4o | OpenAI API (BYOK, noch nicht angebunden) | nein, Anfragen schlagen fehl | **Kein Training** (Standard seit 01.03.2023) | Ausnahme: ausdrückliche Zustimmung (Opt-in). Protokolle zur Missbrauchserkennung bis zu 30 Tage, außer bei genehmigter Zero Data Retention. | [OpenAI API: Data controls (Your data)](https://developers.openai.com/api/docs/guides/your-data) | 2026-11-13 |
 | DeepSeek R1 (Groq) | Groq, GroqCloud API (noch nicht angebunden) | nein, Anfragen gehen an Gemini 2.5 Flash | Groq: **kein Training**; tatsächlich gilt derzeit die Gemini-Zeile | Groq-Dienstvertrag Ziffer 4.2: kein Training oder Fine-Tuning mit Inputs oder Outputs, außer mit Erlaubnis des Kunden. | [GroqCloud Services Agreement, 4.2](https://console.groq.com/docs/legal/services-agreement) (Last Modified 22.06.2026) | 2026-11-13 |
 | Ollama Llama 3 (auf dem Server) | Ollama, lokal auf dem Server dieser Installation | ja | **Kein externer Anbieter** | Laut Ollama sieht Ollama bei lokaler Nutzung keine Prompts. Cloud-Modelle von Ollama nutzt die App nicht; sie lassen sich mit `OLLAMA_NO_CLOUD=1` abschalten. | [Ollama FAQ](https://docs.ollama.com/faq) | 2026-11-13 |
+| Eigener Endpunkt (OpenAI-kompatibel) | Vom Nutzer eingetragener HTTPS-Endpunkt, z. B. RelationFlow (BYOM, Issue #247) | ja, sobald Adresse und Chat-Modell gespeichert sind | **Hängt vom Betreiber des Endpunkts ab** | Die App kennt die Bedingungen des Betreibers nicht und nennt deshalb keine Quelle. Wer einen eigenen Endpunkt einträgt, prüft dessen Datenschutz- und Trainingsregeln selbst. | keine allgemeine Quelle | – |
 
 ## Wortlaut der Quellen (Auszüge)
 
