@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  documentInput,
   EMBEDDING_BATCH_SIZE,
   EMBEDDING_DAILY_TOKEN_BUDGET,
   EMBEDDING_DIMENSIONS,
@@ -9,7 +10,6 @@ import {
   EMBEDDING_GUEST_DAILY_TOKEN_BUDGET,
   EMBEDDING_MODEL,
   type EmbeddingRunner,
-  documentInput,
   embedQuery,
   embedTexts,
   estimateTokens,

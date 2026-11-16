@@ -1,5 +1,5 @@
-import { type Page, expect, test } from "@playwright/test";
-import { DESIGNS, MODES, chooseDesign, openPanel } from "./helpers";
+import { expect, type Page, test } from "@playwright/test";
+import { chooseDesign, DESIGNS, MODES, openPanel } from "./helpers";
 
 async function openTool(page: Page, testId: string): Promise<void> {
   await page.goto("/");

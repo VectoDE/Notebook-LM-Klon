@@ -1,16 +1,16 @@
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
-import { Icon } from "./Icon.js";
 import { trapTabKey } from "./focus-trap.js";
+import { Icon } from "./Icon.js";
 import { type PasskeyCredentials, registerPasskey } from "./passkey-client.js";
 import {
   type AuthCallResult,
-  type SiteKeyResolution,
-  type TurnstileApi,
   authErrorKey,
   loadTurnstileScript,
   requestGuestSession,
   requestMagicLink,
-  resolveTurnstileSiteKey
+  resolveTurnstileSiteKey,
+  type SiteKeyResolution,
+  type TurnstileApi
 } from "./turnstile-client.js";
 import { useReturnFocus } from "./useReturnFocus.js";
 import { useTheme } from "./useTheme.js";

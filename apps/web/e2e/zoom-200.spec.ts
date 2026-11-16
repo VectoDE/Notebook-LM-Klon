@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { DESIGNS, chooseDesign, findLayoutProblems, openPanel } from "./helpers";
+import { chooseDesign, DESIGNS, findLayoutProblems, openPanel } from "./helpers";
 
 /**
  * WCAG 2.2 SC 1.4.4 (Text vergrößern): Bei 200 % Browser-Zoom halbiert sich der

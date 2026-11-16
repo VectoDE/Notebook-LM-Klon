@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Icon } from "./Icon.js";
 import {
   CONSENT_CHANGE_EVENT,
   type ConsentState,
+  needsConsentDecision,
   OPEN_CONSENT_SETTINGS_EVENT,
   OPEN_PRIVACY_NOTICE_EVENT,
-  needsConsentDecision,
   readConsent,
   storeConsent
 } from "./consent.js";
 import { trapTabKey } from "./focus-trap.js";
+import { Icon } from "./Icon.js";
 import { privacyTexts } from "./privacy-texts.js";
 import { useReturnFocus } from "./useReturnFocus.js";
 import { useTheme } from "./useTheme.js";

@@ -1,5 +1,5 @@
-import { type Page, expect, test } from "@playwright/test";
-import { DESIGNS, chooseDesign, findLayoutProblems } from "./helpers";
+import { expect, type Page, test } from "@playwright/test";
+import { chooseDesign, DESIGNS, findLayoutProblems } from "./helpers";
 
 /** Sichtbare Bedienziele im Kopf und in der unteren Leiste: mindestens 44 x 44 px. */
 async function smallTargets(page: Page): Promise<string[]> {

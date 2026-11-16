@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  ResponseTooLargeError,
   assertHostResolvesPublic,
   createDohResolver,
   guardedEndpointFetch,
   isBlockedIp,
   isHostAllowed,
   parseHostAllowlist,
+  ResponseTooLargeError,
   readBodyLimited,
   redactSecret,
   validateUserEndpoint

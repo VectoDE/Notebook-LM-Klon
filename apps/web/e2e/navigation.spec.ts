@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { DESIGNS, chooseDesign, openPanel } from "./helpers";
+import { chooseDesign, DESIGNS, openPanel } from "./helpers";
 
 /**
  * Navigation und Landmarks: Sprunglink, Kopfzeile außerhalb von main, aria-current an den

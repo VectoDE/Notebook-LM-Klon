@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  clampQuizCount,
+  evaluateMixedQuiz,
+  evaluateQuizItem,
   FreeTextGradeSchema,
   type MixedQuizItem,
   MixedQuizItemSchema,
   MixedQuizPayloadSchema,
+  planQuizItemTypes,
   QUIZ_COUNT_DEFAULT,
   QUIZ_COUNT_MAX,
   QUIZ_COUNT_MIN,
-  QUIZ_ITEM_TYPES,
-  clampQuizCount,
-  evaluateMixedQuiz,
-  evaluateQuizItem,
-  planQuizItemTypes
+  QUIZ_ITEM_TYPES
 } from "../quiz-mixed.js";
 
 const mc: MixedQuizItem = {

@@ -1,11 +1,11 @@
-import { type ReactNode, createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 import { AppearanceControls, MODE_OPTIONS, THEME_OPTIONS } from "../AppearanceControls.js";
-import { SettingsDrawer } from "../SettingsDrawer.js";
-import { WorkspaceLayout } from "../WorkspaceLayout.js";
 import { preloadStudioViewers } from "../lazy-viewers.js";
-import { TRANSLATIONS, ThemeProvider, type ThemeProviderProps, translate } from "../useTheme.js";
+import { SettingsDrawer } from "../SettingsDrawer.js";
+import { ThemeProvider, type ThemeProviderProps, TRANSLATIONS, translate } from "../useTheme.js";
+import { WorkspaceLayout } from "../WorkspaceLayout.js";
 
 // Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
 beforeAll(() => preloadStudioViewers());

@@ -1,10 +1,10 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  type DiagramStrings,
   autoLanguageSvg,
   buildDiagramVariants,
+  type DiagramStrings,
   decodeXml,
   encodeXml,
   extractTexts,

@@ -63,7 +63,7 @@ export function createProblemDetails(input: CreateProblemDetailsInput): ProblemD
   });
 }
 
-export { z, type ZodIssue } from "zod";
+export { type ZodIssue, z } from "zod";
 
 // ---------------------------------------------------------------------------
 // BYOK Key Management Schemas (Decision #8, #41 - Sub-Issues #92, #93, #94)
@@ -140,29 +140,29 @@ export function maskApiKey(apiKey: string): string {
   return `\u2022\u2022\u2022\u2022${extractLast4(apiKey)}`;
 }
 
-export { inspectTextEncoding, type EncodingInspectionReport } from "./encoding.js";
 export {
-  DEFAULT_MAX_TOKENS,
-  DEFAULT_OVERLAP_TOKENS,
-  MAX_WORDS_LIMIT,
-  MAX_WORDS_PER_SOURCE,
-  TextTooLargeError,
+  type ChunkInput,
   chunkText,
   countUniqueWords,
   countWords,
+  DEFAULT_MAX_TOKENS,
+  DEFAULT_OVERLAP_TOKENS,
   estimateTokenCount,
-  type ChunkInput,
+  MAX_WORDS_LIMIT,
+  MAX_WORDS_PER_SOURCE,
   type TextChunk,
+  TextTooLargeError,
   type WordCountChunk
 } from "./chunker.js";
+export { type EncodingInspectionReport, inspectTextEncoding } from "./encoding.js";
 export {
-  quantizeFloat32ToInt8,
-  dequantizeInt8ToFloat32,
-  dotProductInt8,
-  cosineSimilarityInt8,
-  dotProductFloat32,
   cosineSimilarityFloat32,
-  type QuantizedVector
+  cosineSimilarityInt8,
+  dequantizeInt8ToFloat32,
+  dotProductFloat32,
+  dotProductInt8,
+  type QuantizedVector,
+  quantizeFloat32ToInt8
 } from "./quantization.js";
 
 // ---------------------------------------------------------------------------
@@ -470,20 +470,18 @@ export const JobBroadcastEventSchema = z.discriminatedUnion("type", [
 ]);
 export type JobBroadcastEvent = z.infer<typeof JobBroadcastEventSchema>;
 
-export type * from "./providers.d.js";
-
-export type * from "./models.d.js";
-
+export * from "./audio-interject-types.js";
 export * from "./chat-context.js";
 export * from "./citation-parser.js";
-export * from "./audio-interject-types.js";
-export * from "./podcast-state-machine.js";
-export * from "./video-storyboard.js";
+export * from "./comments.js";
+export * from "./entity-graph.js";
 export * from "./media-alternatives.js";
+export type * from "./models.d.js";
+export * from "./podcast-state-machine.js";
+export * from "./provenance.js";
+export type * from "./providers.d.js";
+export * from "./quiz-mixed.js";
 export * from "./sm2.js";
 export * from "./studio-artifacts.js";
-export * from "./provenance.js";
-export * from "./comments.js";
-export * from "./quiz-mixed.js";
-export * from "./entity-graph.js";
 export * from "./studio-structured.js";
+export * from "./video-storyboard.js";

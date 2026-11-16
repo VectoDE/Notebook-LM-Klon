@@ -2,13 +2,13 @@ import type { PasskeyRow, UserRow } from "@notebook-lm/shared";
 import {
   type AuthenticationResponseJSON,
   type AuthenticatorTransport,
+  generateAuthenticationOptions,
+  generateRegistrationOptions,
   type PublicKeyCredentialCreationOptionsJSON,
   type PublicKeyCredentialRequestOptionsJSON,
   type RegistrationResponseJSON,
   type VerifiedAuthenticationResponse,
   type VerifiedRegistrationResponse,
-  generateAuthenticationOptions,
-  generateRegistrationOptions,
   verifyAuthenticationResponse,
   verifyRegistrationResponse
 } from "@simplewebauthn/server";

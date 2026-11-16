@@ -2,7 +2,7 @@ import type { FlashcardItem } from "@notebook-lm/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { FlashcardsViewer, describeNextReview, describeRepetitions } from "../FlashcardsViewer.js";
+import { describeNextReview, describeRepetitions, FlashcardsViewer } from "../FlashcardsViewer.js";
 
 const sampleCards: FlashcardItem[] = [
   {

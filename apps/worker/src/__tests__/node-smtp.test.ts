@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  type SmtpSettings,
   createSmtpBinding,
   defaultTransport,
-  readSmtpSettings
+  readSmtpSettings,
+  type SmtpSettings
 } from "../node/smtp.js";
 
 const SETTINGS: SmtpSettings = {

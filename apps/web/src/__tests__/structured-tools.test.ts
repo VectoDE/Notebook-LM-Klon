@@ -1,27 +1,27 @@
 import {
   DataTableSchema,
   InfographicFactSchema,
-  TimelineEntrySchema,
   locateQuote,
   normalizeDataTable,
   normalizeInfographic,
   normalizeTimeline,
-  setReviewStatus
+  setReviewStatus,
+  TimelineEntrySchema
 } from "@notebook-lm/shared";
-import { type ReactNode, createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
+import { preloadStudioViewers } from "../lazy-viewers.js";
 import { DataTableViewer, InfographicViewer, TimelineViewer } from "../StructuredTools.js";
 import { StudioPanel, type StudioTool } from "../StudioPanel.js";
-import { DEFAULT_SOURCES } from "../WorkspaceLayout.js";
-import { preloadStudioViewers } from "../lazy-viewers.js";
 import {
+  buildStructuredDemo,
   DEMO_INFOGRAPHIC_RAW,
   DEMO_TABLE_RAW,
-  DEMO_TIMELINE_RAW,
-  buildStructuredDemo
+  DEMO_TIMELINE_RAW
 } from "../structured-demo.js";
 import { ThemeProvider, type ThemeProviderProps } from "../useTheme.js";
+import { DEFAULT_SOURCES } from "../WorkspaceLayout.js";
 
 beforeAll(() => preloadStudioViewers());
 

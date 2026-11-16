@@ -16,17 +16,9 @@ import {
   useState
 } from "react";
 import { AppearanceControls, type UserRole } from "./AppearanceControls.js";
+import { afterSettled } from "./after-settled.js";
 import { BrandLogo } from "./BrandLogo.js";
 import { type ChatMessage, ChatPanel } from "./ChatPanel.js";
-import { GraphViewer } from "./GraphViewer.js";
-import { Icon, type IconName } from "./Icon.js";
-import { NotebookTitle } from "./NotebookTitle.js";
-import { PanelRail, PanelToggle, RailButton } from "./PanelRail.js";
-import { LegalFooter } from "./PrivacyCenter.js";
-import { SOURCE_FILE_ACCEPT, SourcesPanel, isSourceUsable } from "./SourcesPanel.js";
-import { StudioPanel, type StudioTool } from "./StudioPanel.js";
-import { Toast, type ToastMessage } from "./Toast.js";
-import { afterSettled } from "./after-settled.js";
 import {
   ChatApiError,
   errorKeyForStatus,
@@ -39,6 +31,8 @@ import { chatToMarkdown } from "./chat-export.js";
 import { triggerBrowserDownload } from "./download.js";
 import { wipeLocalData } from "./encrypted-store.js";
 import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
+import { GraphViewer } from "./GraphViewer.js";
+import { Icon, type IconName } from "./Icon.js";
 import { buildKnowledgeGraph } from "./knowledge-graph.js";
 import {
   type CollapsedPanels,
@@ -57,8 +51,13 @@ import {
   LazySignInDialog as SignInDialog
 } from "./lazy-viewers.js";
 import { signOutAndWipe } from "./local-session.js";
+import { NotebookTitle } from "./NotebookTitle.js";
 import { hasLocalModelFlag } from "./offline-chat-flag.js";
 import type { OfflineChat } from "./offline-chat-ui.js";
+import { PanelRail, PanelToggle, RailButton } from "./PanelRail.js";
+import { LegalFooter } from "./PrivacyCenter.js";
+import { isSourceUsable, SOURCE_FILE_ACCEPT, SourcesPanel } from "./SourcesPanel.js";
+import { StudioPanel, type StudioTool } from "./StudioPanel.js";
 import type { UploadSourceResult } from "./source-upload-client.js";
 import {
   createPendingSource,
@@ -68,6 +67,7 @@ import {
 } from "./source-uploads.js";
 import type { StructuredData } from "./structured-demo.js";
 import { describeSyncStatus } from "./sync-status-text.js";
+import { Toast, type ToastMessage } from "./Toast.js";
 import { browserStorage, readStoredModel, storeModel } from "./theme-preferences.js";
 import { useNotebookSync } from "./useNotebookSync.js";
 import { documentLanguage, useTheme } from "./useTheme.js";

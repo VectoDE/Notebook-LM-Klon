@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  IV_BYTES,
-  LOCAL_FORMAT_VERSION,
-  LocalCipher,
-  LocalCryptoError,
   buildAad,
   deriveLocalKey,
-  isEnvelope
+  IV_BYTES,
+  isEnvelope,
+  LOCAL_FORMAT_VERSION,
+  LocalCipher,
+  LocalCryptoError
 } from "../local-crypto.js";
 
 const material = () => new Uint8Array(32).fill(7);

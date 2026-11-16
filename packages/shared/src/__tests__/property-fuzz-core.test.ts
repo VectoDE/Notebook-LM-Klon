@@ -1,9 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_MAX_TOKENS, chunkText } from "../chunker.js";
+import { chunkText, DEFAULT_MAX_TOKENS } from "../chunker.js";
 import {
-  MAX_CITATION_RANGE_SPAN,
   extractCitationIndices,
+  MAX_CITATION_RANGE_SPAN,
   validateAndCleanCitations
 } from "../citation-parser.js";
 import {

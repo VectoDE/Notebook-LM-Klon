@@ -5,9 +5,9 @@ import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
 import {
+  createGuestAndMagicLinkRoutes,
   DEMO_WORKSPACE_ID,
-  DEMO_WORKSPACE_NAME,
-  createGuestAndMagicLinkRoutes
+  DEMO_WORKSPACE_NAME
 } from "../guest-magic-link-routes.js";
 import { CloudflareMailAdapter, ConsoleMailAdapter, HttpMailAdapter } from "../mail-adapter.js";
 import { DEV_SESSION_COOKIE_NAME, SESSION_COOKIE_NAME, SessionManager } from "../session.js";

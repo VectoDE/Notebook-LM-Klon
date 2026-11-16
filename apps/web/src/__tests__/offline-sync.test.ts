@@ -3,12 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
 import { openEncryptedStore } from "../encrypted-store.js";
 import {
+  createHttpTransport,
   OfflineSync,
   REMOTE_ORIGIN,
   SyncHttpError,
   type SyncStatus,
-  type SyncTransport,
-  createHttpTransport
+  type SyncTransport
 } from "../offline-sync.js";
 
 /** Server im Speicher: hält den zusammengeführten Yjs-Stand wie das NotebookDO. */

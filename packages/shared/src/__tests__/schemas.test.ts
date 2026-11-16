@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  combineWithRrf,
+  createProblemDetails,
   DeploymentProfileSchema,
   HealthResponseSchema,
   ProblemDetailsSchema,
   SearchQueryBodySchema,
   SearchResponseSchema,
-  WORKSPACE_VERSION,
-  combineWithRrf,
-  createProblemDetails
+  WORKSPACE_VERSION
 } from "../index.js";
 
 describe("Base Zod Schemas & RFC 9457 ProblemDetails", () => {

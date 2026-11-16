@@ -2,10 +2,10 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PORT,
+  loadNodeConfig,
   MIN_SECRET_LENGTH,
   NodeConfigError,
-  PASSTHROUGH_VARS,
-  loadNodeConfig
+  PASSTHROUGH_VARS
 } from "../node/config.js";
 import { TURNSTILE_TEST_SECRET_ALWAYS_PASSES } from "../turnstile.js";
 

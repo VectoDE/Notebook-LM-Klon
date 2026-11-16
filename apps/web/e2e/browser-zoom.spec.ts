@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { DESIGNS, chooseDesign, findLayoutProblems, openPanel } from "./helpers";
+import { chooseDesign, DESIGNS, findLayoutProblems, openPanel } from "./helpers";
 
 /** Zoom 200 % in Desktop-Browsern und Kanälen (Issue #255). */
 

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.7/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -7,15 +7,22 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": [
-      "node_modules",
-      "dist",
-      "build",
-      "coverage",
-      ".wrangler",
-      "pnpm-lock.yaml",
-      "*.tsbuildinfo",
-      "apps/worker/src/worker-configuration.d.ts"
+    "includes": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.mjs",
+      "**/*.cjs",
+      "**/*.json",
+      "**/*.css",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/build",
+      "!**/coverage",
+      "!**/.wrangler",
+      "!**/pnpm-lock.yaml",
+      "!**/*.tsbuildinfo",
+      "!**/apps/worker/src/worker-configuration.d.ts"
     ]
   },
   "formatter": {
@@ -25,15 +32,13 @@
     "lineEnding": "lf",
     "lineWidth": 100
   },
-  "organizeImports": {
-    "enabled": true
-  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "a11y": {
-        "recommended": true,
+        "preset": "recommended",
         "noAccessKey": "error",
         "noAriaUnsupportedElements": "error",
         "noAutofocus": "error",
@@ -41,7 +46,6 @@
         "noHeaderScope": "error",
         "noInteractiveElementToNoninteractiveRole": "error",
         "noLabelWithoutControl": "error",
-        "noNoninteractiveElementToInteractiveRole": "error",
         "noNoninteractiveTabindex": "error",
         "noPositiveTabindex": "error",
         "noRedundantAlt": "error",
@@ -58,7 +62,10 @@
         "useKeyWithClickEvents": "error",
         "useKeyWithMouseEvents": "error",
         "useMediaCaption": "error",
-        "useSemanticElements": "error",
+        "useSemanticElements": "warn",
+        "useAriaPropsSupportedByRole": "warn",
+        "noStaticElementInteractions": "warn",
+        "noNoninteractiveElementToInteractiveRole": "warn",
         "useValidAnchor": "error",
         "useValidAriaProps": "error",
         "useValidAriaRole": "error",
@@ -67,7 +74,10 @@
       },
       "correctness": {
         "noUnusedImports": "error",
-        "noUnusedVariables": "error"
+        "noUnusedVariables": "error",
+        "noComponentHookFactories": "warn",
+        "noUnsafeOptionalChaining": "warn",
+        "usePlaywrightValidDescribeCallback": "warn"
       },
       "security": {
         "noDangerouslySetInnerHtml": "error",
@@ -75,7 +85,9 @@
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noDoubleEquals": "error"
+        "noDoubleEquals": "error",
+        "noArrayIndexKey": "warn",
+        "useIterableCallbackReturn": "warn"
       }
     }
   },

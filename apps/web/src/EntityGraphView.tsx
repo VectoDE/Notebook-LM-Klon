@@ -12,6 +12,8 @@
  */
 
 import {
+  applyEntityCorrection,
+  countByKind,
   DEFAULT_ENTITY_FILTER,
   ENTITY_KINDS,
   ENTITY_STATUS_FILTERS,
@@ -21,11 +23,9 @@ import {
   type EntityKind,
   type EntityNode,
   type EntityStatusFilter,
-  type ReviewStatus,
-  applyEntityCorrection,
-  countByKind,
   edgesOf,
-  filterEntityGraph
+  filterEntityGraph,
+  type ReviewStatus
 } from "@notebook-lm/shared";
 import {
   type FormEvent,
@@ -38,18 +38,18 @@ import {
   useRef,
   useState
 } from "react";
-import { Icon } from "./Icon.js";
 import { announceKey, layoutEntityGraph } from "./entity-graph-view.js";
+import { Icon } from "./Icon.js";
 import "./entity-graph.css";
 import {
+  fitZoom,
   GRAPH_FONT_SIZE,
   GRAPH_PADDING,
   GRAPH_TABS,
   type GraphTab,
-  LINE_HEIGHT,
-  fitZoom,
   graphOffset,
   graphTabTarget,
+  LINE_HEIGHT,
   layoutModeFor,
   nodeInDirection,
   stepZoom

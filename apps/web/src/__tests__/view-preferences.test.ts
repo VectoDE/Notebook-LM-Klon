@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  VIEW_STORAGE_KEYS,
   readSourcesView,
   readTableView,
-  storeView
+  storeView,
+  VIEW_STORAGE_KEYS
 } from "../view-preferences.js";
 
 /** Einfacher Speicher im Arbeitsspeicher, wie localStorage. */

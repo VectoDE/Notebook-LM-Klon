@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   type CatalogMap,
-  DEFAULT_FALLBACK,
   createI18n,
+  DEFAULT_FALLBACK,
   directionOf,
   fill,
   parentLocales
 } from "../i18n.js";
 import {
-  LOCALE_LOADERS,
   buildI18n,
   createLocaleRegistry,
+  LOCALE_LOADERS,
   localeFromPath
 } from "../locale-registry.js";
 import { LANGUAGES } from "../theme-preferences.js";

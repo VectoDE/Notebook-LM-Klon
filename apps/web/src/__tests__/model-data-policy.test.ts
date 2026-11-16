@@ -3,17 +3,17 @@ import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { SettingsDrawer } from "../SettingsDrawer.js";
 import {
   CONNECTION_KEYS,
   MODEL_DATA_POLICIES,
   POLICY_RETRIEVED,
+  policyFor,
   SOURCES,
-  STATUS_KEYS,
-  policyFor
+  STATUS_KEYS
 } from "../model-data-policy.js";
+import { SettingsDrawer } from "../SettingsDrawer.js";
 import { MODEL_IDS } from "../theme-preferences.js";
-import { TRANSLATIONS, ThemeProvider, type ThemeProviderProps } from "../useTheme.js";
+import { ThemeProvider, type ThemeProviderProps, TRANSLATIONS } from "../useTheme.js";
 
 const REPO_ROOT = join(import.meta.dirname, "../../../..");
 const DOC = readFileSync(join(REPO_ROOT, "docs/datenschutz-modelle.md"), "utf-8");

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
-import { type Page, expect, test } from "@playwright/test";
-import { DESIGNS, chooseDesign, openPanel } from "./helpers";
+import { expect, type Page, test } from "@playwright/test";
+import { chooseDesign, DESIGNS, openPanel } from "./helpers";
 
 /**
  * Medienalternativen (Issue #350): Untertitel und Transkript für alle Medien,

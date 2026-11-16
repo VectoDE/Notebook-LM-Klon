@@ -1,4 +1,4 @@
-import { type Page, type Route, expect, test } from "@playwright/test";
+import { expect, type Page, type Route, test } from "@playwright/test";
 import { findLayoutProblems } from "./helpers.js";
 
 /**

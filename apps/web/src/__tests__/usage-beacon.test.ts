@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { USAGE_ENDPOINT, allowsUsageCount, sendUsageBeacon } from "../usage-beacon.js";
+import { allowsUsageCount, sendUsageBeacon, USAGE_ENDPOINT } from "../usage-beacon.js";
 
 describe("Cookieloser Nutzungszähler im Browser (Issue #262)", () => {
   it("sendet genau einen Zähler ohne Cookies und ohne Kennung", async () => {

@@ -1,20 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
+  csvCell,
   type DataTable,
   DataTableSchema,
-  INFOGRAPHIC_WIDTH,
-  type InfographicFact,
-  InfographicFactSchema,
-  TimelineEntrySchema,
-  csvCell,
   dataTableToCsv,
   dateSortKey,
   escapeXml,
+  INFOGRAPHIC_WIDTH,
+  type InfographicFact,
+  InfographicFactSchema,
   normalizeDataTable,
   normalizeInfographic,
   normalizeTimeline,
   renderInfographicSvg,
   setReviewStatus,
+  TimelineEntrySchema,
   valueInQuote,
   wrapText
 } from "../studio-structured.js";

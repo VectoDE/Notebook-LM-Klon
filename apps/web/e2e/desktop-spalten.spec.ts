@@ -1,5 +1,5 @@
-import { type Locator, type Page, expect, test } from "@playwright/test";
-import { DESIGNS, MODES, chooseDesign, findLayoutProblems } from "./helpers";
+import { expect, type Locator, type Page, test } from "@playwright/test";
+import { chooseDesign, DESIGNS, findLayoutProblems, MODES } from "./helpers";
 
 /**
  * Desktop wie NotebookLM (Issue #325): ab 900 px sind die Spalten die Navigation, Quellen

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyEntityCorrection,
+  collapseWhitespace,
+  countByKind,
   DEFAULT_ENTITY_FILTER,
   type EntityExtractionResult,
   type EntityGraph,
   EntityGraphSchema,
-  applyEntityCorrection,
-  collapseWhitespace,
-  countByKind,
   edgesOf,
   entityId,
   entityKey,

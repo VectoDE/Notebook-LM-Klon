@@ -4,10 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  createLocalR2Adapter,
   DEFAULT_LIST_LIMIT,
   MAX_OBJECT_BYTES,
   ObjectTooLargeError,
-  createLocalR2Adapter,
   resolveRange
 } from "../node/fs-r2.js";
 import { MAX_SOURCE_BYTE_SIZE_LIMIT } from "../sources-upload.js";

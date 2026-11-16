@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { DESIGNS, chooseDesign, findLayoutProblems, findSmallText } from "./helpers";
+import { chooseDesign, DESIGNS, findLayoutProblems, findSmallText } from "./helpers";
 
 /**
  * Browser- und Geräte-Matrix (Issue #255). Läuft in allen Matrix-Projekten (Desktop-Browser,

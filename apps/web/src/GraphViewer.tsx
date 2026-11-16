@@ -11,9 +11,9 @@
 
 import type { EntityGraph } from "@notebook-lm/shared";
 import {
+  lazy,
   type KeyboardEvent as ReactKeyboardEvent,
   Suspense,
-  lazy,
   useCallback,
   useEffect,
   useId,
@@ -25,17 +25,17 @@ import {
 import { Icon } from "./Icon.js";
 import "./entity-graph-mode.css";
 import {
+  degree,
+  fitZoom,
   GRAPH_FONT_SIZE,
   GRAPH_PADDING,
   GRAPH_TABS,
   type GraphNode,
   type GraphTab,
-  type KnowledgeGraph,
-  LINE_HEIGHT,
-  degree,
-  fitZoom,
   graphOffset,
   graphTabTarget,
+  type KnowledgeGraph,
+  LINE_HEIGHT,
   layoutGraph,
   layoutModeFor,
   nodeInDirection,

@@ -5,8 +5,6 @@ import {
   WORKSPACE_VERSION
 } from "@notebook-lm/shared";
 import type { FunctionComponent } from "react";
-import { PrivacyCenter } from "./PrivacyCenter.js";
-import { WorkspaceLayout } from "./WorkspaceLayout.js";
 import { readGtmId } from "./analytics-config.js";
 import { type GtmGlobal, gtmConsentHandler } from "./gtm.js";
 import {
@@ -14,6 +12,8 @@ import {
   LazyMindmapViewer as MindmapViewer,
   LazyQuizViewer as QuizViewer
 } from "./lazy-viewers.js";
+import { PrivacyCenter } from "./PrivacyCenter.js";
+import { WorkspaceLayout } from "./WorkspaceLayout.js";
 
 /** Einwilligung nur abfragen, wenn ein optionaler Dienst eingerichtet ist (Issue #261). */
 const OPTIONAL_SERVICES_CONFIGURED = readGtmId(import.meta.env.VITE_GTM_ID) !== null;

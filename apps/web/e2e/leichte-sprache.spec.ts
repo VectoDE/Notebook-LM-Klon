@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import { type Page, expect, test } from "@playwright/test";
-import { DESIGNS, chooseDesign, findLayoutProblems, openPanel } from "./helpers";
+import { expect, type Page, test } from "@playwright/test";
+import { chooseDesign, DESIGNS, findLayoutProblems, openPanel } from "./helpers";
 
 /**
  * Leichte Sprache (Issue #349): Umschalten in den Einstellungen, Katalog lädt erst bei Wahl,

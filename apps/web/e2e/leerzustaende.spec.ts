@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { DESIGNS, chooseDesign, openPanel } from "./helpers";
+import { chooseDesign, DESIGNS, openPanel } from "./helpers";
 
 /**
  * Leerzustände groß (Issue #356): Zeichnung 240 bis 320 px breit, auf schmalen Flächen

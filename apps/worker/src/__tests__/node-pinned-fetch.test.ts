@@ -6,10 +6,10 @@ import type { LookupFunction } from "node:net";
 import { Readable } from "node:stream";
 import { describe, expect, it } from "vitest";
 import {
-  type HttpsRequestFn,
-  type LookupAll,
   createPinnedFetch,
-  createPinnedLookup
+  createPinnedLookup,
+  type HttpsRequestFn,
+  type LookupAll
 } from "../node/pinned-fetch.js";
 import { SsrSecurityError } from "../ssrf-guard.js";
 

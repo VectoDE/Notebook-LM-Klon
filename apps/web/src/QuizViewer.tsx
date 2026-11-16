@@ -8,13 +8,13 @@
  * - WAI-ARIA Radio Group & Live Announcements
  */
 
-import { type QuizEvaluationResult, type QuizQuestion, evaluateQuiz } from "@notebook-lm/shared";
+import { evaluateQuiz, type QuizEvaluationResult, type QuizQuestion } from "@notebook-lm/shared";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { EmptyState } from "./EmptyState.js";
-import { ViewToggle } from "./ViewToggle.js";
 import { browserStorage } from "./theme-preferences.js";
 import { useTheme } from "./useTheme.js";
-import { type TableView, VIEW_STORAGE_KEYS, readTableView, storeView } from "./view-preferences.js";
+import { ViewToggle } from "./ViewToggle.js";
+import { readTableView, storeView, type TableView, VIEW_STORAGE_KEYS } from "./view-preferences.js";
 
 export interface QuizViewerProps {
   readonly questions: readonly QuizQuestion[];

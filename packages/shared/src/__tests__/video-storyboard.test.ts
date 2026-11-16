@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatVttTimestamp,
   type GenerateVideoStoryboardOptions,
+  generateVideoStoryboard,
+  generateWebVTT,
   type NotebookSourceInput,
   SlideChartDataSchema,
   SubtitleCueSchema,
   VideoChapterSchema,
   VideoSlideSchema,
-  VideoStoryboardSchema,
-  formatVttTimestamp,
-  generateVideoStoryboard,
-  generateWebVTT
+  VideoStoryboardSchema
 } from "../video-storyboard.js";
 
 describe("Video Storyboard & Generator (Sub-Issue #119)", () => {

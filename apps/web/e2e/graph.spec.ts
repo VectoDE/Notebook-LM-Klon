@@ -1,5 +1,5 @@
-import { type Page, expect, test } from "@playwright/test";
-import { DESIGNS, chooseDesign, findLayoutProblems, findSmallText } from "./helpers";
+import { expect, type Page, test } from "@playwright/test";
+import { chooseDesign, DESIGNS, findLayoutProblems, findSmallText } from "./helpers";
 
 /** Issue #327: vier Reiter (Quellen, Chat, Studio, Graph) und Wissensgraph-Ansicht. */
 

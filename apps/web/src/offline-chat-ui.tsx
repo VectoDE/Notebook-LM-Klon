@@ -3,24 +3,24 @@ import { trapTabKey } from "./focus-trap.js";
 import { fill } from "./i18n.js";
 import { LazyCommentThread } from "./lazy-viewers.js";
 import {
-  LOCAL_MODEL_DOWNLOAD_BYTES,
-  LOCAL_MODEL_LABEL,
-  LOCAL_MODEL_VRAM_MB,
-  formatGigabytes
-} from "./local-llm-config.js";
-import {
   LocalModelController,
   type LocalModelEnv,
   type LocalModelState,
   type LocalRuntimeLoader
 } from "./local-llm.js";
 import {
-  type ChatMode,
-  type OfflineAnswerRequest,
-  type OfflineAnswerResult,
+  formatGigabytes,
+  LOCAL_MODEL_DOWNLOAD_BYTES,
+  LOCAL_MODEL_LABEL,
+  LOCAL_MODEL_VRAM_MB
+} from "./local-llm-config.js";
+import {
   answerOffline,
+  type ChatMode,
   chatModeFor,
   localRouteFor,
+  type OfflineAnswerRequest,
+  type OfflineAnswerResult,
   offlineErrorText
 } from "./offline-chat.js";
 import { browserStorage } from "./theme-preferences.js";

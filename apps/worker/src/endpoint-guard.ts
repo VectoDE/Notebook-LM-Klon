@@ -24,12 +24,12 @@
  */
 
 import {
-  SsrSecurityError,
   isPrivateOrLocalHost,
   isPrivateOrReservedIpv4,
   isPrivateOrReservedIpv6,
   parseIpv4ToUint32,
-  parseIpv6
+  parseIpv6,
+  SsrSecurityError
 } from "./ssrf-guard.js";
 
 export const BYOM_ALLOWLIST_ENV = "BYOM_ALLOWED_HOSTS";

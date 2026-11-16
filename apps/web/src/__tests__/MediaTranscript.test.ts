@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { DEMO_PODCAST_TRANSCRIPT, DeepDiveStage } from "../DeepDiveStage.js";
 import { InteractiveAudioHostPlayer } from "../InteractiveAudioHostPlayer.js";
-import { MediaTranscript, activeTranscriptIndex } from "../MediaTranscript.js";
+import { activeTranscriptIndex, MediaTranscript } from "../MediaTranscript.js";
 
 const items = [
   { id: "a", startMs: 0, endMs: 5000, speaker: "Host Lea", text: "Hallo." },

@@ -9,7 +9,7 @@ import {
   registerBYOKRoutes
 } from "../byok-routes.js";
 import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
-import { KeyVault, deserializeEncryptedPayload } from "../key-vault.js";
+import { deserializeEncryptedPayload, KeyVault } from "../key-vault.js";
 import { RagRepository } from "../rag-repository.js";
 
 function createMockD1(): { adapter: DatabaseAdapter; close: () => void } {

@@ -1,9 +1,9 @@
 import {
   type ComponentType,
-  type ReactNode,
-  Suspense,
   createElement,
   lazy,
+  type ReactNode,
+  Suspense,
   useRef,
   useState
 } from "react";

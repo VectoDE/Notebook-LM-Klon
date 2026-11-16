@@ -7,12 +7,12 @@
  * Oberfläche nennt den Grund. Eine unsignierte Datei gilt nie als signiert.
  */
 import {
+  baseMimeType,
   DIGITAL_SOURCE_TYPE_TRAINED_ALGORITHMIC,
+  isC2paSignable,
   PROVENANCE_GENERATOR_NAME,
   PROVENANCE_MAX_BYTES,
-  type ProvenanceCertificateKind,
-  baseMimeType,
-  isC2paSignable
+  type ProvenanceCertificateKind
 } from "@notebook-lm/shared";
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;

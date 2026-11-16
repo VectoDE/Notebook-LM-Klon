@@ -3,9 +3,9 @@ import {
   type CommentPerson,
   type CommentTargetType,
   CreateCommentBodySchema,
+  createProblemDetails,
   type NotebookComment,
-  UpdateCommentBodySchema,
-  createProblemDetails
+  UpdateCommentBodySchema
 } from "@notebook-lm/shared";
 import type { Context, Hono } from "hono";
 import { requireAuth, requireNotebookRole } from "./auth-middleware.js";

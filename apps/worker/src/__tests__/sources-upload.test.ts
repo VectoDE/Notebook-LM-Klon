@@ -6,10 +6,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
 import { RagRepository } from "../rag-repository.js";
 import {
-  MAX_SOURCE_BYTE_SIZE_LIMIT,
   buildContentDisposition,
   createR2PresignedPutUrl,
   detectMagicBytes,
+  MAX_SOURCE_BYTE_SIZE_LIMIT,
   registerSourcesUploadRoutes,
   resolveSourceTypeAndExt
 } from "../sources-upload.js";

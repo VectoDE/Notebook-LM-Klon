@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  analyticsAllowed,
   CONSENT_STORAGE_KEY,
   CONSENT_VERSION,
-  analyticsAllowed,
   clearConsent,
   needsConsentDecision,
   readConsent,

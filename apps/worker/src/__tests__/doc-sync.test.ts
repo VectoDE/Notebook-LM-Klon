@@ -8,16 +8,16 @@ import { CoreRepository } from "../core-repository.js";
 import { createD1DatabaseAdapter } from "../d1-adapter.js";
 import {
   DocSyncError,
+  diffFromState,
   EMPTY_STATE,
+  fromBase64Url,
   MAX_DOC_BYTES,
   MAX_UPDATE_BYTES,
-  diffFromState,
-  fromBase64Url,
   mergeIntoState,
   toBase64Url,
   validateUpdate
 } from "../doc-sync.js";
-import { NotebookDO, type SqliteDurableObjectState, createApp } from "../index.js";
+import { createApp, NotebookDO, type SqliteDurableObjectState } from "../index.js";
 import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
 import { clearRateLimitMemory } from "../rate-limiter.js";
 import { SessionManager } from "../session.js";
