@@ -3,10 +3,10 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import {
+  chunkText,
   type LlmProvider,
   type LlmResponse,
-  type LlmStreamChunk,
-  chunkText
+  type LlmStreamChunk
 } from "@notebook-lm/shared";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

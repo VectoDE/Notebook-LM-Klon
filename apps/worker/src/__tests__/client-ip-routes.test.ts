@@ -18,7 +18,7 @@ import { ConsoleMailAdapter } from "../mail-adapter.js";
 import { createPasskeyRoutes } from "../passkey-routes.js";
 import { PasskeyService } from "../passkey-service.js";
 import { RagRepository } from "../rag-repository.js";
-import { SessionManager, computeDailySaltedHash } from "../session.js";
+import { computeDailySaltedHash, SessionManager } from "../session.js";
 import { TURNSTILE_TEST_SECRET_ALWAYS_PASSES } from "../turnstile.js";
 
 const SPOOFED_HEADERS = {

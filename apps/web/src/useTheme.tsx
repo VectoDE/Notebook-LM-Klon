@@ -9,8 +9,8 @@
  */
 
 import {
-  type ReactNode,
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
@@ -25,22 +25,22 @@ import {
   type DesignTheme,
   THEMES
 } from "./design-tokens.js";
-import { type TranslationDictionary, fill } from "./i18n.js";
-import { LOCALE_LOADERS, createLocaleRegistry } from "./locale-registry.js";
+import { fill, type TranslationDictionary } from "./i18n.js";
+import { createLocaleRegistry, LOCALE_LOADERS } from "./locale-registry.js";
 import { applySeoLanguage, languageFromSearch } from "./seo.js";
 import {
+  applyReduceMotion,
+  applyThemeToDocument,
   COLOR_MODE_PREFERENCES,
   type ColorModePreference,
+  documentLanguage,
   LANGUAGES,
   type Language,
   REDUCED_MOTION_QUERY,
-  SYSTEM_COLOR_QUERIES,
-  applyReduceMotion,
-  applyThemeToDocument,
-  documentLanguage,
   readReduceMotion,
   resolveColorMode,
   resolveInitialPreferences,
+  SYSTEM_COLOR_QUERIES,
   systemColorMode,
   systemPrefersReducedMotion
 } from "./theme-preferences.js";
@@ -48,10 +48,8 @@ import { AREA_DE, AREA_EN } from "./translations-areas.js";
 import { ENTITY_GRAPH_DE, ENTITY_GRAPH_EN } from "./translations-entity-graph.js";
 import { STRUCTURED_DE, STRUCTURED_EN } from "./translations-structured.js";
 
-export { COLOR_MODES, COLOR_MODE_PREFERENCES, LANGUAGES, THEMES, documentLanguage };
-export type { ColorMode, ColorModePreference, DesignTheme, Language };
-
-export type { TranslationDictionary };
+export type { ColorMode, ColorModePreference, DesignTheme, Language, TranslationDictionary };
+export { COLOR_MODE_PREFERENCES, COLOR_MODES, documentLanguage, LANGUAGES, THEMES };
 
 /** Eingebaute Kataloge; weitere Sprachen (z. B. Leichte Sprache) kommen aus locales/*.json. */
 export type BuiltinLanguage = "de" | "en";

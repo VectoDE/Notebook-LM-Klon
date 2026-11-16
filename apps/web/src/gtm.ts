@@ -51,7 +51,7 @@ function ensureGtag(win: GtmGlobal): (...args: unknown[]) => void {
   win.dataLayer = layer;
   // gtag.js erwartet das arguments-Objekt, kein Array
   win.gtag = function gtag() {
-    // biome-ignore lint/style/noArguments: Google Consent Mode verlangt das arguments-Objekt
+    // biome-ignore lint/complexity/noArguments: Google Consent Mode verlangt das arguments-Objekt
     layer.push(arguments);
   };
   win.gtag("consent", "default", { ...CONSENT_DEFAULTS });

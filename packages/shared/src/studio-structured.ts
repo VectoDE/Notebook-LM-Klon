@@ -9,11 +9,11 @@
 
 import { z } from "zod";
 import {
+  collapseWhitespace,
   EntityEvidenceSchema,
   type EntitySourceText,
-  REVIEW_STATUSES,
-  collapseWhitespace,
-  locateQuote
+  locateQuote,
+  REVIEW_STATUSES
 } from "./entity-graph.js";
 
 /** Kommt ein Wert (ohne Groß-/Kleinschreibung, Leerraum tolerant) im Zitat vor? */

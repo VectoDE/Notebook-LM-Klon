@@ -8,8 +8,8 @@
 import { type FormEvent, useEffect, useState } from "react";
 import {
   type CustomEndpointState,
-  EndpointApiError,
   deleteCustomEndpoint,
+  EndpointApiError,
   loadCustomEndpoint,
   saveCustomEndpoint,
   testCustomEndpoint

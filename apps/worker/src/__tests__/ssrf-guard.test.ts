@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  SsrSecurityError,
-  StreamTooLargeError,
   isPrivateOrLocalHost,
   isPrivateOrReservedIpv4,
   isPrivateOrReservedIpv6,
   parseIpv4ToUint32,
   parseIpv6,
+  SsrSecurityError,
+  StreamTooLargeError,
   safeFetchWithGuard,
   validateSafeUrl
 } from "../ssrf-guard.js";

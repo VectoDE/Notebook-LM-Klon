@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { DESIGNS, chooseDesign, openPanel } from "./helpers";
+import { chooseDesign, DESIGNS, openPanel } from "./helpers";
 
 test.describe("Typografie: Silbentrennung, Stufung, Schatten, Scroll-Verlauf", () => {
   test("Editorial Calm trennt nur Fließtext, nie Überschriften, Beschreibungen und Knöpfe", async ({

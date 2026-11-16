@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { type Page, expect, test } from "@playwright/test";
-import { DESIGNS, MODES, chooseDesign } from "./helpers";
+import { expect, type Page, test } from "@playwright/test";
+import { chooseDesign, DESIGNS, MODES } from "./helpers";
 
 /**
  * Kontrast-Audit WCAG 2.2 AAA am gerenderten Bildschirm (Issues #252, #254).

@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { ProblemDetailsSchema, createProblemDetails, inspectTextEncoding } from "../index.js";
+import { createProblemDetails, inspectTextEncoding, ProblemDetailsSchema } from "../index.js";
 
 describe("Property-Based & Fuzz Testing – Shared Schemas & Encoding (fast-check, Decision #107)", () => {
   it("fuzzes inspectTextEncoding across arbitrary ASCII/Unicode text without false positives", () => {

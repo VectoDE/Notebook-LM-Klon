@@ -6,11 +6,11 @@
 
 import {
   type CatalogMap,
+  createI18n,
   type I18n,
   type LocaleMeta,
   type MetaMap,
-  type TranslationDictionary,
-  createI18n
+  type TranslationDictionary
 } from "./i18n.js";
 
 /** Rohinhalt einer Katalogdatei: Texte und optional `$meta`. */

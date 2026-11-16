@@ -10,8 +10,8 @@ import { createD1DatabaseAdapter } from "../d1-adapter.js";
 import { createApp } from "../index.js";
 import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
 import {
-  RATE_LIMIT_RULES,
   clearRateLimitMemory,
+  RATE_LIMIT_RULES,
   resolveCategoryFromPath
 } from "../rate-limiter.js";
 import { SessionManager } from "../session.js";

@@ -1,10 +1,10 @@
 import {
+  createProblemDetails,
+  dotProductInt8,
   type EnqueueJobBody,
   type JobBroadcastEvent,
   type JobFilterQuery,
   type JobRecord,
-  createProblemDetails,
-  dotProductInt8,
   quantizeFloat32ToInt8
 } from "@notebook-lm/shared";
 import {

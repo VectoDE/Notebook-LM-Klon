@@ -5,10 +5,10 @@ import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   C2PA_ENV_VARS,
-  DEFAULT_SIGN_TIMEOUT_MS,
-  ProvenanceSignError,
   c2paSignerFromVars,
-  createC2paToolSigner
+  createC2paToolSigner,
+  DEFAULT_SIGN_TIMEOUT_MS,
+  ProvenanceSignError
 } from "../node/c2pa-signer.js";
 import { PASSTHROUGH_VARS } from "../node/config.js";
 

@@ -18,13 +18,13 @@ import {
   type LlmJsonOptions,
   type LlmMessage,
   type LlmProvider,
-  type TimelineEntry,
-  type TimelineExtraction,
-  TimelineExtractionSchema,
   normalizeDataTable,
   normalizeInfographic,
   normalizeTimeline,
-  sanitizeSourceChunkText
+  sanitizeSourceChunkText,
+  type TimelineEntry,
+  type TimelineExtraction,
+  TimelineExtractionSchema
 } from "@notebook-lm/shared";
 import type { EntityExtractionOptions, EntityExtractionSource } from "./entity-extraction.js";
 import { DEFAULT_MAX_CHARS_PER_SOURCE } from "./entity-extraction.js";

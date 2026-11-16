@@ -5,7 +5,7 @@
  * HTTPS-Adresse; die Test-fetch-Funktion leitet erst nach allen Schutzprüfungen auf den
  * lokalen Server um. So laufen Allowlist, SSRF- und DNS-Prüfung genau wie in Produktion.
  */
-import { type IncomingMessage, type Server, type ServerResponse, createServer } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { OpenAiCompatibleProvider } from "../openai-compatible-provider.js";

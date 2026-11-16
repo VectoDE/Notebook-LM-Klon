@@ -17,18 +17,18 @@ import { type Context, Hono } from "hono";
 import { csrfProtection } from "./auth-middleware.js";
 import type { DatabaseAdapter } from "./core-repository.js";
 import {
-  BYOM_ALLOWLIST_ENV,
-  type HostResolver,
   assertHostResolvesPublic,
+  BYOM_ALLOWLIST_ENV,
   createDohResolver,
   endpointKeyBinding,
+  type HostResolver,
   parseHostAllowlist,
   validateUserEndpoint
 } from "./endpoint-guard.js";
-import { type KeyVault, deserializeEncryptedPayload } from "./key-vault.js";
+import { deserializeEncryptedPayload, type KeyVault } from "./key-vault.js";
 import { OpenAiCompatibleProvider } from "./openai-compatible-provider.js";
 import type { RagRepository } from "./rag-repository.js";
-import { type RateLimitConfig, checkRateLimit } from "./rate-limiter.js";
+import { checkRateLimit, type RateLimitConfig } from "./rate-limiter.js";
 import type { SsrSecurityError } from "./ssrf-guard.js";
 
 /**

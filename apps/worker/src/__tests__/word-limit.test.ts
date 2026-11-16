@@ -1,10 +1,10 @@
-import { MAX_WORDS_PER_SOURCE, countUniqueWords, countWords } from "@notebook-lm/shared";
+import { countUniqueWords, countWords, MAX_WORDS_PER_SOURCE } from "@notebook-lm/shared";
 import { describe, expect, it } from "vitest";
 import { resolveAppConfig } from "../config.js";
 import {
-  SOURCE_WORD_LIMIT_CODE,
   checkTextWordLimit,
   exceedsWordLimit,
+  SOURCE_WORD_LIMIT_CODE,
   sourceWordLimitProblem
 } from "../word-limit.js";
 

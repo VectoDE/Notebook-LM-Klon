@@ -9,16 +9,16 @@ import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { MODEL_DATA_POLICIES, policyFor, STATUS_KEYS } from "../model-data-policy.js";
 import { SettingsDrawer } from "../SettingsDrawer.js";
-import { MODEL_DATA_POLICIES, STATUS_KEYS, policyFor } from "../model-data-policy.js";
 import {
   CUSTOM_MODEL_ID,
-  MODEL_IDS,
   isModelSelectable,
+  MODEL_IDS,
   readStoredModel,
   storeModel
 } from "../theme-preferences.js";
-import { TRANSLATIONS, ThemeProvider, type ThemeProviderProps } from "../useTheme.js";
+import { ThemeProvider, type ThemeProviderProps, TRANSLATIONS } from "../useTheme.js";
 
 const EASY = JSON.parse(
   readFileSync(new URL("../locales/de-x-ls.json", import.meta.url), "utf8")

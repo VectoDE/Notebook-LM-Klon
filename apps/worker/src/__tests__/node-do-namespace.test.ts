@@ -6,9 +6,9 @@ import type { SqliteDurableObjectState } from "../durable-objects.js";
 import {
   ALARM_MAX_RETRIES,
   ALARM_RETRY_BASE_MS,
+  createInProcessNamespace,
   type DurableObjectFactory,
-  type InProcessNamespace,
-  createInProcessNamespace
+  type InProcessNamespace
 } from "../node/do-namespace.js";
 
 let dir = "";

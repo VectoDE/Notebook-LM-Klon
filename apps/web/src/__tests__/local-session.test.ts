@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { LOCAL_CONTENT_KEYS, fetchLocalKey, signOutAndWipe } from "../local-session.js";
+import { fetchLocalKey, LOCAL_CONTENT_KEYS, signOutAndWipe } from "../local-session.js";
 
 function b64url(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes))

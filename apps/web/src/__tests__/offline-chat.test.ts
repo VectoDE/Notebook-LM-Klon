@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { LocalChatMessage, LocalModelState } from "../local-llm.js";
-import { hasLocalModelFlag } from "../offline-chat-flag.js";
 import {
-  type OfflineAnswerInfo,
   answerOffline,
   buildLocalMessages,
   chatModeFor,
   chooseChatRoute,
   localRouteFor,
+  type OfflineAnswerInfo,
   offlineErrorText,
   passagesToLocations,
   retrieveLocalPassages,
@@ -15,6 +14,7 @@ import {
   stripMarkers,
   terms
 } from "../offline-chat.js";
+import { hasLocalModelFlag } from "../offline-chat-flag.js";
 import {
   OFFLINE_CHAT_DE,
   OFFLINE_CHAT_EN,

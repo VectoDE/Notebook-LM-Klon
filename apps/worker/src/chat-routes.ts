@@ -1,12 +1,12 @@
 import {
+  buildGroundedContext,
   type ChatMessagesResponse,
   ChatRequestBodySchema,
+  combineWithRrf,
+  createProblemDetails,
   type GroundedChunkInput,
   type LlmProvider,
   type ProviderType,
-  buildGroundedContext,
-  combineWithRrf,
-  createProblemDetails,
   validateAndCleanCitations
 } from "@notebook-lm/shared";
 import type { Hono } from "hono";
@@ -16,7 +16,7 @@ import type { CoreRepository } from "./core-repository.js";
 import { embedQuery } from "./embeddings.js";
 import { buildSafeFts5MatchQuery } from "./fts5-probe.js";
 import { GeminiProvider } from "./gemini-provider.js";
-import { type KeyVault, deserializeEncryptedPayload } from "./key-vault.js";
+import { deserializeEncryptedPayload, type KeyVault } from "./key-vault.js";
 import { OllamaLocalProvider } from "./ollama-provider.js";
 import type { RagRepository } from "./rag-repository.js";
 import { queryNotebookVectorSearch } from "./search-routes.js";

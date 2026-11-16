@@ -13,11 +13,11 @@
 import {
   type CommentPerson,
   type CommentTargetType,
-  type MentionQuery,
-  type NotebookComment,
   filterMentionCandidates,
   findMentionQuery,
   insertMention,
+  type MentionQuery,
+  type NotebookComment,
   resolveMentionIds
 } from "@notebook-lm/shared";
 import {
@@ -32,16 +32,16 @@ import {
 } from "react";
 import {
   type CommentErrorKind,
-  type FetchLike,
   commentErrorKey,
   createComment,
   deleteComment,
+  type FetchLike,
   listComments,
   listMembers,
   updateComment
 } from "./comments-client.js";
 import { commentTexts } from "./translations-comments.js";
-import { LOCALES, fill, useTheme } from "./useTheme.js";
+import { fill, LOCALES, useTheme } from "./useTheme.js";
 
 export interface CommentThreadProps {
   readonly notebookId: string;

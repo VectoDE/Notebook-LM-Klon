@@ -346,7 +346,9 @@ html[data-design="editorial-calm"] .workspace-panel + .workspace-panel {
   line-height: 20px;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color var(--rn-transition-base), color var(--rn-transition-base);
+  transition:
+    background-color var(--rn-transition-base),
+    color var(--rn-transition-base);
 }
 
 .rn-topnav-item:hover {
@@ -434,7 +436,9 @@ html[data-color-mode="aaa-contrast"] .rn-topnav-item[aria-current="true"] {
   font-size: var(--rn-text-small);
   font-weight: 500;
   line-height: 20px;
-  transition: background-color var(--rn-transition-base), box-shadow var(--rn-transition-base);
+  transition:
+    background-color var(--rn-transition-base),
+    box-shadow var(--rn-transition-base);
 }
 
 .rn-control:hover {
@@ -612,7 +616,9 @@ html[data-color-mode="aaa-contrast"] .rn-popover {
   color: var(--rn-color-text-primary);
   font-family: var(--rn-font-family-ui);
   cursor: pointer;
-  transition: background-color var(--rn-transition-base), box-shadow var(--rn-transition-base);
+  transition:
+    background-color var(--rn-transition-base),
+    box-shadow var(--rn-transition-base);
 }
 
 .rn-choice:hover {
@@ -738,7 +744,9 @@ html[data-color-mode="aaa-contrast"] .rn-popover {
   font-size: var(--rn-text-small);
   font-weight: 500;
   cursor: pointer;
-  transition: background-color var(--rn-transition-base), color var(--rn-transition-base);
+  transition:
+    background-color var(--rn-transition-base),
+    color var(--rn-transition-base);
 }
 
 .rn-segment:has(:checked) {
@@ -1043,7 +1051,9 @@ html[data-reduce-motion="true"] .rn-appearance-chevron {
   width: 60px;
   height: 32px;
   border-radius: var(--rn-radius-pill);
-  transition: background-color var(--rn-transition-base), color var(--rn-transition-base);
+  transition:
+    background-color var(--rn-transition-base),
+    color var(--rn-transition-base);
 }
 
 .rn-tab[aria-current="true"] {
@@ -1173,9 +1183,11 @@ html[data-color-mode="aaa-contrast"] .rn-rail-items {
 /* Übergang beim Ein- und Ausklappen nur ohne reduzierte Bewegung */
 @media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
   html:not([data-reduce-motion="true"]) :is(.panel-left, .panel-right) {
-    transition: flex-grow var(--rn-motion-medium) var(--rn-transition-ease), flex-basis
-      var(--rn-motion-medium) var(--rn-transition-ease), min-width var(--rn-motion-medium)
-      var(--rn-transition-ease), max-width var(--rn-motion-medium) var(--rn-transition-ease);
+    transition:
+      flex-grow var(--rn-motion-medium) var(--rn-transition-ease),
+      flex-basis var(--rn-motion-medium) var(--rn-transition-ease),
+      min-width var(--rn-motion-medium) var(--rn-transition-ease),
+      max-width var(--rn-motion-medium) var(--rn-transition-ease);
   }
 }
 
@@ -2119,7 +2131,9 @@ html[data-color-mode="aaa-contrast"] .rn-tool {
   border: 1.5px dashed var(--rn-color-border);
   background: transparent;
   color: var(--rn-color-text-secondary);
-  transition: background-color var(--rn-transition-base), border-color var(--rn-transition-base);
+  transition:
+    background-color var(--rn-transition-base),
+    border-color var(--rn-transition-base);
 }
 
 .rn-dropzone[data-dragging="true"] {
@@ -2218,7 +2232,9 @@ html[data-color-mode="aaa-contrast"] .rn-dropzone {
   padding: var(--rn-space-2) 0 var(--rn-space-2) var(--rn-space-3);
   border-radius: var(--rn-radius-md);
   border: 1px solid transparent;
-  transition: background-color var(--rn-transition-base), border-color var(--rn-transition-base);
+  transition:
+    background-color var(--rn-transition-base),
+    border-color var(--rn-transition-base);
 }
 
 .rn-source:hover {
@@ -2876,7 +2892,9 @@ html[data-color-mode="aaa-contrast"] .rn-btn--unavailable {
   background: var(--rn-color-panel);
   color: var(--rn-color-text-primary);
   cursor: pointer;
-  transition: border-color var(--rn-transition-base), background-color var(--rn-transition-base);
+  transition:
+    border-color var(--rn-transition-base),
+    background-color var(--rn-transition-base);
 }
 
 .rn-quiz-option[data-state="open"]:hover {
@@ -3041,7 +3059,9 @@ html[data-color-mode="aaa-contrast"] .rn-btn--unavailable {
 
 .rn-flashcard[data-side="back"] {
   border-color: var(--rn-color-primary);
-  box-shadow: inset 0 3px 0 var(--rn-color-primary), var(--rn-color-panel-shadow);
+  box-shadow:
+    inset 0 3px 0 var(--rn-color-primary),
+    var(--rn-color-panel-shadow);
 }
 
 .rn-flashcard-meta {
@@ -3095,7 +3115,9 @@ html[data-color-mode="aaa-contrast"] .rn-btn--unavailable {
   color: var(--rn-color-text-primary);
   font: inherit;
   cursor: pointer;
-  transition: background-color var(--rn-transition-base), border-color var(--rn-transition-base);
+  transition:
+    background-color var(--rn-transition-base),
+    border-color var(--rn-transition-base);
 }
 
 .rn-rating:hover:not(:disabled) {
@@ -3736,7 +3758,9 @@ html[data-color-mode="aaa-contrast"] .rn-graph-edge {
   font-size: var(--rn-text-small);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color var(--rn-transition-base), color var(--rn-transition-base);
+  transition:
+    background-color var(--rn-transition-base),
+    color var(--rn-transition-base);
 }
 
 .rn-stage-btn:hover {
@@ -4239,7 +4263,9 @@ html[data-color-mode="aaa-contrast"] .rn-stage-btn.rn-video-toggle[aria-pressed=
   line-height: 1.5;
   text-align: left;
   cursor: pointer;
-  transition: color var(--rn-transition-base), border-color var(--rn-transition-base);
+  transition:
+    color var(--rn-transition-base),
+    border-color var(--rn-transition-base);
 }
 
 .rn-lyrics-line:hover {
@@ -4736,7 +4762,9 @@ html[data-reduce-motion="true"] .rn-lyrics {
 html[data-design="pure"] .rn-tool {
   border-color: transparent;
   background: var(--rn-color-canvas);
-  transition: background-color var(--rn-transition-base), box-shadow var(--rn-transition-base),
+  transition:
+    background-color var(--rn-transition-base),
+    box-shadow var(--rn-transition-base),
     transform var(--rn-transition-base);
 }
 
@@ -4847,7 +4875,8 @@ html[data-design="editorial-calm"] .rn-source {
 
 /* --- Immersive Cinema: Tiefe und Kino. Glas, Lichtkanten, leuchtende Kacheln --- */
 html[data-design="immersive-cinema"] .workspace-panel {
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--rn-color-text-primary) 8%, transparent),
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rn-color-text-primary) 8%, transparent),
     var(--rn-color-panel-shadow);
 }
 
@@ -4870,7 +4899,9 @@ html[data-design="immersive-cinema"] .rn-source-type {
 }
 
 html[data-design="immersive-cinema"] .rn-tool {
-  transition: transform var(--rn-transition-base), border-color var(--rn-transition-base),
+  transition:
+    transform var(--rn-transition-base),
+    border-color var(--rn-transition-base),
     box-shadow var(--rn-transition-base);
 }
 
@@ -4884,7 +4915,8 @@ html[data-design="immersive-cinema"] .rn-avatar {
 }
 
 html[data-design="immersive-cinema"] .rn-composer:focus-within {
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--rn-color-brand) 18%, transparent),
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--rn-color-brand) 18%, transparent),
     var(--rn-color-panel-shadow);
 }
 
@@ -4914,7 +4946,8 @@ html[data-design="fusion"] .rn-summary::before {
   position: absolute;
   inset: 0 0 auto;
   height: 3px;
-  background: linear-gradient(
+  background:
+    linear-gradient(
       90deg,
       var(--rn-color-brand),
       var(--rn-color-stage-accent),
@@ -4925,7 +4958,9 @@ html[data-design="fusion"] .rn-summary::before {
 }
 
 html[data-design="fusion"] .rn-tool {
-  transition: transform var(--rn-transition-base), border-color var(--rn-transition-base),
+  transition:
+    transform var(--rn-transition-base),
+    border-color var(--rn-transition-base),
     box-shadow var(--rn-transition-base);
 }
 
@@ -5069,9 +5104,13 @@ html[data-reduce-motion="true"][data-design] .rn-tool:hover {
     :where(html:not([data-color-mode="aaa-contrast"]):not([data-reduce-motion="true"]))
       :is(.chat-log, .rn-sources, .rn-panel-body, .rn-inspector, .rn-stage-body, .rn-lyrics) {
       --rn-scroll-fade-size: 28px;
-      animation: rn-fade-top-in linear both, rn-fade-bottom-out linear both;
+      animation:
+        rn-fade-top-in linear both,
+        rn-fade-bottom-out linear both;
       animation-timeline: scroll(self block), scroll(self block);
-      animation-range: 0 var(--rn-scroll-fade-size), calc(100% - var(--rn-scroll-fade-size)) 100%;
+      animation-range:
+        0 var(--rn-scroll-fade-size),
+        calc(100% - var(--rn-scroll-fade-size)) 100%;
       mask-image: linear-gradient(
         to bottom,
         transparent 0,

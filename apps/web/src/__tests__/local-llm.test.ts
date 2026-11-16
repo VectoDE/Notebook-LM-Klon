@@ -1,19 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  LOCAL_MODEL_DOWNLOAD_BYTES,
-  LOCAL_MODEL_STORAGE_KEY,
-  LOCAL_MODEL_URL,
-  formatGigabytes
-} from "../local-llm-config.js";
-import {
+  hasRoomFor,
+  hasWebGpu,
   type LocalEngine,
   LocalModelController,
   type LocalModelEnv,
   type LocalModelState,
-  type LocalRuntime,
-  hasRoomFor,
-  hasWebGpu
+  type LocalRuntime
 } from "../local-llm.js";
+import {
+  formatGigabytes,
+  LOCAL_MODEL_DOWNLOAD_BYTES,
+  LOCAL_MODEL_STORAGE_KEY,
+  LOCAL_MODEL_URL
+} from "../local-llm-config.js";
 
 /** Laufzeit im Speicher statt WebLLM: kein Netz, keine GPU, keine echten Gewichte. */
 function fakeRuntime(options: { cached?: boolean; failCreate?: boolean; tokens?: string[] } = {}) {

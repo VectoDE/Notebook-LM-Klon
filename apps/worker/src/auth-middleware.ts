@@ -1,7 +1,7 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import type { MiddlewareHandler } from "hono";
 import type { CoreRepository } from "./core-repository.js";
-import { type SessionManager, extractSessionToken } from "./session.js";
+import { extractSessionToken, type SessionManager } from "./session.js";
 
 export interface AuthMiddlewareOptions {
   repo: CoreRepository;

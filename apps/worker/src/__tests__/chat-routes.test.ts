@@ -11,11 +11,11 @@ import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AutoRouter } from "../auto-router.js";
 import {
+  decodeHistoryCursor,
+  encodeHistoryCursor,
   HISTORY_PAGE_DEFAULT,
   HISTORY_PAGE_MAX,
   NO_EVIDENCE_ANSWER,
-  decodeHistoryCursor,
-  encodeHistoryCursor,
   registerChatRoutes
 } from "../chat-routes.js";
 import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";

@@ -1,22 +1,21 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { DEFAULT_MINDMAP, DEFAULT_SOURCES } from "../WorkspaceLayout.js";
 import {
   ARC_LEFT,
   ARC_RIGHT,
-  COLUMNS_MIN_WIDTH,
-  GRAPH_PADDING,
-  type KnowledgeGraph,
-  MAX_ZOOM,
-  MIN_FIT_ZOOM,
-  MIN_ZOOM,
   buildKnowledgeGraph,
+  COLUMNS_MIN_WIDTH,
   conceptNodeId,
   degree,
   fitZoom,
+  GRAPH_PADDING,
   graphOffset,
   graphTabTarget,
+  type KnowledgeGraph,
   layoutGraph,
   layoutModeFor,
+  MAX_ZOOM,
+  MIN_FIT_ZOOM,
+  MIN_ZOOM,
   mentions,
   nodeInDirection,
   nodeRelations,
@@ -27,6 +26,7 @@ import {
   wrapLabel
 } from "../knowledge-graph.js";
 import { preloadStudioViewers } from "../lazy-viewers.js";
+import { DEFAULT_MINDMAP, DEFAULT_SOURCES } from "../WorkspaceLayout.js";
 
 // Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
 beforeAll(() => preloadStudioViewers());

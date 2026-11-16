@@ -1,4 +1,4 @@
-import { type Page, expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 /**
  * Verschlüsselte lokale Ablage (Issue #348) im echten Browser: Chiffrat in IndexedDB,

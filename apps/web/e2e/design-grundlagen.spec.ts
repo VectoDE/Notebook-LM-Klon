@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { DESIGNS, MODES, chooseDesign, findLayoutProblems, openPanel } from "./helpers";
+import { chooseDesign, DESIGNS, findLayoutProblems, MODES, openPanel } from "./helpers";
 
 /**
  * Design endgültig, Teil 1 (Issue #328): Standarddesign, Pillenknöpfe, Karten 12 px,

@@ -6,9 +6,9 @@ import { seedDemoNotebooks } from "./demo-seeder.js";
 import type { MailAdapter } from "./mail-adapter.js";
 import { resolveClientIp } from "./rate-limiter.js";
 import {
-  type SessionManager,
   buildSessionCookie,
   generateSessionToken,
+  type SessionManager,
   sha256Hex
 } from "./session.js";
 import { requireTurnstile } from "./turnstile.js";

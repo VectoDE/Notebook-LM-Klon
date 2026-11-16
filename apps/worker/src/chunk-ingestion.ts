@@ -1,14 +1,14 @@
 import {
-  IngestChunksBodySchema,
   countUniqueWords,
   createProblemDetails,
+  IngestChunksBodySchema,
   quantizeFloat32ToInt8
 } from "@notebook-lm/shared";
 import type { Hono } from "hono";
 import type { AuditLogger } from "./audit-log.js";
 import { resolveAppConfig } from "./config.js";
 import type { CoreRepository } from "./core-repository.js";
-import { EMBEDDING_MODEL, documentInput, embedTexts } from "./embeddings.js";
+import { documentInput, EMBEDDING_MODEL, embedTexts } from "./embeddings.js";
 import type { RagRepository } from "./rag-repository.js";
 import { exceedsWordLimit, sourceWordLimitProblem } from "./word-limit.js";
 

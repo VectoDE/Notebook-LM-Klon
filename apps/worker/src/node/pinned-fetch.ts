@@ -11,9 +11,9 @@
  * werden nur Text-Bodys, mehr braucht der OpenAI-kompatible Adapter nicht.
  */
 
-import { type LookupAddress, lookup as dnsLookup } from "node:dns";
+import { lookup as dnsLookup, type LookupAddress } from "node:dns";
 import type { ClientRequest, IncomingMessage, OutgoingHttpHeaders } from "node:http";
-import { type RequestOptions, request as httpsRequest } from "node:https";
+import { request as httpsRequest, type RequestOptions } from "node:https";
 import type { LookupFunction } from "node:net";
 import { Readable } from "node:stream";
 import { isBlockedIp } from "../endpoint-guard.js";

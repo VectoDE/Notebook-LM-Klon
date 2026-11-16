@@ -1,5 +1,5 @@
-import { type Page, expect, test } from "@playwright/test";
-import { DESIGNS, chooseDesign, findLayoutProblems, openPanel } from "./helpers";
+import { expect, type Page, test } from "@playwright/test";
+import { chooseDesign, DESIGNS, findLayoutProblems, openPanel } from "./helpers";
 
 async function openVideo(page: Page): Promise<void> {
   await openPanel(page, "studio");

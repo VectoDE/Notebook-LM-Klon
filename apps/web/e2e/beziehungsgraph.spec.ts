@@ -1,4 +1,4 @@
-import { type Page, expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { findLayoutProblems } from "./helpers";
 
 /** Issue #238: Beziehungsgraph (Personen, Organisationen, Themen) mit Beleg, Filter und Prüfung. */

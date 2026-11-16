@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildGroundedContext,
   DEFAULT_RAG_SYSTEM_PROMPT,
   type GroundedChunkInput,
   type GroundedSourceItem,
-  buildGroundedContext,
   sanitizeSourceChunkText
 } from "../chat-context.js";
 import { extractCitationIndices, validateAndCleanCitations } from "../citation-parser.js";

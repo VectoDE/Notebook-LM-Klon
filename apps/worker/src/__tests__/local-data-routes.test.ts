@@ -8,8 +8,8 @@ import { sessionMiddleware } from "../auth-middleware.js";
 import { CoreRepository } from "../core-repository.js";
 import { createD1DatabaseAdapter } from "../d1-adapter.js";
 import {
-  LOCAL_KEY_BYTES,
   deriveLocalKeyMaterial,
+  LOCAL_KEY_BYTES,
   registerLocalDataRoutes
 } from "../local-data-routes.js";
 import { createNodeEnv, runSqliteMigrations } from "../node-server.js";

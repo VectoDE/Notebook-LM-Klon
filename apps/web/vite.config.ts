@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react";
-import { type Plugin, defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import { injectSiteVerification } from "./src/analytics-config.ts";
 import {
   buildHeadTags,

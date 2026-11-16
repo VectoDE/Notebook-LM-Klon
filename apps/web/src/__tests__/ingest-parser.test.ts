@@ -1,10 +1,10 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { DOCX_MIME_TYPE } from "../workers/docx-parser.js";
 import {
-  type IngestParserWorkerRequest,
-  type IngestParserWorkerResponse,
   extractMarkdownSections,
   handleParserMessage,
+  type IngestParserWorkerRequest,
+  type IngestParserWorkerResponse,
   parseDocument,
   parseDocumentToChunks
 } from "../workers/ingest-parser.js";

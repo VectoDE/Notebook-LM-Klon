@@ -1,5 +1,5 @@
-import { type Page, expect, test } from "@playwright/test";
-import { DESIGNS, chooseDesign, findLayoutProblems, openPanel } from "./helpers";
+import { expect, type Page, test } from "@playwright/test";
+import { chooseDesign, DESIGNS, findLayoutProblems, openPanel } from "./helpers";
 
 /** Sichtbare Knöpfe in einem Bereich, die kleiner als 44 x 44 px sind. */
 async function smallButtons(page: Page, testId: string): Promise<string[]> {

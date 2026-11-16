@@ -7,7 +7,7 @@ import {
   inspectDocxArchive,
   readZipDirectory
 } from "../workers/docx-parser.js";
-import { DOCX_FRAME, buildDocx, buildZip, documentXml } from "./zip-fixture.js";
+import { buildDocx, buildZip, DOCX_FRAME, documentXml } from "./zip-fixture.js";
 
 // mammoth beim ersten Import kalt zu laden dauert auf ausgelasteten Rechnern mehrere Sekunden
 beforeAll(async () => {

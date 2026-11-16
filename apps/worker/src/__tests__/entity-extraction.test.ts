@@ -7,10 +7,10 @@ import type {
 } from "@notebook-lm/shared";
 import { describe, expect, it } from "vitest";
 import {
+  buildEntityExtractionMessages,
   DEFAULT_MAX_CHARS_PER_SOURCE,
   ENTITY_EXTRACTION_JSON_SCHEMA,
   type EntityExtractionSource,
-  buildEntityExtractionMessages,
   extractEntityGraph,
   parseEntityExtraction
 } from "../entity-extraction.js";

@@ -11,9 +11,9 @@ import {
 } from "../translations-offline-chat.js";
 import {
   LOCALES,
-  TRANSLATIONS,
   ThemeProvider,
   type ThemeProviderProps,
+  TRANSLATIONS,
   translate
 } from "../useTheme.js";
 

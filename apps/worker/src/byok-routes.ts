@@ -13,9 +13,9 @@ import { type Context, Hono } from "hono";
 import { csrfProtection } from "./auth-middleware.js";
 import type { CoreRepository } from "./core-repository.js";
 import {
-  type KeyVault,
   createKeyVaultFromEnv,
   deserializeEncryptedPayload,
+  type KeyVault,
   serializeEncryptedPayload
 } from "./key-vault.js";
 import type { RagRepository } from "./rag-repository.js";

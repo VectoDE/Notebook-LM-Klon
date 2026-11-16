@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { TOAST_DURATION_MS, type ToastClock, createToastTimer } from "../toast-timer.js";
+import { createToastTimer, TOAST_DURATION_MS, type ToastClock } from "../toast-timer.js";
 
 /** Steuerbare Uhr: Zeit läuft nur per advance(). */
 function fakeClock() {

@@ -1,6 +1,6 @@
 import { fill } from "./i18n.js";
-import { LOCAL_MODEL_LABEL } from "./local-llm-config.js";
 import type { LocalChatMessage, LocalModelController, LocalModelState } from "./local-llm.js";
+import { LOCAL_MODEL_LABEL } from "./local-llm-config.js";
 import { isEnglish, offlineChatTexts } from "./translations-offline-chat.js";
 import type { CitationLocation, WorkspaceSource } from "./workspace-types.js";
 

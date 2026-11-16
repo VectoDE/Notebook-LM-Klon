@@ -1,10 +1,10 @@
-import { IngestChunksBodySchema, type TextChunk, chunkText } from "@notebook-lm/shared";
+import { chunkText, IngestChunksBodySchema, type TextChunk } from "@notebook-lm/shared";
 import { describe, expect, it } from "vitest";
 import {
   CHUNK_BATCH_SIZE,
   MAX_SOURCE_FILE_BYTES,
-  SourceUploadError,
   resolveUploadMimeType,
+  SourceUploadError,
   uploadSource
 } from "../source-upload-client.js";
 

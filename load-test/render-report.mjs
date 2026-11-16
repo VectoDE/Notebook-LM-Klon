@@ -60,7 +60,7 @@ p { color: var(--muted); }
 <body>
 <main>
 <h1>Lasttest-Report (${escapeHtml(summary.profile)})</h1>
-<p>Statischer Report aus den k6-Messwerten. Quelle: <code>${escapeHtml(input.split(/[\/]/).pop())}</code>.</p>
+<p>Statischer Report aus den k6-Messwerten. Quelle: <code>${escapeHtml(input.split(/[/]/).pop())}</code>.</p>
 <h2>Kennzahlen</h2>
 ${table(["Kennzahl", "Wert"], rows)}
 <h2>Latenz p95 je Endpunkt</h2>

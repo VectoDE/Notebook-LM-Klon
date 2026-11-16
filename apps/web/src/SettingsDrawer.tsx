@@ -19,12 +19,12 @@
 import { useEffect, useRef, useState } from "react";
 import { MotionSetting } from "./AppearanceControls.js";
 import { CustomEndpointSettings } from "./CustomEndpointSettings.js";
-import { Icon } from "./Icon.js";
 import { trapTabKey } from "./focus-trap.js";
-import { CONNECTION_KEYS, POLICY_RETRIEVED, STATUS_KEYS, policyFor } from "./model-data-policy.js";
-import { DEFAULT_MODEL, MODEL_IDS, type ModelId, isModelSelectable } from "./theme-preferences.js";
+import { Icon } from "./Icon.js";
+import { CONNECTION_KEYS, POLICY_RETRIEVED, policyFor, STATUS_KEYS } from "./model-data-policy.js";
+import { DEFAULT_MODEL, isModelSelectable, MODEL_IDS, type ModelId } from "./theme-preferences.js";
 import { useReturnFocus } from "./useReturnFocus.js";
-import { LANGUAGES, type Language, documentLanguage, useTheme } from "./useTheme.jsx";
+import { documentLanguage, LANGUAGES, type Language, useTheme } from "./useTheme.jsx";
 
 /**
  * Namen der Sprachen, jeweils in der Sprache selbst (Issue #349): Sie bleiben gleich, egal

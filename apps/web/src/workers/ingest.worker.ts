@@ -1,4 +1,4 @@
-import { type IngestParserWorkerRequest, handleParserMessage } from "./ingest-parser.js";
+import { handleParserMessage, type IngestParserWorkerRequest } from "./ingest-parser.js";
 
 self.onmessage = (event: MessageEvent<IngestParserWorkerRequest>) => {
   // Web dedicated worker messages from same execution context: verify origin when present
