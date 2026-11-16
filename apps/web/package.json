@@ -12,7 +12,7 @@
     "test:e2e:node": "playwright test -c playwright.node.config.ts"
   },
   "dependencies": {
-    "@mlc-ai/web-llm": "0.2.87",
+    "@mlc-ai/web-llm": "0.2.88",
     "@notebook-lm/shared": "workspace:*",
     "mammoth": "1.13.0",
     "pdfjs-dist": "^6.5.438",
