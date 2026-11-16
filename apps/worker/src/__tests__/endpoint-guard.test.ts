@@ -146,6 +146,7 @@ describe("endpoint-guard: statische URL-Prüfung", () => {
     ["https://[ff02::1]/v1"],
     ["https://[::ffff:0:7f00:1]/v1"],
     ["https://[4000::1]/v1"],
+    ["https://[5f01::1]/v1"],
     // Interne Namen
     ["https://localhost/v1"],
     ["https://LOCALHOST/v1"],
@@ -238,7 +239,7 @@ describe("endpoint-guard: DNS-Prüfung gegen Rebinding", () => {
     "::ffff:1.1.1.1",
     "64:ff9b::808:808",
     "2001:200::1",
-    "3fff:1000::1",
+    "3fff:1000::1"
     "5f01::1"
   ])("DNS-Antwort %s gilt als öffentlich", (ip) => {
     expect(isBlockedIp(ip)).toBe(false);
