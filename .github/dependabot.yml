@@ -11,6 +11,10 @@ updates:
     labels:
       - "type:ci"
       - "area:security"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/"
@@ -23,3 +27,11 @@ updates:
     labels:
       - "type:chore"
       - "area:security"
+    # Minor- und Patch-Updates in einem PR, Major-Updates bleiben einzeln.
+    groups:
+      npm-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"

@@ -13,18 +13,18 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@hono/node-server": "2.1.6",
+    "@hono/node-server": "2.1.8",
     "@notebook-lm/shared": "workspace:*",
-    "@simplewebauthn/server": "^13.3.3",
+    "@simplewebauthn/server": "^14.1.0",
     "aws4fetch": "^1.0.20",
-    "hono": "4.13.17",
+    "hono": "4.13.18",
     "nodemailer": "10.5.0",
     "yjs": "13.6.33"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "5.20261109.1",
+    "@cloudflare/workers-types": "5.20261113.1",
     "esbuild": "0.28.2",
     "tsx": "4.23.15",
-    "wrangler": "4.158.0"
+    "wrangler": "4.161.0"
   }
 }
