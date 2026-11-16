@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const REPO_ROOT = join(import.meta.dirname, "../../../..");
+const REPO_ROOT = join(import.meta.dirname, "../..");
 const workflow = readFileSync(join(REPO_ROOT, ".github/workflows/release.yml"), "utf-8");
 
 function jobBlock(name: string): string {

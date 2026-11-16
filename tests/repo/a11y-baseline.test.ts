@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const REPO_ROOT = join(import.meta.dirname, "../../../..");
+const REPO_ROOT = join(import.meta.dirname, "../..");
 
 function relativeLuminance(hex: string): number {
   const clean = hex.replace("#", "");

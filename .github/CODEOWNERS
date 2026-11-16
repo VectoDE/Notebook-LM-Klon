@@ -5,3 +5,4 @@
 /apps/web/ @VectoDE
 /packages/shared/ @VectoDE
 /docs/ @VectoDE
+/tests/ @VectoDE

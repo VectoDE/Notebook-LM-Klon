@@ -13,7 +13,7 @@ Der Workflow `.github/workflows/scorecard.yml` läuft bei Push auf `main`, bei �
 | Scorecard Check | Messwert | Umsetzung im Repository und Einordnung |
 |---|---|---|
 | **Token-Permissions** | 10 | Alle Workflows setzen `permissions` auf Top-Level auf `contents: read` (in `scorecard.yml`: `read-all`). Schreibrechte (`security-events`, `id-token`, `attestations`, `contents: write`) stehen nur auf Job-Ebene. |
-| **Pinned-Dependencies** | Ziel 10 (Scorecard-Lauf ausstehend) | Alle GitHub Actions sind auf einen 40-stelligen Commit-SHA gepinnt (geprüft in `packages/shared/src/__tests__/ci-workflows.test.ts`). Das Basis-Image in `apps/worker/Dockerfile` ist per `@sha256`-Digest gepinnt (geprüft in `openssf.test.ts`, Renovate hält ihn aktuell). Der Messwert steht nach dem nächsten Scorecard-Lauf auf `main`. |
+| **Pinned-Dependencies** | Ziel 10 (Scorecard-Lauf ausstehend) | Alle GitHub Actions sind auf einen 40-stelligen Commit-SHA gepinnt (geprüft in `tests/repo/ci-workflows.test.ts`). Das Basis-Image in `apps/worker/Dockerfile` ist per `@sha256`-Digest gepinnt (geprüft in `openssf.test.ts`, Renovate hält ihn aktuell). Der Messwert steht nach dem nächsten Scorecard-Lauf auf `main`. |
 | **Dependency-Update-Tool** | 10 | `.github/renovate.json` (`rangeStrategy: "pin"`, `helpers:pinGitHubActionDigests`) und `.github/dependabot.yml`. |
 | **SAST** | 10 | `.github/workflows/codeql.yml` analysiert JavaScript/TypeScript bei Push, Pull Request und wöchentlich. |
 | **Vulnerabilities** | 10 | `ci.yml` führt `osv-scanner` über `pnpm-lock.yaml` und `gitleaks` über die Historie aus. Scorecard meldet 0 bekannte Schwachstellen. |

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const REPO_ROOT = join(import.meta.dirname, "../../../..");
+const REPO_ROOT = join(import.meta.dirname, "../..");
 
 /** Returns the text of one job below `jobs:` in ci.yml. */
 function jobBlock(content: string, job: string): string {

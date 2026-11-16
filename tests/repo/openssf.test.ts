@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const REPO_ROOT = join(import.meta.dirname, "../../../..");
+const REPO_ROOT = join(import.meta.dirname, "../..");
 
 const ALLOWED_ROOT_FILES = new Set([
   "README.md",

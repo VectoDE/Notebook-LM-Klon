@@ -39,6 +39,10 @@ export default defineConfig({
             "packages/shared/src/__tests__/**/*.test.ts"
           ]
         }
+      },
+      {
+        extends: true,
+        test: { name: "repo", include: ["tests/repo/**/*.test.ts"] }
       }
     ],
     coverage: {
