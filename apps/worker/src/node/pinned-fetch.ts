@@ -79,7 +79,8 @@ export interface PinnedFetchOptions {
 /** Liefert ein `fetch`, das nur HTTPS spricht und die Verbindung an geprüfte Adressen bindet. */
 export function createPinnedFetch(options: PinnedFetchOptions = {}): typeof fetch {
   const lookup = options.lookup ?? createPinnedLookup();
-  const requestFn: HttpsRequestFn = options.requestFn ?? httpsRequest;
+  // Die Überladungen von https.request lassen sich nicht direkt zuweisen; genutzt wird (url, options, cb).
+  const requestFn = options.requestFn ?? (httpsRequest as unknown as HttpsRequestFn);
 
   const pinnedFetch = (input: string | URL, init: RequestInit = {}): Promise<Response> => {
     const url = new URL(String(input));
