@@ -5,7 +5,7 @@
  * Implements Sub-Issues #107, #108, #109 (Decision #45, #63, #69).
  */
 
-import type { ArtifactType, MessageRole, SourceType } from "../models.d.js";
+import type { ArtifactType, MessageRole, SourceType } from "../types/models.d.js";
 
 export interface DemoSourceDefinition {
   readonly id: string;

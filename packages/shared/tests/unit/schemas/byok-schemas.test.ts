@@ -9,7 +9,7 @@ import {
   extractLast4,
   maskApiKey,
   ProviderTypeSchema
-} from "../index.js";
+} from "../../../src/index.js";
 
 describe("BYOK Zod Schemas & Helper Functions (Sub-Issues #92, #93, #94)", () => {
   describe("ProviderTypeSchema & BYOKProviderSchema", () => {

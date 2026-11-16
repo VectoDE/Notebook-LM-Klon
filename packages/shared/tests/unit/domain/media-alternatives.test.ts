@@ -14,8 +14,11 @@ import {
   timeCaptionPieces,
   videoTranscriptToText,
   vttTimestamp
-} from "../media-alternatives.js";
-import { generateVideoStoryboard, VideoStoryboardSchema } from "../video-storyboard.js";
+} from "../../../src/domain/media-alternatives.js";
+import {
+  generateVideoStoryboard,
+  VideoStoryboardSchema
+} from "../../../src/domain/video-storyboard.js";
 
 const storyboard = generateVideoStoryboard({
   notebookId: "nb_1",

@@ -6,7 +6,7 @@ import {
   dotProductFloat32,
   dotProductInt8,
   quantizeFloat32ToInt8
-} from "../quantization.js";
+} from "../../../src/lib/quantization.js";
 
 describe("Symmetric int8 Scalar Quantization (Issue #95 / #17)", () => {
   it("handles edge cases: empty array and all zeros", () => {

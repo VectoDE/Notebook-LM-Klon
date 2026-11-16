@@ -20,7 +20,7 @@ für sie dieselben Regeln wie hier.
 ## 2. Was umgesetzt ist
 
 Alle Alternativen entstehen aus Daten, die das Studio ohnehin hat. Nichts wird übersetzt oder
-dazuerfunden. Die Funktionen liegen in `packages/shared/src/media-alternatives.ts` und sind zu
+dazuerfunden. Die Funktionen liegen in `packages/shared/src/domain/media-alternatives.ts` und sind zu
 100 % durch Tests abgedeckt.
 
 | Alternative | Video-Übersicht | Audio-Übersicht | Bühne |

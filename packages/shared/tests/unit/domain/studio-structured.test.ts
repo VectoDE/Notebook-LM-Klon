@@ -17,7 +17,7 @@ import {
   TimelineEntrySchema,
   valueInQuote,
   wrapText
-} from "../studio-structured.js";
+} from "../../../src/domain/studio-structured.js";
 
 const SOURCES = [
   {
