@@ -1,5 +1,6 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import type { Hono } from "hono";
+import type { AuditLogger } from "./audit-log.js";
 import { type MinimalR2Bucket, createNotebookStatePurger, purgeUsers } from "./cleanup.js";
 import type { CoreRepository } from "./core-repository.js";
 import { buildClearSessionCookie } from "./session.js";
@@ -17,6 +18,7 @@ export const REAUTH_MAX_AGE_MS = 5 * 60 * 1000;
 export interface AccountRoutesDependencies {
   readonly coreRepo: CoreRepository;
   readonly isProduction: boolean;
+  readonly auditLogger?: AuditLogger | undefined;
 }
 
 const PROBLEM_HEADERS = { "content-type": "application/problem+json; charset=utf-8" } as const;
@@ -100,6 +102,12 @@ export function registerAccountRoutes(
       Date.now(),
       createNotebookStatePurger(c.env.NOTEBOOK_DO, c.env.JOB_DO)
     );
+    // Written after the purge: the user row is gone, so the entry carries no user_id.
+    await deps.auditLogger?.recordCritical(c, {
+      userId: null,
+      action: "account.delete",
+      target: "user:deleted"
+    });
 
     return c.json(
       {

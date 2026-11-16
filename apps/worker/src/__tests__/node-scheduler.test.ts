@@ -14,6 +14,7 @@ const METRICS: CleanupMetrics = {
   deletedNotebooks: 0,
   deletedR2Objects: 0,
   deletedStaleUploads: 0,
+  deletedAuditEntries: 0,
   failedSteps: 0,
   durationMs: 3
 };

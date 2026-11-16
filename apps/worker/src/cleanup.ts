@@ -1,3 +1,4 @@
+import { purgeExpiredAuditEntries, replayPendingAuditEntries } from "./audit-log.js";
 import type { BatchStatement, DatabaseAdapter } from "./core-repository.js";
 import { STALE_UPLOAD_MS, UPLOAD_DAILY_RETENTION_DAYS } from "./r2-budget.js";
 
@@ -21,6 +22,8 @@ export interface CleanupMetrics {
   deletedR2Objects: number;
   /** Abgebrochene Uploads (Status uploading, älter als STALE_UPLOAD_MS), samt R2-Objekt. */
   deletedStaleUploads: number;
+  /** Audit entries older than AUDIT_RETENTION_DAYS (Issue #259). */
+  deletedAuditEntries: number;
   /** Cron-Schritte, die mit einem Fehler endeten; die übrigen Schritte liefen trotzdem. */
   failedSteps: number;
   durationMs: number;
@@ -120,6 +123,7 @@ function escapeLike(value: string): string {
  * - Associated R2 objects (sources, artifacts) under guest / notebook prefixes
  * - Abandoned uploads (status 'uploading' older than STALE_UPLOAD_MS) incl. their R2 object
  * - Daily upload counters older than UPLOAD_DAILY_RETENTION_DAYS
+ * - Audit log entries older than the retention period (90 days)
  * - Rate-limit buckets older than 24 h and embedding counters of earlier UTC days
  */
 export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<CleanupMetrics> {
@@ -135,6 +139,7 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
   let deletedNotebooks = 0;
   let deletedR2Objects = 0;
   let deletedStaleUploads = 0;
+  let deletedAuditEntries = 0;
   let failedSteps = 0;
 
   const step = async (name: string, work: () => Promise<void>): Promise<void> => {
@@ -252,7 +257,17 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
     await db.run("DELETE FROM upload_daily WHERE day < ?", [retentionDay]);
   });
 
-  // 9. Short-lived counters: rate-limit buckets (may contain client IPs) and the guest daily
+  // 9. Audit entries that could not be written at request time (account.delete): write them now
+  await step("audit_retry", async () => {
+    await replayPendingAuditEntries(db, batchSize);
+  });
+
+  // 9b. Audit log retention (90 days). Own step: independent of purgeUsers and all other steps.
+  await step("audit_retention", async () => {
+    deletedAuditEntries = await purgeExpiredAuditEntries(db, now);
+  });
+
+  // 10. Short-lived counters: rate-limit buckets (may contain client IPs) and the guest daily
   //    embedding counters are only needed for their window or day; keep a day for diagnosis.
   await step("short_lived_counters", async () => {
     await db.run("DELETE FROM rate_limits WHERE window_start < ?", [
@@ -273,6 +288,7 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
     deletedNotebooks,
     deletedR2Objects,
     deletedStaleUploads,
+    deletedAuditEntries,
     failedSteps,
     durationMs
   };
@@ -498,7 +514,7 @@ export async function drainPendingR2(
       ? [...only]
       : (
           await db.query<{ prefix: string }>(
-            "SELECT prefix FROM pending_r2_purge ORDER BY created_at ASC LIMIT ?",
+            "SELECT prefix FROM pending_r2_purge WHERE prefix NOT LIKE 'audit-retry:%' ORDER BY created_at ASC LIMIT ?",
             [limit]
           )
         ).map((row) => row.prefix);

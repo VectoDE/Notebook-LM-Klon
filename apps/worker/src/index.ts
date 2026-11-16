@@ -6,6 +6,7 @@ import {
 import { Hono } from "hono";
 import { registerAccountRoutes } from "./account-routes.js";
 import { registerAudioRoutes } from "./audio-routes.js";
+import { AuditLogger } from "./audit-log.js";
 import {
   csrfProtection,
   requireAuth,
@@ -176,6 +177,7 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   const saltSecret = getConfiguredSessionSalt(env);
   const sessionManager = new SessionManager({ repo: coreRepo, saltSecret });
   const keyVault = hasConfiguredKek(env) ? createKeyVaultFromEnv(env) : undefined;
+  const auditLogger = new AuditLogger({ repo: coreRepo, saltSecret });
 
   const app = new Hono<ApiEnv>();
 
@@ -211,7 +213,8 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
       mailAdapter: createMailAdapter(secrets),
       turnstileSecretKey: secrets.TURNSTILE_SECRET_KEY,
       appBaseUrl: config.origin,
-      isProduction
+      isProduction,
+      auditLogger
     })
   );
   app.route(
@@ -226,7 +229,8 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
       }),
       sessionManager,
       turnstileSecretKey: secrets.TURNSTILE_SECRET_KEY,
-      isProduction
+      isProduction,
+      auditLogger
     })
   );
 
@@ -296,7 +300,7 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   app.on("DELETE", "/api/v1/sources/:id", requireSourceRole(coreRepo, ragRepo, "editor"));
   registerUrlImportRoutes(app, { ragRepo });
   registerSourcesUploadRoutes(app, { coreRepo, ragRepo });
-  registerChunkIngestionRoutes(app, { ragRepo, coreRepo });
+  registerChunkIngestionRoutes(app, { ragRepo, coreRepo, auditLogger });
 
   // 5b. Comments on sources and notes with mentions (guards inside registerCommentRoutes:
   // viewer reads, editor writes, author edits, author or owner deletes)
@@ -328,7 +332,7 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
 
   // 8. Account self-service (Art. 17 DSGVO): immediate deletion of the own account
   app.use("/api/v1/me", requireAuth());
-  registerAccountRoutes(app, { coreRepo, isProduction });
+  registerAccountRoutes(app, { coreRepo, isProduction, auditLogger });
 
   // 9. BYOK key management (last: its router adds its own same-origin CSRF check)
   app.use("/api/v1/keys", requireAuth(), requireConfiguredKek(), requireSalt);
