@@ -94,8 +94,8 @@ importers:
         specifier: 4.13.17
         version: 4.13.17
       nodemailer:
-        specifier: 10.3.1
-        version: 10.3.1
+        specifier: 10.5.0
+        version: 10.5.0
       yjs:
         specifier: 13.6.33
         version: 13.6.33
@@ -1130,6 +1130,7 @@ packages:
   loglevel@1.9.2:
     resolution: {integrity: sha512-HgMmCqIJSAKqo68l0rS2AanEWfkxaZ5wNiEFb5ggm08lDs9Xl2KxBlX3PTcaD2chBM1gXAYf491/M2Rv8Jwayg==}
     engines: {node: '>= 0.6.0'}
+
   lop@0.4.2:
     resolution: {integrity: sha512-RefILVDQ4DKoRZsJ4Pj22TxE3omDO47yFpkIBoDKzkqPRISs5U1cnAdg/5583YPkWPaLIYHOKRMQSvjFsO26cw==}
 
@@ -1153,8 +1154,8 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nodemailer@10.3.1:
-    resolution: {integrity: sha512-uF0AFsJC07Y1vdW7p580DKAnh7rAO+4UPSSB3mDCPNDufoiaOebV6JmrzpxB14OjEEEiBsNdYoM2Y+fN8M7BBA==}
+  nodemailer@10.5.0:
+    resolution: {integrity: sha512-L/w/HH5MqpzMDuZD7fQdt/+KqymuvrpaApaIjAH2XA3ILePwlcvXCVVvP75xVrXCEt2ggK2marrrHHFB5Qu0kA==}
     engines: {node: '>=20.0.0'}
 
   obug@3.0.0:
@@ -2215,6 +2216,7 @@ snapshots:
       lightningcss-win32-x64-msvc: 1.33.0
 
   loglevel@1.9.2: {}
+
   lop@0.4.2:
     dependencies:
       duck: 0.1.12
@@ -2257,7 +2259,7 @@ snapshots:
 
   nanoid@3.3.20: {}
 
-  nodemailer@10.3.1: {}
+  nodemailer@10.5.0: {}
 
   obug@3.0.0: {}
 
