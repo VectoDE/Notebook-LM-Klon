@@ -183,6 +183,22 @@
   font-size: var(--rn-text-small);
 }
 
+/* Im Menü: dieselben Links als eigener Abschnitt am Ende */
+.rn-legal-footer--sheet {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-top: var(--rn-space-4);
+  padding: 0;
+  background: none;
+}
+
+/* Unter 600 px nimmt die Fußzeile keine Arbeitsfläche weg; die Links stehen im Menü. */
+@media (max-width: 599.98px) {
+  .rn-legal-footer:not(.rn-legal-footer--sheet) {
+    display: none;
+  }
+}
+
 /* Trefferfläche 44 px wie alle Bedienelemente der App (WCAG 2.5.5) */
 .rn-legal-footer .rn-legal-link {
   display: inline-flex;

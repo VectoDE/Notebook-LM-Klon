@@ -319,27 +319,59 @@ function PrivacyNoticeDialog({ isOpen, onClose, texts }: DialogBaseProps) {
 }
 
 /** Fußzeile mit Datenschutz und Widerruf; jederzeit erreichbar (Issue #261). */
-export function LegalFooter() {
+export interface LegalFooterProps {
+  /**
+   * "page": Fußzeile unter der Arbeitsfläche (ab 600 px). "sheet": dieselben Links im Menü;
+   * unter 600 px ist das der Weg dorthin, damit die Fußzeile kleinen Bildschirmen keine
+   * Arbeitsfläche nimmt.
+   */
+  readonly placement?: "page" | "sheet";
+  /** Wird vor dem Öffnen aufgerufen, z. B. um das Menü zu schließen. */
+  readonly onOpen?: () => void;
+}
+
+export function LegalFooter({ placement = "page", onOpen }: LegalFooterProps) {
   const { language } = useTheme();
   const texts = privacyTexts(language);
-  return (
-    <footer className="rn-legal-footer" aria-label={texts.footerLabel} data-testid="legal-footer">
+  const prefix = placement === "sheet" ? "sheet" : "footer";
+  const open = (eventName: string) => {
+    onOpen?.();
+    window.dispatchEvent(new Event(eventName));
+  };
+  const links = (
+    <>
       <button
         type="button"
         className="rn-legal-link"
-        onClick={() => window.dispatchEvent(new Event(OPEN_PRIVACY_NOTICE_EVENT))}
-        data-testid="footer-privacy"
+        onClick={() => open(OPEN_PRIVACY_NOTICE_EVENT)}
+        data-testid={`${prefix}-privacy`}
       >
         {texts.footerPrivacy}
       </button>
       <button
         type="button"
         className="rn-legal-link"
-        onClick={() => window.dispatchEvent(new Event(OPEN_CONSENT_SETTINGS_EVENT))}
-        data-testid="footer-cookie-settings"
+        onClick={() => open(OPEN_CONSENT_SETTINGS_EVENT)}
+        data-testid={`${prefix}-cookie-settings`}
       >
         {texts.footerCookies}
       </button>
+    </>
+  );
+  if (placement === "sheet") {
+    return (
+      <section
+        className="rn-legal-footer rn-legal-footer--sheet"
+        aria-label={texts.footerLabel}
+        data-testid="sheet-legal"
+      >
+        {links}
+      </section>
+    );
+  }
+  return (
+    <footer className="rn-legal-footer" aria-label={texts.footerLabel} data-testid="legal-footer">
+      {links}
     </footer>
   );
 }

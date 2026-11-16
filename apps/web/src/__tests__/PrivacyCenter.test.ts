@@ -77,6 +77,11 @@ describe("Fußzeile mit Widerruf (Issue #261)", () => {
     expect(html).toContain('<footer class="rn-legal-footer" aria-label="Rechtliches"');
     expect(html).toContain('data-testid="footer-privacy"');
     expect(html).toContain('data-testid="footer-cookie-settings"');
+    const sheet = renderToStaticMarkup(createElement(LegalFooter, { placement: "sheet" }));
+    expect(sheet).toContain('<section class="rn-legal-footer rn-legal-footer--sheet"');
+    expect(sheet).toContain('data-testid="sheet-privacy"');
+    expect(sheet).toContain('data-testid="sheet-cookie-settings"');
+    expect(sheet).not.toContain("<footer");
     expect(html).toContain("Cookie-Einstellungen");
   });
 });

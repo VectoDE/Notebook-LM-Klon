@@ -1548,6 +1548,9 @@ export function WorkspaceLayout({
               </h3>
               <AppearanceControls idPrefix="sheet" {...appearanceProps} />
             </section>
+
+            {/* Datenschutz und Cookie-Einstellungen; unter 600 px nur hier (Issue #261) */}
+            <LegalFooter placement="sheet" onOpen={() => closeMenu(false)} />
           </div>
         </dialog>
       )}
