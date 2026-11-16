@@ -18,7 +18,7 @@
     "@simplewebauthn/server": "^13.3.3",
     "aws4fetch": "^1.0.20",
     "hono": "4.13.17",
-    "nodemailer": "10.3.1",
+    "nodemailer": "10.5.0",
     "yjs": "13.6.33"
   },
   "devDependencies": {
