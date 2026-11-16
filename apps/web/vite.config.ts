@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import { injectSiteVerification } from "./src/analytics-config.ts";
@@ -53,6 +54,10 @@ export default defineConfig(({ mode }) => {
       seoPlugin(env.VITE_PUBLIC_BASE_URL ?? process.env.VITE_PUBLIC_BASE_URL),
       siteVerification(env.VITE_GSC_VERIFICATION)
     ],
+    // `@/` zeigt auf src; Regex statt "@", damit @notebook-lm/shared u. a. unberührt bleiben
+    resolve: {
+      alias: [{ find: /^@\//, replacement: fileURLToPath(new URL("./src/", import.meta.url)) }]
+    },
     // Der Ingest-Worker ist ein ES-Modul und lädt PDF.js dynamisch nach
     worker: {
       format: "es"

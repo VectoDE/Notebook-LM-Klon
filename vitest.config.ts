@@ -1,9 +1,46 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
+
+/** `@/` zeigt je Paket auf dessen `src`; ein gemeinsamer Alias wäre für web und worker falsch. */
+const src = (pkg: string) => fileURLToPath(new URL(`./${pkg}/src/`, import.meta.url));
 
 export default defineConfig({
   test: {
-    include: ["packages/**/src/__tests__/**/*.test.ts", "apps/**/src/__tests__/**/*.test.ts"],
     environment: "node",
+    projects: [
+      {
+        extends: true,
+        resolve: { alias: [{ find: /^@\//, replacement: src("apps/web") }] },
+        test: {
+          name: "web",
+          include: [
+            "apps/web/tests/{unit,integration}/**/*.test.ts",
+            "apps/web/src/__tests__/**/*.test.ts"
+          ]
+        }
+      },
+      {
+        extends: true,
+        resolve: { alias: [{ find: /^@\//, replacement: src("apps/worker") }] },
+        test: {
+          name: "worker",
+          include: [
+            "apps/worker/tests/{unit,integration}/**/*.test.ts",
+            "apps/worker/src/__tests__/**/*.test.ts"
+          ]
+        }
+      },
+      {
+        extends: true,
+        test: {
+          name: "shared",
+          include: [
+            "packages/shared/tests/**/*.test.ts",
+            "packages/shared/src/__tests__/**/*.test.ts"
+          ]
+        }
+      }
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],

@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { afterSettled } from "@/after-settled.js";
 import { App } from "./App.js";
-import { afterSettled } from "./after-settled.js";
 import { scheduleStudioViewerPreload } from "./lazy-viewers.js";
 import { sendUsageBeacon } from "./usage-beacon.js";
 import { ThemeProvider } from "./useTheme.js";
