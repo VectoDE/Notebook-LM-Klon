@@ -1,7 +1,7 @@
 import type { PasskeyRow, UserRow } from "@notebook-lm/shared";
 import {
   type AuthenticationResponseJSON,
-  type AuthenticatorTransportFuture,
+  type AuthenticatorTransport,
   type PublicKeyCredentialCreationOptionsJSON,
   type PublicKeyCredentialRequestOptionsJSON,
   type RegistrationResponseJSON,
@@ -112,7 +112,7 @@ export class PasskeyService {
     const existingPasskeys = await this.opts.repo.getPasskeysByUserId(user.id);
     const excludeCredentials = existingPasskeys.map((p) => {
       const transports = p.transports
-        ? (p.transports.split(",") as AuthenticatorTransportFuture[])
+        ? (p.transports.split(",") as AuthenticatorTransport[])
         : undefined;
       return transports ? { id: p.id, transports } : { id: p.id };
     });
