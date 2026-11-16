@@ -133,12 +133,17 @@ Die Basis-URL endet auf den Versionspfad, z. B. `https://api.example.com/v1`; de
 - DNS-Prüfung aller A- und AAAA-Einträge über DNS-over-HTTPS beim Speichern und unmittelbar vor
   jedem Aufruf; ein einziger nicht öffentlicher Eintrag oder eine fehlgeschlagene Auflösung sperrt;
 - keine Weiterleitungen (`redirect: "manual"`, jede 3xx-Antwort ist ein Fehler);
-- Zeitlimits: 30 s bis zu den Antwort-Headern, im Stream Abbruch nach 60 s ohne neue Daten;
+- Zeitlimits: 30 s je Aufruf ohne Stream, Header und Body zusammen (auch der Verbindungstest); im
+  Stream Abbruch nach 60 s ohne neue Daten und spätestens nach 10 min Gesamtdauer;
 - Größenlimits: höchstens 16 MiB je Antwort bzw. je Stream; Fehlerantworten werden nur bis 4 KiB
   gelesen und auf 200 Zeichen gekürzt;
 - Verbindungstest (`POST /api/v1/providers/custom/test`): eigenes Limit von 5 Tests pro Minute und
   Nutzer, zusätzlich zur allgemeinen Ratenbegrenzung;
-- der Schlüssel geht nur im `Authorization`-Header raus und wird aus Fehlermeldungen entfernt.
+- der Schlüssel geht nur im `Authorization`-Header raus und wird aus Fehlermeldungen entfernt;
+- der Schlüssel ist per Associated Data (AES-GCM) an den Origin des Endpunkts gebunden: Er lässt
+  sich nur für Schema, Host und Port entschlüsseln, für die er gespeichert wurde. Ändert sich der
+  Origin der Adresse, wird er gelöscht (`keyCleared: true`) und muss neu eingegeben werden. Ohne
+  gespeicherten Endpunkt nimmt `PUT /api/v1/keys/custom` keinen Schlüssel an (409).
 
 **Im Chat nutzen:** `POST /api/v1/notebooks/:id/chat` mit `"model": "custom"`. Fehlt der Endpunkt, antwortet
 der Server sofort mit 503 (`CUSTOM_ENDPOINT_UNAVAILABLE`), ohne Chat oder Nachricht anzulegen. Die

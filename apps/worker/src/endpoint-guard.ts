@@ -267,11 +267,16 @@ export class ResponseTooLargeError extends Error {
  * (für Fehlertexte), sonst wirft die Funktion `ResponseTooLargeError`. Eine zu große
  * Content-Length wird abgelehnt, ohne den Body zu lesen. Die Verbindung wird in beiden Fällen
  * geschlossen.
+ *
+ * Mit `signal` gilt eine Frist auch für das Lesen: bricht das Signal ab (Gesamtfrist oder
+ * Abbruch durch den Aufrufer), wird der Reader geschlossen und der Abbruchgrund geworfen. So
+ * kann ein langsamer Endpunkt den Worker nicht über das Body-Lesen festhalten.
  */
 export async function readBodyLimited(
   res: Response,
   maxBytes: number,
-  mode: "throw" | "truncate" = "throw"
+  mode: "throw" | "truncate" = "throw",
+  signal?: AbortSignal
 ): Promise<string> {
   const declared = Number(res.headers.get("content-length"));
   if (mode === "throw" && declared > maxBytes) {
@@ -285,7 +290,7 @@ export async function readBodyLimited(
   let text = "";
   let total = 0;
   while (true) {
-    const { done, value } = await reader.read();
+    const { done, value } = await readUntilAborted(reader, signal);
     if (done) break;
     const remaining = maxBytes - total;
     total += value.byteLength;
@@ -298,6 +303,72 @@ export async function readBodyLimited(
     text += decoder.decode(value, { stream: true });
   }
   return text + decoder.decode();
+}
+
+/** Grund eines abgebrochenen Signals als Error (AbortSignal.reason kann beliebig sein). */
+export function abortReason(signal: AbortSignal): Error {
+  const reason: unknown = signal.reason;
+  return reason instanceof Error
+    ? reason
+    : new DOMException("Zeitüberschreitung beim Endpunkt.", "TimeoutError");
+}
+
+/**
+ * Liest den nächsten Teil; bricht `signal` vorher oder währenddessen ab, wird der Reader
+ * geschlossen und der Abbruchgrund geworfen.
+ */
+export async function readUntilAborted(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  signal: AbortSignal | undefined
+): Promise<ReadableStreamReadResult<Uint8Array>> {
+  if (!signal) return reader.read();
+  if (signal.aborted) {
+    const error = abortReason(signal);
+    await Promise.allSettled([reader.cancel(error)]);
+    throw error;
+  }
+  let onAbort: (() => void) | undefined;
+  const aborted = new Promise<never>((_, reject) => {
+    onAbort = () => {
+      const error = abortReason(signal);
+      reject(error);
+      void Promise.allSettled([reader.cancel(error)]);
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([reader.read(), aborted]);
+  } finally {
+    signal.removeEventListener("abort", onAbort as () => void);
+  }
+}
+
+/**
+ * Frist als Signal mit eigenem Timer (räumbar, damit kein Timer offen bleibt). Ein optionales
+ * Signal des Aufrufers wird mit eingebunden.
+ */
+export function deadlineSignal(
+  ms: number,
+  outer?: AbortSignal
+): { readonly signal: AbortSignal; clear(): void } {
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(new DOMException("Zeitüberschreitung beim Endpunkt.", "TimeoutError")),
+    ms
+  );
+  return {
+    signal: outer ? AbortSignal.any([outer, controller.signal]) : controller.signal,
+    clear: () => clearTimeout(timer)
+  };
+}
+
+/**
+ * Bindung eines gespeicherten Endpunkt-Schlüssels: Origin (Schema, Host, Port) der Adresse.
+ * Der Wert geht als Associated Data in die Verschlüsselung ein; ein Schlüssel lässt sich nur
+ * für genau diesen Origin entschlüsseln und damit nie an einen anderen Host senden.
+ */
+export function endpointKeyBinding(baseUrl: string): string {
+  return new URL(baseUrl).origin;
 }
 
 /**

@@ -20,14 +20,17 @@ import type {
   ModelTrainingPolicy
 } from "@notebook-lm/shared";
 import {
+  DEFAULT_ENDPOINT_TIMEOUT_MS,
   DEFAULT_MAX_RESPONSE_BYTES,
   type GuardedFetchOptions,
   type HostResolver,
   MAX_ERROR_BODY_BYTES,
   ResponseTooLargeError,
   createDohResolver,
+  deadlineSignal,
   guardedEndpointFetch,
   readBodyLimited,
+  readUntilAborted,
   redactSecret
 } from "./endpoint-guard.js";
 
@@ -39,7 +42,13 @@ export interface OpenAiCompatibleConfig {
   readonly allowlist: readonly string[];
   readonly resolver?: HostResolver | undefined;
   readonly fetchFn?: typeof fetch | undefined;
+  /**
+   * Gesamtfrist je Aufruf ohne Stream (Header und Body, Standard 30 s). Gilt auch für den
+   * Verbindungstest.
+   */
   readonly timeoutMs?: number | undefined;
+  /** Höchstdauer eines ganzen Streams, zusätzlich zum Leerlauf-Limit (Standard 10 min). */
+  readonly maxStreamDurationMs?: number | undefined;
   /** Längste Pause zwischen zwei Stream-Teilen, danach Abbruch (Standard 60 s). */
   readonly idleTimeoutMs?: number | undefined;
   /** Höchstgröße einer Antwort bzw. eines ganzen Streams (Standard 16 MiB). */
@@ -48,6 +57,7 @@ export interface OpenAiCompatibleConfig {
 }
 
 export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 60_000;
+export const DEFAULT_STREAM_MAX_DURATION_MS = 10 * 60_000;
 
 interface OpenAiChoice {
   readonly message?: { readonly content?: string | null };
@@ -104,6 +114,8 @@ export class OpenAiCompatibleProvider implements LlmProvider {
   private readonly embedModel: string | undefined;
   private readonly guard: GuardedFetchOptions;
   private readonly idleTimeoutMs: number;
+  private readonly totalTimeoutMs: number;
+  private readonly maxStreamDurationMs: number;
   private readonly maxResponseBytes: number;
 
   constructor(config: OpenAiCompatibleConfig) {
@@ -114,6 +126,8 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     this.embedModel = config.embedModel;
     this.name = config.name ?? "Eigener Endpunkt (OpenAI-kompatibel)";
     this.idleTimeoutMs = config.idleTimeoutMs ?? DEFAULT_STREAM_IDLE_TIMEOUT_MS;
+    this.totalTimeoutMs = config.timeoutMs ?? DEFAULT_ENDPOINT_TIMEOUT_MS;
+    this.maxStreamDurationMs = config.maxStreamDurationMs ?? DEFAULT_STREAM_MAX_DURATION_MS;
     const fetchFn = config.fetchFn ?? globalThis.fetch.bind(globalThis);
     this.guard = {
       allowlist: config.allowlist,
@@ -137,11 +151,10 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     method: "GET" | "POST",
     body: unknown,
     apiKey: string | undefined,
-    signal: AbortSignal | undefined
+    signal: AbortSignal
   ): Promise<Response> {
-    const init: RequestInit = { method, headers: this.headers(apiKey) };
+    const init: RequestInit = { method, headers: this.headers(apiKey), signal };
     if (body !== undefined) init.body = JSON.stringify(body);
-    if (signal) init.signal = signal;
 
     let res: Response;
     try {
@@ -151,7 +164,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     }
     if (!res.ok) {
       // Fehlertexte nur begrenzt lesen: ein Endpunkt soll den Worker nicht mit Daten fluten.
-      const text = await readBodyLimited(res, MAX_ERROR_BODY_BYTES, "truncate");
+      const text = await readBodyLimited(res, MAX_ERROR_BODY_BYTES, "truncate", signal);
       throw new Error(
         `Endpunkt-Fehler (${res.status})${text ? `: ${redactSecret(text, apiKey)}` : ""}`
       );
@@ -159,14 +172,34 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     return res;
   }
 
-  /** Liest eine JSON-Antwort mit Größenlimit. */
-  private async readJson<T>(res: Response): Promise<T> {
-    return JSON.parse(await readBodyLimited(res, this.maxResponseBytes)) as T;
+  /** Liest eine JSON-Antwort mit Größenlimit innerhalb der Frist. */
+  private async readJson<T>(res: Response, signal: AbortSignal): Promise<T> {
+    return JSON.parse(await readBodyLimited(res, this.maxResponseBytes, "throw", signal)) as T;
   }
 
-  /** Liest den nächsten Stream-Teil; bricht ab, wenn der Endpunkt zu lange schweigt. */
+  /**
+   * Führt einen Aufruf ohne Stream mit Gesamtfrist aus: Header und Body zusammen höchstens
+   * `timeoutMs`. Ein Signal des Aufrufers bricht zusätzlich ab.
+   */
+  private async withDeadline<T>(
+    outer: AbortSignal | undefined,
+    run: (signal: AbortSignal) => Promise<T>
+  ): Promise<T> {
+    const deadline = deadlineSignal(this.totalTimeoutMs, outer);
+    try {
+      return await run(deadline.signal);
+    } finally {
+      deadline.clear();
+    }
+  }
+
+  /**
+   * Liest den nächsten Stream-Teil; bricht ab, wenn der Endpunkt zu lange schweigt oder die
+   * Gesamtdauer des Streams (`signal`) abgelaufen ist.
+   */
   private async readWithIdleLimit(
-    reader: ReadableStreamDefaultReader<Uint8Array>
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    signal: AbortSignal
   ): Promise<ReadableStreamReadResult<Uint8Array>> {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const idle = new Promise<never>((_, reject) => {
@@ -178,7 +211,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
       }, this.idleTimeoutMs);
     });
     try {
-      return await Promise.race([reader.read(), idle]);
+      return await Promise.race([readUntilAborted(reader, signal), idle]);
     } finally {
       clearTimeout(timer);
     }
@@ -205,14 +238,16 @@ export class OpenAiCompatibleProvider implements LlmProvider {
 
   async chat(messages: readonly LlmMessage[], options?: LlmChatOptions): Promise<LlmResponse> {
     const apiKey = options?.apiKey ?? this.apiKey;
-    const res = await this.request(
-      "/chat/completions",
-      "POST",
-      this.chatPayload(messages, options, false),
-      apiKey,
-      options?.signal
-    );
-    const data = await this.readJson<OpenAiChatBody>(res);
+    const data = await this.withDeadline(options?.signal, async (signal) => {
+      const res = await this.request(
+        "/chat/completions",
+        "POST",
+        this.chatPayload(messages, options, false),
+        apiKey,
+        signal
+      );
+      return this.readJson<OpenAiChatBody>(res, signal);
+    });
     const choice = data.choices?.[0];
     return {
       text: choice?.message?.content ?? "",
@@ -228,14 +263,23 @@ export class OpenAiCompatibleProvider implements LlmProvider {
   ): AsyncIterable<LlmStreamChunk> {
     const apiKey = options?.apiKey ?? this.apiKey;
     const model = options?.model ?? this.chatModel;
-    const res = await this.request(
-      "/chat/completions",
-      "POST",
-      this.chatPayload(messages, options, true),
-      apiKey,
-      options?.signal
-    );
+    // Gesamtdauer des Streams begrenzen (Header, alle Teile), zusätzlich zum Leerlauf-Limit.
+    const deadline = deadlineSignal(this.maxStreamDurationMs, options?.signal);
+    let res: Response;
+    try {
+      res = await this.request(
+        "/chat/completions",
+        "POST",
+        this.chatPayload(messages, options, true),
+        apiKey,
+        deadline.signal
+      );
+    } catch (err) {
+      deadline.clear();
+      throw err;
+    }
     if (!res.body) {
+      deadline.clear();
       throw new Error("Endpunkt-Stream ohne Inhalt.");
     }
 
@@ -247,7 +291,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
 
     try {
       while (!finished) {
-        const { value, done } = await this.readWithIdleLimit(reader);
+        const { value, done } = await this.readWithIdleLimit(reader, deadline.signal);
         if (done) break;
         total += value.byteLength;
         if (total > this.maxResponseBytes) {
@@ -290,6 +334,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
         yield { deltaText: "", model, isDone: true, finishReason: "unknown" };
       }
     } finally {
+      deadline.clear();
       reader.releaseLock();
     }
   }
@@ -304,16 +349,19 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     if (options?.outputDimensionality !== undefined) {
       body.dimensions = options.outputDimensionality;
     }
-    const res = await this.request(
-      "/embeddings",
-      "POST",
-      body,
-      options?.apiKey ?? this.apiKey,
-      options?.signal
-    );
-    const data = await this.readJson<{ data?: Array<{ index?: number; embedding: number[] }> }>(
-      res
-    );
+    const data = await this.withDeadline(options?.signal, async (signal) => {
+      const res = await this.request(
+        "/embeddings",
+        "POST",
+        body,
+        options?.apiKey ?? this.apiKey,
+        signal
+      );
+      return this.readJson<{ data?: Array<{ index?: number; embedding: number[] }> }>(
+        res,
+        signal
+      );
+    });
     const rows = [...(data.data ?? [])].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
     if (rows.length !== texts.length) {
       throw new Error("Endpunkt lieferte eine unerwartete Zahl an Embeddings.");
@@ -331,8 +379,10 @@ export class OpenAiCompatibleProvider implements LlmProvider {
       ...this.chatPayload(messages, options, false),
       response_format: { type: "json_object" }
     };
-    const res = await this.request("/chat/completions", "POST", payload, apiKey, options?.signal);
-    const data = await this.readJson<OpenAiChatBody>(res);
+    const data = await this.withDeadline(options?.signal, async (signal) => {
+      const res = await this.request("/chat/completions", "POST", payload, apiKey, signal);
+      return this.readJson<OpenAiChatBody>(res, signal);
+    });
     const raw = data.choices?.[0]?.message?.content ?? "";
     let parsed: unknown;
     try {
@@ -349,9 +399,12 @@ export class OpenAiCompatibleProvider implements LlmProvider {
   ): Promise<{ ok: boolean; message?: string; latencyMs: number; models?: string[] }> {
     const start = performance.now();
     try {
-      const res = await this.request("/models", "GET", undefined, this.apiKey, signal);
-      // Größenlimit gilt (wirft), nur kaputtes JSON wird als leere Modellliste toleriert.
-      const text = await readBodyLimited(res, this.maxResponseBytes);
+      // Gesamtfrist inklusive Body; Größenlimit gilt (wirft), nur kaputtes JSON wird als leere
+      // Modellliste toleriert.
+      const text = await this.withDeadline(signal, async (deadline) => {
+        const res = await this.request("/models", "GET", undefined, this.apiKey, deadline);
+        return readBodyLimited(res, this.maxResponseBytes, "throw", deadline);
+      });
       let data: { data?: Array<{ id?: unknown }> } = {};
       try {
         data = JSON.parse(text) as typeof data;
