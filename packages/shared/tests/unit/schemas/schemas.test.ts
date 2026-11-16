@@ -8,7 +8,7 @@ import {
   SearchQueryBodySchema,
   SearchResponseSchema,
   WORKSPACE_VERSION
-} from "../index.js";
+} from "../../../src/index.js";
 
 describe("Base Zod Schemas & RFC 9457 ProblemDetails", () => {
   it("validates DeploymentProfileSchema for demo and full profiles", () => {
@@ -201,7 +201,7 @@ describe("Base Zod Schemas & RFC 9457 ProblemDetails", () => {
       JobRecordSchema,
       JobStatusSchema,
       EnqueueJobBodySchema
-    } = await import("../index.js");
+    } = await import("../../../src/index.js");
 
     expect(JobKindSchema.parse("audio_overview")).toBe("audio_overview");
     expect(JobStatusSchema.parse("queued")).toBe("queued");

@@ -9,7 +9,7 @@ import {
   NotebookCommentSchema,
   resolveMentionIds,
   UpdateCommentBodySchema
-} from "../index.js";
+} from "../../../src/index.js";
 
 const people = [
   { id: "a", displayName: "Alice Adler" },

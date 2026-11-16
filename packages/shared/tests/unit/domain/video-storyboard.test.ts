@@ -10,7 +10,7 @@ import {
   VideoChapterSchema,
   VideoSlideSchema,
   VideoStoryboardSchema
-} from "../video-storyboard.js";
+} from "../../../src/domain/video-storyboard.js";
 
 describe("Video Storyboard & Generator (Sub-Issue #119)", () => {
   it("formats VTT timestamps accurately including hours and milliseconds", () => {

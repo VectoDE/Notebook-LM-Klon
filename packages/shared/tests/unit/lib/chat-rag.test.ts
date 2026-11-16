@@ -5,8 +5,11 @@ import {
   type GroundedChunkInput,
   type GroundedSourceItem,
   sanitizeSourceChunkText
-} from "../chat-context.js";
-import { extractCitationIndices, validateAndCleanCitations } from "../citation-parser.js";
+} from "../../../src/lib/chat-context.js";
+import {
+  extractCitationIndices,
+  validateAndCleanCitations
+} from "../../../src/lib/citation-parser.js";
 
 describe("Sub-Issue #104: Anti-Prompt-Injection & Grounded Context Builder", () => {
   it("sanitizes empty text and special XML entities", () => {

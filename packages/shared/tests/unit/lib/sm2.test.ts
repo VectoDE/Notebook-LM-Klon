@@ -5,7 +5,7 @@ import {
   ratingToQualityScore,
   SM2_DEFAULT_EASE_FACTOR,
   SM2_MINIMUM_EASE_FACTOR
-} from "../sm2.js";
+} from "../../../src/lib/sm2.js";
 
 describe("SM-2 Spaced Repetition Algorithm (Sub-Issue #123)", () => {
   it("creates initial SM-2 state with default parameters", () => {

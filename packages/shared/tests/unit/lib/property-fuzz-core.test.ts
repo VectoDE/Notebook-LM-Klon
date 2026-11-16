@@ -1,17 +1,17 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { chunkText, DEFAULT_MAX_TOKENS } from "../chunker.js";
+import { chunkText, DEFAULT_MAX_TOKENS } from "../../../src/lib/chunker.js";
 import {
   extractCitationIndices,
   MAX_CITATION_RANGE_SPAN,
   validateAndCleanCitations
-} from "../citation-parser.js";
+} from "../../../src/lib/citation-parser.js";
 import {
   cosineSimilarityFloat32,
   cosineSimilarityInt8,
   dequantizeInt8ToFloat32,
   quantizeFloat32ToInt8
-} from "../quantization.js";
+} from "../../../src/lib/quantization.js";
 
 /** Fixed seed and 1,000 runs per property, so failures are reproducible in CI. */
 const RUNS = { numRuns: 1000, seed: 20261113 } as const;
