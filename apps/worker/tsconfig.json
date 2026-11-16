@@ -5,7 +5,8 @@
     "lib": ["ES2023"],
     "types": ["./src/worker-configuration.d.ts", "node"],
     "rootDir": "./src",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"]
 }

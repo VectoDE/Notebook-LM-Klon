@@ -4,6 +4,7 @@ import {
   type ServiceStatus
 } from "@notebook-lm/shared";
 import { Hono } from "hono";
+import { WORKER_VERSION } from "@/version.js";
 import { registerAccountRoutes } from "./account-routes.js";
 import { registerAudioRoutes } from "./audio-routes.js";
 import { AuditLogger } from "./audit-log.js";
@@ -63,7 +64,6 @@ import { SessionManager } from "./session.js";
 import { registerSourcesUploadRoutes } from "./sources-upload.js";
 import { registerUrlImportRoutes } from "./url-importer.js";
 import { registerUsageMetricsRoutes } from "./usage-metrics.js";
-import { WORKER_VERSION } from "./version.js";
 
 declare module "hono" {
   interface ContextVariableMap {

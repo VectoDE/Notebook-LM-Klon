@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p e2e",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tests && tsc --noEmit -p e2e",
     "themes:generate": "node scripts/generate-theme-css.ts",
     "test:e2e": "playwright test",
     "test:e2e:node": "playwright test -c playwright.node.config.ts"

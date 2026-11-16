@@ -10,7 +10,7 @@
     "build:node": "node scripts/build-node.mjs",
     "dev:node": "tsx src/node-server.ts",
     "start:node": "node dist/node-server.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tests"
   },
   "dependencies": {
     "@hono/node-server": "2.1.8",
