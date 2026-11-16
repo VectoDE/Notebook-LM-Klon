@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { inspectTextEncoding } from "../encoding.js";
+import { inspectTextEncoding } from "../../../src/lib/encoding.js";
 
 const REPO_ROOT = join(import.meta.dirname, "../../../..");
 

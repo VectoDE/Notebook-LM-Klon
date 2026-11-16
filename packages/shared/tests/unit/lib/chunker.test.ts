@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chunkText, estimateTokenCount, MAX_WORDS_LIMIT, TextTooLargeError } from "../chunker.js";
+import { chunkText, estimateTokenCount, MAX_WORDS_LIMIT, TextTooLargeError } from "../../../src/lib/chunker.js";
 
 describe("Token and Word Limits", () => {
   it("exports sensible defaults (ca. 800 tokens max, 100 overlap, 500,000 words limit)", () => {

@@ -9,7 +9,7 @@ import {
   isC2paSignable,
   MANIFEST_TITLE_MAX_LENGTH,
   PROVENANCE_GENERATOR_NAME
-} from "../provenance.js";
+} from "../../../src/domain/provenance.js";
 
 describe("C2PA-Formate (Issue #353)", () => {
   it("normalisiert Medienarten ohne Parameter und in Kleinschrift", () => {

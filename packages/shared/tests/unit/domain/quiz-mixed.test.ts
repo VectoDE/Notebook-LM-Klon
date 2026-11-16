@@ -12,7 +12,7 @@ import {
   QUIZ_COUNT_MAX,
   QUIZ_COUNT_MIN,
   QUIZ_ITEM_TYPES
-} from "../quiz-mixed.js";
+} from "../../../src/domain/quiz-mixed.js";
 
 const mc: MixedQuizItem = {
   id: "q1",

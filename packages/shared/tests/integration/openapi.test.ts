@@ -16,7 +16,7 @@ import {
   ProviderTypeSchema,
   SearchQueryBodySchema,
   SearchResponseSchema
-} from "../index.js";
+} from "../../src/index.js";
 
 /**
  * OpenAPI-Abdeckung (Issue #150).

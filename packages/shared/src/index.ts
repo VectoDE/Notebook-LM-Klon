@@ -153,8 +153,8 @@ export {
   type TextChunk,
   TextTooLargeError,
   type WordCountChunk
-} from "./chunker.js";
-export { type EncodingInspectionReport, inspectTextEncoding } from "./encoding.js";
+} from "./lib/chunker.js";
+export { type EncodingInspectionReport, inspectTextEncoding } from "./lib/encoding.js";
 export {
   cosineSimilarityFloat32,
   cosineSimilarityInt8,
@@ -163,7 +163,7 @@ export {
   dotProductInt8,
   type QuantizedVector,
   quantizeFloat32ToInt8
-} from "./quantization.js";
+} from "./lib/quantization.js";
 
 // ---------------------------------------------------------------------------
 // Chunk & Vector Ingestion Schemas (Decision #7, #22, #58 - Sub-Issues #96, #97)
@@ -470,18 +470,18 @@ export const JobBroadcastEventSchema = z.discriminatedUnion("type", [
 ]);
 export type JobBroadcastEvent = z.infer<typeof JobBroadcastEventSchema>;
 
-export * from "./audio-interject-types.js";
-export * from "./chat-context.js";
-export * from "./citation-parser.js";
-export * from "./comments.js";
-export * from "./entity-graph.js";
-export * from "./media-alternatives.js";
-export type * from "./models.d.js";
-export * from "./podcast-state-machine.js";
-export * from "./provenance.js";
-export type * from "./providers.d.js";
-export * from "./quiz-mixed.js";
-export * from "./sm2.js";
-export * from "./studio-artifacts.js";
-export * from "./studio-structured.js";
-export * from "./video-storyboard.js";
+export * from "./types/audio-interject-types.js";
+export * from "./lib/chat-context.js";
+export * from "./lib/citation-parser.js";
+export * from "./domain/comments.js";
+export * from "./domain/entity-graph.js";
+export * from "./domain/media-alternatives.js";
+export type * from "./types/models.d.js";
+export * from "./domain/podcast-state-machine.js";
+export * from "./domain/provenance.js";
+export type * from "./types/providers.d.js";
+export * from "./domain/quiz-mixed.js";
+export * from "./lib/sm2.js";
+export * from "./domain/studio-artifacts.js";
+export * from "./domain/studio-structured.js";
+export * from "./domain/video-storyboard.js";
