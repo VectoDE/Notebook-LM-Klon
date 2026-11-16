@@ -3,10 +3,7 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { runScheduledCleanup } from "../cleanup.js";
-import { resolveAppConfig } from "../config.js";
-import type { BatchStatement, DatabaseAdapter } from "../core-repository.js";
-import { verifyQuotaAction } from "../quota-guard.js";
+import { resolveAppConfig } from "@/config/config.js";
 import {
   FREE_TIER_R2_BUDGET,
   limitStream,
@@ -22,8 +19,11 @@ import {
   STALE_UPLOAD_MS,
   secondsUntilNextUtcDay,
   UploadTooLargeError
-} from "../r2-budget.js";
-import { RagRepository } from "../rag-repository.js";
+} from "@/config/r2-budget.js";
+import type { BatchStatement, DatabaseAdapter } from "@/repositories/core-repository.js";
+import { RagRepository } from "@/repositories/rag-repository.js";
+import { runScheduledCleanup } from "@/scheduled/cleanup.js";
+import { verifyQuotaAction } from "@/services/quota-guard.js";
 import { MAX_SOURCE_BYTE_SIZE_LIMIT, registerSourcesUploadRoutes } from "../sources-upload.js";
 
 const MIGRATIONS = [

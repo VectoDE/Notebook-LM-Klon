@@ -6,31 +6,43 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { etag } from "hono/etag";
-import { JobDO, NotebookDO } from "./durable-objects.js";
-import { createApp } from "./index.js";
-import { c2paSignerFromVars } from "./node/c2pa-signer.js";
+import { JobDO, NotebookDO } from "@/durable-objects/durable-objects.js";
+import { c2paSignerFromVars } from "@/platform/node/c2pa-signer.js";
 import {
   type EnvSource,
   loadNodeConfig,
   NodeConfigError,
   PASSTHROUGH_VARS
-} from "./node/config.js";
-import { createInProcessNamespace, type InProcessNamespace } from "./node/do-namespace.js";
-import { createLocalR2Adapter } from "./node/fs-r2.js";
-import { createPinnedFetch } from "./node/pinned-fetch.js";
-import { type CleanupScheduler, runCleanupOnce, startCleanupScheduler } from "./node/scheduler.js";
-import { createSmtpBinding, type SmtpSettings } from "./node/smtp.js";
-import { createSqliteD1Adapter, openNodeDatabase, runSqliteMigrations } from "./node/sqlite-d1.js";
-import { registerSocketAddress } from "./rate-limiter.js";
+} from "@/platform/node/config.js";
+import { createInProcessNamespace, type InProcessNamespace } from "@/platform/node/do-namespace.js";
+import { createLocalR2Adapter } from "@/platform/node/fs-r2.js";
+import { createPinnedFetch } from "@/platform/node/pinned-fetch.js";
+import {
+  type CleanupScheduler,
+  runCleanupOnce,
+  startCleanupScheduler
+} from "@/platform/node/scheduler.js";
+import { createSmtpBinding, type SmtpSettings } from "@/platform/node/smtp.js";
+import {
+  createSqliteD1Adapter,
+  openNodeDatabase,
+  runSqliteMigrations
+} from "@/platform/node/sqlite-d1.js";
+import { registerSocketAddress } from "@/security/rate-limiter.js";
+import { createApp } from "./index.js";
 
-export { loadNodeConfig, NodeConfigError } from "./node/config.js";
-export { createInProcessNamespace } from "./node/do-namespace.js";
-export { createLocalR2Adapter, MAX_OBJECT_BYTES, ObjectTooLargeError } from "./node/fs-r2.js";
+export { loadNodeConfig, NodeConfigError } from "@/platform/node/config.js";
+export { createInProcessNamespace } from "@/platform/node/do-namespace.js";
+export {
+  createLocalR2Adapter,
+  MAX_OBJECT_BYTES,
+  ObjectTooLargeError
+} from "@/platform/node/fs-r2.js";
 export {
   createSqliteD1Adapter,
   openNodeDatabase,
   runSqliteMigrations
-} from "./node/sqlite-d1.js";
+} from "@/platform/node/sqlite-d1.js";
 
 export interface NodeServerOptions {
   /** Environment to read the configuration from. Defaults to process.env. */

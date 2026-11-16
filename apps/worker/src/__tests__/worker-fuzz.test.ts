@@ -1,8 +1,8 @@
 import type { DeploymentProfile } from "@notebook-lm/shared";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { resolveAppConfig } from "../config.js";
-import { buildSafeFts5MatchQuery } from "../fts5-probe.js";
+import { resolveAppConfig } from "@/config/config.js";
+import { buildSafeFts5MatchQuery } from "@/db/fts5-probe.js";
 
 describe("Property-Based & Fuzz Testing – Worker FTS5 Sanitizer & Config (fast-check, Decision #107)", () => {
   it("fuzzes buildSafeFts5MatchQuery against arbitrary punctuation, SQL injection, and FTS5 operators", () => {

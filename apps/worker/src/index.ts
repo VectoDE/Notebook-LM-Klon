@@ -4,50 +4,15 @@ import {
   type ServiceStatus
 } from "@notebook-lm/shared";
 import { Hono } from "hono";
-import { WORKER_VERSION } from "@/version.js";
-import { registerAccountRoutes } from "./account-routes.js";
-import { registerAudioRoutes } from "./audio-routes.js";
-import { AuditLogger } from "./audit-log.js";
+import { resolveAppConfig } from "@/config/config.js";
+import { WORKER_VERSION } from "@/config/version.js";
+import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
 import {
   csrfProtection,
   requireAuth,
   requireNotebookRole,
   sessionMiddleware
-} from "./auth-middleware.js";
-import { registerBYOKRoutes } from "./byok-routes.js";
-import { registerChatRoutes } from "./chat-routes.js";
-import { registerChunkIngestionRoutes } from "./chunk-ingestion.js";
-import { createNotebookStatePurger, runScheduledCleanup } from "./cleanup.js";
-import { registerCommentRoutes } from "./comments-routes.js";
-import { resolveAppConfig } from "./config.js";
-import { CoreRepository } from "./core-repository.js";
-import {
-  EndpointRepository,
-  loadCustomProvider,
-  registerCustomEndpointRoutes,
-  resolveAllowlist,
-  resolveCustomKeyBinding
-} from "./custom-endpoint-routes.js";
-import { createD1DatabaseAdapter } from "./d1-adapter.js";
-import { createDemoRoutes } from "./demo-routes.js";
-import { registerDocSyncRoutes } from "./doc-sync.js";
-import { createGuestAndMagicLinkRoutes } from "./guest-magic-link-routes.js";
-import { registerJobRoutes } from "./job-routes.js";
-import { createKeyVaultFromEnv } from "./key-vault.js";
-import { registerLocalDataRoutes } from "./local-data-routes.js";
-import {
-  CloudflareMailAdapter,
-  type CloudflareSendEmailBinding,
-  HttpMailAdapter,
-  type MailAdapter
-} from "./mail-adapter.js";
-import { createPasskeyRoutes } from "./passkey-routes.js";
-import { PasskeyService } from "./passkey-service.js";
-import { registerProvenanceRoutes } from "./provenance-routes.js";
-import { registerProviderRoutes } from "./provider-routes.js";
-import { type QuotaAction, quotaGuardMiddleware } from "./quota-guard.js";
-import { RagRepository } from "./rag-repository.js";
-import { rateLimiterMiddleware } from "./rate-limiter.js";
+} from "@/middleware/auth-middleware.js";
 import {
   getConfiguredSessionSalt,
   hasConfiguredKek,
@@ -57,10 +22,45 @@ import {
   requireNotebookRoleFromQuery,
   requireSourceRole,
   resolveAddSourceAction
-} from "./route-guards.js";
+} from "@/middleware/route-guards.js";
+import { applySecurityHeaders } from "@/middleware/security-headers.js";
+import { CoreRepository } from "@/repositories/core-repository.js";
+import { RagRepository } from "@/repositories/rag-repository.js";
+import { createNotebookStatePurger, runScheduledCleanup } from "@/scheduled/cleanup.js";
+import { AuditLogger } from "@/security/audit-log.js";
+import { createKeyVaultFromEnv } from "@/security/key-vault.js";
+import { rateLimiterMiddleware } from "@/security/rate-limiter.js";
+import { SessionManager } from "@/security/session.js";
+import {
+  CloudflareMailAdapter,
+  type CloudflareSendEmailBinding,
+  HttpMailAdapter,
+  type MailAdapter
+} from "@/services/mail-adapter.js";
+import { PasskeyService } from "@/services/passkey-service.js";
+import { type QuotaAction, quotaGuardMiddleware } from "@/services/quota-guard.js";
+import { registerAccountRoutes } from "./account-routes.js";
+import { registerAudioRoutes } from "./audio-routes.js";
+import { registerBYOKRoutes } from "./byok-routes.js";
+import { registerChatRoutes } from "./chat-routes.js";
+import { registerChunkIngestionRoutes } from "./chunk-ingestion.js";
+import { registerCommentRoutes } from "./comments-routes.js";
+import {
+  EndpointRepository,
+  loadCustomProvider,
+  registerCustomEndpointRoutes,
+  resolveAllowlist,
+  resolveCustomKeyBinding
+} from "./custom-endpoint-routes.js";
+import { createDemoRoutes } from "./demo-routes.js";
+import { registerDocSyncRoutes } from "./doc-sync.js";
+import { createGuestAndMagicLinkRoutes } from "./guest-magic-link-routes.js";
+import { registerJobRoutes } from "./job-routes.js";
+import { registerLocalDataRoutes } from "./local-data-routes.js";
+import { createPasskeyRoutes } from "./passkey-routes.js";
+import { registerProvenanceRoutes } from "./provenance-routes.js";
+import { registerProviderRoutes } from "./provider-routes.js";
 import { registerSearchRoutes } from "./search-routes.js";
-import { applySecurityHeaders } from "./security-headers.js";
-import { SessionManager } from "./session.js";
 import { registerSourcesUploadRoutes } from "./sources-upload.js";
 import { registerUrlImportRoutes } from "./url-importer.js";
 import { registerUsageMetricsRoutes } from "./usage-metrics.js";
@@ -443,4 +443,4 @@ export {
   type JobExecutor,
   NotebookDO,
   type SqliteDurableObjectState
-} from "./durable-objects.js";
+} from "@/durable-objects/durable-objects.js";

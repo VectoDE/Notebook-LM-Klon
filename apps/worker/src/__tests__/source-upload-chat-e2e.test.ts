@@ -10,13 +10,13 @@ import {
 } from "@notebook-lm/shared";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { AutoRouter } from "../auto-router.js";
+import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
+import { CoreRepository } from "@/repositories/core-repository.js";
+import { RagRepository } from "@/repositories/rag-repository.js";
+import { AutoRouter } from "@/services/auto-router.js";
 import { registerChatRoutes } from "../chat-routes.js";
 import { registerChunkIngestionRoutes } from "../chunk-ingestion.js";
-import { CoreRepository } from "../core-repository.js";
-import { createD1DatabaseAdapter } from "../d1-adapter.js";
 import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
-import { RagRepository } from "../rag-repository.js";
 import { registerSearchRoutes } from "../search-routes.js";
 import { registerSourcesUploadRoutes } from "../sources-upload.js";
 
@@ -247,7 +247,7 @@ describe("P6: eigene Quelle hochladen, indexieren, suchen, im Chat zitieren", ()
 
     let aiCalls: string[][];
     beforeEach(async () => {
-      const { resetEmbeddingCircuit } = await import("../embeddings.js");
+      const { resetEmbeddingCircuit } = await import("@/services/embeddings.js");
       resetEmbeddingCircuit();
       aiCalls = [];
       (env as unknown as { AI: unknown }).AI = {

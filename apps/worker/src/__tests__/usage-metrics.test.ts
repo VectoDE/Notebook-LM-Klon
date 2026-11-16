@@ -4,11 +4,11 @@ import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { DELETED_USER_ID } from "../cleanup.js";
-import { createD1DatabaseAdapter } from "../d1-adapter.js";
+import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
+import { DELETED_USER_ID } from "@/scheduled/cleanup.js";
+import { clearRateLimitMemory } from "@/security/rate-limiter.js";
 import { createApp } from "../index.js";
 import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
-import { clearRateLimitMemory } from "../rate-limiter.js";
 import {
   createUsageThrottle,
   incrementUsageCounter,

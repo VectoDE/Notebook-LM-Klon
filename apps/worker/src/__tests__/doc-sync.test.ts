@@ -4,8 +4,10 @@ import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import { CoreRepository } from "../core-repository.js";
-import { createD1DatabaseAdapter } from "../d1-adapter.js";
+import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
+import { CoreRepository } from "@/repositories/core-repository.js";
+import { clearRateLimitMemory } from "@/security/rate-limiter.js";
+import { SessionManager } from "@/security/session.js";
 import {
   DocSyncError,
   diffFromState,
@@ -19,8 +21,6 @@ import {
 } from "../doc-sync.js";
 import { createApp, NotebookDO, type SqliteDurableObjectState } from "../index.js";
 import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
-import { clearRateLimitMemory } from "../rate-limiter.js";
-import { SessionManager } from "../session.js";
 
 const ORIGIN = "http://localhost:8787";
 const SALT = "test-only-salt-doc-sync";

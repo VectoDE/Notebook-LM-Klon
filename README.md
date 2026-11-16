@@ -151,7 +151,7 @@ Das Studio-Panel bietet sechs Werkzeuge. Sie arbeiten mit den Quellen des Notebo
 | Baustein | Stand | Wo |
 | :--- | :--- | :--- |
 | Such-API für Agenten: Hybrid-Suche (Vektor und FTS5, RRF) mit Zitaten, Seite und Offsets | Umgesetzt | `POST /api/v1/notebooks/:id/search`, siehe [`docs/openapi.json`](docs/openapi.json) |
-| Rollen `owner`, `editor`, `viewer` je Notebook | Umgesetzt | `apps/worker/src/auth-middleware.ts` |
+| Rollen `owner`, `editor`, `viewer` je Notebook | Umgesetzt | `apps/worker/src/middleware/auth-middleware.ts` |
 | Auto-Modell-Router, im Datenschutzmodus lokal (Ollama) | Umgesetzt | `GET /api/v1/providers`, `POST /api/v1/providers/route` |
 | Studio-Jobs per API einreihen | Teilweise | `POST /api/v1/jobs/enqueue`. Status und Abbruch einzelner Jobs sind noch gesperrt, bis die Besitzprüfung steht. |
 | Austausch von Entitäten und Kanten (`relationflow/export/v1`) | Noch nicht umgesetzt | Format nur beschrieben |
@@ -207,7 +207,7 @@ Alle Endpunkte unter `/api/v1` sind in [`docs/openapi.json`](docs/openapi.json) 
 </picture>
 <sub>Grafik in <a href="docs/assets/security-layers-de.svg" hreflang="de" lang="de">Deutsch</a> · <a href="docs/assets/security-layers-en.svg" hreflang="en" lang="en">English</a></sub>
 
-- **Kryptografisches Budget innerhalb von 10 ms CPU-Zeit:** Durch unseren Benchmark ([`apps/worker/src/crypto-benchmark.ts`](apps/worker/src/crypto-benchmark.ts)) ist nachgewiesen, dass `SHA-256` (`~0,01 ms`), `AES-256-GCM` Envelope-Roundtrip mit `AAD` (`~0,03 ms`) und `ECDSA P-256` Passkey-Verifikation (`~0,25 ms`) zusammen **`< 0,6 ms` CPU-Zeit** benötigen – über **94 % der 10-ms-Free-Tier-Reserve** bleiben frei für Fachlogik.
+- **Kryptografisches Budget innerhalb von 10 ms CPU-Zeit:** Durch unseren Benchmark ([`apps/worker/src/ops/crypto-benchmark.ts`](apps/worker/src/ops/crypto-benchmark.ts)) ist nachgewiesen, dass `SHA-256` (`~0,01 ms`), `AES-256-GCM` Envelope-Roundtrip mit `AAD` (`~0,03 ms`) und `ECDSA P-256` Passkey-Verifikation (`~0,25 ms`) zusammen **`< 0,6 ms` CPU-Zeit** benötigen – über **94 % der 10-ms-Free-Tier-Reserve** bleiben frei für Fachlogik.
 - **Barrierefreiheit:** Jede der vier Oberflächen gibt es in Hell, Dunkel und AAA-Hochkontrast. Das Ziel für Text ist ein Kontrast von mindestens 7:1 (WCAG 2.2, 1.4.6), für Rahmen und Fokus mindestens 3:1. Die Vorgaben stehen in `apps/web/src/design-tokens.ts`, der Stand der Prüfung in [`docs/accessibility-wcag-aaa.md`](docs/accessibility-wcag-aaa.md).
 - **DSGVO-Rechte per 1-Klick:** Vollständiger maschinenlesbarer Datenexport (Art. 15 / Art. 20 DSGVO) sowie kryptografisch verifizierte Kaskadenlöschung über D1, R2 und Durable Objects (Art. 17 DSGVO).
 - **Training mit Eingaben je KI-Modell:** Ob ein Anbieter Eingaben zum Training nutzt, hängt vom Modell und vom Zugangsweg ab (bei Google Gemini etwa von kostenpflichtiger Nutzung und Region). Die App zeigt die Angabe beim gewählten Modell mit Quelle; Tabelle, Wortlaut und Abrufdatum stehen in [`docs/datenschutz-modelle.md`](docs/datenschutz-modelle.md). Das ist eine Zusammenfassung der Anbieterangaben, keine Rechtsberatung.
@@ -257,7 +257,7 @@ curl -i http://localhost:8787/api/v1/health
 
 ### 4. Betrieb: Client-IP und `TRUSTED_PROXY_HEADER` (für Betreiber)
 
-Rate-Limits, Turnstile (`remoteip`), Sitzungen und das BYOK-Audit-Log brauchen die IP-Adresse des Clients. Der Worker ermittelt sie an genau einer Stelle, `resolveClientIp()` in [`apps/worker/src/rate-limiter.ts`](apps/worker/src/rate-limiter.ts), und vertraut dabei nur Quellen, die nicht vom Client stammen:
+Rate-Limits, Turnstile (`remoteip`), Sitzungen und das BYOK-Audit-Log brauchen die IP-Adresse des Clients. Der Worker ermittelt sie an genau einer Stelle, `resolveClientIp()` in [`apps/worker/src/security/rate-limiter.ts`](apps/worker/src/security/rate-limiter.ts), und vertraut dabei nur Quellen, die nicht vom Client stammen:
 
 | Reihenfolge | Quelle | Wann sie gilt |
 | :--- | :--- | :--- |

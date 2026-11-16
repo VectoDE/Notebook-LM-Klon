@@ -22,7 +22,7 @@ lösen nie einen Deploy aus.
    abschaltbar über den Eingang `run_migrations`).
 5. Deployt den Worker (`wrangler deploy`). Cron (`0 * * * *`) und `nodejs_compat` kommen aus
    `apps/worker/wrangler.jsonc`. Worker-Secrets bleiben dabei erhalten.
-6. Smoke-Check gegen `DEPLOY_URL` (`apps/worker/src/smoke-check.ts`, bis zu drei Versuche):
+6. Smoke-Check gegen `DEPLOY_URL` (`apps/worker/src/ops/smoke-check.ts`, bis zu drei Versuche):
    Health 200 mit `status: ok`, Web-Oberfläche liefert HTML, Gastzugang ohne Turnstile-Token
    wird mit 403 abgelehnt (ein 503 hieße: Secrets fehlen), Chat ohne Sitzung antwortet 401.
    Ob Turnstile- und Gemini-Schlüssel stimmen, prüft er nicht (siehe Schritt 7 unten).
@@ -30,7 +30,7 @@ lösen nie einen Deploy aus.
 Lokal lässt sich der Smoke-Check gegen jede laufende Instanz ausführen:
 
 ```bash
-pnpm --filter @notebook-lm/worker exec tsx src/smoke-check.ts http://localhost:8787
+pnpm --filter @notebook-lm/worker exec tsx src/ops/smoke-check.ts http://localhost:8787
 ```
 
 ## Schritte des Inhabers vor dem ersten Deploy

@@ -10,17 +10,17 @@ import {
   maskApiKey
 } from "@notebook-lm/shared";
 import { type Context, Hono } from "hono";
-import { csrfProtection } from "./auth-middleware.js";
-import type { CoreRepository } from "./core-repository.js";
+import { csrfProtection } from "@/middleware/auth-middleware.js";
+import type { CoreRepository } from "@/repositories/core-repository.js";
+import type { RagRepository } from "@/repositories/rag-repository.js";
 import {
   createKeyVaultFromEnv,
   deserializeEncryptedPayload,
   type KeyVault,
   serializeEncryptedPayload
-} from "./key-vault.js";
-import type { RagRepository } from "./rag-repository.js";
-import { resolveClientIp } from "./rate-limiter.js";
-import { computeDailySaltedHash } from "./session.js";
+} from "@/security/key-vault.js";
+import { resolveClientIp } from "@/security/rate-limiter.js";
+import { computeDailySaltedHash } from "@/security/session.js";
 
 export interface BYOKRoutesDependencies {
   ragRepo: RagRepository;

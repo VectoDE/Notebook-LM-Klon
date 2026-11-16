@@ -3,14 +3,14 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it } from "vitest";
+import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
+import { RagRepository } from "@/repositories/rag-repository.js";
+import { deserializeEncryptedPayload, KeyVault } from "@/security/key-vault.js";
 import {
   type BYOKRoutesDependencies,
   defaultTestProviderKey,
   registerBYOKRoutes
 } from "../byok-routes.js";
-import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
-import { deserializeEncryptedPayload, KeyVault } from "../key-vault.js";
-import { RagRepository } from "../rag-repository.js";
 
 function createMockD1(): { adapter: DatabaseAdapter; close: () => void } {
   const sqlite = new DatabaseSync(":memory:");

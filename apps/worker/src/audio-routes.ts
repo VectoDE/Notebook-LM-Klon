@@ -10,13 +10,13 @@ import {
   validateAndCleanCitations
 } from "@notebook-lm/shared";
 import type { Hono } from "hono";
-import { AutoRouter } from "./auto-router.js";
-import type { CoreRepository } from "./core-repository.js";
-import { buildSafeFts5MatchQuery } from "./fts5-probe.js";
-import { GeminiProvider } from "./gemini-provider.js";
-import { deserializeEncryptedPayload, type KeyVault } from "./key-vault.js";
-import { OllamaLocalProvider } from "./ollama-provider.js";
-import type { RagRepository } from "./rag-repository.js";
+import { buildSafeFts5MatchQuery } from "@/db/fts5-probe.js";
+import { GeminiProvider } from "@/providers/gemini-provider.js";
+import { OllamaLocalProvider } from "@/providers/ollama-provider.js";
+import type { CoreRepository } from "@/repositories/core-repository.js";
+import type { RagRepository } from "@/repositories/rag-repository.js";
+import { deserializeEncryptedPayload, type KeyVault } from "@/security/key-vault.js";
+import { AutoRouter } from "@/services/auto-router.js";
 import { queryNotebookVectorSearch } from "./search-routes.js";
 
 export interface AudioRoutesDependencies {

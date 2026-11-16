@@ -4,16 +4,16 @@ import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it } from "vitest";
-import { sessionMiddleware } from "../auth-middleware.js";
-import { CoreRepository } from "../core-repository.js";
-import { createD1DatabaseAdapter } from "../d1-adapter.js";
+import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
+import { sessionMiddleware } from "@/middleware/auth-middleware.js";
+import { CoreRepository } from "@/repositories/core-repository.js";
+import { SessionManager, sha256Hex } from "@/security/session.js";
 import {
   deriveLocalKeyMaterial,
   LOCAL_KEY_BYTES,
   registerLocalDataRoutes
 } from "../local-data-routes.js";
 import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
-import { SessionManager, sha256Hex } from "../session.js";
 
 const SALT = "test-only-salt-local-data-routes";
 

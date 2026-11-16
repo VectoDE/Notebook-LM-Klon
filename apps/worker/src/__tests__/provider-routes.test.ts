@@ -3,12 +3,12 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AutoRouter } from "../auto-router.js";
-import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
-import { GeminiProvider } from "../gemini-provider.js";
-import type { OllamaLocalProvider } from "../ollama-provider.js";
+import { GeminiProvider } from "@/providers/gemini-provider.js";
+import type { OllamaLocalProvider } from "@/providers/ollama-provider.js";
+import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
+import { RagRepository } from "@/repositories/rag-repository.js";
+import { AutoRouter } from "@/services/auto-router.js";
 import { createProviderRoutes, registerProviderRoutes } from "../provider-routes.js";
-import { RagRepository } from "../rag-repository.js";
 
 function createMockD1(): { adapter: DatabaseAdapter; close: () => void } {
   const sqlite = new DatabaseSync(":memory:");

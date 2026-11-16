@@ -27,7 +27,7 @@ Der NotebookLM-Klon läuft vollständig auf **einem einzigen Cloudflare Worker**
 
 Um sicherzustellen, dass Authentifizierung, Session-Prüfung und die Entschlüsselung von Nutzer-API-Keys (BYOK) niemals das 10-ms-CPU-Limit des Cloudflare Free-Plans reißen, setzen wir ausschließlich auf native C++/Rust-gestützte **WebCrypto-Primitive (`crypto.subtle`)** statt auf JavaScript-Kryptobibliotheken.
 
-Die automatisierte Benchmark-Suite ([`apps/worker/src/crypto-benchmark.ts`](../apps/worker/src/crypto-benchmark.ts) & [`crypto-benchmark.test.ts`](../apps/worker/src/__tests__/crypto-benchmark.test.ts)) misst bei jedem Testlauf die reale CPU-Zeit pro Operation:
+Die automatisierte Benchmark-Suite ([`apps/worker/src/ops/crypto-benchmark.ts`](../apps/worker/src/ops/crypto-benchmark.ts) & [`crypto-benchmark.test.ts`](../apps/worker/tests/unit/ops/crypto-benchmark.test.ts)) misst bei jedem Testlauf die reale CPU-Zeit pro Operation:
 
 | Kryptografische Operation | Einsatzgebiet im Worker | Gemessene Ø CPU-Zeit | Ziel-Budget | Status |
 |---|---|---|---|---|
@@ -49,7 +49,7 @@ flowchart LR
 
 ## 3. Verifikation von SQLite `FTS5` & `bm25()` in Cloudflare D1
 
-Cloudflare D1 basiert auf SQLite und unterstützt virtuelle Volltext-Tabellen über das `fts5`-Modul. In [`apps/worker/src/fts5-probe.ts`](../apps/worker/src/fts5-probe.ts) und [`fts5-probe.test.ts`](../apps/worker/src/__tests__/fts5-probe.test.ts) wird dieser Mechanismus automatisiert geprüft:
+Cloudflare D1 basiert auf SQLite und unterstützt virtuelle Volltext-Tabellen über das `fts5`-Modul. In [`apps/worker/src/db/fts5-probe.ts`](../apps/worker/src/db/fts5-probe.ts) und [`fts5-probe.test.ts`](../apps/worker/tests/unit/db/fts5-probe.test.ts) wird dieser Mechanismus automatisiert geprüft:
 
 1. **Virtuelle Tabelle mit `unicode61`-Tokenizer:**
    `CREATE VIRTUAL TABLE chunks_fts USING fts5(text, content='chunks', content_rowid='rowid', tokenize='unicode61 remove_diacritics 2')` – unterstützt deutsche Umlaute (`ä, ö, ü, ß`) und Fachbegriffe zuverlässig.
@@ -64,7 +64,7 @@ Cloudflare D1 basiert auf SQLite und unterstützt virtuelle Volltext-Tabellen ü
 
 ## 4. Konfigurationsprofile (`demo` vs. `full`)
 
-Über [`apps/worker/src/config.ts`](../apps/worker/src/config.ts) schaltet die Umgebungsvariable `APP_PROFILE` verlustfrei zwischen dem öffentlichen Demo-Betrieb (optimiert auf die Cloudflare Free-Tier-Kontingente) und dem produktiven Vollausbau um:
+Über [`apps/worker/src/config/config.ts`](../apps/worker/src/config/config.ts) schaltet die Umgebungsvariable `APP_PROFILE` verlustfrei zwischen dem öffentlichen Demo-Betrieb (optimiert auf die Cloudflare Free-Tier-Kontingente) und dem produktiven Vollausbau um:
 
 | Kontingent / Parameter | Profil `demo` (Cloudflare Free) | Profil `full` (Vollausbau / Enterprise) |
 |---|---|---|
@@ -101,4 +101,4 @@ Beispiel für `NOTEBOOK_SIZE_LIMIT`:
 }
 ```
 
-Die Grenzwerte stehen in [`apps/worker/src/config.ts`](https://github.com/VectoDE/Notebook-LM-Klon/blob/main/apps/worker/src/config.ts), die Prüfungen in [`apps/worker/src/quota-guard.ts`](https://github.com/VectoDE/Notebook-LM-Klon/blob/main/apps/worker/src/quota-guard.ts). Tests an den Grenzen (genau am Limit und 1 Byte darüber): `apps/worker/src/__tests__/security-headers-quotas.test.ts` und `apps/worker/src/__tests__/sources-upload.test.ts`.
+Die Grenzwerte stehen in [`apps/worker/src/config/config.ts`](https://github.com/VectoDE/Notebook-LM-Klon/blob/main/apps/worker/src/config/config.ts), die Prüfungen in [`apps/worker/src/services/quota-guard.ts`](https://github.com/VectoDE/Notebook-LM-Klon/blob/main/apps/worker/src/services/quota-guard.ts). Tests an den Grenzen (genau am Limit und 1 Byte darüber): `apps/worker/tests/unit/middleware/security-headers-quotas.test.ts` und `apps/worker/src/__tests__/sources-upload.test.ts`.

@@ -14,8 +14,10 @@
 
 import { createProblemDetails, z } from "@notebook-lm/shared";
 import { type Context, Hono } from "hono";
-import { csrfProtection } from "./auth-middleware.js";
-import type { DatabaseAdapter } from "./core-repository.js";
+import { csrfProtection } from "@/middleware/auth-middleware.js";
+import { OpenAiCompatibleProvider } from "@/providers/openai-compatible-provider.js";
+import type { DatabaseAdapter } from "@/repositories/core-repository.js";
+import type { RagRepository } from "@/repositories/rag-repository.js";
 import {
   assertHostResolvesPublic,
   BYOM_ALLOWLIST_ENV,
@@ -24,12 +26,10 @@ import {
   type HostResolver,
   parseHostAllowlist,
   validateUserEndpoint
-} from "./endpoint-guard.js";
-import { deserializeEncryptedPayload, type KeyVault } from "./key-vault.js";
-import { OpenAiCompatibleProvider } from "./openai-compatible-provider.js";
-import type { RagRepository } from "./rag-repository.js";
-import { checkRateLimit, type RateLimitConfig } from "./rate-limiter.js";
-import type { SsrSecurityError } from "./ssrf-guard.js";
+} from "@/security/endpoint-guard.js";
+import { deserializeEncryptedPayload, type KeyVault } from "@/security/key-vault.js";
+import { checkRateLimit, type RateLimitConfig } from "@/security/rate-limiter.js";
+import type { SsrSecurityError } from "@/security/ssrf-guard.js";
 
 /**
  * Origin des gespeicherten Endpunkts als Bindung für den Schlüssel, null ohne Endpunkt.

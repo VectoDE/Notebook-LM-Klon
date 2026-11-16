@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
+import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
 import {
   type BatchStatement,
   createNotebookStatePurger,
@@ -11,9 +13,7 @@ import {
   type MinimalR2Bucket,
   purgeUsers,
   runScheduledCleanup
-} from "../cleanup.js";
-import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
-import { createD1DatabaseAdapter } from "../d1-adapter.js";
+} from "@/scheduled/cleanup.js";
 import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
 
 class MemoryBucket implements MinimalR2Bucket {

@@ -6,7 +6,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { DIGITAL_SOURCE_TYPE_TRAINED_ALGORITHMIC } from "@notebook-lm/shared";
 import { Hono } from "hono";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { c2paSignerFromVars } from "../node/c2pa-signer.js";
+import { c2paSignerFromVars } from "@/platform/node/c2pa-signer.js";
 import { registerProvenanceRoutes } from "../provenance-routes.js";
 
 /**

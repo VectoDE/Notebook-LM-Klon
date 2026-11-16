@@ -1,13 +1,13 @@
 import { DIGITAL_SOURCE_TYPE_TRAINED_ALGORITHMIC } from "@notebook-lm/shared";
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
+import { WORKER_VERSION } from "@/config/version.js";
 import {
   type ProvenanceSigner,
   registerProvenanceRoutes,
   signerFromEnv,
   signerUserIdsFromEnv
 } from "../provenance-routes.js";
-import { WORKER_VERSION } from "../version.js";
 
 type App = Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>;
 

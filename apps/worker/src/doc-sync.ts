@@ -1,7 +1,7 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import type { Context, Hono } from "hono";
 import * as Y from "yjs";
-import { readBodyLimited } from "./body-limit.js";
+import { readBodyLimited } from "@/middleware/body-limit.js";
 
 /**
  * Yjs-Stand eines Notebooks (Issue #347): der Server hält je Notebook einen zusammengeführten

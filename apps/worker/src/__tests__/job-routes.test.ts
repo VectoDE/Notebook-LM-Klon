@@ -1,7 +1,7 @@
 import { ProblemDetailsSchema } from "@notebook-lm/shared";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
+import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
 import { createJobRoutes, forwardToJobDO, registerJobRoutes } from "../job-routes.js";
 
 function createMockDatabaseAdapter(options?: {

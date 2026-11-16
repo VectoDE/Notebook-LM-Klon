@@ -3,21 +3,29 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
+import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
 import {
-  createGuestAndMagicLinkRoutes,
-  DEMO_WORKSPACE_ID,
-  DEMO_WORKSPACE_NAME
-} from "../guest-magic-link-routes.js";
-import { CloudflareMailAdapter, ConsoleMailAdapter, HttpMailAdapter } from "../mail-adapter.js";
-import { DEV_SESSION_COOKIE_NAME, SESSION_COOKIE_NAME, SessionManager } from "../session.js";
+  DEV_SESSION_COOKIE_NAME,
+  SESSION_COOKIE_NAME,
+  SessionManager
+} from "@/security/session.js";
 import {
   DEFAULT_TURNSTILE_SITEVERIFY_URL,
   TURNSTILE_TEST_SECRET_ALWAYS_FAILS,
   TURNSTILE_TEST_SECRET_ALWAYS_PASSES,
   TURNSTILE_TEST_SECRET_TOKEN_ALREADY_SPENT,
   verifyTurnstileToken
-} from "../turnstile.js";
+} from "@/security/turnstile.js";
+import {
+  CloudflareMailAdapter,
+  ConsoleMailAdapter,
+  HttpMailAdapter
+} from "@/services/mail-adapter.js";
+import {
+  createGuestAndMagicLinkRoutes,
+  DEMO_WORKSPACE_ID,
+  DEMO_WORKSPACE_NAME
+} from "../guest-magic-link-routes.js";
 
 function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } {
   const db = new DatabaseSync(":memory:");

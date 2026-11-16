@@ -1,6 +1,6 @@
 import { createProblemDetails, EnqueueJobBodySchema } from "@notebook-lm/shared";
 import { Hono } from "hono";
-import type { CoreRepository } from "./core-repository.js";
+import type { CoreRepository } from "@/repositories/core-repository.js";
 
 export interface JobRoutesDependencies {
   readonly coreRepo?: CoreRepository | undefined;
