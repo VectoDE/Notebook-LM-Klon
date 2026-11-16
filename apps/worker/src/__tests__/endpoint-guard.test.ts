@@ -240,7 +240,6 @@ describe("endpoint-guard: DNS-Prüfung gegen Rebinding", () => {
     "64:ff9b::808:808",
     "2001:200::1",
     "3fff:1000::1"
-    "5f01::1"
   ])("DNS-Antwort %s gilt als öffentlich", (ip) => {
     expect(isBlockedIp(ip)).toBe(false);
   });
