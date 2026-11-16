@@ -50,7 +50,8 @@ export default defineConfig({
         "apps/web/src/local-llm-webllm.ts",
         "apps/web/src/offline-chat.ts",
         "apps/web/src/offline-chat-flag.ts",
-        "apps/web/src/translations-offline-chat.ts"
+        "apps/web/src/translations-offline-chat.ts",
+        "apps/web/src/usage-beacon.ts"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {

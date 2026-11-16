@@ -62,6 +62,7 @@ import { applySecurityHeaders } from "./security-headers.js";
 import { SessionManager } from "./session.js";
 import { registerSourcesUploadRoutes } from "./sources-upload.js";
 import { registerUrlImportRoutes } from "./url-importer.js";
+import { registerUsageMetricsRoutes } from "./usage-metrics.js";
 import { WORKER_VERSION } from "./version.js";
 
 declare module "hono" {
@@ -194,6 +195,11 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
 
   // 1. Global API security chain
   app.use("*", csrfProtection({ allowedOrigins: [config.origin], isProduction }));
+  // Cookie-free aggregated usage counters (Issue #262). Registered before the session and
+  // rate-limit middleware on purpose: the request never touches cookies, sessions or the
+  // rate-limit table, so no IP address or identifier is read or stored for it. Instead it
+  // requires the exact app origin, throttles per isolate and caps the daily counter.
+  registerUsageMetricsRoutes(app, { db: dbAdapter, allowedOrigin: config.origin });
   app.use("*", sessionMiddleware(sessionManager));
   app.use("*", async (c, next) => {
     const sessionUser = c.get("sessionUser");
