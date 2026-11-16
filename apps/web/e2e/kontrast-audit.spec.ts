@@ -253,6 +253,21 @@ function measureDisabled(page: Page): Promise<{ target: string; ratio: number }[
 
 const fmt = (n: number) => n.toFixed(2).replace(".", ",");
 
+/**
+ * Wartet, bis alle endlichen Übergänge und Animationen beendet sind. Gemessen wird sonst
+ * mitten im Farbwechsel nach dem Umschalten von Design oder Modus (nur unter Last sichtbar).
+ */
+async function settle(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    const pending = document
+      .getAnimations()
+      .filter((a) => a.effect?.getTiming().iterations !== Number.POSITIVE_INFINITY)
+      .map((a) => a.finished.catch(() => undefined));
+    // Höchstens 2 s warten: eine nie endende Animation darf den Test nicht aufhängen.
+    await Promise.race([Promise.all(pending), new Promise((resolve) => setTimeout(resolve, 2000))]);
+  });
+}
+
 for (const design of DESIGNS) {
   test(`${design}: Kontrast-Audit AAA in Hell, Dunkel und AAA-Kontrast`, async ({ page }) => {
     test.setTimeout(300_000);
@@ -264,6 +279,7 @@ for (const design of DESIGNS) {
     for (const mode of MODES) {
       await chooseDesign(page, design, mode);
       await page.mouse.move(1, 1);
+      await settle(page);
       const label = `${design}/${mode}`;
 
       // 1. Grundfläche: dunkle Modi dunkel, helle Modi hell, Text darauf 7:1 (#252)
@@ -312,6 +328,7 @@ for (const design of DESIGNS) {
       await expect(page.getByTestId("url-address-error")).toBeVisible();
       const error = await elementContrast(page, "[data-testid='url-address-error']");
       expect(error, `${label} Fehlermeldung`).toBeGreaterThanOrEqual(7);
+      await settle(page);
       const dialogTexts = await measureTexts(page);
       expect(dialogTexts.failures, `${label} Dialog mit Fehler`).toEqual([]);
       await page.getByTestId("btn-cancel-url-dialog").click();
