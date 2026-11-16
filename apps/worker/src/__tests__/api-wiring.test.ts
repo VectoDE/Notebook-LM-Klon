@@ -773,6 +773,33 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       kekFx.sqlite.close();
       rmSync(kekFx.dataDir, { recursive: true, force: true });
     });
+
+    it("stores a key for the own endpoint only once an endpoint exists (Issue #247)", async () => {
+      const kekFx = await createFixture({ KEK_V1: KEK });
+      const putKey = () =>
+        call(
+          "/api/v1/keys/custom",
+          {
+            method: "PUT",
+            cookie: kekFx.cookies.alice,
+            json: { apiKey: "rf_live_0123456789abcdef" }
+          },
+          kekFx.env
+        );
+      const without = await putKey();
+      expect(without.status).toBe(409);
+      expect(((await without.json()) as { code: string }).code).toBe("ENDPOINT_REQUIRED");
+
+      kekFx.sqlite
+        .prepare(
+          "INSERT INTO provider_endpoints (user_id, provider, base_url, chat_model, embed_model, created_at, updated_at) VALUES ('alice', 'custom', 'https://api.relationflow.example/v1', 'rf-auto', NULL, 1, 1)"
+        )
+        .run();
+      expect((await putKey()).status).toBe(200);
+      kekFx.closeEnv();
+      kekFx.sqlite.close();
+      rmSync(kekFx.dataDir, { recursive: true, force: true });
+    });
   });
 
   describe("SESSION_SALT_SECRET (fail-closed, no fallback)", () => {
