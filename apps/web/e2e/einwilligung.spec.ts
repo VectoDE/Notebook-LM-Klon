@@ -133,7 +133,7 @@ test.describe("Einwilligungsbanner", () => {
 
     await page.getByTestId("btn-open-menu").click();
     await page.getByTestId("sheet-cookie-settings").click();
-    await expect(page.getByTestId("nav-sheet")).toHaveCount(0);
+    await expect(page.getByTestId("nav-sheet")).toBeHidden();
     const dialog = page.getByRole("dialog", { name: "Cookie-Einstellungen" });
     await expect(dialog.getByTestId("consent-analytics")).toBeChecked();
     await dialog.getByTestId("consent-analytics").uncheck();
