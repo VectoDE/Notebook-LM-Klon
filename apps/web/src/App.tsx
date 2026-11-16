@@ -5,12 +5,12 @@ import {
   WORKSPACE_VERSION
 } from "@notebook-lm/shared";
 import type { FunctionComponent } from "react";
-import { WorkspaceLayout } from "./WorkspaceLayout.js";
 import {
   LazyFlashcardsViewer as FlashcardsViewer,
   LazyMindmapViewer as MindmapViewer,
   LazyQuizViewer as QuizViewer
 } from "./lazy-viewers.js";
+import { WorkspaceLayout } from "./WorkspaceLayout.js";
 
 const DEFAULT_MINDMAP: MindmapNode = {
   id: "cf_root",

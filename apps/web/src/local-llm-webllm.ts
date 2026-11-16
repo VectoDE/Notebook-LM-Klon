@@ -1,10 +1,11 @@
 import {
   type AppConfig,
   CreateMLCEngine,
-  type MLCEngineInterface,
   deleteModelAllInfoInCache,
-  hasModelInCache
+  hasModelInCache,
+  type MLCEngineInterface
 } from "@mlc-ai/web-llm";
+import type { LocalEngine, LocalRuntime } from "./local-llm.js";
 import {
   LOCAL_MODEL_CONTEXT_TOKENS,
   LOCAL_MODEL_ID,
@@ -13,7 +14,6 @@ import {
   LOCAL_MODEL_URL,
   LOCAL_MODEL_VRAM_MB
 } from "./local-llm-config.js";
-import type { LocalEngine, LocalRuntime } from "./local-llm.js";
 
 /**
  * WebLLM-Anbindung (Issue #346). Dieses Modul wird nur per import() geladen und landet so in

@@ -6,29 +6,29 @@ import {
   type PodcastStateMachine,
   type QuizQuestion,
   type ReviewStatus,
+  setReviewStatus,
   type TimelineEntry,
-  type VideoStoryboard,
-  setReviewStatus
+  type VideoStoryboard
 } from "@notebook-lm/shared";
 import { type ReactNode, useEffect, useState } from "react";
 import { DEMO_PODCAST_TRANSCRIPT, DeepDiveStage } from "./DeepDiveStage.js";
+import { escapeHtmlText, triggerBrowserDownload } from "./download.js";
 import { EmptyState } from "./EmptyState.js";
 import { Icon, type IconName } from "./Icon.js";
-import { escapeHtmlText, triggerBrowserDownload } from "./download.js";
 import {
   LazyDataTableViewer as DataTableViewer,
   LazyFlashcardsViewer as FlashcardsViewer,
   LazyInfographicViewer as InfographicViewer,
   LazyInteractiveAudioHostPlayer as InteractiveAudioHostPlayer,
   LazyMindmapViewer as MindmapViewer,
+  preloadMediaPlayers,
   LazyQuizViewer as QuizViewer,
   LazyTimelineViewer as TimelineViewer,
-  LazyVideoOverviewPlayer as VideoOverviewPlayer,
-  preloadMediaPlayers
+  LazyVideoOverviewPlayer as VideoOverviewPlayer
 } from "./lazy-viewers.js";
 import {
-  type FetchLike,
   addSvgProvenanceMetadata,
+  type FetchLike,
   provenanceNoteKey,
   signExport
 } from "./provenance-client.js";

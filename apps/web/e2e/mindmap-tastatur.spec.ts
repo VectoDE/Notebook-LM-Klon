@@ -1,4 +1,4 @@
-import { type Page, expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { openPanel } from "./helpers";
 
 /** Issue #296: Mindmap per Tastatur bedienbar (APG Tree View und Tabs). */

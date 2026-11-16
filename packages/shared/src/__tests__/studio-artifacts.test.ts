@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   type BriefingArtifactPayload,
+  evaluateQuiz,
   type FAQArtifactPayload,
   type FlashcardItem,
-  MindmapArtifactPayloadSchema,
-  type MindmapNode,
-  type QuizQuestion,
-  type TimelineArtifactPayload,
-  evaluateQuiz,
   flattenMindmapTree,
   formatArtifactToPrintHtml,
   formatBriefingToMarkdown,
   formatFAQToMarkdown,
   formatTimelineToMarkdown,
-  serializeFlashcardsToAnkiCsv
+  MindmapArtifactPayloadSchema,
+  type MindmapNode,
+  type QuizQuestion,
+  serializeFlashcardsToAnkiCsv,
+  type TimelineArtifactPayload
 } from "../studio-artifacts.js";
 
 describe("Studio Artifacts Utilities & Generators (Sub-Issues #122, #123, #124)", () => {

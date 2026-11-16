@@ -11,7 +11,7 @@ import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
 import { RagRepository } from "../rag-repository.js";
 import { clearRateLimitMemory } from "../rate-limiter.js";
 import { recordQuotaUsage } from "../route-guards.js";
-import { SessionManager, computeDailySaltedHash } from "../session.js";
+import { computeDailySaltedHash, SessionManager } from "../session.js";
 
 const ORIGIN = "http://localhost:8787";
 const KEK = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210";

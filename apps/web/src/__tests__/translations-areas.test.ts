@@ -1,32 +1,32 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { PodcastStateMachine, PodcastStateMachineContext } from "@notebook-lm/shared";
-import { type ReactNode, createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 import { ChatPanel } from "../ChatPanel.js";
 import { DeepDiveStage } from "../DeepDiveStage.js";
-import { FlashcardsViewer, describeNextReview, describeRepetitions } from "../FlashcardsViewer.js";
+import { describeNextReview, describeRepetitions, FlashcardsViewer } from "../FlashcardsViewer.js";
 import { InteractiveAudioHostPlayer } from "../InteractiveAudioHostPlayer.js";
 import { LiveLyrics } from "../LiveLyrics.js";
+import { preloadStudioViewers } from "../lazy-viewers.js";
 import { MindmapViewer } from "../MindmapViewer.js";
 import { QuizViewer } from "../QuizViewer.js";
 import { SourcesPanel } from "../SourcesPanel.js";
 import { StudioPanel } from "../StudioPanel.js";
-import { VideoOverviewPlayer } from "../VideoOverviewPlayer.js";
-import { preloadStudioViewers } from "../lazy-viewers.js";
 import { podcastStateKey } from "../stage-visuals.js";
 import { AREA_DE, AREA_EN } from "../translations-areas.js";
 import { COMMENTS_DE, COMMENTS_EN } from "../translations-comments.js";
 import { OFFLINE_CHAT_DE, OFFLINE_CHAT_EN } from "../translations-offline-chat.js";
 import {
-  TRANSLATIONS,
+  fill,
   ThemeProvider,
   type ThemeProviderProps,
-  fill,
+  TRANSLATIONS,
   translate,
   useTheme
 } from "../useTheme.js";
+import { VideoOverviewPlayer } from "../VideoOverviewPlayer.js";
 
 // Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
 beforeAll(() => preloadStudioViewers());

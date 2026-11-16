@@ -3,9 +3,9 @@
  * beim Klick nachlädt und das Startpaket klein bleibt (Lighthouse-Budget).
  */
 import {
+  buildWebVtt,
   type MediaTextLanguage,
   type SpokenTranscriptLine,
-  buildWebVtt,
   spokenLinesToCues,
   spokenTranscriptToText,
   videoTranscriptToText

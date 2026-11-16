@@ -2,9 +2,9 @@ import { createElement, isValidElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 import { CommentThread, renderCommentBody } from "../CommentThread.js";
-import { SourcesPanel } from "../SourcesPanel.js";
 import { commentErrorKey } from "../comments-client.js";
 import { LazyCommentThread } from "../lazy-viewers.js";
+import { SourcesPanel } from "../SourcesPanel.js";
 import { COMMENTS_DE, COMMENTS_EN, commentTexts } from "../translations-comments.js";
 import { ThemeProvider, type ThemeProviderProps } from "../useTheme.js";
 

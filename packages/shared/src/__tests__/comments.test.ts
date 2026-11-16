@@ -3,12 +3,12 @@ import {
   COMMENT_BODY_MAX_LENGTH,
   COMMENT_MENTIONS_MAX,
   CreateCommentBodySchema,
-  NotebookCommentSchema,
-  UpdateCommentBodySchema,
   filterMentionCandidates,
   findMentionQuery,
   insertMention,
-  resolveMentionIds
+  NotebookCommentSchema,
+  resolveMentionIds,
+  UpdateCommentBodySchema
 } from "../index.js";
 
 const people = [

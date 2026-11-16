@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { type Page, expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { findLayoutProblems, openPanel } from "./helpers";
 
 /** Issue #239: Timeline, Infografik und Datentabelle mit Beleg, Prüfung und Export. */

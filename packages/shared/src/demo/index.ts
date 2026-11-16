@@ -3,10 +3,10 @@
  * Implements Sub-Issues #107 & #108.
  */
 
-export type * from "./demo-types.d.js";
-export * from "./vector-generator.js";
-export * from "./relationflow-demo.js";
 export * from "./cloudflare-demo.js";
+export type * from "./demo-types.d.js";
+export * from "./relationflow-demo.js";
+export * from "./vector-generator.js";
 
 import { CLOUDFLARE_ARCH_DEMO_NOTEBOOK, CLOUDFLARE_ARCH_NOTEBOOK_ID } from "./cloudflare-demo.js";
 import type { DemoNotebookDefinition } from "./demo-types.d.js";

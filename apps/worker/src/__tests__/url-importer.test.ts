@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { MAX_WORDS_PER_SOURCE, countUniqueWords } from "@notebook-lm/shared";
+import { countUniqueWords, MAX_WORDS_PER_SOURCE } from "@notebook-lm/shared";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it } from "vitest";
 import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";

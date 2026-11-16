@@ -1,4 +1,4 @@
-import { type ProblemDetails, countWords, createProblemDetails } from "@notebook-lm/shared";
+import { countWords, createProblemDetails, type ProblemDetails } from "@notebook-lm/shared";
 
 export const SOURCE_WORD_LIMIT_CODE = "SOURCE_WORD_LIMIT";
 

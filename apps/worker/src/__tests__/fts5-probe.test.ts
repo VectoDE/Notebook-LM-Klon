@@ -1,9 +1,9 @@
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import {
+  buildSafeFts5MatchQuery,
   CHUNKS_FTS5_BM25_SEARCH_SQL,
-  CHUNKS_FTS5_SCHEMA_SQL,
-  buildSafeFts5MatchQuery
+  CHUNKS_FTS5_SCHEMA_SQL
 } from "../fts5-probe.js";
 
 describe("D1 / SQLite FTS5 Virtual Table, Sync Triggers & BM25 Ranking", () => {

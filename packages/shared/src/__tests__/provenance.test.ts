@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  C2PA_SIGNABLE_FORMATS,
-  C2PA_UNSUPPORTED_FORMATS,
-  DIGITAL_SOURCE_TYPE_TRAINED_ALGORITHMIC,
-  MANIFEST_TITLE_MAX_LENGTH,
-  PROVENANCE_GENERATOR_NAME,
   baseMimeType,
   buildManifestDefinition,
+  C2PA_SIGNABLE_FORMATS,
+  C2PA_UNSUPPORTED_FORMATS,
   c2paExtensionFor,
-  isC2paSignable
+  DIGITAL_SOURCE_TYPE_TRAINED_ALGORITHMIC,
+  isC2paSignable,
+  MANIFEST_TITLE_MAX_LENGTH,
+  PROVENANCE_GENERATOR_NAME
 } from "../provenance.js";
 
 describe("C2PA-Formate (Issue #353)", () => {

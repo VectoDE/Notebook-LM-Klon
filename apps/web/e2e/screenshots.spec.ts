@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
-import { DESIGNS, MODES, chooseDesign, findLayoutProblems, findSmallText } from "./helpers";
+import { chooseDesign, DESIGNS, findLayoutProblems, findSmallText, MODES } from "./helpers";
 
 /**
  * Bildbelege für die Sichtprüfung (Issues #251, #278, #280): je Design und Farbmodus ein

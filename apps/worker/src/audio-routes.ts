@@ -1,11 +1,11 @@
 import {
   AudioInterjectRequestSchema,
   AudioInterjectResponseSchema,
-  type GroundedChunkInput,
-  type ProviderType,
   buildAudioInterjectPrompt,
   buildGroundedContext,
   createProblemDetails,
+  type GroundedChunkInput,
+  type ProviderType,
   parseAudioHostTurns,
   validateAndCleanCitations
 } from "@notebook-lm/shared";
@@ -14,7 +14,7 @@ import { AutoRouter } from "./auto-router.js";
 import type { CoreRepository } from "./core-repository.js";
 import { buildSafeFts5MatchQuery } from "./fts5-probe.js";
 import { GeminiProvider } from "./gemini-provider.js";
-import { type KeyVault, deserializeEncryptedPayload } from "./key-vault.js";
+import { deserializeEncryptedPayload, type KeyVault } from "./key-vault.js";
 import { OllamaLocalProvider } from "./ollama-provider.js";
 import type { RagRepository } from "./rag-repository.js";
 import { queryNotebookVectorSearch } from "./search-routes.js";

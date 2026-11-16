@@ -3,8 +3,8 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import {
   type ProblemDetails,
-  type SearchResponse,
-  quantizeFloat32ToInt8
+  quantizeFloat32ToInt8,
+  type SearchResponse
 } from "@notebook-lm/shared";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it } from "vitest";

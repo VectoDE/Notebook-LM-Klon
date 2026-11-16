@@ -2,10 +2,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  REPOSITORY_URL,
-  SEO_TEXT,
-  type SeoDocument,
-  type SeoElement,
   applySeoLanguage,
   buildHeadTags,
   buildJsonLd,
@@ -14,7 +10,11 @@ import {
   buildSitemapXml,
   languageFromSearch,
   languageUrl,
-  normalizePublicBaseUrl
+  normalizePublicBaseUrl,
+  REPOSITORY_URL,
+  SEO_TEXT,
+  type SeoDocument,
+  type SeoElement
 } from "../seo.js";
 
 const BASE = "https://relationnotes.example.dev/";

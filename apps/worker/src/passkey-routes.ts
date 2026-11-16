@@ -5,7 +5,7 @@ import { requireAuth } from "./auth-middleware.js";
 import type { CoreRepository } from "./core-repository.js";
 import type { PasskeyService } from "./passkey-service.js";
 import { resolveClientIp } from "./rate-limiter.js";
-import { type SessionManager, buildSessionCookie } from "./session.js";
+import { buildSessionCookie, type SessionManager } from "./session.js";
 import { requireTurnstile } from "./turnstile.js";
 
 export function createPasskeyRoutes(opts: {

@@ -5,16 +5,15 @@ import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveAppConfig } from "../config.js";
 import {
-  type QuotaAction,
   getOrInitUserQuota,
   incrementUserQuota,
   localizedQuotaReason,
   prefersEnglish,
+  type QuotaAction,
   quotaGuardMiddleware,
   verifyQuotaAction
 } from "../quota-guard.js";
 import {
-  UNKNOWN_CLIENT_IDENTIFIER,
   checkRateLimit,
   clearRateLimitMemory,
   extractClientIdentifier,
@@ -23,18 +22,19 @@ import {
   registerSocketAddress,
   resolveCategoryFromPath,
   resolveClientIp,
-  resolveTrustedProxyHeader
+  resolveTrustedProxyHeader,
+  UNKNOWN_CLIENT_IDENTIFIER
 } from "../rate-limiter.js";
 import {
+  applySecurityHeaders,
   COOP_HEADER_VALUE,
   CORP_HEADER_VALUE,
   CSP_HEADER_VALUE,
   HSTS_HEADER_VALUE,
   PERMISSIONS_POLICY_VALUE,
   REFERRER_POLICY_VALUE,
-  X_CONTENT_TYPE_OPTIONS_VALUE,
-  applySecurityHeaders,
-  securityHeadersMiddleware
+  securityHeadersMiddleware,
+  X_CONTENT_TYPE_OPTIONS_VALUE
 } from "../security-headers.js";
 
 /**

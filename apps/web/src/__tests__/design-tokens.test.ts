@@ -2,25 +2,25 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  auditContrast,
+  auditMixedSurfaces,
+  buildThemeCss,
   COLOR_MODES,
   CONTRAST_RULES,
+  colorSchemeFor,
+  contrastMatrix,
+  contrastRatio,
   DEFAULT_THEME,
   DESIGN_TOKENS,
   MIN_RATIO,
   MIXED_SURFACES,
+  mixSrgb,
+  parseHex,
+  relativeLuminance,
   SCALE,
   THEMES,
   TOKEN_CSS_NAMES,
   TYPOGRAPHY,
-  auditContrast,
-  auditMixedSurfaces,
-  buildThemeCss,
-  colorSchemeFor,
-  contrastMatrix,
-  contrastRatio,
-  mixSrgb,
-  parseHex,
-  relativeLuminance,
   tokensToCssDeclarations
 } from "../design-tokens.js";
 

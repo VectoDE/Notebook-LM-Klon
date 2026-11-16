@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join, resolve as resolvePath } from "node:path";
 import {
   C2PA_SIGNABLE_FORMATS,
-  type ProvenanceCertificateKind,
-  c2paExtensionFor
+  c2paExtensionFor,
+  type ProvenanceCertificateKind
 } from "@notebook-lm/shared";
 import type { ProvenanceSigner } from "../provenance-routes.js";
 

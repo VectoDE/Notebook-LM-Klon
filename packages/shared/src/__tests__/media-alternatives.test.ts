@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  MAX_CAPTION_CHARS,
   buildWebVtt,
   clockTime,
   describeSlide,
   escapeVttText,
+  MAX_CAPTION_CHARS,
   splitCaptionText,
   spokenLinesToCues,
   spokenTranscriptToText,
@@ -15,7 +15,7 @@ import {
   videoTranscriptToText,
   vttTimestamp
 } from "../media-alternatives.js";
-import { VideoStoryboardSchema, generateVideoStoryboard } from "../video-storyboard.js";
+import { generateVideoStoryboard, VideoStoryboardSchema } from "../video-storyboard.js";
 
 const storyboard = generateVideoStoryboard({
   notebookId: "nb_1",

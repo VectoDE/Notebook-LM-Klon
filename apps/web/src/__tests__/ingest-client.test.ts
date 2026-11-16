@@ -7,9 +7,9 @@ import {
 import { SourceUploadError } from "../source-upload-client.js";
 import { DOCX_MIME_TYPE } from "../workers/docx-parser.js";
 import {
+  handleParserMessage,
   type IngestParserWorkerRequest,
   type IngestParserWorkerResponse,
-  handleParserMessage,
   parseDocument
 } from "../workers/ingest-parser.js";
 import { buildDocx } from "./zip-fixture.js";

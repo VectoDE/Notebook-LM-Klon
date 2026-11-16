@@ -8,8 +8,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 import { DeepDiveStage } from "../DeepDiveStage.js";
-import { StudioPanel } from "../StudioPanel.js";
 import { preloadStudioViewers } from "../lazy-viewers.js";
+import { StudioPanel } from "../StudioPanel.js";
 
 // Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
 beforeAll(() => preloadStudioViewers());

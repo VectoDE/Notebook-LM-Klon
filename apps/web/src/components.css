@@ -156,7 +156,9 @@ html[data-color-mode="aaa-contrast"] .rn-view-toggle {
   font-size: var(--rn-text-small);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color var(--rn-transition-base), color var(--rn-transition-base);
+  transition:
+    background-color var(--rn-transition-base),
+    color var(--rn-transition-base);
 }
 
 .rn-view-option:hover {
@@ -649,7 +651,9 @@ html[data-color-mode="aaa-contrast"] .rn-result-card {
 }
 
 html[data-color-mode="aaa-contrast"] .rn-toast {
-  box-shadow: 0 0 0 2px var(--rn-color-panel), 0 0 0 4px var(--rn-color-text-primary);
+  box-shadow:
+    0 0 0 2px var(--rn-color-panel),
+    0 0 0 4px var(--rn-color-text-primary);
 }
 
 /* Ab 900 px links unter der Quellenspalte, wie gewohnt */

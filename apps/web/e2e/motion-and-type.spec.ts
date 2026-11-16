@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { DESIGNS, MODES, chooseDesign, findSmallText } from "./helpers";
+import { chooseDesign, DESIGNS, findSmallText, MODES } from "./helpers";
 
 test.describe("Immersive Cinema: Bewegungssprache", () => {
   test("Kopf und Panels sind animiert, Hintergrund ohne Verlauf (Issue #328)", async ({ page }) => {

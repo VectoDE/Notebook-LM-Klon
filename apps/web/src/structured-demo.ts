@@ -12,11 +12,11 @@ import {
   type DataTableExtraction,
   type InfographicExtraction,
   type InfographicFact,
-  type TimelineEntry,
-  type TimelineExtraction,
   normalizeDataTable,
   normalizeInfographic,
-  normalizeTimeline
+  normalizeTimeline,
+  type TimelineEntry,
+  type TimelineExtraction
 } from "@notebook-lm/shared";
 
 export interface StructuredData {

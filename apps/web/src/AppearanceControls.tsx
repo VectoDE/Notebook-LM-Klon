@@ -1,5 +1,5 @@
-import { Icon } from "./Icon.js";
 import type { DesignTheme } from "./design-tokens.js";
+import { Icon } from "./Icon.js";
 import type { ColorModePreference } from "./theme-preferences.js";
 import { useTheme } from "./useTheme.js";
 

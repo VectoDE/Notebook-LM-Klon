@@ -1,10 +1,10 @@
 import { DIGITAL_SOURCE_TYPE_TRAINED_ALGORITHMIC, PROVENANCE_MAX_BYTES } from "@notebook-lm/shared";
 import { describe, expect, it, vi } from "vitest";
 import {
+  addSvgProvenanceMetadata,
   type FetchLike,
   PROVENANCE_SIGN_URL,
   type ProvenanceOutcome,
-  addSvgProvenanceMetadata,
   provenanceNoteKey,
   signExport
 } from "../provenance-client.js";

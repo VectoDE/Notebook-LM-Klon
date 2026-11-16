@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  TURNSTILE_SCRIPT_URL,
-  TURNSTILE_TEST_SITE_KEY,
-  type TurnstileApi,
   authErrorKey,
   loadTurnstileScript,
   requestGuestSession,
   requestMagicLink,
-  resolveTurnstileSiteKey
+  resolveTurnstileSiteKey,
+  TURNSTILE_SCRIPT_URL,
+  TURNSTILE_TEST_SITE_KEY,
+  type TurnstileApi
 } from "../turnstile-client.js";
 
 const fakeApi: TurnstileApi = {

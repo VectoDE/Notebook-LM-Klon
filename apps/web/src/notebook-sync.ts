@@ -1,10 +1,10 @@
 import * as Y from "yjs";
 import { type EncryptedStore, openEncryptedStore } from "./encrypted-store.js";
 import {
+  createHttpTransport,
   OfflineSync,
   type SyncStatus,
-  type SyncTransport,
-  createHttpTransport
+  type SyncTransport
 } from "./offline-sync.js";
 
 /**

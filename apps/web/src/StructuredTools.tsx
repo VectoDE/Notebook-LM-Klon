@@ -10,18 +10,18 @@
 
 import {
   type DataTable,
+  dataTableToCsv,
   type InfographicFact,
   type ReviewStatus,
-  type TimelineEntry,
-  dataTableToCsv,
-  renderInfographicSvg
+  renderInfographicSvg,
+  type TimelineEntry
 } from "@notebook-lm/shared";
 import { type ReactNode, useId, useState } from "react";
-import { Icon } from "./Icon.js";
 import { triggerBrowserDownload } from "./artifact-exporters.js";
+import { Icon } from "./Icon.js";
 import {
-  type FetchLike,
   addSvgProvenanceMetadata,
+  type FetchLike,
   provenanceNoteKey,
   signExport
 } from "./provenance-client.js";

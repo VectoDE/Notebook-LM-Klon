@@ -1,7 +1,7 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import type { Hono } from "hono";
 import { requireAuth } from "./auth-middleware.js";
-import { type SessionManager, buildClearSessionCookie, extractSessionToken } from "./session.js";
+import { buildClearSessionCookie, extractSessionToken, type SessionManager } from "./session.js";
 
 /**
  * Schlüssel für die verschlüsselte lokale Ablage im Browser (Issue #348).

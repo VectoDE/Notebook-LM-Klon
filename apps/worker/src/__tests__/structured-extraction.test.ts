@@ -7,11 +7,11 @@ import type {
 } from "@notebook-lm/shared";
 import { describe, expect, it } from "vitest";
 import {
-  STRUCTURED_JSON_SCHEMAS,
   buildStructuredMessages,
   extractDataTable,
   extractInfographicFacts,
-  extractTimeline
+  extractTimeline,
+  STRUCTURED_JSON_SCHEMAS
 } from "../structured-extraction.js";
 
 /** Provider-Mock: liefert je Aufruf die nächste Rohantwort und nutzt den validator. */

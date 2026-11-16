@@ -1,4 +1,4 @@
-import { type TextChunk, chunkText } from "@notebook-lm/shared";
+import { chunkText, type TextChunk } from "@notebook-lm/shared";
 import { DOCX_MIME_TYPE, DocxLimitError, extractDocxText } from "./docx-parser.js";
 
 export interface DocumentSection {

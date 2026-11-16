@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   type AttestationCredential,
-  type CreationOptionsJSON,
-  type PasskeyCredentials,
   base64UrlToBytes,
   bytesToBase64Url,
+  type CreationOptionsJSON,
+  type PasskeyCredentials,
   registerPasskey,
   toCreationOptions,
   toRegistrationJSON

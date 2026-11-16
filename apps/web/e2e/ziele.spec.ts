@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { DESIGNS, chooseDesign, findLayoutProblems, openPanel } from "./helpers";
+import { chooseDesign, DESIGNS, findLayoutProblems, openPanel } from "./helpers";
 
 for (const width of [390, 1440]) {
   test.describe(`Bedienziele im Chat ${width} px`, () => {

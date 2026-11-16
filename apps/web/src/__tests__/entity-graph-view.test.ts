@@ -4,22 +4,22 @@ import {
   type EntityNode,
   locateQuote
 } from "@notebook-lm/shared";
-import { type ReactNode, createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { EntityGraphView } from "../EntityGraphView.js";
-import { GraphViewer } from "../GraphViewer.js";
-import { DEFAULT_MINDMAP, DEFAULT_SOURCES } from "../WorkspaceLayout.js";
 import {
+  announceKey,
   DEMO_ENTITY_GRAPH,
   ENTITY_ARC_SPACE,
-  announceKey,
   entityEdgePath,
   layoutEntityGraph,
   orderByKind
 } from "../entity-graph-view.js";
+import { GraphViewer } from "../GraphViewer.js";
 import { buildKnowledgeGraph } from "../knowledge-graph.js";
 import { ThemeProvider, type ThemeProviderProps } from "../useTheme.js";
+import { DEFAULT_MINDMAP, DEFAULT_SOURCES } from "../WorkspaceLayout.js";
 
 const node = (id: string, kind: EntityNode["kind"], name = id): EntityNode => ({
   id,

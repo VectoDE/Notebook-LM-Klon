@@ -9,15 +9,15 @@
  */
 
 import {
+  calculateSM2,
+  createInitialSM2State,
   type FlashcardItem,
   type FlashcardRating,
-  type SM2State,
-  calculateSM2,
-  createInitialSM2State
+  type SM2State
 } from "@notebook-lm/shared";
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useId, useState } from "react";
 import { EmptyState } from "./EmptyState.js";
-import { type Language, fill, translate, useTheme } from "./useTheme.js";
+import { fill, type Language, translate, useTheme } from "./useTheme.js";
 
 export interface FlashcardsViewerProps {
   readonly cards: readonly FlashcardItem[];

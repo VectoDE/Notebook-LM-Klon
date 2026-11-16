@@ -9,21 +9,21 @@ import { DatabaseSync } from "node:sqlite";
 import {
   CLOUDFLARE_ARCH_DEMO_NOTEBOOK,
   CLOUDFLARE_ARCH_NOTEBOOK_ID,
-  RELATIONFLOW_DEMO_NOTEBOOK,
-  RELATIONFLOW_NOTEBOOK_ID,
   cosineSimilarityFloat32,
-  generateDeterministicEmbedding
+  generateDeterministicEmbedding,
+  RELATIONFLOW_DEMO_NOTEBOOK,
+  RELATIONFLOW_NOTEBOOK_ID
 } from "@notebook-lm/shared";
 import { type Context, Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
 import {
+  attachDemoHeaders,
+  checkDemoKeyRateLimit,
   DEMO_DISCLAIMER_TEXT,
   DEMO_HEADER_DISCLAIMER_KEY,
   DEMO_RATE_LIMIT_PER_DAY,
   type DemoRateLimitResult,
-  attachDemoHeaders,
-  checkDemoKeyRateLimit,
   resolveDemoGeminiKey
 } from "../demo-key-guard.js";
 import { registerDemoRoutes } from "../demo-routes.js";

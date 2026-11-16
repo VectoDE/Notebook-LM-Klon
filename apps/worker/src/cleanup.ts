@@ -193,7 +193,7 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
 async function purgeR2Prefix(bucket: MinimalR2Bucket, prefix: string): Promise<number> {
   let count = 0;
   let truncated = true;
-  let cursor: string | undefined = undefined;
+  let cursor: string | undefined;
 
   while (truncated) {
     const listOpts: { prefix?: string; cursor?: string; limit?: number } = { prefix, limit: 200 };

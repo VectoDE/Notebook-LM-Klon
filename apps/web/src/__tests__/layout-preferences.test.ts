@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  LAYOUT_STORAGE_KEYS,
-  NOTEBOOK_TITLE_MAX_LENGTH,
-  NO_PANELS_COLLAPSED,
-  PANEL_SHORTCUTS,
   defaultCollapsedPanels,
+  LAYOUT_STORAGE_KEYS,
   matchPanelShortcut,
+  NO_PANELS_COLLAPSED,
+  NOTEBOOK_TITLE_MAX_LENGTH,
   normalizeNotebookTitle,
+  PANEL_SHORTCUTS,
   readChatId,
   readCollapsedPanels,
   readNotebookTitle,

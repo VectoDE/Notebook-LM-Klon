@@ -1,19 +1,19 @@
 import {
+  buildWebVtt,
   type MediaTextLanguage,
   type SlideChartData,
+  storyboardCaptionCues,
+  storyboardDescriptionCues,
+  storyboardTranscript,
   type TimedTextCue,
   type VideoChapter,
   type VideoSlide,
-  type VideoStoryboard,
-  buildWebVtt,
-  storyboardCaptionCues,
-  storyboardDescriptionCues,
-  storyboardTranscript
+  type VideoStoryboard
 } from "@notebook-lm/shared";
 import {
   type KeyboardEvent,
-  Suspense,
   lazy,
+  Suspense,
   useCallback,
   useEffect,
   useId,
@@ -21,9 +21,9 @@ import {
   useRef,
   useState
 } from "react";
+import { triggerBrowserDownload } from "./artifact-exporters.js";
 import { Icon } from "./Icon.js";
 import type { TranscriptItem } from "./MediaTranscript.js";
-import { triggerBrowserDownload } from "./artifact-exporters.js";
 import { useTheme } from "./useTheme.js";
 
 // Erst beim Aufklappen laden: hält das Startpaket unter dem Skript-Budget (Issue #350)
