@@ -34,6 +34,11 @@ describe("Training-Angabe je Modell (Issue #302)", () => {
     for (const id of MODEL_IDS) {
       const policy = MODEL_DATA_POLICIES[id];
       expect(policy, id).toBeDefined();
+      // Eigener Endpunkt (F249): Bedingungen kennt nur sein Betreiber, es gibt keine Quelle.
+      if (policy.status === "operator") {
+        expect(policy.sources, id).toEqual([]);
+        continue;
+      }
       expect(policy.sources.length, id).toBeGreaterThan(0);
       for (const source of policy.sources) expect(source.url, id).toMatch(/^https:\/\//);
     }
@@ -108,7 +113,10 @@ describe("Training-Angabe je Modell (Issue #302)", () => {
       "Stand der Anbieterangaben: 13. November 2026. Zusammenfassung, keine Rechtsberatung."
     );
     expect(html).not.toContain('data-testid="model-policy-connection"');
-    expect(html).toContain('aria-describedby="settings-model-hint settings-model-policy"');
+    // Ohne eingerichteten eigenen Endpunkt kommt dessen Einrichtungshinweis dazu (F249).
+    expect(html).toContain(
+      'aria-describedby="settings-model-hint settings-model-custom-hint settings-model-policy"'
+    );
     expect(html).toContain('id="settings-model-policy"');
     expect(html).toContain(">Google Gemini 2.5 Flash (Standard)</option>");
     expect(html).toContain(">Ollama Llama 3 (auf dem Server)</option>");

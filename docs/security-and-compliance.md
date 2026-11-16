@@ -63,6 +63,7 @@ Den KEK nie ins Repository, in Tickets oder in Logs schreiben. Geht er verloren,
 - **CSRF- & SSRF-Schutz:**
   - Schreibende Anfragen (`POST`, `PUT`, `PATCH`, `DELETE`) prüfen `Origin` und `Sec-Fetch-Site`.
   - Der URL-Importer blockiert strikt nicht-öffentliche IP-Bereiche (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.169.254` Cloud-Metadaten, `::1`, `fc00::/7`), unsichere Schemata (`file:`, `javascript:`, `data:`) und begrenzt Redirects sowie Antwortgrößen.
+  - Eigene KI-Endpunkte der Nutzer (BYOM, Issue #247): jeder öffentliche HTTPS-Host auf Port 443 ist erlaubt, optional eingeschränkt durch `BYOM_ALLOWED_HOSTS`. Strenger als der URL-Import: zusätzlich gesperrt sind CGNAT, Multicast, reservierte und Dokumentationsbereiche, IPv6-Übergangsformen mit internem Ziel, Namen ohne Punkt sowie `*.local`, `*.internal` und `*.arpa`; DNS-Prüfung vor jedem Aufruf, keine Weiterleitungen, Zeit- und Größenlimits. Grenzen gegen DNS-Rebinding stehen in `docs/relationflow-integration.md`, Abschnitt 5.
 
 ---
 

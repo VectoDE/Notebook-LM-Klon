@@ -60,10 +60,19 @@ export const MODEL_IDS = [
   "claude-3-7-sonnet",
   "gpt-4o",
   "deepseek-r1",
-  "ollama-local"
+  "ollama-local",
+  "custom"
 ] as const;
 export type ModelId = (typeof MODEL_IDS)[number];
 export const DEFAULT_MODEL: ModelId = MODEL_IDS[0];
+
+/** Eigener OpenAI-kompatibler Endpunkt (BYOM, F249); der Chat sendet dann `model: "custom"`. */
+export const CUSTOM_MODEL_ID = "custom" satisfies ModelId;
+
+/** Der eigene Endpunkt ist erst wählbar, wenn er in den Einstellungen eingerichtet ist. */
+export function isModelSelectable(model: string, customEndpointConfigured: boolean): boolean {
+  return model !== CUSTOM_MODEL_ID || customEndpointConfigured;
+}
 
 /** Ältere gespeicherte Werte (vor Issue #252) auf die neuen Namen abbilden. */
 const LEGACY_THEME_KEY = "rn_theme";

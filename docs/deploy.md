@@ -85,6 +85,13 @@ Freimenge. Ob das Konto über der Freimenge liegt, zeigt nur das Cloudflare-Dash
    Für `wrangler dev` lokal überschreiben:
    `pnpm --filter @notebook-lm/worker exec wrangler dev --var APP_ORIGIN:http://localhost:8787`
    (sonst setzt die App Secure-Cookies für die HTTPS-Adresse).
+   Eigene KI-Endpunkte der Nutzer (BYOM, `docs/relationflow-integration.md`, Abschnitt 5):
+   Optional `BYOM_ALLOWED_HOSTS` als Variable in `wrangler.jsonc` (kommagetrennt, z. B.
+   `api.example.com,*.example.com`) schränkt sie auf diese Hosts ein. Ohne Wert ist jeder
+   öffentliche HTTPS-Host auf Port 443 erlaubt; interne und private Ziele sind immer gesperrt.
+   Die Tabelle `provider_endpoints` legt Migration `0006_custom_endpoints.sql` an (läuft mit den
+   übrigen Migrationen im Deploy-Workflow). Schlüssel für eigene Endpunkte speichert der Worker
+   nur mit gesetztem `KEK_V1`, verschlüsselt und an den Origin des Endpunkts gebunden.
 7. Nach dem Deploy einmal im Browser als Gast anmelden und eine Chat-Frage stellen. Das braucht
    ein echtes Turnstile-Token und lässt sich deshalb nicht automatisch prüfen. Erst das beweist,
    dass `TURNSTILE_SECRET_KEY` und `DEMO_GEMINI_KEY` stimmen.

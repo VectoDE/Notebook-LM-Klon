@@ -172,8 +172,14 @@ describe("SSRF Guard - parseIpv6 & isPrivateOrReservedIpv6", () => {
     // Empty / short segments
     expect(isPrivateOrReservedIpv6([])).toBe(true);
 
+    // Außerhalb von Global Unicast 2000::/3: IPv4-translated ::ffff:0:0:0/96, nicht zugeteilt
+    expect(isPrivateOrReservedIpv6([0, 0, 0, 0, 0xffff, 0, 0x7f00, 1])).toBe(true);
+    expect(isPrivateOrReservedIpv6([0x4000, 0, 0, 0, 0, 0, 0, 1])).toBe(true);
+    expect(isPrivateOrReservedIpv6([0xe000, 0, 0, 0, 0, 0, 0, 1])).toBe(true);
+
     // Public IPv6
     expect(isPrivateOrReservedIpv6([0x2606, 0x4700, 0x4700, 0, 0, 0, 0, 0x1111])).toBe(false);
+    expect(isPrivateOrReservedIpv6([0x2a00, 0x1450, 0, 0, 0, 0, 0, 1])).toBe(false);
   });
 });
 

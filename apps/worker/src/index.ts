@@ -20,6 +20,13 @@ import { createNotebookStatePurger, runScheduledCleanup } from "./cleanup.js";
 import { registerCommentRoutes } from "./comments-routes.js";
 import { resolveAppConfig } from "./config.js";
 import { CoreRepository } from "./core-repository.js";
+import {
+  EndpointRepository,
+  loadCustomProvider,
+  registerCustomEndpointRoutes,
+  resolveAllowlist,
+  resolveCustomKeyBinding
+} from "./custom-endpoint-routes.js";
 import { createD1DatabaseAdapter } from "./d1-adapter.js";
 import { createDemoRoutes } from "./demo-routes.js";
 import { registerDocSyncRoutes } from "./doc-sync.js";
@@ -177,6 +184,10 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   const saltSecret = getConfiguredSessionSalt(env);
   const sessionManager = new SessionManager({ repo: coreRepo, saltSecret });
   const keyVault = hasConfiguredKek(env) ? createKeyVaultFromEnv(env) : undefined;
+  const endpointRepo = new EndpointRepository(dbAdapter);
+  // Node-Betrieb: fetch mit Adressprüfung beim Verbindungsaufbau (node/pinned-fetch.ts, DNS-Rebinding).
+  const byomFetch = (env as unknown as { BYOM_FETCH?: typeof fetch }).BYOM_FETCH;
+  const customEndpointDeps = { ragRepo, endpointRepo, keyVault, fetchFn: byomFetch };
   const auditLogger = new AuditLogger({ repo: coreRepo, saltSecret });
 
   const app = new Hono<ApiEnv>();
@@ -248,7 +259,13 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
     recordQuotaUsage(llmQuota)
   );
   app.use("/api/v1/chats/:id/messages", requireAuth());
-  registerChatRoutes(app, { ragRepo, coreRepo, keyVault });
+  registerChatRoutes(app, {
+    ragRepo,
+    coreRepo,
+    keyVault,
+    resolveCustomProvider: (userId) =>
+      loadCustomProvider(customEndpointDeps, userId, resolveAllowlist({}, env))
+  });
 
   app.use(
     "/api/v1/notebooks/:id/search",
@@ -308,6 +325,10 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
 
   // 6. Providers: catalog and routing decision are public, the network probe needs a session
   app.use("/api/v1/providers/ollama/probe", requireAuth());
+  // Eigener OpenAI-kompatibler Endpunkt (BYOM, Issue #247): nur mit Sitzung
+  app.use("/api/v1/providers/custom", requireAuth());
+  app.use("/api/v1/providers/custom/*", requireAuth());
+  registerCustomEndpointRoutes(app, customEndpointDeps);
   registerProviderRoutes(app, { ragRepo, keyVault });
 
   // 6b. C2PA provenance for exports: status is public, signing needs a session. The signer
@@ -337,7 +358,13 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   // 9. BYOK key management (last: its router adds its own same-origin CSRF check)
   app.use("/api/v1/keys", requireAuth(), requireConfiguredKek(), requireSalt);
   app.use("/api/v1/keys/*", requireAuth(), requireConfiguredKek(), requireSalt);
-  registerBYOKRoutes(app, { ragRepo, coreRepo, keyVault, saltSecret });
+  registerBYOKRoutes(app, {
+    ragRepo,
+    coreRepo,
+    keyVault,
+    saltSecret,
+    customKeyBinding: (userId) => resolveCustomKeyBinding(endpointRepo, userId)
+  });
 
   app.notFound((c) => c.json(notFoundProblem(c.req.path), 404, PROBLEM_HEADERS));
 

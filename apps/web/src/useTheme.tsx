@@ -99,6 +99,13 @@ export const TRANSLATIONS: Record<BuiltinLanguage, TranslationDictionary> = {
       "Ob ein Anbieter Ihre Eingaben zum Training nutzt, hängt vom Modell ab. Die Angabe mit Quelle steht beim gewählten Modell unter „KI-Modell“.",
     modelGeminiFlash: "Google Gemini 2.5 Flash (Standard)",
     modelOllama: "Ollama Llama 3 (auf dem Server)",
+    modelCustom: "Eigener Endpunkt (OpenAI-kompatibel)",
+    modelCustomSetup:
+      "„Eigener Endpunkt“ lässt sich erst wählen, wenn Adresse und Chat-Modell gespeichert sind.",
+    modelCustomSetupLink: "Eigenen Endpunkt einrichten",
+    policyStatusOperator: "Hängt vom Betreiber des Endpunkts ab",
+    policyCustom:
+      "Ihre Eingaben gehen an die Adresse, die Sie selbst eingetragen haben. Ob dort mit Ihren Eingaben trainiert wird, regeln die Bedingungen dieses Betreibers; diese App kennt sie nicht.",
     policyTitle: "Training mit Ihren Eingaben",
     policyStatusNoTraining: "Laut Anbieter kein Training",
     policyStatusConditional: "Kein Training nur unter Bedingungen",
@@ -230,6 +237,12 @@ export const TRANSLATIONS: Record<BuiltinLanguage, TranslationDictionary> = {
       "Whether a provider uses your input for training depends on the model. See the details with source for the selected model under “AI model”.",
     modelGeminiFlash: "Google Gemini 2.5 Flash (default)",
     modelOllama: "Ollama Llama 3 (on the server)",
+    modelCustom: "Own endpoint (OpenAI-compatible)",
+    modelCustomSetup: "“Own endpoint” becomes selectable once its URL and chat model are saved.",
+    modelCustomSetupLink: "Set up your own endpoint",
+    policyStatusOperator: "Depends on the endpoint operator",
+    policyCustom:
+      "Your input goes to the address you entered yourself. Whether it is used for training depends on that operator's terms, which this app does not know.",
     policyTitle: "Training on your input",
     policyStatusNoTraining: "No training, per provider",
     policyStatusConditional: "No training only under conditions",
