@@ -17,6 +17,7 @@ import {
 } from "./node/config.js";
 import { createInProcessNamespace, type InProcessNamespace } from "./node/do-namespace.js";
 import { createLocalR2Adapter } from "./node/fs-r2.js";
+import { createPinnedFetch } from "./node/pinned-fetch.js";
 import { type CleanupScheduler, runCleanupOnce, startCleanupScheduler } from "./node/scheduler.js";
 import { createSmtpBinding, type SmtpSettings } from "./node/smtp.js";
 import { createSqliteD1Adapter, openNodeDatabase, runSqliteMigrations } from "./node/sqlite-d1.js";
@@ -123,6 +124,10 @@ export function createNodeEnv(options?: {
   } else if (RESEND_API_KEY !== undefined) {
     env.RESEND_API_KEY = RESEND_API_KEY;
   }
+
+  // Own AI endpoints (BYOM, Issue #247): the connection uses exactly the checked addresses, so a
+  // DNS answer that changes after the check cannot redirect the request into the local network.
+  env.BYOM_FETCH = createPinnedFetch();
 
   // C2PA signing of exports (Issue #353): only when tool, certificate and key are configured.
   const provenanceSigner = c2paSignerFromVars(vars);

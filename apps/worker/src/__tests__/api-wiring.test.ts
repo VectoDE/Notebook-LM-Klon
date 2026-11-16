@@ -391,6 +391,29 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       expect(((await res.json()) as { code: string }).code).toBe("QUOTA_MAX_LLM_CALLS_EXCEEDED");
     });
 
+    it("routes model=custom to the own endpoint and answers 503 without one (Issue #247)", async () => {
+      const countMessages = () =>
+        (fx.sqlite.prepare("SELECT COUNT(*) AS n FROM messages").get() as { n: number }).n;
+      const before = countMessages();
+      const res = await call("/api/v1/notebooks/nb_a/chat", {
+        method: "POST",
+        cookie: fx.cookies.bob,
+        json: { ...chatBody, model: "custom" }
+      });
+      expect(res.status).toBe(503);
+      expect(((await res.json()) as { code: string }).code).toBe("CUSTOM_ENDPOINT_UNAVAILABLE");
+      // Kein halber Chat: ohne Endpunkt wird auch die Nutzernachricht nicht gespeichert.
+      expect(countMessages()).toBe(before);
+    });
+
+    it("guards the own-endpoint settings with a session", async () => {
+      expect((await call("/api/v1/providers/custom")).status).toBe(401);
+      const res = await call("/api/v1/providers/custom", { cookie: fx.cookies.alice });
+      expect(res.status).toBe(200);
+      // F247: ohne BYOM_ALLOWED_HOSTS ist die Funktion an, ohne zusätzliche Host-Einschränkung.
+      expect(await res.json()).toMatchObject({ enabled: true, hostRestricted: false });
+    });
+
     it("serves chat history only with a session", async () => {
       await fx.ragRepo.createChat({
         id: "chat_1",
@@ -746,6 +769,33 @@ describe("API wiring in index.ts (security chain, auth, RBAC)", () => {
       const res = await call("/api/v1/keys", { cookie: kekFx.cookies.alice }, kekFx.env);
       expect(res.status).toBe(200);
       expect(((await res.json()) as { keys: unknown[] }).keys).toEqual([]);
+      kekFx.closeEnv();
+      kekFx.sqlite.close();
+      rmSync(kekFx.dataDir, { recursive: true, force: true });
+    });
+
+    it("stores a key for the own endpoint only once an endpoint exists (Issue #247)", async () => {
+      const kekFx = await createFixture({ KEK_V1: KEK });
+      const putKey = () =>
+        call(
+          "/api/v1/keys/custom",
+          {
+            method: "PUT",
+            cookie: kekFx.cookies.alice,
+            json: { apiKey: "rf_live_0123456789abcdef" }
+          },
+          kekFx.env
+        );
+      const without = await putKey();
+      expect(without.status).toBe(409);
+      expect(((await without.json()) as { code: string }).code).toBe("ENDPOINT_REQUIRED");
+
+      kekFx.sqlite
+        .prepare(
+          "INSERT INTO provider_endpoints (user_id, provider, base_url, chat_model, embed_model, created_at, updated_at) VALUES ('alice', 'custom', 'https://api.relationflow.example/v1', 'rf-auto', NULL, 1, 1)"
+        )
+        .run();
+      expect((await putKey()).status).toBe(200);
       kekFx.closeEnv();
       kekFx.sqlite.close();
       rmSync(kekFx.dataDir, { recursive: true, force: true });

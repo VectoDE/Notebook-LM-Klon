@@ -55,6 +55,7 @@ import { NotebookTitle } from "./NotebookTitle.js";
 import { hasLocalModelFlag } from "./offline-chat-flag.js";
 import type { OfflineChat } from "./offline-chat-ui.js";
 import { PanelRail, PanelToggle, RailButton } from "./PanelRail.js";
+import { LegalFooter } from "./PrivacyCenter.js";
 import { isSourceUsable, SOURCE_FILE_ACCEPT, SourcesPanel } from "./SourcesPanel.js";
 import { StudioPanel, type StudioTool } from "./StudioPanel.js";
 import type { UploadSourceResult } from "./source-upload-client.js";
@@ -1405,6 +1406,9 @@ export function WorkspaceLayout({
         </div>
       </main>
 
+      {/* Datenschutz und Cookie-Einstellungen (Widerruf), jederzeit erreichbar (Issue #261) */}
+      <LegalFooter />
+
       {/* Untere Reiterleiste (unter 600 px): im Daumenbereich, Symbol und Kurzname */}
       <nav aria-label={t("navAreas")} data-testid="mobile-bottom-nav" className="mobile-bottom-nav">
         {PANEL_TABS.map((tab) => {
@@ -1544,6 +1548,9 @@ export function WorkspaceLayout({
               </h3>
               <AppearanceControls idPrefix="sheet" {...appearanceProps} />
             </section>
+
+            {/* Datenschutz und Cookie-Einstellungen; unter 600 px nur hier (Issue #261) */}
+            <LegalFooter placement="sheet" onOpen={() => closeMenu(false)} />
           </div>
         </dialog>
       )}

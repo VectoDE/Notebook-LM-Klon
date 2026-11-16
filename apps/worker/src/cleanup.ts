@@ -1,5 +1,8 @@
-import type { DatabaseAdapter } from "./core-repository.js";
+import { purgeExpiredAuditEntries, replayPendingAuditEntries } from "./audit-log.js";
+import type { BatchStatement, DatabaseAdapter } from "./core-repository.js";
 import { STALE_UPLOAD_MS, UPLOAD_DAILY_RETENTION_DAYS } from "./r2-budget.js";
+
+export type { BatchStatement } from "./core-repository.js";
 
 export interface MinimalR2Bucket {
   list: (options?: { prefix?: string; cursor?: string; limit?: number }) => Promise<{
@@ -19,19 +22,100 @@ export interface CleanupMetrics {
   deletedR2Objects: number;
   /** Abgebrochene Uploads (Status uploading, älter als STALE_UPLOAD_MS), samt R2-Objekt. */
   deletedStaleUploads: number;
+  /** Audit entries older than AUDIT_RETENTION_DAYS (Issue #259). */
+  deletedAuditEntries: number;
+  /** Cron-Schritte, die mit einem Fehler endeten; die übrigen Schritte liefen trotzdem. */
+  failedSteps: number;
   durationMs: number;
+}
+
+/** Leert den Durable-Object-Zustand (Yjs-Dokument, Vektor-Cache) eines Notebooks. */
+export type NotebookStatePurger = (notebookId: string) => Promise<void>;
+
+/** Präfix der Einträge in pending_r2_purge, die kein R2-Präfix, sondern ein Notebook-DO meinen. */
+const NOTEBOOK_STATE_PREFIX = "notebook-state:";
+
+/**
+ * Baut den Rückruf, der `POST /purge` am NotebookDO und am JobDO des Notebooks aufruft (beide
+ * speichern Inhalte bzw. Nutzer-IDs je Notebook). Ohne Namespace (z. B. ohne Binding) entfällt
+ * der jeweilige Schritt; ohne beide Namespaces gibt es keinen Rückruf, die Löschung läuft dann
+ * ohne DO-Schritt.
+ */
+export function createNotebookStatePurger(
+  namespace: Env["NOTEBOOK_DO"] | undefined,
+  jobNamespace?: Env["JOB_DO"] | undefined
+): NotebookStatePurger | undefined {
+  const targets: { name: string; namespace: Env["NOTEBOOK_DO"] }[] = [];
+  if (namespace) {
+    targets.push({ name: "NotebookDO", namespace });
+  }
+  if (jobNamespace) {
+    targets.push({ name: "JobDO", namespace: jobNamespace as unknown as Env["NOTEBOOK_DO"] });
+  }
+  if (targets.length === 0) {
+    return undefined;
+  }
+  return async (notebookId) => {
+    for (const target of targets) {
+      const ns = target.namespace;
+      const stub = ns.get(ns.idFromName(notebookId));
+      const res = await stub.fetch("http://internal/purge", { method: "POST" });
+      if (!res.ok) {
+        throw new Error(`${target.name} ${notebookId}: purge antwortete ${res.status}`);
+      }
+    }
+  };
 }
 
 export interface RunCleanupOptions {
   db: DatabaseAdapter;
   mediaBucket?: MinimalR2Bucket | null;
+  purgeNotebookState?: NotebookStatePurger | undefined;
   now?: number;
   batchSize?: number;
 }
 
+/** Cloudflare D1 erlaubt höchstens 100 gebundene Parameter je Anfrage; wir bleiben bei 50. */
+export const D1_MAX_BOUND_IDS = 50;
+
+/** Rate-limit buckets older than this are removed by the cron (windows are one minute). */
+const SHORT_LIVED_RETENTION_MS = 24 * 60 * 60 * 1000;
+
+/** Konto, auf das Autorfelder gelöschter Nutzer umgehängt werden (Migration 0009). */
+export const DELETED_USER_ID = "user_deleted";
+
+function chunked<T>(items: readonly T[], size: number = D1_MAX_BOUND_IDS): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    out.push(items.slice(i, i + size));
+  }
+  return out;
+}
+
+function marks(count: number): string {
+  return Array.from({ length: count }, () => "?").join(",");
+}
+
+/** Führt Anweisungen atomar aus (D1.batch); ohne batch-Unterstützung nacheinander. */
+export async function runBatch(db: DatabaseAdapter, statements: BatchStatement[]): Promise<void> {
+  if (db.execBatch) {
+    await db.execBatch(statements);
+    return;
+  }
+  for (const statement of statements) {
+    await db.run(statement.sql, statement.params);
+  }
+}
+
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
+
 /**
- * Executes GDPR-compliant scheduled cleanup:
+ * Executes GDPR-compliant scheduled cleanup. Every step runs in its own try/catch, so a
+ * failing step (for example purgeUsers) never stops the others (audit retention, sessions, ...).
  * - Expired guest accounts (is_guest = 1 AND expires_at < now)
+ * - Pending R2 prefixes left over by an interrupted account deletion
  * - Expired user sessions (expires_at < now)
  * - Expired magic links (expires_at < now)
  * - Expired WebAuthn challenges (expires_at <= now)
@@ -39,139 +123,160 @@ export interface RunCleanupOptions {
  * - Associated R2 objects (sources, artifacts) under guest / notebook prefixes
  * - Abandoned uploads (status 'uploading' older than STALE_UPLOAD_MS) incl. their R2 object
  * - Daily upload counters older than UPLOAD_DAILY_RETENTION_DAYS
+ * - Audit log entries older than the retention period (90 days)
+ * - Rate-limit buckets older than 24 h and embedding counters of earlier UTC days
  */
 export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<CleanupMetrics> {
   const startTime = Date.now();
   const now = opts.now ?? startTime;
   const batchSize = Math.max(1, Math.min(opts.batchSize ?? 100, 500));
-  const { db, mediaBucket } = opts;
+  const { db, mediaBucket, purgeNotebookState } = opts;
 
   let deletedGuests = 0;
   let deletedSessions = 0;
   let deletedMagicLinks = 0;
+  let deletedChallenges = 0;
   let deletedNotebooks = 0;
   let deletedR2Objects = 0;
+  let deletedStaleUploads = 0;
+  let deletedAuditEntries = 0;
+  let failedSteps = 0;
+
+  const step = async (name: string, work: () => Promise<void>): Promise<void> => {
+    try {
+      await work();
+    } catch (err) {
+      failedSteps += 1;
+      console.error(
+        JSON.stringify({ event: "scheduled_cleanup_step_failed", step: name, error: String(err) })
+      );
+    }
+  };
 
   // 1. Clean up expired guest accounts
-  const expiredGuests = await db.query<{ id: string }>(
-    `SELECT id FROM users
-     WHERE is_guest = 1 AND expires_at IS NOT NULL AND expires_at < ?
-     LIMIT ?`,
-    [now, batchSize]
-  );
-
-  if (expiredGuests.length > 0) {
-    const guestIds = expiredGuests.map((g) => g.id);
-    const placeholders = guestIds.map(() => "?").join(",");
-
-    // Find all workspaces owned by these guests
-    const workspaces = await db.query<{ id: string }>(
-      `SELECT id FROM workspaces WHERE owner_id IN (${placeholders})`,
-      guestIds
+  await step("expired_guests", async () => {
+    const expiredGuests = await db.query<{ id: string }>(
+      `SELECT id FROM users
+       WHERE is_guest = 1 AND expires_at IS NOT NULL AND expires_at < ?
+       LIMIT ?`,
+      [now, batchSize]
     );
-    const workspaceIds = workspaces.map((w) => w.id);
-
-    // Find all notebooks in these workspaces or created by these guests
-    const wsPlaceholders = workspaceIds.length > 0 ? workspaceIds.map(() => "?").join(",") : "''";
-    const notebooks = await db.query<{ id: string }>(
-      `SELECT id FROM notebooks WHERE workspace_id IN (${wsPlaceholders}) OR created_by IN (${placeholders})`,
-      [...workspaceIds, ...guestIds]
+    const purged = await purgeUsers(
+      db,
+      mediaBucket,
+      expiredGuests.map((g) => g.id),
+      now,
+      purgeNotebookState
     );
-    const notebookIds = notebooks.map((n) => n.id);
+    deletedGuests += purged.deletedUsers;
+    deletedNotebooks += purged.deletedNotebooks;
+    deletedR2Objects += purged.deletedR2Objects;
+  });
 
-    // Delete associated R2 files for each guest and notebook
-    if (mediaBucket) {
-      for (const guestId of guestIds) {
-        deletedR2Objects += await purgeR2Prefix(mediaBucket, `users/${guestId}/`);
+  // 2. Finish R2 and Durable Object deletions that failed after an account deletion
+  await step("pending_r2", async () => {
+    if (!mediaBucket && !purgeNotebookState) {
+      return;
+    }
+    const drained = await drainPendingR2(db, mediaBucket, undefined, batchSize, purgeNotebookState);
+    deletedR2Objects += drained.deletedObjects;
+    if (drained.failed > 0) {
+      throw new Error(`${drained.failed} Löscheinträge konnten nicht abgearbeitet werden`);
+    }
+  });
+
+  // 3. Expired demo notebooks: R2 first, then rows (a failure keeps the row, the next run retries)
+  await step("expired_notebooks", async () => {
+    const expiredNotebooks = await db.query<{ id: string }>(
+      `SELECT id FROM notebooks
+       WHERE expires_at IS NOT NULL AND expires_at < ?
+       LIMIT ?`,
+      [now, batchSize]
+    );
+    for (const block of chunked(expiredNotebooks.map((n) => n.id))) {
+      if (mediaBucket) {
+        for (const nbId of block) {
+          deletedR2Objects += await purgeR2Prefix(mediaBucket, `notebooks/${nbId}/`);
+        }
       }
-      for (const nbId of notebookIds) {
-        deletedR2Objects += await purgeR2Prefix(mediaBucket, `notebooks/${nbId}/`);
-      }
-    }
-
-    // Delete notebooks (ON DELETE CASCADE handles notebook_shares)
-    if (notebookIds.length > 0) {
-      const nbPlaceholders = notebookIds.map(() => "?").join(",");
-      const nbDelRes = await db.run(
-        `DELETE FROM notebooks WHERE id IN (${nbPlaceholders})`,
-        notebookIds
-      );
-      deletedNotebooks += nbDelRes.changes;
-    }
-
-    // Delete workspaces (ON DELETE RESTRICT on workspaces requires deleting them before owner user)
-    if (workspaceIds.length > 0) {
-      const wsPlaceholders = workspaceIds.map(() => "?").join(",");
-      await db.run(`DELETE FROM workspaces WHERE id IN (${wsPlaceholders})`, workspaceIds);
-    }
-
-    // Finally delete users (ON DELETE CASCADE removes passkeys, sessions, quotas, workspace_members)
-    const userDelRes = await db.run(`DELETE FROM users WHERE id IN (${placeholders})`, guestIds);
-    deletedGuests = userDelRes.changes;
-  }
-
-  // 2. Identify and purge expired demo notebooks that are not already deleted
-  const expiredNotebooks = await db.query<{ id: string }>(
-    `SELECT id FROM notebooks
-     WHERE expires_at IS NOT NULL AND expires_at < ?
-     LIMIT ?`,
-    [now, batchSize]
-  );
-
-  if (expiredNotebooks.length > 0) {
-    const nbIds = expiredNotebooks.map((n) => n.id);
-    if (mediaBucket) {
-      for (const nbId of nbIds) {
-        deletedR2Objects += await purgeR2Prefix(mediaBucket, `notebooks/${nbId}/`);
+      const res = await db.run(`DELETE FROM notebooks WHERE id IN (${marks(block.length)})`, block);
+      deletedNotebooks += res.changes;
+      if (purgeNotebookState) {
+        // Only after the rows are gone: the DO holds the live document of an existing notebook.
+        const entries = block.map((id) => `${NOTEBOOK_STATE_PREFIX}${id}`);
+        await runBatch(db, pendingStatements(entries, now));
+        await drainPendingR2(db, mediaBucket, entries, batchSize, purgeNotebookState);
       }
     }
-    const nbPlaceholders = nbIds.map(() => "?").join(",");
-    const nbDelRes = await db.run(`DELETE FROM notebooks WHERE id IN (${nbPlaceholders})`, nbIds);
-    deletedNotebooks += nbDelRes.changes;
-  }
+  });
 
-  // 3. Purge expired sessions
-  const sessionDelRes = await db.run("DELETE FROM sessions WHERE expires_at < ?", [now]);
-  deletedSessions = sessionDelRes.changes;
+  // 4. Purge expired sessions
+  await step("sessions", async () => {
+    deletedSessions = (await db.run("DELETE FROM sessions WHERE expires_at < ?", [now])).changes;
+  });
 
-  // 4. Purge expired magic links
-  const magicLinkDelRes = await db.run("DELETE FROM magic_links WHERE expires_at < ?", [now]);
-  deletedMagicLinks = magicLinkDelRes.changes;
+  // 5. Purge expired magic links
+  await step("magic_links", async () => {
+    deletedMagicLinks = (await db.run("DELETE FROM magic_links WHERE expires_at < ?", [now]))
+      .changes;
+  });
 
-  // 5. Purge expired WebAuthn challenges (single-use, 5-minute lifetime)
-  const challengeDelRes = await db.run("DELETE FROM webauthn_challenges WHERE expires_at <= ?", [
-    now
-  ]);
-  const deletedChallenges = challengeDelRes.changes;
+  // 6. Purge expired WebAuthn challenges (single-use, 5-minute lifetime)
+  await step("webauthn_challenges", async () => {
+    deletedChallenges = (
+      await db.run("DELETE FROM webauthn_challenges WHERE expires_at <= ?", [now])
+    ).changes;
+  });
 
-  // 6. Abandoned uploads: delete the R2 object first (DeleteObject is free), then the row.
+  // 7. Abandoned uploads: delete the R2 object first (DeleteObject is free), then the row.
   //    The r2_usage trigger releases the reserved bytes.
-  const staleUploads = await db.query<{ id: string; r2_key: string | null }>(
-    `SELECT id, r2_key FROM sources
-     WHERE status = 'uploading' AND created_at < ?
-     LIMIT ?`,
-    [now - STALE_UPLOAD_MS, batchSize]
-  );
-  let deletedStaleUploads = 0;
-  if (staleUploads.length > 0) {
-    const keys = staleUploads.map((s) => s.r2_key).filter((k): k is string => k !== null);
-    if (mediaBucket && keys.length > 0) {
-      await mediaBucket.delete(keys);
-      deletedR2Objects += keys.length;
-    }
-    const ids = staleUploads.map((s) => s.id);
-    const staleDel = await db.run(
-      `DELETE FROM sources WHERE id IN (${ids.map(() => "?").join(",")})`,
-      ids
+  await step("stale_uploads", async () => {
+    const staleUploads = await db.query<{ id: string; r2_key: string | null }>(
+      `SELECT id, r2_key FROM sources
+       WHERE status = 'uploading' AND created_at < ?
+       LIMIT ?`,
+      [now - STALE_UPLOAD_MS, batchSize]
     );
-    deletedStaleUploads = staleDel.changes;
-  }
+    for (const block of chunked(staleUploads)) {
+      const keys = block.map((s) => s.r2_key).filter((k): k is string => k !== null);
+      if (mediaBucket && keys.length > 0) {
+        await mediaBucket.delete(keys);
+        deletedR2Objects += keys.length;
+      }
+      const ids = block.map((s) => s.id);
+      const res = await db.run(`DELETE FROM sources WHERE id IN (${marks(ids.length)})`, ids);
+      deletedStaleUploads += res.changes;
+    }
+  });
 
-  // 7. Daily upload counters are only needed for the current day; keep a week for diagnosis.
-  const retentionDay = new Date(now - UPLOAD_DAILY_RETENTION_DAYS * 86_400_000)
-    .toISOString()
-    .slice(0, 10);
-  await db.run("DELETE FROM upload_daily WHERE day < ?", [retentionDay]);
+  // 8. Daily upload counters are only needed for the current day; keep a week for diagnosis.
+  await step("upload_daily", async () => {
+    const retentionDay = new Date(now - UPLOAD_DAILY_RETENTION_DAYS * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    await db.run("DELETE FROM upload_daily WHERE day < ?", [retentionDay]);
+  });
+
+  // 9. Audit entries that could not be written at request time (account.delete): write them now
+  await step("audit_retry", async () => {
+    await replayPendingAuditEntries(db, batchSize);
+  });
+
+  // 9b. Audit log retention (90 days). Own step: independent of purgeUsers and all other steps.
+  await step("audit_retention", async () => {
+    deletedAuditEntries = await purgeExpiredAuditEntries(db, now);
+  });
+
+  // 10. Short-lived counters: rate-limit buckets (may contain client IPs) and the guest daily
+  //    embedding counters are only needed for their window or day; keep a day for diagnosis.
+  await step("short_lived_counters", async () => {
+    await db.run("DELETE FROM rate_limits WHERE window_start < ?", [
+      now - SHORT_LIVED_RETENTION_MS
+    ]);
+    await db.run("DELETE FROM ai_embedding_usage WHERE day < ?", [
+      new Date(now).toISOString().slice(0, 10)
+    ]);
+  });
 
   const durationMs = Date.now() - startTime;
 
@@ -183,8 +288,265 @@ export async function runScheduledCleanup(opts: RunCleanupOptions): Promise<Clea
     deletedNotebooks,
     deletedR2Objects,
     deletedStaleUploads,
+    deletedAuditEntries,
+    failedSteps,
     durationMs
   };
+}
+
+export interface PurgeUsersResult {
+  deletedUsers: number;
+  deletedNotebooks: number;
+  deletedR2Objects: number;
+  /** Eigene Arbeitsbereiche, die an ein anderes Mitglied übergeben wurden (F365). */
+  transferredWorkspaces: number;
+  /** R2-Präfixe und Notebook-DO-Zustände, die noch nicht geleert werden konnten; der Cron holt sie nach. */
+  pendingR2Prefixes: number;
+}
+
+/**
+ * Deletes accounts. D1 first, atomically (one D1.batch per block of at most 50 accounts),
+ * R2 afterwards, so a failure never leaves a half-deleted account:
+ * - Own workspaces with other members go to the longest-standing admin member (role owner),
+ *   otherwise to the oldest member (F365). Only workspaces without other members are deleted
+ *   together with their notebooks.
+ * - Notebooks the person created elsewhere stay; created_by moves to the workspace owner (F361).
+ * - Author fields (comments, notes, chats, artifacts) move to the placeholder account
+ *   DELETED_USER_ID instead of being deleted with the account.
+ * - Leftovers in magic_links, rate_limits, ai_embedding_usage and audit_log.target are removed.
+ * - R2 prefixes are queued in pending_r2_purge inside the same batch and removed only after
+ *   a successful delete; on an R2 error the entry stays for the cron.
+ * Every ID list is bound in blocks of at most 50 (D1 allows 100 bound parameters per query,
+ * https://developers.cloudflare.com/d1/platform/limits/).
+ * Used by the cron (expired guests) and by DELETE /api/v1/me.
+ */
+export async function purgeUsers(
+  db: DatabaseAdapter,
+  mediaBucket: MinimalR2Bucket | null | undefined,
+  userIds: readonly string[],
+  now: number = Date.now(),
+  purgeNotebookState?: NotebookStatePurger
+): Promise<PurgeUsersResult> {
+  const total: PurgeUsersResult = {
+    deletedUsers: 0,
+    deletedNotebooks: 0,
+    deletedR2Objects: 0,
+    transferredWorkspaces: 0,
+    pendingR2Prefixes: 0
+  };
+  const unique = [...new Set(userIds)].filter((id) => id !== DELETED_USER_ID);
+  const excluded = new Set(unique);
+  for (const block of chunked(unique)) {
+    const part = await purgeUserBlock(db, mediaBucket, block, now, excluded, purgeNotebookState);
+    total.deletedUsers += part.deletedUsers;
+    total.deletedNotebooks += part.deletedNotebooks;
+    total.deletedR2Objects += part.deletedR2Objects;
+    total.transferredWorkspaces += part.transferredWorkspaces;
+    total.pendingR2Prefixes += part.pendingR2Prefixes;
+  }
+  return total;
+}
+
+async function purgeUserBlock(
+  db: DatabaseAdapter,
+  mediaBucket: MinimalR2Bucket | null | undefined,
+  ids: string[],
+  now: number,
+  excluded: ReadonlySet<string>,
+  purgeNotebookState: NotebookStatePurger | undefined
+): Promise<PurgeUsersResult> {
+  const ph = marks(ids.length);
+  const statements: BatchStatement[] = [];
+
+  const existing = await db.query<{ id: string }>(`SELECT id FROM users WHERE id IN (${ph})`, ids);
+
+  // Own workspaces: pick the successor (admin first, then oldest member)
+  const owned = await db.query<{ id: string }>(
+    `SELECT id FROM workspaces WHERE owner_id IN (${ph})`,
+    ids
+  );
+  const dropWorkspaceIds: string[] = [];
+  let transferredWorkspaces = 0;
+  for (const ws of owned) {
+    // Candidates by priority: non-guests before guests, admins (role owner) before others, then
+    // longest membership. Accounts deleted in the same run (all blocks, not only this one) are
+    // skipped in code: the LIMIT leaves room for them, so no bound parameters are needed.
+    const candidates = await db.query<{ user_id: string }>(
+      `SELECT m.user_id AS user_id
+       FROM workspace_members m JOIN users u ON u.id = m.user_id
+       WHERE m.workspace_id = ? AND m.user_id <> ? AND u.deleted_at IS NULL
+       ORDER BY (u.is_guest = 0) DESC, (m.role = 'owner') DESC, m.created_at ASC, m.user_id ASC
+       LIMIT ?`,
+      [ws.id, DELETED_USER_ID, excluded.size + 1]
+    );
+    const successor = candidates.find((candidate) => !excluded.has(candidate.user_id));
+    if (successor) {
+      transferredWorkspaces += 1;
+      statements.push({
+        sql: "UPDATE workspaces SET owner_id = ? WHERE id = ?",
+        params: [successor.user_id, ws.id]
+      });
+      statements.push({
+        sql: "UPDATE workspace_members SET role = 'owner' WHERE workspace_id = ? AND user_id = ?",
+        params: [ws.id, successor.user_id]
+      });
+    } else {
+      dropWorkspaceIds.push(ws.id);
+    }
+  }
+
+  // Notebooks that disappear with workspaces nobody can take over (needed for R2 prefixes)
+  const dropNotebookIds: string[] = [];
+  for (const block of chunked(dropWorkspaceIds)) {
+    const rows = await db.query<{ id: string }>(
+      `SELECT id FROM notebooks WHERE workspace_id IN (${marks(block.length)})`,
+      block
+    );
+    for (const row of rows) {
+      dropNotebookIds.push(row.id);
+    }
+  }
+
+  // Queue R2 prefixes and Durable Object states in the same batch as the deletion
+  const queued = [
+    ...(mediaBucket
+      ? [...ids.map((id) => `users/${id}/`), ...dropNotebookIds.map((id) => `notebooks/${id}/`)]
+      : []),
+    ...(purgeNotebookState ? dropNotebookIds.map((id) => `${NOTEBOOK_STATE_PREFIX}${id}`) : [])
+  ];
+  statements.push(...pendingStatements(queued, now));
+
+  for (const block of chunked(dropWorkspaceIds)) {
+    statements.push({
+      sql: `DELETE FROM workspaces WHERE id IN (${marks(block.length)})`,
+      params: block
+    });
+  }
+
+  // Remaining notebooks of the person live in foreign or transferred workspaces
+  statements.push({
+    sql: `UPDATE notebooks
+          SET created_by = (SELECT w.owner_id FROM workspaces w WHERE w.id = notebooks.workspace_id)
+          WHERE created_by IN (${ph})`,
+    params: ids
+  });
+
+  // Placeholder account, then author fields
+  statements.push({
+    sql: `INSERT OR IGNORE INTO users (id, email, display_name, locale, is_guest, created_at, expires_at, deleted_at)
+          VALUES (?, NULL, 'Gelöschtes Konto', 'de', 0, 0, NULL, ?)`,
+    params: [DELETED_USER_ID, now]
+  });
+  for (const [table, column] of [
+    ["comments", "author_id"],
+    ["notes", "user_id"],
+    ["chats", "user_id"],
+    ["artifacts", "user_id"]
+  ] as const) {
+    statements.push({
+      sql: `UPDATE ${table} SET ${column} = ? WHERE ${column} IN (${ph})`,
+      params: [DELETED_USER_ID, ...ids]
+    });
+  }
+
+  // Remove personal references in the audit log and short-lived tables
+  statements.push({
+    sql: `UPDATE audit_log SET target = 'user:deleted' WHERE user_id IN (${ph}) AND target LIKE 'user:%'`,
+    params: ids
+  });
+  statements.push({
+    sql: `DELETE FROM magic_links WHERE email IN (SELECT email FROM users WHERE id IN (${ph}) AND email IS NOT NULL)`,
+    params: ids
+  });
+  statements.push({
+    sql: `DELETE FROM rate_limits WHERE ${ids.map(() => "bucket LIKE ? ESCAPE '\\'").join(" OR ")}`,
+    params: ids.map((id) => `rl:%:usr:${escapeLike(id)}`)
+  });
+  statements.push({
+    sql: `DELETE FROM ai_embedding_usage WHERE scope IN (${ph})`,
+    params: ids.map((id) => `guest:${id}`)
+  });
+
+  // Accounts last (CASCADE: passkeys, sessions, quotas, memberships, shares, provider keys)
+  statements.push({ sql: `DELETE FROM users WHERE id IN (${ph})`, params: ids });
+
+  await runBatch(db, statements);
+
+  const drained = await drainPendingR2(db, mediaBucket, queued, undefined, purgeNotebookState);
+  const deletedR2Objects = drained.deletedObjects;
+  const pendingR2Prefixes = drained.failed;
+
+  return {
+    deletedUsers: existing.length,
+    deletedNotebooks: dropNotebookIds.length,
+    deletedR2Objects,
+    transferredWorkspaces,
+    pendingR2Prefixes
+  };
+}
+
+/** INSERT statements for the queue table, at most 25 entries (50 parameters) each. */
+function pendingStatements(entries: readonly string[], now: number): BatchStatement[] {
+  return chunked(entries, 25).map((block) => ({
+    sql: `INSERT OR IGNORE INTO pending_r2_purge (prefix, created_at) VALUES ${block
+      .map(() => "(?,?)")
+      .join(",")}`,
+    params: block.flatMap((entry) => [entry, now])
+  }));
+}
+
+/**
+ * Works off the queue table: R2 prefixes are emptied, `notebook-state:<id>` entries clear the
+ * Durable Object of a notebook. An entry is removed only after success. Without `only` the
+ * oldest queued entries (at most `limit`) are processed. A failing entry does not abort the
+ * others; it stays for the next run. Entries without a matching handler (no bucket, no
+ * purger) are left alone. A Durable Object is never cleared while its notebook still exists.
+ */
+export async function drainPendingR2(
+  db: DatabaseAdapter,
+  bucket: MinimalR2Bucket | null | undefined,
+  only?: readonly string[],
+  limit = 100,
+  purgeNotebookState?: NotebookStatePurger
+): Promise<{ deletedObjects: number; failed: number }> {
+  const prefixes =
+    only !== undefined
+      ? [...only]
+      : (
+          await db.query<{ prefix: string }>(
+            "SELECT prefix FROM pending_r2_purge WHERE prefix NOT LIKE 'audit-retry:%' ORDER BY created_at ASC LIMIT ?",
+            [limit]
+          )
+        ).map((row) => row.prefix);
+  let deletedObjects = 0;
+  let failed = 0;
+  for (const prefix of prefixes) {
+    try {
+      if (prefix.startsWith(NOTEBOOK_STATE_PREFIX)) {
+        if (!purgeNotebookState) {
+          continue;
+        }
+        const notebookId = prefix.slice(NOTEBOOK_STATE_PREFIX.length);
+        const stillThere = await db.queryOne<{ id: string }>(
+          "SELECT id FROM notebooks WHERE id = ?",
+          [notebookId]
+        );
+        if (!stillThere) {
+          await purgeNotebookState(notebookId);
+        }
+      } else {
+        if (!bucket) {
+          continue;
+        }
+        deletedObjects += await purgeR2Prefix(bucket, prefix);
+      }
+      await db.run("DELETE FROM pending_r2_purge WHERE prefix = ?", [prefix]);
+    } catch (err) {
+      failed += 1;
+      console.error(JSON.stringify({ event: "r2_purge_failed", prefix, error: String(err) }));
+    }
+  }
+  return { deletedObjects, failed };
 }
 
 /**

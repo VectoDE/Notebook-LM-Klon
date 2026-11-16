@@ -266,7 +266,9 @@ describe("docs/openapi.json: Struktur (OpenAPI 3.1)", () => {
           JSON.stringify(content["application/problem+json"]?.schema) ===
           JSON.stringify({ $ref: "#/components/schemas/ProblemDetails" });
         const isDocumentedException =
-          route === "POST /api/v1/keys/{provider}/test" && status === "422";
+          (route === "POST /api/v1/keys/{provider}/test" ||
+            route === "POST /api/v1/providers/custom/test") &&
+          status === "422";
         expect(isProblem || isDocumentedException, `${route} ${status}: kein Problem-Schema`).toBe(
           true
         );

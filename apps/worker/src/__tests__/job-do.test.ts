@@ -56,6 +56,7 @@ function createRealSqliteState(id: string): {
       deleteAlarm: async () => {
         alarmsDeleted++;
       },
+      deleteAll: async () => {},
       getAlarm: async () =>
         alarmsSet.length > 0 ? (alarmsSet[alarmsSet.length - 1] ?? null) : null
     },

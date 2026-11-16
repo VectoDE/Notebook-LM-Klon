@@ -211,3 +211,7 @@ und 0006 frei, weil offene Zweige sie belegen, und folgt auf 0007 (Upload-Grenze
 | `day` | `TEXT` | UTC-Tag `YYYY-MM-DD` (Teil des Primärschlüssels) |
 | `scope` | `TEXT` | `global` für das ganze Konto oder `guest:<user_id>` für das Gast-Limit (Teil des Primärschlüssels) |
 | `tokens` | `INTEGER` | verbrauchte Eingabe-Tokens an diesem Tag, `>= 0` |
+
+## Kontolöschung (Migration 0009)
+
+`0009_konto_loeschung.sql` legt das gesperrte Platzhalterkonto `user_deleted` an (Autorfelder gelöschter Konten, `deleted_at` gesetzt, keine E-Mail) und die Tabelle `pending_r2_purge` (R2-Präfixe, die nach der D1-Löschung noch zu leeren sind; der Cron räumt Reste auf). Die Nummer 0009 lässt 0004 (#388, #395, #399) und 0006 (#380) frei. Ablauf: [Löschkonzept](./loeschkonzept.md).

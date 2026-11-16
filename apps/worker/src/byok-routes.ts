@@ -35,6 +35,26 @@ export interface BYOKRoutesDependencies {
     provider: string,
     decryptedKey: string
   ) => Promise<{ valid: boolean; message: string }>;
+  /**
+   * Origin of the user's own endpoint (provider "custom"), or null without one. A custom key
+   * is encrypted with this origin as associated data and can never be decrypted for (and
+   * sent to) another host. Without this dependency no custom key can be stored.
+   */
+  customKeyBinding?: ((userId: string) => Promise<string | null>) | undefined;
+}
+
+/**
+ * Binding for a provider key: undefined for the built-in providers, the endpoint origin for
+ * "custom". null means a custom key has no endpoint to be bound to.
+ */
+export async function resolveKeyBinding(
+  deps: Pick<BYOKRoutesDependencies, "customKeyBinding">,
+  userId: string,
+  provider: string
+): Promise<{ binding?: string } | null> {
+  if (provider !== "custom") return {};
+  const binding = deps.customKeyBinding ? await deps.customKeyBinding(userId) : null;
+  return binding ? { binding } : null;
 }
 
 /**
@@ -259,6 +279,22 @@ export function createBYOKRoutes(
     }
     const { apiKey } = parsedBody.data;
 
+    // A key for the own endpoint is bound to its origin, so an endpoint must exist first.
+    const binding = await resolveKeyBinding(deps, sessionUser.id, provider);
+    if (!binding) {
+      return c.json(
+        createProblemDetails({
+          status: 409,
+          title: "Conflict",
+          detail: "Zuerst den eigenen Endpunkt speichern, dann den Schlüssel.",
+          instance: c.req.path,
+          code: "ENDPOINT_REQUIRED"
+        }),
+        409,
+        { "content-type": "application/problem+json; charset=utf-8" }
+      );
+    }
+
     // Resolve KeyVault (use injected vault or construct from Worker env)
     const vault = deps.keyVault ?? createKeyVaultFromEnv(c.env ?? {});
     const now = Date.now();
@@ -267,7 +303,8 @@ export function createBYOKRoutes(
     // Encrypt with deterministic AAD binding
     const encryptedPayload = await vault.encrypt(apiKey, {
       userId: sessionUser.id,
-      provider
+      provider,
+      ...binding
     });
 
     const serialized = serializeEncryptedPayload(encryptedPayload);
@@ -421,10 +458,13 @@ export function createBYOKRoutes(
 
     let decryptedKey: string;
     try {
+      const binding = await resolveKeyBinding(deps, sessionUser.id, provider);
+      if (!binding) throw new Error("Kein Endpunkt für den Schlüssel.");
       const payload = deserializeEncryptedPayload(existing.encrypted_key);
       decryptedKey = await vault.decrypt(payload, {
         userId: sessionUser.id,
-        provider
+        provider,
+        ...binding
       });
     } catch {
       const latencyMs = Math.round(performance.now() - startTime);
@@ -517,12 +557,15 @@ export function createBYOKRoutes(
       }
 
       try {
+        const binding = await resolveKeyBinding(deps, sessionUser.id, keyRow.provider);
+        if (!binding) throw new Error("Kein Endpunkt für den Schlüssel.");
         const payload = deserializeEncryptedPayload(keyRow.encrypted_key);
         const rekeyedPayload = await vault.rekey(
           payload,
           {
             userId: sessionUser.id,
-            provider: keyRow.provider
+            provider: keyRow.provider,
+            ...binding
           },
           requestedTargetVersion
         );
