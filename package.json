@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.7",
-    "@hono/node-server": "2.1.6",
+    "@hono/node-server": "2.1.8",
     "@types/node": "26.6.6",
     "@vitest/coverage-v8": "5.1.0",
     "fake-indexeddb": "6.2.8",
