@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@hono/node-server": "2.1.6",
+    "@hono/node-server": "2.1.8",
     "@notebook-lm/shared": "workspace:*",
     "@simplewebauthn/server": "^13.3.3",
     "aws4fetch": "^1.0.20",
