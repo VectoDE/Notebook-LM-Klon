@@ -9,7 +9,7 @@ import {
   registerBYOKRoutes
 } from "../byok-routes.js";
 import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
-import { KeyVault } from "../key-vault.js";
+import { KeyVault, deserializeEncryptedPayload } from "../key-vault.js";
 import { RagRepository } from "../rag-repository.js";
 
 function createMockD1(): { adapter: DatabaseAdapter; close: () => void } {
@@ -696,6 +696,101 @@ describe("BYOK Key Management API & Rotation (Sub-Issues #93, #94)", () => {
       );
       expect((await defaultTestProviderKey("custom", "custom-api-key-1234")).valid).toBe(true);
 
+      closeDb();
+    });
+  });
+
+  describe("Schlüssel für den eigenen Endpunkt (provider custom)", () => {
+    const ORIGIN = "https://api.relationflow.example";
+    const CUSTOM_KEY = "rf_live_0123456789abcdef";
+
+    function customApp(binding: BYOKRoutesDependencies["customKeyBinding"]) {
+      const a = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
+      a.use("*", async (c, next) => {
+        c.set("sessionUser", { id: "usr_alice" });
+        await next();
+      });
+      registerBYOKRoutes(a, {
+        ragRepo,
+        coreRepo,
+        keyVault,
+        customKeyBinding: binding,
+        testProviderKeyFn: async () => ({ valid: true, message: "ok" })
+      });
+      return a;
+    }
+
+    const putKey = (a: ReturnType<typeof customApp>) =>
+      a.request("/api/v1/keys/custom", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: CUSTOM_KEY })
+      });
+
+    async function storedPayload() {
+      const row = await ragRepo.getProviderKey("usr_alice", "custom");
+      return deserializeEncryptedPayload(row?.encrypted_key as string);
+    }
+
+    it("verlangt zuerst einen Endpunkt (409), auch ohne Bindungsquelle", async () => {
+      for (const a of [customApp(undefined), customApp(async () => null)]) {
+        const res = await putKey(a);
+        expect(res.status).toBe(409);
+        expect(((await res.json()) as { code: string }).code).toBe("ENDPOINT_REQUIRED");
+      }
+      expect(await ragRepo.getProviderKey("usr_alice", "custom")).toBeNull();
+      closeDb();
+    });
+
+    it("bindet den Schlüssel an den Origin; Test und Rotation nutzen die Bindung", async () => {
+      let origin: string | null = ORIGIN;
+      const a = customApp(async () => origin);
+      expect((await putKey(a)).status).toBe(200);
+
+      const payload = await storedPayload();
+      await expect(
+        keyVault.decrypt(payload, { userId: "usr_alice", provider: "custom" })
+      ).rejects.toThrow();
+      await expect(
+        keyVault.decrypt(payload, {
+          userId: "usr_alice",
+          provider: "custom",
+          binding: "https://evil.example"
+        })
+      ).rejects.toThrow();
+      expect(
+        await keyVault.decrypt(payload, {
+          userId: "usr_alice",
+          provider: "custom",
+          binding: ORIGIN
+        })
+      ).toBe(CUSTOM_KEY);
+
+      expect((await a.request("/api/v1/keys/custom/test", { method: "POST" })).status).toBe(200);
+
+      const rekey = await a.request("/api/v1/keys/rekey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetVersion: 2 })
+      });
+      expect(await rekey.json()).toMatchObject({ rotated: 1, failed: 0 });
+      expect(
+        await keyVault.decrypt(await storedPayload(), {
+          userId: "usr_alice",
+          provider: "custom",
+          binding: ORIGIN
+        })
+      ).toBe(CUSTOM_KEY);
+
+      // Endpunkt weg: Test schlägt fehl, Rotation zählt den Schlüssel als fehlgeschlagen
+      origin = null;
+      expect((await a.request("/api/v1/keys/custom/test", { method: "POST" })).status).toBe(422);
+      const rekeyBack = await a.request("/api/v1/keys/rekey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetVersion: 1 })
+      });
+      expect(await rekeyBack.json()).toMatchObject({ rotated: 0, failed: 1 });
       closeDb();
     });
   });

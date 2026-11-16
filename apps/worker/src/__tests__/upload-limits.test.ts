@@ -5,7 +5,7 @@ import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runScheduledCleanup } from "../cleanup.js";
 import { resolveAppConfig } from "../config.js";
-import type { DatabaseAdapter } from "../core-repository.js";
+import type { BatchStatement, DatabaseAdapter } from "../core-repository.js";
 import { verifyQuotaAction } from "../quota-guard.js";
 import {
   FREE_TIER_R2_BUDGET,
@@ -30,7 +30,10 @@ const MIGRATIONS = [
   "0001_initial_core.sql",
   "0002_rag_and_studio.sql",
   "0003_webauthn_challenges.sql",
-  "0007_upload_grenzen.sql"
+  "0005_comments.sql",
+  "0007_upload_grenzen.sql",
+  "0008_ai_embedding_usage.sql",
+  "0009_konto_loeschung.sql"
 ];
 
 type Params = (string | number | bigint | null)[];
@@ -56,6 +59,20 @@ function createDb(): {
     },
     async exec(sql: string): Promise<void> {
       sqlite.exec(sql);
+    },
+    async execBatch(statements: BatchStatement[]): Promise<void> {
+      sqlite.exec("BEGIN");
+      try {
+        for (const statement of statements) {
+          sqlite
+            .prepare(statement.sql)
+            .run(...(statement.params as (string | number | bigint | null)[]));
+        }
+        sqlite.exec("COMMIT");
+      } catch (err) {
+        sqlite.exec("ROLLBACK");
+        throw err;
+      }
     }
   };
   const d1 = {

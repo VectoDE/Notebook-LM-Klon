@@ -32,6 +32,8 @@ export default defineConfig({
         "apps/web/src/lazy-viewers.tsx",
         "apps/web/src/passkey-client.ts",
         "apps/web/src/comments-client.ts",
+        "apps/web/src/custom-endpoint-client.ts",
+        "apps/web/src/custom-endpoint-i18n.ts",
         "apps/web/src/i18n.ts",
         "apps/web/src/locale-registry.ts",
         "apps/web/src/local-crypto.ts",
@@ -48,7 +50,11 @@ export default defineConfig({
         "apps/web/src/local-llm-webllm.ts",
         "apps/web/src/offline-chat.ts",
         "apps/web/src/offline-chat-flag.ts",
-        "apps/web/src/translations-offline-chat.ts"
+        "apps/web/src/translations-offline-chat.ts",
+        "apps/web/src/usage-beacon.ts",
+        "apps/web/src/consent.ts",
+        "apps/web/src/analytics-config.ts",
+        "apps/web/src/privacy-texts.ts"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {

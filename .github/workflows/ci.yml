@@ -76,7 +76,7 @@ jobs:
         run: pnpm --filter @notebook-lm/web exec playwright install --with-deps chromium
 
       - name: Run Playwright E2E
-        run: pnpm --filter @notebook-lm/web test:e2e --project=chromium
+        run: pnpm --filter @notebook-lm/web test:e2e --project=chromium --project=einwilligung
 
       - name: Upload contrast report (WCAG 2.2 AAA, 4 designs x 3 modes)
         if: always()
