@@ -9,6 +9,7 @@ import {
   LazyShareDialog,
   LazyVideoOverviewPlayer,
   lazyWithPreload,
+  loadCommentThread,
   preloadMediaPlayers,
   preloadStudioViewers,
   scheduleStudioViewerPreload
@@ -88,5 +89,17 @@ describe("Studio-Viewer lazy laden (#257)", () => {
     timeout.mockRestore();
     vi.unstubAllGlobals();
     vi.useRealTimers();
+  });
+
+  it("Kommentare: ohne Netz leerer Platzhalter statt Absturz (#346)", async () => {
+    const Real = () => createElement("p", null, "Kommentare");
+    const ok = await loadCommentThread(async () => ({ CommentThread: Real as never }));
+    expect(ok).toBe(Real);
+    const failed = await loadCommentThread(async () => {
+      throw new TypeError("Failed to fetch dynamically imported module");
+    });
+    expect(renderToStaticMarkup(createElement(failed, {} as never))).toBe("");
+    // Standardweg lädt das echte Modul
+    expect((await loadCommentThread()).name).toBe("CommentThread");
   });
 });

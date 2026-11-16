@@ -275,6 +275,27 @@ Wichtig: Setzen Sie `TRUSTED_PROXY_HEADER` nur, wenn der Server ausschließlich 
 
 ---
 
+## Offline-Chat mit lokalem Modell
+
+Ohne Netz antwortet ein Sprachmodell direkt im Browser (Issue #346). Es ist freiwillig: Erst „Offline-Chat einrichten“ und danach „Offline-Modell laden (0,9 GB)“ mit Zustimmung im Dialog laden etwas herunter. Details, Quellen und die Modellwahl stehen in [docs/offline-chat.md](docs/offline-chat.md).
+
+| | |
+| --- | --- |
+| Modell | Qwen2.5-1.5B-Instruct, 4-Bit (`q4f16_1`), Apache-2.0 |
+| Laufzeit | WebLLM `@mlc-ai/web-llm` 0.2.87, Apache-2.0, eigener Chunk, nicht im Start-Bundle |
+| Speicherbedarf | rund 0,9 GB einmalig im Browser-Speicher (Cache Storage), rund 1,6 GB Grafikspeicher beim Antworten |
+| Browser | WebGPU nötig: Chrome und Edge ab 113 (Windows, macOS, ChromeOS), Chrome auf Android ab 121, Firefox ab 141 (Windows), Safari 26 (macOS, iOS, iPadOS) |
+
+Hinweise:
+
+- Offline gibt es keine geprüften Zitate. Die Antwort zeigt stattdessen die Auszüge, die das Modell gelesen hat, und sagt das dazu.
+- Unter dem Eingabefeld steht der Modus (online, offline mit lokalem Modell, offline ohne Modell), auch für Screenreader.
+- Ist der Server nicht erreichbar, springt das lokale Modell ein, sofern es geladen ist.
+- „Offline-Modell entfernen“ löscht die Dateien wieder. Bei Platzmangel kann der Browser sie auch selbst räumen.
+- Die Seite selbst lässt sich offline nicht neu laden, solange es keinen Service Worker gibt. Der Offline-Chat funktioniert in einer bereits geöffneten Seite.
+
+---
+
 ## Betrieb mit Node.js und Docker
 
 RelationNotes läuft auch ohne Cloudflare: ein Node-Prozess liefert Web-App und API über einen Port (Standard `8787`). D1 wird zu SQLite (`node:sqlite`), R2 zu Dateien auf der Platte. `NotebookDO` und `JobDO` laufen als echte Klassen im Prozess, der stündliche Cron als Zeitplan im Server. Getestet wird in der CI auf Node 26 LTS. Belegt sind dort das Docker-Image mit Healthcheck, derselbe Smoke-Check gegen `wrangler dev` und gegen Node sowie Playwright gegen den Node-Build.
@@ -431,6 +452,27 @@ Back up first. The server applies new migrations from `apps/worker/migrations` i
 
 ---
 
+## Offline chat with a local model (English)
+
+Without a network, a language model answers directly in the browser (issue #346). It is opt-in: nothing is downloaded until you click "Set up offline chat", then "Load offline model (0.9 GB)" and confirm the dialog. Details, sources and the model choice are in [docs/offline-chat.md](docs/offline-chat.md) (German).
+
+| | |
+| --- | --- |
+| Model | Qwen2.5-1.5B-Instruct, 4-bit (`q4f16_1`), Apache-2.0 |
+| Runtime | WebLLM `@mlc-ai/web-llm` 0.2.87, Apache-2.0, separate chunk, not in the start bundle |
+| Storage | about 0.9 GB once in browser storage (Cache Storage), about 1.6 GB GPU memory while answering |
+| Browsers | WebGPU required: Chrome and Edge 113+ (Windows, macOS, ChromeOS), Chrome on Android 121+, Firefox 141+ (Windows), Safari 26 (macOS, iOS, iPadOS) |
+
+Notes:
+
+- Offline answers have no checked citations. The answer lists the passages the model read instead and says so.
+- The mode (online, offline with local model, offline without model) is shown below the input and announced to screen readers.
+- If the server cannot be reached, the local model takes over when it is loaded.
+- "Remove offline model" deletes the files. Browsers may also evict them when space runs low.
+- Without a service worker the page itself cannot be reloaded offline. Offline chat works in a page that is already open.
+
+---
+
 ## Saubere Repository-Struktur (Entscheidung #108)
 
 Alle Community-, Sicherheits- und Automatisierungs-Konfigurationen sind im Ordner [`.github/`](.github/) gebündelt, sodass das Hauptverzeichnis übersichtlich auf die technisch notwendigen Projektdateien fokussiert bleibt:
@@ -486,6 +528,7 @@ Sämtliche Architekturentscheidungen (ADRs #1–#110) sind im Ordner [`docs/`](d
 9. [**Anforderungs- & Entscheidungsregister (ADRs #1–#110)**](docs/anforderungen.md) – Lückenlose Dokumentation aller 110 Architektur- und Qualitätsentscheidungen.
 10. [**Lasttests (k6, lokal und Live-Rauchtest)**](docs/load-test.md) – 200 gleichzeitige simulierte Nutzer mit Upload, Chat, Suche und Studio, p95 249 ms, 0 % Fehler; [HTML-Report](docs/load-test/report-local.html) und [JSON](docs/load-test/summary-local.json).
 11. [**Datenschutz je KI-Modell**](docs/datenschutz-modelle.md) – Training mit Eingaben je Anbieter und Zugangsweg, mit Quellen, Wortlaut und Abrufdatum.
+12. [**Offline-Chat mit lokalem Modell**](docs/offline-chat.md) – Laufzeit- und Modellvergleich mit Lizenzen, Speicherbedarf, WebGPU-Unterstützung und Grenzen offline.
 
 ---
 
