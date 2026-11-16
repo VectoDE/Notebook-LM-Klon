@@ -25,7 +25,7 @@ const ENTRIES: readonly Entry[] = [
   ["srcFileInputAria", "Dateien hochladen", "Upload files"],
   ["srcDropzoneLabel", "Datei-Dropzone", "File drop zone"],
   ["srcDropTitle", "Dateien hier ablegen", "Drop files here"],
-  ["srcDropHint", "PDF, TXT oder Markdown", "PDF, TXT or Markdown"],
+  ["srcDropHint", "PDF, Word (DOCX), TXT oder Markdown", "PDF, Word (DOCX), TXT or Markdown"],
   ["srcSearchLabel", "Quellen durchsuchen", "Search sources"],
   ["srcSearchPlaceholder", "Quellen filtern …", "Filter sources …"],
   ["srcSelectAll", "Alle Quellen auswählen", "Select all sources"],
@@ -523,6 +523,21 @@ const ENTRIES: readonly Entry[] = [
     "Sync failed · {n} changes saved locally"
   ],
 
+  // Offline-Chat (Issue #346): nur die Texte vor dem Nachladen; der Rest steht in
+  // translations-offline-chat.ts und kommt mit dem nachgeladenen Teil
+  ["chatModeOnlineShort", "Online", "Online"],
+  [
+    "chatModeOfflineNoModel",
+    "Offline · kein lokales Modell geladen",
+    "Offline · no local model loaded"
+  ],
+  ["offlineChatSetup", "Offline-Chat einrichten", "Set up offline chat"],
+  [
+    "errorOfflineNoModel",
+    "Ohne Verbindung kann nur das lokale Modell antworten, und es ist noch nicht geladen. Laden Sie es, sobald Sie wieder online sind.",
+    "Without a connection only the local model can answer, and it is not loaded yet. Load it once you are back online."
+  ],
+
   // Abmelden mit Löschen der lokalen Daten (Issue #348)
   ["signOutWipe", "Abmelden und lokale Daten löschen", "Sign out and delete local data"],
   [
@@ -725,8 +740,8 @@ const ENTRIES: readonly Entry[] = [
   ["srcEmptyNoneTitle", "Noch keine Quellen", "No sources yet"],
   [
     "srcEmptyNoneText",
-    "Laden Sie PDF-, Text- oder Markdown-Dateien hoch oder fügen Sie einen Link hinzu. Antworten stützen sich nur auf diese Quellen.",
-    "Upload PDF, text or Markdown files, or add a link. Answers rely on these sources only."
+    "Laden Sie PDF-, Word-, Text- oder Markdown-Dateien hoch oder fügen Sie einen Link hinzu. Antworten stützen sich nur auf diese Quellen.",
+    "Upload PDF, Word, text or Markdown files, or add a link. Answers rely on these sources only."
   ],
   ["srcEmptyFilterTitle", "Kein Treffer", "No match"],
   [
@@ -765,6 +780,53 @@ const ENTRIES: readonly Entry[] = [
   ["toastClose", "Hinweis schließen", "Dismiss notice"],
   ["toastSourceAdded", "Quelle hinzugefügt: {title}", "Source added: {title}"],
   ["toastSourcesAdded", "{n} Quellen hinzugefügt", "{n} sources added"],
+  [
+    "toastSourceFailed",
+    "Quelle nicht hinzugefügt: {title}. Den Grund sehen Sie in der Quellenliste.",
+    "Source not added: {title}. The reason is shown in the source list."
+  ],
+  // Eigene Uploads (P6): Stand und Gründe für einen Fehlschlag
+  ["srcStatusProcessing", "Wird gelesen und indexiert …", "Reading and indexing …"],
+  [
+    "srcErrorType",
+    "Dieses Format wird nicht unterstützt. Laden Sie eine Datei als PDF, Word (DOCX), TXT oder Markdown hoch.",
+    "This format is not supported. Upload a PDF, Word (DOCX), TXT or Markdown file."
+  ],
+  [
+    "srcErrorEmpty",
+    "Die Datei enthält keinen lesbaren Text. Gescannte PDFs ohne Textebene lassen sich noch nicht lesen.",
+    "The file contains no readable text. Scanned PDFs without a text layer cannot be read yet."
+  ],
+  [
+    "srcErrorSize",
+    "Die Datei ist zu groß oder überschreitet das Kontingent des Notebooks.",
+    "The file is too large or exceeds the notebook's quota."
+  ],
+  [
+    "srcErrorStorage",
+    "Ihr Speicher ist voll. Entfernen Sie Quellen, die Sie nicht mehr brauchen, und laden Sie die Datei dann erneut hoch.",
+    "Your storage is full. Remove sources you no longer need, then upload the file again."
+  ],
+  [
+    "srcErrorCapacity",
+    "Diese Instanz nimmt gerade keine Uploads an, ihr Kontingent ist ausgeschöpft. Versuchen Sie es später noch einmal.",
+    "This instance is not accepting uploads right now because its quota is used up. Try again later."
+  ],
+  [
+    "srcErrorRead",
+    "Die Datei ließ sich nicht lesen. Prüfen Sie, ob sie beschädigt ist, und versuchen Sie es noch einmal.",
+    "The file could not be read. Check whether it is damaged and try again."
+  ],
+  [
+    "srcErrorTimeout",
+    "Das Lesen hat zu lange gedauert und wurde abgebrochen. Teilen Sie lange Dokumente auf und laden Sie die Teile einzeln hoch.",
+    "Reading took too long and was stopped. Split long documents and upload the parts one by one."
+  ],
+  [
+    "srcErrorComplex",
+    "Die Datei ist ungewöhnlich aufgebaut oder entpackt zu groß. Speichern Sie sie in Word neu oder als PDF und laden Sie sie noch einmal hoch.",
+    "The file has an unusual structure or is too large once unpacked. Save it again in Word or as a PDF and upload it again."
+  ],
   ["toastDownload", "Download gestartet: {file}", "Download started: {file}"],
 
   // Herkunftsnachweis (C2PA) für Exporte, Issue #353

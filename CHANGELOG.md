@@ -1,6 +1,6 @@
 # Changelog (`RelationNotes`)
 
-Alle nennenswerten Änderungen an **RelationNotes – NotebookLM & RelationFlow Knowledge Studio** werden in dieser Datei nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/) und [Semantic Versioning](https://semver.org/lang/de/) dokumentiert.
+Alle nennenswerten Änderungen an **RelationNotes** werden in dieser Datei nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/) und [Semantic Versioning](https://semver.org/lang/de/) dokumentiert.
 
 ## [0.1.0] - 2026-11-09 — Block 1: Foundation, Single-Worker Edge, CI/CD, OpenSSF & Visual Docs
 

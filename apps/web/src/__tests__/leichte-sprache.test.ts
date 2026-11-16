@@ -5,6 +5,11 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { LANGUAGE_NAMES, SettingsDrawer } from "../SettingsDrawer.js";
 import { COMMENTS_DE, COMMENTS_EN, commentTexts } from "../translations-comments.js";
 import {
+  OFFLINE_CHAT_DE,
+  OFFLINE_CHAT_EN,
+  offlineChatTexts
+} from "../translations-offline-chat.js";
+import {
   LOCALES,
   TRANSLATIONS,
   ThemeProvider,
@@ -24,8 +29,12 @@ const raw = JSON.parse(
 ) as Record<string, unknown>;
 const { $meta, ...ls } = raw as { $meta: unknown } & Record<string, string>;
 
-/** Alle Oberflächentexte auf Deutsch: Hauptkatalog und nachgeladener Kommentar-Katalog. */
-const GERMAN: Readonly<Record<string, string>> = { ...TRANSLATIONS.de, ...COMMENTS_DE };
+/** Alle Oberflächentexte auf Deutsch: Hauptkatalog und nachgeladene Kataloge (Kommentare, Offline-Chat). */
+const GERMAN: Readonly<Record<string, string>> = {
+  ...TRANSLATIONS.de,
+  ...COMMENTS_DE,
+  ...OFFLINE_CHAT_DE
+};
 const KEYS = Object.keys(GERMAN);
 
 /** Markennamen, die länger als 16 Buchstaben sein dürfen, ohne Mediopunkt. */
@@ -171,5 +180,13 @@ describe("Leichte Sprache in der Oberfläche", () => {
     for (const key of Object.keys(COMMENTS_DE)) expect(texts[key], key).toBe(ls[key]);
     expect(commentTexts("de")).toEqual(COMMENTS_DE);
     expect(commentTexts("en", LOCALES.texts("de-x-ls"))).toBe(COMMENTS_EN);
+  });
+
+  it("nimmt für den Offline-Chat die Texte in Leichter Sprache, Englisch bleibt Englisch (#346)", () => {
+    const texts = offlineChatTexts("de-x-ls", LOCALES.texts("de-x-ls"));
+    expect(Object.keys(texts).sort()).toEqual(Object.keys(OFFLINE_CHAT_DE).sort());
+    for (const key of Object.keys(OFFLINE_CHAT_DE)) expect(texts[key], key).toBe(ls[key]);
+    expect(offlineChatTexts("de")).toBe(OFFLINE_CHAT_DE);
+    expect(offlineChatTexts("en", LOCALES.texts("de-x-ls"))).toBe(OFFLINE_CHAT_EN);
   });
 });

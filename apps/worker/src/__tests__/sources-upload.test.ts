@@ -29,6 +29,9 @@ function createMockD1(): { db: D1Database; adapter: DatabaseAdapter; close: () =
     "utf-8"
   );
   sqlite.exec(migration2);
+  sqlite.exec(
+    readFileSync(resolve(process.cwd(), "apps/worker/migrations/0007_upload_grenzen.sql"), "utf-8")
+  );
 
   const adapter: DatabaseAdapter = {
     async query<T>(query: string, params: unknown[] = []): Promise<T[]> {
@@ -590,7 +593,7 @@ describe("Sources Upload Flow Endpoints", () => {
         c.env = {
           DB: mockD1.db,
           MEDIA: mockR2,
-          APP_PROFILE: "demo",
+          APP_PROFILE: "full",
           APP_ORIGIN: "http://localhost:8787",
           R2_ACCESS_KEY_ID: "mock-access-key",
           R2_SECRET_ACCESS_KEY: "mock-secret-key",

@@ -22,7 +22,7 @@ import { GraphViewer } from "./GraphViewer.js";
 import { Icon, type IconName } from "./Icon.js";
 import { NotebookTitle } from "./NotebookTitle.js";
 import { PanelRail, PanelToggle, RailButton } from "./PanelRail.js";
-import { SOURCE_FILE_ACCEPT, SourcesPanel } from "./SourcesPanel.js";
+import { SOURCE_FILE_ACCEPT, SourcesPanel, isSourceUsable } from "./SourcesPanel.js";
 import { StudioPanel, type StudioTool } from "./StudioPanel.js";
 import { Toast, type ToastMessage } from "./Toast.js";
 import { afterSettled } from "./after-settled.js";
@@ -56,6 +56,15 @@ import {
   LazySignInDialog as SignInDialog
 } from "./lazy-viewers.js";
 import { signOutAndWipe } from "./local-session.js";
+import { hasLocalModelFlag } from "./offline-chat-flag.js";
+import type { OfflineChat } from "./offline-chat-ui.js";
+import type { UploadSourceResult } from "./source-upload-client.js";
+import {
+  createPendingSource,
+  markSourceFailed,
+  markSourceReady,
+  uploadErrorKey
+} from "./source-uploads.js";
 import type { StructuredData } from "./structured-demo.js";
 import { describeSyncStatus } from "./sync-status-text.js";
 import { browserStorage, readStoredModel, storeModel } from "./theme-preferences.js";
@@ -254,7 +263,24 @@ export interface WorkspaceLayoutProps {
   readonly notebookId?: string | undefined;
   /** Test-Hook: ersetzt fetch fuer den Chat-Client. */
   readonly chatFetch?: typeof fetch | undefined;
+  /** Test-Hook: ersetzt Lesen, Hochladen und Indexieren einer Datei (P6). */
+  readonly uploadSourceFile?: SourceFileUploader | undefined;
 }
+
+/** Liest eine Datei, lädt sie als Quelle ins Notebook und indexiert ihre Chunks. */
+export type SourceFileUploader = (file: File, notebookId: string) => Promise<UploadSourceResult>;
+
+/**
+ * Lädt Upload-Client und Ingest-Worker erst beim ersten Upload nach; das Start-Bundle
+ * bleibt klein (Issue #418). Gelesen wird im Web Worker, dann geht es an den Worker-Server.
+ */
+const defaultUploadSourceFile: SourceFileUploader = async (file, notebookId) => {
+  const [{ uploadSource }, { parseFileInWorker }] = await Promise.all([
+    import("./source-upload-client.js"),
+    import("./ingest-client.js")
+  ]);
+  return uploadSource({ notebookId, file, parse: (f, mimeType) => parseFileInWorker(f, mimeType) });
+};
 
 /** Standardtitel des Demo-Notebooks, bis er umbenannt wird. */
 export const DEFAULT_NOTEBOOK_TITLE = "Cloudflare Edge Stack Architecture";
@@ -356,9 +382,36 @@ export function WorkspaceLayout({
   initialTool = "overview",
   initialPanelTab = "chat",
   notebookId = "nb_active",
-  chatFetch
+  chatFetch,
+  uploadSourceFile = defaultUploadSourceFile
 }: WorkspaceLayoutProps) {
   const { theme, setTheme, colorMode, setColorMode, t, tf, language } = useTheme();
+  // Offline-Chat mit lokalem Modell (Issue #346): der Teil kommt erst beim Einrichten oder,
+  // nach früherer Zustimmung, gleich beim Start; nichts davon im Start-Bundle
+  const [offlineChat, setOfflineChat] = useState<OfflineChat | null>(null);
+  const offlineChatRef = useRef<OfflineChat | null>(null);
+  const [online, setOnline] = useState(() =>
+    typeof navigator === "undefined" ? true : navigator.onLine
+  );
+  const loadOfflineChat = useCallback(() => {
+    if (offlineChatRef.current) return;
+    void import("./offline-chat-ui.js")
+      .then((module) => {
+        offlineChatRef.current ??= module.createOfflineChat();
+        setOfflineChat(offlineChatRef.current);
+      })
+      .catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    if (hasLocalModelFlag(browserStorage())) loadOfflineChat();
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, [loadOfflineChat]);
   const isNarrowHeader = useMediaQuery(NARROW_HEADER_QUERY);
   const isSinglePanel = useMediaQuery(SINGLE_PANEL_QUERY);
 
@@ -675,24 +728,39 @@ export function WorkspaceLayout({
   };
 
   const handleToggleSelectAllSources = (selected: boolean) => {
-    setSources((prev) => prev.map((s) => ({ ...s, isSelected: selected })));
+    // Quellen in Verarbeitung oder mit Fehler bleiben abgewählt
+    setSources((prev) => prev.map((s) => (isSourceUsable(s) ? { ...s, isSelected: selected } : s)));
   };
 
-  const handleUploadFiles = (files: readonly File[]) => {
-    const newSources: WorkspaceSource[] = files.map((file, idx) => ({
-      id: `src_up_${Date.now()}_${idx}`,
-      title: file.name.replace(/\.[^/.]+$/, ""),
-      originalName: file.name,
-      mimeType: file.type || "text/plain",
-      byteSize: file.size,
-      chunksCount: 1,
-      isSelected: true,
-      rawText: `Inhalt von ${file.name}`
-    }));
-    setSources((prev) => [...prev, ...newSources]);
-    const [first] = newSources;
-    if (newSources.length === 1 && first) notify(tf("toastSourceAdded", { title: first.title }));
-    else if (newSources.length > 1) notify(tf("toastSourcesAdded", { n: newSources.length }));
+  /**
+   * Eigene Dateien (P6): Platzhalter sofort zeigen, dann lesen, hochladen und indexieren.
+   * Erst danach trägt die Quelle die Server-ID und ist für den Chat ausgewählt; ein
+   * Fehlschlag bleibt mit Grund in der Liste stehen.
+   */
+  const handleUploadFiles = async (files: readonly File[]) => {
+    const stamp = Date.now();
+    const pending = files.map((file, idx) => createPendingSource(file, `src_up_${stamp}_${idx}`));
+    setSources((prev) => [...prev, ...pending]);
+
+    const results = await Promise.all(
+      files.map(async (file, idx) => {
+        const placeholder = pending[idx] as WorkspaceSource;
+        try {
+          const result = await uploadSourceFile(file, notebookId);
+          setSources((prev) => markSourceReady(prev, placeholder.id, result));
+          return true;
+        } catch (error) {
+          setSources((prev) => markSourceFailed(prev, placeholder.id, uploadErrorKey(error)));
+          notify(tf("toastSourceFailed", { title: placeholder.title }));
+          return false;
+        }
+      })
+    );
+
+    const added = pending.filter((_, idx) => results[idx]);
+    const [first] = added;
+    if (added.length === 1 && first) notify(tf("toastSourceAdded", { title: first.title }));
+    else if (added.length > 1) notify(tf("toastSourcesAdded", { n: added.length }));
   };
 
   const handleImportUrl = (url: string, title?: string) => {
@@ -763,8 +831,55 @@ export function WorkspaceLayout({
     ]);
     setIsGenerating(true);
 
-    const selectedIds = sources.filter((s) => s.isSelected).map((s) => s.id);
+    const selectedIds = sources.filter((s) => s.isSelected && isSourceUsable(s)).map((s) => s.id);
+    const isAbort = (err: unknown) => err instanceof DOMException && err.name === "AbortError";
+
+    // Ohne Netz oder ohne erreichbaren Server: lokales Modell (Issue #346)
+    const answerOffline = async (fallback: boolean) => {
+      const local = offlineChatRef.current;
+      if (!local) {
+        updateMessage(assistantId, (m) => ({ ...m, error: t("errorOfflineNoModel") }));
+        return;
+      }
+      if (fallback) notify(local.text("chatOfflineFallback", language));
+      try {
+        const result = await local.answer({
+          question: text,
+          sources,
+          language,
+          history: messages
+            .filter((m) => m.id !== "msg_intro" && !m.error && m.role !== "system")
+            .map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+          signal: controller.signal,
+          onStart: (offline) =>
+            updateMessage(assistantId, (m) => ({
+              ...m,
+              content: "",
+              error: undefined,
+              errorDetail: undefined,
+              modelUsed: offline.modelLabel,
+              offline
+            })),
+          onText: (content) => updateMessage(assistantId, (m) => ({ ...m, content }))
+        });
+        if (result !== "answered") {
+          const error = local.errorText(result, language);
+          updateMessage(assistantId, (m) => ({ ...m, error, errorDetail: undefined }));
+        }
+      } catch (err) {
+        if (isAbort(err)) updateMessage(assistantId, (m) => ({ ...m, aborted: true }));
+        else {
+          const error = local.errorText("failed", language);
+          updateMessage(assistantId, (m) => ({ ...m, error, errorDetail: undefined }));
+        }
+      }
+    };
+
     try {
+      if (!navigator.onLine) {
+        await answerOffline(false);
+        return;
+      }
       for await (const ev of streamChat({
         notebookId,
         message: text,
@@ -794,8 +909,14 @@ export function WorkspaceLayout({
         }
       }
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
+      if (isAbort(err)) {
         updateMessage(assistantId, (m) => ({ ...m, aborted: true }));
+      } else if (
+        err instanceof ChatApiError &&
+        err.status === 0 &&
+        offlineChatRef.current?.canAnswer()
+      ) {
+        await answerOffline(true);
       } else {
         // Klartext mit Handlungshinweis; Statuscode und Servertext nur als Detail (Issue #315)
         const error = t(
@@ -1127,7 +1248,7 @@ export function WorkspaceLayout({
                 data-testid="rail-file-input"
                 onChange={(event) => {
                   const files = Array.from(event.target.files ?? []);
-                  if (files.length > 0) handleUploadFiles(files);
+                  if (files.length > 0) void handleUploadFiles(files);
                   event.target.value = "";
                 }}
                 aria-label={t("srcFileInputAria")}
@@ -1177,6 +1298,32 @@ export function WorkspaceLayout({
               onCitationClick={handleCitationClick}
               isGenerating={isGenerating}
               panelAttributes={panelAttributes("chat")}
+              modeSlot={
+                offlineChat ? (
+                  <offlineChat.Control online={online} onNotify={notify} />
+                ) : (
+                  <div className="rn-offline-chat rn-offline-chat--start">
+                    <output
+                      className="rn-chat-mode"
+                      data-testid="chat-mode"
+                      data-mode={online ? "online" : "offline-no-model"}
+                    >
+                      <span className="rn-chat-mode-dot" aria-hidden="true" />
+                      {t(online ? "chatModeOnlineShort" : "chatModeOfflineNoModel")}
+                    </output>
+                    <button
+                      type="button"
+                      className="rn-btn rn-btn--ghost rn-btn--compact rn-offline-setup"
+                      data-testid="btn-offline-chat-setup"
+                      disabled={!online}
+                      onClick={loadOfflineChat}
+                    >
+                      <Icon name="download" size={18} />
+                      <span className="rn-offline-setup-label">{t("offlineChatSetup")}</span>
+                    </button>
+                  </div>
+                )
+              }
             />
           </div>
           {isGraphOpen && (

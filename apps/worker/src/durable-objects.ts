@@ -31,7 +31,7 @@ export interface DurableObjectStorageWithAlarm {
 }
 
 export interface SqliteDurableObjectState {
-  readonly id: { toString(): string };
+  readonly id: { toString(): string; readonly name?: string | undefined };
   readonly storage: DurableObjectStorageWithAlarm;
   acceptWebSocket(ws: unknown, tags?: string[]): void;
   getWebSockets(tag?: string): unknown[];
@@ -49,6 +49,8 @@ export interface CachedVectorEntry {
   readonly sourceId?: string | undefined;
   readonly quantized: Int8Array;
   readonly scale: number;
+  /** Embedding-Modell; Suchen mit Modellfilter vergleichen nur Vektoren desselben Modells. */
+  readonly model?: string | undefined;
 }
 
 /**
@@ -60,6 +62,7 @@ export class NotebookDO {
   protected readonly env: Env;
   private initialized = false;
   private vectorCache: Map<string, CachedVectorEntry> = new Map();
+  private vectorsLoaded = false;
 
   constructor(ctx: SqliteDurableObjectState, env: Env) {
     this.ctx = ctx;
@@ -110,6 +113,7 @@ export class NotebookDO {
       }
     } else {
       this.vectorCache.clear();
+      this.vectorsLoaded = false;
     }
   }
 
@@ -127,19 +131,16 @@ export class NotebookDO {
    * if the cache is currently empty.
    */
   public async ensureVectorsLoaded(): Promise<number> {
-    if (this.vectorCache.size > 0) {
+    if (this.vectorsLoaded || !this.env.DB) {
       return this.vectorCache.size;
     }
 
-    if (!this.env.DB) {
-      return 0;
-    }
-
-    const notebookId = this.ctx.id.toString();
+    // idFromName(notebookId) liefert eine Hex-ID; die Notebook-ID steht in id.name.
+    const notebookId = this.ctx.id.name ?? this.ctx.id.toString();
     try {
       // Query chunk_vectors joined with chunks for source_id
       const rows = await this.env.DB.prepare(
-        `SELECT cv.chunk_id, cv.scale, cv.vector, c.source_id
+        `SELECT cv.chunk_id, cv.scale, cv.vector, cv.model, c.source_id
          FROM chunk_vectors cv
          LEFT JOIN chunks c ON c.id = cv.chunk_id
          WHERE cv.notebook_id = ?`
@@ -150,6 +151,7 @@ export class NotebookDO {
           scale: number;
           vector: ArrayBuffer | Uint8Array | number[];
           source_id: string | null;
+          model?: string | null;
         }>();
 
       const results = rows.results;
@@ -171,9 +173,11 @@ export class NotebookDO {
           chunkId: row.chunk_id,
           sourceId: row.source_id ?? undefined,
           quantized,
-          scale: row.scale
+          scale: row.scale,
+          model: row.model ?? undefined
         });
       }
+      this.vectorsLoaded = true;
     } catch {
       // Return currently loaded count if DB query fails
     }
@@ -188,13 +192,17 @@ export class NotebookDO {
     queryQuantized: Int8Array,
     queryScale: number,
     limit = 10,
-    sourceIds?: string[]
+    sourceIds?: string[],
+    model?: string
   ): Array<{ chunkId: string; sourceId?: string | undefined; score: number }> {
     const allowedSources = sourceIds && sourceIds.length > 0 ? new Set(sourceIds) : null;
     const scored: Array<{ chunkId: string; sourceId?: string | undefined; score: number }> = [];
 
     for (const entry of this.vectorCache.values()) {
       if (allowedSources && (!entry.sourceId || !allowedSources.has(entry.sourceId))) {
+        continue;
+      }
+      if (model !== undefined && entry.model !== model) {
         continue;
       }
 
@@ -350,15 +358,19 @@ export class NotebookDO {
             sourceId?: string;
             quantized: number[];
             scale: number;
+            model?: string;
           }>;
         };
 
+        // Erst den Bestand aus D1 laden, sonst kennt ein frisch geweckter DO nur die neuen Vektoren
+        await this.ensureVectorsLoaded();
         const vectorsList = body.vectors;
         const entries: CachedVectorEntry[] = vectorsList.map((v) => ({
           chunkId: v.chunkId,
           sourceId: v.sourceId,
           quantized: new Int8Array(v.quantized),
-          scale: v.scale
+          scale: v.scale,
+          model: v.model
         }));
 
         this.updateVectors(entries);
@@ -436,6 +448,7 @@ export class NotebookDO {
           scale?: number;
           limit?: number;
           sourceIds?: string[];
+          model?: string;
         };
 
         let q: Int8Array;
@@ -465,7 +478,7 @@ export class NotebookDO {
         }
 
         const limit = typeof body.limit === "number" ? body.limit : 10;
-        const results = this.searchVectors(q, s, limit, body.sourceIds);
+        const results = this.searchVectors(q, s, limit, body.sourceIds, body.model);
 
         return Response.json(
           {

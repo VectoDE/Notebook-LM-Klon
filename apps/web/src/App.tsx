@@ -91,7 +91,7 @@ export const App: FunctionComponent<AppProps> = ({
   return (
     <main aria-labelledby="app-title">
       <header>
-        <h1 id="app-title">RelationNotes – NotebookLM &amp; RelationFlow Knowledge Studio</h1>
+        <h1 id="app-title">RelationNotes</h1>
         <p>
           Version {WORKSPACE_VERSION} – Bereit für Forschung, Quellenanalyse, Wissengraphen und
           Studio-Synthese.

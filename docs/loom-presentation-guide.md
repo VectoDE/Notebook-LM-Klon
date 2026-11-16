@@ -1,6 +1,6 @@
 # Visueller Präsentations-Leitfaden für das 10-Minuten-Loom-Video
 
-Stand: 2026-11-13 · Zielgruppe: Everlast Consulting GmbH (Technisches & Fachliches Review)
+Stand: 2026-11-13 · Zielgruppe: technisches und fachliches Review
 
 Dieser Leitfaden ist exakt auf eine **10-minütige Loom-Präsentation** zugeschnitten. Der Zeitplan mit Sprechvorschlägen steht in [`loom-guide.md`](loom-guide.md). Alle eingebetteten SVG-Schaubilder und Mermaid-Ablaufdiagramme können während der Bildschirmaufnahme direkt im GitHub-Repository oder im GitHub-Wiki geöffnet und Schritt für Schritt gezeigt werden.
 
@@ -8,10 +8,10 @@ Dieser Leitfaden ist exakt auf eine **10-minütige Loom-Präsentation** zugeschn
 
 ## Zeitplan & Dramaturgie (10:00 Minuten)
 
-| Minute | Abschnitt | Was auf dem Bildschirm gezeigt wird | Kernbotschaft für Everlast Consulting |
+| Minute | Abschnitt | Was auf dem Bildschirm gezeigt wird | Kernbotschaft |
 |---|---|---|---|
 | **0:00 – 1:15** | **1. Einstieg & Live-Eindruck** | Live-App (Adresse nach dem Deploy, Inhaber-Schritt), 1-Klick-Gastzugang, Umschalten der **4 Live-Design-Systeme** (*Pure NotebookLM*, *Immersive Cinema*, *Editorial Calm*, *Fusion*) sowie Hell / Dunkel / Hochkontrast. | Sofort ohne Registrierung testbar; eigenständige High-Craft-Oberfläche ohne generischen KI-Look; Barrierefreiheit nach WCAG 2.2 AAA als Ziel (nicht zertifiziert, Stand in `docs/accessibility-wcag-aaa.md`). |
-| **1:15 – 3:00** | **2. RelationFlow-Workspace & Zitat-Chat** | Demo-Workspace **„RelationFlow & KI im Mittelstand“**, Rollen-Umschalter (`Owner`/`Editor`/`Viewer`), Modell-Wähler (**„Auto“**, Gemini, Ollama lokal), Chat-Frage stellen und Klick auf Zitat-Pill `[1]` $\rightarrow$ Sprung zur exakten PDF-Textstelle. | Direkte fachliche und technische Verzahnung mit Everlasts **RelationFlow**; halluzinationsfreie Antworten durch deterministische Zitat-Validierung. |
+| **1:15 – 3:00** | **2. Demo-Workspace & Zitat-Chat** | Demo-Workspace **„KI im Mittelstand“**, Rollen-Umschalter (`Owner`/`Editor`/`Viewer`), Modell-Wähler (**„Auto“**, Gemini, Ollama lokal), Chat-Frage stellen und Klick auf Zitat-Pill `[1]` $\rightarrow$ Sprung zur exakten PDF-Textstelle. | Rollen und Modellwahl wie auf der Ziel-Plattform **RelationFlow**; quellengebundene Antworten durch deterministische Zitat-Validierung. |
 | **3:00 – 5:15** | **3. Die 6 Studio-Werkzeuge & Deep-Dive-Bühne** | Klick auf **Audio-Overview** (Immersive Cinema Bühne mit Aurora-Orb, mitscrollendem Transkript & Live-Rückfrage **„Beitreten / Fragen“**), danach **Video-Overview** (Folien + Kapitel; der WebM-Export ist in der Oberfläche noch nicht eingebunden, nicht zeigen), **SVG-Mindmap** (inkl. ARIA-Tree-Ansicht), **Lernkarten** & **Quiz**. | Die Studio-Werkzeuge mit Host-Rückfrage im Audio. Nur zeigen, was im Live-Lauf funktioniert. |
 | **5:15 – 7:30** | **4. Architektur-Deep-Dive (Diagramme zeigen)** | Wechsel in dieses Dokument bzw. `docs/architecture.md` und `docs/rag-and-vectors.md`: Single-Worker-Grafik, `int8`-Quantisierung und Hybrid-RRF-Suche zeigen. | Wie man auf einem einzigen Cloudflare Worker (10 ms CPU-Limit) durch Browser-Web-Worker und `NotebookDO`-RAM-Caching Enterprise-Performance zum Nulltarif erreicht. |
 | **7:30 – 9:00** | **5. Andocken an RelationFlow & Security/Compliance** | Schaubild `docs/relationflow-integration.md` und `docs/security-and-compliance.md`: Eigenständige RAG-API (`POST /notebooks/:id/search`), AES-256-GCM BYOK, EU AI Act Art. 50, DSGVO-Export. | Such-API für Agenten ist umgesetzt, der Entitäten-Austausch noch nicht. Security by Design; OpenSSF-Stand ehrlich mit Lücken (`docs/openssf.md`). |
@@ -49,7 +49,7 @@ Dieser Leitfaden ist exakt auf eine **10-minütige Loom-Präsentation** zugeschn
 
 ---
 
-## Schaubild 3 für Minute 7:30 – Das Andock-Konzept an Everlasts RelationFlow
+## Schaubild 3 für Minute 7:30 – Das Andock-Konzept an RelationFlow
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/relationflow-bridge-dark.svg">
