@@ -15,13 +15,13 @@ Jede signierte Datei trägt ein eingebettetes C2PA-Manifest (Spezifikation 2.x, 
   `digitalCreation`.
 - **Signatur** mit ES256 über die Zertifikatskette des Servers.
 
-Das Manifest wird aus `packages/shared/src/provenance.ts` (`buildManifestDefinition`) gebaut.
+Das Manifest wird aus `packages/shared/src/domain/provenance.ts` (`buildManifestDefinition`) gebaut.
 
 ## Architektur
 
 | Teil | Datei | Aufgabe |
 | --- | --- | --- |
-| Formate, Manifest | `packages/shared/src/provenance.ts` | signierbare Medienarten, Manifest-Definition |
+| Formate, Manifest | `packages/shared/src/domain/provenance.ts` | signierbare Medienarten, Manifest-Definition |
 | API | `apps/worker/src/provenance-routes.ts` | `GET /api/v1/provenance/status`, `POST /api/v1/provenance/sign` |
 | Signierer | `apps/worker/src/node/c2pa-signer.ts` | ruft `c2patool` im Node-Server auf |
 | Oberfläche | `apps/web/src/provenance-client.ts` | signiert vor dem Download (Mindmap, Infografik), sonst ehrlicher Hinweis |

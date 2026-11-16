@@ -168,7 +168,7 @@ Die Antwort enthält `results` mit `sourceTitle`, `page`, `score` und `snippet` 
 
 ## API-Referenz (OpenAPI 3.1)
 
-Alle Endpunkte unter `/api/v1` sind in [`docs/openapi.json`](docs/openapi.json) beschrieben, Fehler nach RFC 9457. Ein Test (`packages/shared/src/__tests__/openapi.test.ts`) liest die Routen aus dem Worker-Code und schlägt fehl, wenn eine Route in der Spezifikation fehlt. Neue Routen gehören also immer in diese Datei.
+Alle Endpunkte unter `/api/v1` sind in [`docs/openapi.json`](docs/openapi.json) beschrieben, Fehler nach RFC 9457. Ein Test (`packages/shared/tests/integration/openapi.test.ts`) liest die Routen aus dem Worker-Code und schlägt fehl, wenn eine Route in der Spezifikation fehlt. Neue Routen gehören also immer in diese Datei.
 
 ---
 

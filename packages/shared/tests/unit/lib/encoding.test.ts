@@ -3,7 +3,7 @@ import { dirname, extname, join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { inspectTextEncoding } from "../../../src/lib/encoding.js";
 
-const REPO_ROOT = join(import.meta.dirname, "../../../..");
+import { REPO_ROOT } from "../../support/paths.js";
 
 const IGNORED_DIRS = new Set([
   ".git",
