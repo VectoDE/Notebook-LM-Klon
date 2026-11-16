@@ -51,7 +51,10 @@ export default defineConfig({
         "apps/web/src/offline-chat.ts",
         "apps/web/src/offline-chat-flag.ts",
         "apps/web/src/translations-offline-chat.ts",
-        "apps/web/src/usage-beacon.ts"
+        "apps/web/src/usage-beacon.ts",
+        "apps/web/src/consent.ts",
+        "apps/web/src/analytics-config.ts",
+        "apps/web/src/privacy-texts.ts"
       ],
       exclude: ["**/__tests__/**", "**/*.d.ts"],
       thresholds: {
