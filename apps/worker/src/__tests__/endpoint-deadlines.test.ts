@@ -16,7 +16,10 @@ import { OpenAiCompatibleProvider } from "../openai-compatible-provider.js";
 const BASE = "https://api.relationflow.example/v1";
 
 /** Body, der sofort einen Teil liefert und danach nie endet; merkt sich den Abbruch. */
-function stalledBody(first = '{"data":'): { stream: ReadableStream<Uint8Array>; cancelled: () => boolean } {
+function stalledBody(first = '{"data":'): {
+  stream: ReadableStream<Uint8Array>;
+  cancelled: () => boolean;
+} {
   let cancelled = false;
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {

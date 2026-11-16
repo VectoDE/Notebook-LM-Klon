@@ -207,12 +207,7 @@ export class KeyVault {
     crypto.getRandomValues(iv);
 
     // Deterministic AAD binding: userId|provider|v{version}
-    const aad = buildBYOKAdditionalData(
-      context.userId,
-      context.provider,
-      version,
-      context.binding
-    );
+    const aad = buildBYOKAdditionalData(context.userId, context.provider, version, context.binding);
     const plaintextBytes = new TextEncoder().encode(plaintextKey);
 
     const ciphertextBuffer = await crypto.subtle.encrypt(

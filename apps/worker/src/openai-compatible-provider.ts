@@ -357,10 +357,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
         options?.apiKey ?? this.apiKey,
         signal
       );
-      return this.readJson<{ data?: Array<{ index?: number; embedding: number[] }> }>(
-        res,
-        signal
-      );
+      return this.readJson<{ data?: Array<{ index?: number; embedding: number[] }> }>(res, signal);
     });
     const rows = [...(data.data ?? [])].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
     if (rows.length !== texts.length) {
