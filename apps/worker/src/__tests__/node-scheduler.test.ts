@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { CleanupMetrics } from "../cleanup.js";
+import type { CleanupMetrics, runScheduledCleanup } from "../cleanup.js";
 import {
   DEFAULT_CLEANUP_INTERVAL_MINUTES,
   runCleanupOnce,
@@ -14,6 +14,7 @@ const METRICS: CleanupMetrics = {
   deletedNotebooks: 0,
   deletedR2Objects: 0,
   deletedStaleUploads: 0,
+  failedSteps: 0,
   durationMs: 3
 };
 const ENV = { DB: {} as D1Database, MEDIA: {} as R2Bucket };
@@ -35,6 +36,28 @@ describe("cleanup scheduler (cron replacement, #334)", () => {
     expect(info).toHaveBeenCalledWith(
       JSON.stringify({ event: "scheduled_cleanup_completed", metrics: METRICS })
     );
+  });
+
+  it("runCleanupOnce reicht den Durable-Object-Zustand-Rückruf weiter, wenn NOTEBOOK_DO gebunden ist", async () => {
+    const fetchSpy = vi.fn(async () => new Response("{}"));
+    const NOTEBOOK_DO = {
+      idFromName: (name: string) => name,
+      get: () => ({ fetch: fetchSpy })
+    } as unknown as Env["NOTEBOOK_DO"];
+    const run = vi.fn(async (_opts: Parameters<typeof runScheduledCleanup>[0]) => METRICS);
+
+    const JOB_DO = {
+      idFromName: (name: string) => name,
+      get: () => ({ fetch: fetchSpy })
+    } as unknown as Env["JOB_DO"];
+
+    await runCleanupOnce({ ...ENV, NOTEBOOK_DO, JOB_DO }, run, { info: vi.fn(), error: vi.fn() });
+
+    const purge = run.mock.calls[0]?.[0].purgeNotebookState;
+    expect(purge).toBeTypeOf("function");
+    await purge?.("nb_1");
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy).toHaveBeenCalledWith("http://internal/purge", { method: "POST" });
   });
 
   it("runCleanupOnce logs to the console by default", async () => {

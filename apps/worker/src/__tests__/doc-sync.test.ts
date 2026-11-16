@@ -301,7 +301,8 @@ describe("NotebookDO /doc Fehlerfälle", () => {
         sql: { exec: (q: string, ...b: unknown[]) => ({ toArray: () => exec(q, ...b) }) },
         getAlarm: async () => null,
         setAlarm: async () => {},
-        deleteAlarm: async () => {}
+        deleteAlarm: async () => {},
+        deleteAll: async () => {}
       },
       acceptWebSocket: () => {},
       getWebSockets: () => []
