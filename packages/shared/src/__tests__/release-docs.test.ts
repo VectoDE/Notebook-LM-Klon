@@ -149,7 +149,7 @@ describe("docs/openssf.md: Pflichtkapitel (#148)", () => {
   });
 });
 
-describe("docs/loom-guide.md: Leitfaden und E-Mail-Entwurf (#151)", () => {
+describe("docs/loom-guide.md: Video-Leitfaden (#151)", () => {
   const guide = read("docs/loom-guide.md");
 
   it("has a timed script that ends within ten minutes", () => {
@@ -168,7 +168,7 @@ describe("docs/loom-guide.md: Leitfaden und E-Mail-Entwurf (#151)", () => {
   it("keeps live and Loom links as marked owner steps and contains no personal data", () => {
     expect(guide).toContain("{{LIVE_URL}}");
     expect(guide).toContain("{{LOOM_URL}}");
-    expect(guide).toContain("Nicht versendet");
+    expect(guide).not.toMatch(/antwort-e-mail/i);
     expect(guide).not.toContain("Albert-Schweitzer-Ring");
     expect(guide).not.toMatch(/[\w.+-]+@[\w-]+\.[a-z]{2,}/i);
     expect(guide).not.toContain("—");

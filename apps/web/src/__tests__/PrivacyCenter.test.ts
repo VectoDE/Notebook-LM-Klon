@@ -77,6 +77,11 @@ describe("Fußzeile mit Widerruf (Issue #261)", () => {
     expect(html).toContain('<footer class="rn-legal-footer" aria-label="Rechtliches"');
     expect(html).toContain('data-testid="footer-privacy"');
     expect(html).toContain('data-testid="footer-cookie-settings"');
+    const sheet = renderToStaticMarkup(createElement(LegalFooter, { placement: "sheet" }));
+    expect(sheet).toContain('<section class="rn-legal-footer rn-legal-footer--sheet"');
+    expect(sheet).toContain('data-testid="sheet-privacy"');
+    expect(sheet).toContain('data-testid="sheet-cookie-settings"');
+    expect(sheet).not.toContain("<footer");
     expect(html).toContain("Cookie-Einstellungen");
   });
 });
@@ -87,6 +92,8 @@ describe("Datenschutztexte (Issues #258, #259, #261, #262)", () => {
     const en = privacyTexts("en");
     expect(Object.keys(en).sort()).toEqual(Object.keys(de).sort());
     expect(en.noticeSections.length).toBe(de.noticeSections.length);
+    // Leichte Sprache fällt auf Deutsch zurück, bis eigene Texte da sind.
+    expect(privacyTexts("de-x-ls")).toBe(de);
     for (const texts of [de, en]) {
       for (const [key, value] of Object.entries(texts)) {
         if (typeof value === "string") expect(value.trim().length, key).toBeGreaterThan(0);

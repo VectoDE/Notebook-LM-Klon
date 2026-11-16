@@ -1,11 +1,15 @@
 import type { Context, MiddlewareHandler } from "hono";
 
 /**
- * Content-Security-Policy. Google Tag Manager und GA4 (Issue #260) sind erlaubt, werden
- * aber nur nach Einwilligung und nur mit gesetzter VITE_GTM_ID überhaupt geladen.
+ * connect-src erlaubt Hugging Face (huggingface.co und die CDN-Hosts *.hf.co, *.huggingface.co)
+ * und raw.githubusercontent.com nur für den Download des Offline-Modells nach Zustimmung
+ * (Issue #346, docs/offline-chat.md). Die Dateien sind auf Commits gepinnt und per SRI geprüft.
+ *
+ * Google Tag Manager und GA4 (Issue #260) sind erlaubt, werden aber nur nach Einwilligung und
+ * nur mit gesetzter VITE_GTM_ID überhaupt geladen.
  */
 export const CSP_HEADER_VALUE =
-  "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' http://localhost:11434 https://challenges.cloudflare.com https://generativelanguage.googleapis.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.googletagmanager.com; frame-src https://challenges.cloudflare.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;";
+  "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' http://localhost:11434 https://challenges.cloudflare.com https://generativelanguage.googleapis.com https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.googletagmanager.com; frame-src https://challenges.cloudflare.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;";
 
 export const HSTS_HEADER_VALUE = "max-age=63072000; includeSubDomains; preload";
 export const X_CONTENT_TYPE_OPTIONS_VALUE = "nosniff";

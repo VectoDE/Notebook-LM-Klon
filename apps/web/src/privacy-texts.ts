@@ -188,7 +188,9 @@ const en: PrivacyTexts = {
   ]
 };
 
-const TEXTS: Record<Language, PrivacyTexts> = { de, en };
+// Leichte Sprache (de-x-ls) hat noch keine eigenen Datenschutztexte; bis dahin gilt Deutsch,
+// wie beim Rückfall je Schlüssel in i18n.ts (de-x-ls -> de).
+const TEXTS: Record<Language, PrivacyTexts> = { de, "de-x-ls": de, en };
 
 export function privacyTexts(language: Language): PrivacyTexts {
   return TEXTS[language];

@@ -108,6 +108,9 @@ export function isPrivateOrReservedIpv4(ipNum: number): boolean {
   // 192.0.2.0/24 (TEST-NET-1)
   if (b0 === 192 && b1 === 0 && ((ipNum >>> 8) & 0xff) === 2) return true;
 
+  // 192.88.99.0/24 (ehemaliges 6to4-Relay-Anycast, RFC 7526)
+  if (b0 === 192 && b1 === 88 && ((ipNum >>> 8) & 0xff) === 99) return true;
+
   // 192.168.0.0/16 (Private-Use RFC 1918)
   if (b0 === 192 && b1 === 168) return true;
 
@@ -244,6 +247,42 @@ export function isPrivateOrReservedIpv6(segments: number[]): boolean {
     return isPrivateOrReservedIpv4(ipv4Val);
   }
 
+  // IPv4-compatible (deprecated, ::a.b.c.d): embedded IPv4 decides
+  if (s0 === 0 && s1 === 0 && s2 === 0 && s3 === 0 && s4 === 0 && s5 === 0) {
+    return isPrivateOrReservedIpv4(((s6 << 16) | s7) >>> 0);
+  }
+
+  // NAT64 well-known prefix 64:ff9b::/96: embedded IPv4 decides
+  if (s0 === 0x64 && s1 === 0xff9b && s2 === 0 && s3 === 0 && s4 === 0 && s5 === 0) {
+    return isPrivateOrReservedIpv4(((s6 << 16) | s7) >>> 0);
+  }
+
+  // NAT64 local-use 64:ff9b:1::/48 (RFC 8215)
+  if (s0 === 0x64 && s1 === 0xff9b && s2 === 1) {
+    return true;
+  }
+
+  // 6to4 2002::/16: embedded IPv4 in segments 1 and 2
+  if (s0 === 0x2002) {
+    return isPrivateOrReservedIpv4(((s1 << 16) | s2) >>> 0);
+  }
+
+  // IETF Protocol Assignments 2001::/23 (RFC 6890): enthält Teredo 2001::/32 (Tunnel zu beliebigen
+  // IPv4-Zielen), Benchmarking 2001:2::/48 und ORCHID 2001:10::/28, 2001:20::/28
+  if (s0 === 0x2001 && s1 < 0x0200) {
+    return true;
+  }
+
+  // Documentation 3fff::/20 (RFC 9637)
+  if (s0 === 0x3fff && (s1 & 0xf000) === 0) {
+    return true;
+  }
+
+  // Segment Routing SIDs 5f00::/16 (RFC 9602)
+  if (s0 === 0x5f00) {
+    return true;
+  }
+
   // Unique Local Address (ULA) fc00::/7 (fc00::/8 and fd00::/8)
   if ((s0 & 0xfe00) === 0xfc00) {
     return true;
@@ -271,6 +310,12 @@ export function isPrivateOrReservedIpv6(segments: number[]): boolean {
 
   // Documentation 2001:db8::/32
   if (s0 === 0x2001 && s1 === 0x0db8) {
+    return true;
+  }
+
+  // Alles außerhalb von Global Unicast 2000::/3 (RFC 4291, IANA IPv6 Address Space) ist kein
+  // öffentliches Ziel, z. B. IPv4-translated ::ffff:0:0:0/96 (RFC 2765) oder nicht zugeteilte Bereiche.
+  if ((s0 & 0xe000) !== 0x2000) {
     return true;
   }
 

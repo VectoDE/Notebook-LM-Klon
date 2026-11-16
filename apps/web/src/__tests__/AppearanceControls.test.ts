@@ -51,7 +51,14 @@ describe("AppearanceControls", () => {
 
   it("nutzt beschriftete Felder und echte Radiogruppen", () => {
     const html = render();
-    expect(html).toContain('<label for="t-role" class="rn-appearance-label">Rolle</label>');
+    expect(html).toContain(
+      '<label for="t-role" class="rn-appearance-label">Rolle (Vorschau)</label>'
+    );
+    // Rolle wirkt noch nicht: der Hinweis sagt das und ist dem Feld zugeordnet (Issue #302)
+    expect(html).toContain('aria-describedby="t-role-hint"');
+    expect(html).toContain(
+      '<p id="t-role-hint" class="rn-setting-hint" data-testid="role-hint">Nur Vorschau: Die Auswahl ändert derzeit nichts.'
+    );
     expect(html).toContain('<legend class="rn-appearance-label">Design</legend>');
     expect(html).toContain('<legend class="rn-appearance-label">Farbschema</legend>');
     expect(html.match(/name="t-theme"/g)?.length).toBe(4);

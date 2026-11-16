@@ -9,6 +9,7 @@ import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
 import { createPasskeyRoutes } from "../passkey-routes.js";
 import { CHALLENGE_TTL_MS, PasskeyService, type WebAuthnEngine } from "../passkey-service.js";
 import { DEV_SESSION_COOKIE_NAME, SESSION_COOKIE_NAME, SessionManager } from "../session.js";
+import { TURNSTILE_TEST_SECRET_ALWAYS_PASSES } from "../turnstile.js";
 
 function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } {
   const db = new DatabaseSync(":memory:");
@@ -139,7 +140,14 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
       app.use("*", sessionMiddleware(sessionManager));
       app.route(
         "/api/v1/auth/passkey",
-        createPasskeyRoutes({ repo, passkeyService, sessionManager, isProduction: false })
+        createPasskeyRoutes({
+          repo,
+          passkeyService,
+          sessionManager,
+          isProduction: false,
+          turnstileSecretKey: TURNSTILE_TEST_SECRET_ALWAYS_PASSES,
+          customFetch: (async () => Response.json({ success: true })) as unknown as typeof fetch
+        })
       );
 
       const now = Date.now();
@@ -164,7 +172,13 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
             cookie: `${SESSION_COOKIE_NAME}=${token}`,
             "content-type": "application/json"
           },
-          body: JSON.stringify({ id: "x", rawId: "x", type: "public-key", response: {} })
+          body: JSON.stringify({
+            id: "x",
+            rawId: "x",
+            type: "public-key",
+            response: {},
+            turnstileToken: "passing_token"
+          })
         });
 
       expect((await post("/register/options", alice.rawToken)).status).toBe(200);
@@ -257,7 +271,13 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
         repo,
         passkeyService,
         sessionManager,
-        isProduction: false
+        isProduction: false,
+        turnstileSecretKey: TURNSTILE_TEST_SECRET_ALWAYS_PASSES,
+        customFetch: (async () =>
+          new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { "content-type": "application/json" }
+          })) as unknown as typeof fetch
       })
     );
 
@@ -285,7 +305,11 @@ describe("PasskeyService & Passkey Routes (Issue #8: Sub-Issues #68, #69, #70)",
       "https://api.example.com/api/v1/auth/passkey/register/options",
       {
         method: "POST",
-        headers: { cookie: `${SESSION_COOKIE_NAME}=${guestToken}` }
+        headers: {
+          cookie: `${SESSION_COOKIE_NAME}=${guestToken}`,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({ turnstileToken: "passing_token" })
       }
     );
     expect(regOptionsRes.status).toBe(200);

@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { Icon } from "./Icon.js";
 import { trapTabKey } from "./focus-trap.js";
+import { type PasskeyCredentials, registerPasskey } from "./passkey-client.js";
 import {
   type AuthCallResult,
   type SiteKeyResolution,
@@ -23,6 +24,8 @@ export interface SignInDialogProps {
   readonly siteKey?: SiteKeyResolution | undefined;
   /** Nur für Tests: eigenes fetch. */
   readonly fetchFn?: typeof fetch | undefined;
+  /** Nur für Tests: eigenes navigator.credentials. */
+  readonly credentials?: PasskeyCredentials | undefined;
 }
 
 type WidgetState = "loading" | "ready" | "failed";
@@ -41,6 +44,7 @@ function defaultSiteKey(): SiteKeyResolution {
 
 /**
  * Anmelden (Issue #233): Gastzugang und Magic-Link, beide mit Cloudflare Turnstile.
+ * Passkey einrichten (Issue #343): ebenfalls nur mit bestätigter Bot-Prüfung.
  * Das Turnstile-Skript wird erst geladen, wenn dieser Dialog offen ist. Ohne Site-Key
  * zeigt der Dialog einen sichtbaren Fehler und schickt nichts ab.
  */
@@ -49,7 +53,8 @@ export function SignInDialog({
   onClose,
   returnFocusFallback,
   siteKey,
-  fetchFn
+  fetchFn,
+  credentials
 }: SignInDialogProps) {
   const { t, language } = useTheme();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -63,6 +68,7 @@ export function SignInDialog({
   const titleId = useId();
   const introId = useId();
   const statusId = useId();
+  const passkeyTitleId = useId();
   const resolution = siteKey ?? defaultSiteKey();
   const configuredKey = resolution.status === "configured" ? resolution.siteKey : null;
 
@@ -147,6 +153,12 @@ export function SignInDialog({
 
   const handleGuest = () => {
     void run((value) => requestGuestSession(doFetch, value, language), "signInGuestSuccess");
+  };
+
+  const handlePasskey = () => {
+    const container =
+      credentials ?? (typeof navigator !== "undefined" ? navigator.credentials : undefined);
+    void run((value) => registerPasskey(doFetch, container, value), "signInPasskeySuccess");
   };
 
   const handleMagicLink = (event: FormEvent) => {
@@ -280,6 +292,23 @@ export function SignInDialog({
             {t("signInMagicButton")}
           </button>
         </form>
+
+        <section aria-labelledby={passkeyTitleId} className="rn-signin-section">
+          <h3 id={passkeyTitleId} className="rn-share-people-title">
+            {t("signInPasskeyTitle")}
+          </h3>
+          <p className="rn-dialog-text">{t("signInPasskeyText")}</p>
+          <button
+            type="button"
+            onClick={handlePasskey}
+            aria-disabled={unavailable}
+            aria-describedby={statusId}
+            data-testid="btn-register-passkey"
+            className={`rn-btn rn-btn--secondary rn-btn--block${unavailable ? " rn-btn--unavailable" : ""}`}
+          >
+            {t("signInPasskeyButton")}
+          </button>
+        </section>
       </div>
     </dialog>
   );

@@ -136,7 +136,9 @@ describe("CSP für Tag Manager nach Einwilligung (Issue #260)", () => {
     ]) {
       expect(directive("connect-src")).toContain(origin);
     }
-    expect(directive("connect-src").some((source) => source.includes("*"))).toBe(false);
+    // Einzige Platzhalter: CDN-Hosts des Offline-Modells (Issue #346), keine für Google
+    const wildcards = directive("connect-src").filter((source) => source.includes("*"));
+    expect(wildcards).toEqual(["https://*.huggingface.co", "https://*.hf.co"]);
     expect(directive("default-src")).toEqual(["'self'"]);
   });
 });
@@ -187,6 +189,8 @@ describe("Rate Limiting (Sub-Issue #78)", () => {
     expect(resolveCategoryFromPath("/api/v1/chat/message")).toBe("chat");
     expect(resolveCategoryFromPath("/api/v1/notebook/ask")).toBe("chat");
     expect(resolveCategoryFromPath("/api/v1/sources/file/upload")).toBe("uploads");
+    expect(resolveCategoryFromPath("/api/v1/provenance/sign")).toBe("uploads");
+    expect(resolveCategoryFromPath("/api/v1/provenance/status")).toBe("general");
     expect(resolveCategoryFromPath("/api/v1/health")).toBe("general");
   });
 

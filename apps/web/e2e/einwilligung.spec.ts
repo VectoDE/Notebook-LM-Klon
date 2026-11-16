@@ -132,6 +132,22 @@ test.describe("Einwilligungsbanner", () => {
     await expect(page.getByTestId("footer-cookie-settings")).toBeFocused();
   });
 
+  test("unter 600 px: keine Fußzeile, Widerruf über das Menü", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await page.getByTestId("consent-accept-all").click();
+    await expect(page.getByTestId("legal-footer")).toBeHidden();
+
+    await page.getByTestId("btn-open-menu").click();
+    await page.getByTestId("sheet-cookie-settings").click();
+    await expect(page.getByTestId("nav-sheet")).toBeHidden();
+    const dialog = page.getByRole("dialog", { name: "Cookie-Einstellungen" });
+    await expect(dialog.getByTestId("consent-analytics")).toBeChecked();
+    await dialog.getByTestId("consent-analytics").uncheck();
+    await dialog.getByTestId("consent-save").click();
+    expect(await storedConsent(page)).toMatchObject({ analytics: false });
+  });
+
   test("Tag Manager lädt erst nach Einwilligung (Issue #260)", async ({ page }) => {
     const google = await watchGoogle(page);
     await page.goto("/");
