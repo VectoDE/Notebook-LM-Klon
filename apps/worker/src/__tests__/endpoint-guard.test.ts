@@ -144,6 +144,8 @@ describe("endpoint-guard: statische URL-Prüfung", () => {
     ["https://[febf::1]/v1"],
     ["https://[fec0::1]/v1"],
     ["https://[ff02::1]/v1"],
+    ["https://[::ffff:0:7f00:1]/v1"],
+    ["https://[4000::1]/v1"],
     // Interne Namen
     ["https://localhost/v1"],
     ["https://LOCALHOST/v1"],
@@ -160,6 +162,9 @@ describe("endpoint-guard: statische URL-Prüfung", () => {
     ["https://instance-data/v1"],
     ["https://intranet/v1"],
     ["https://intranet./v1"],
+    ["https://intranet../v1"],
+    ["https://localhost../v1"],
+    ["https://printer.local../v1"],
     ["https://xn--intrnet-9wa/v1"]
   ])("sperrt %s", (url) => {
     const result = validateUserEndpoint(url, []);

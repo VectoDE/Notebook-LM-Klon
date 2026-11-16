@@ -15,11 +15,12 @@
  * 5. Weiterleitungen werden nie verfolgt (`redirect: "manual"`, jede 3xx-Antwort = Fehler).
  * 6. Zeitlimit bis zu den Antwort-Headern; Größen- und Leerlauflimits setzt der Adapter.
  *
- * Restrisiko: `fetch` löst den Namen danach selbst noch einmal auf. Weder auf Cloudflare Workers
- * noch mit dem Standard-`fetch` lässt sich die Verbindung an die geprüfte IP binden. Zwischen Prüfung
- * und Verbindungsaufbau kann sich die Auflösung deshalb ändern (TOCTOU, Rebinding mit kurzer TTL).
- * Auf Workers laufen ausgehende Anfragen über das Cloudflare-Netz, private Netze des Betreibers sind
- * dort nicht erreichbar; im Node-Betrieb ist die DNS-Prüfung der einzige Schutz davor.
+ * Restrisiko auf Cloudflare Workers: `fetch` löst den Namen danach selbst noch einmal auf, die
+ * Verbindung lässt sich dort nicht an die geprüfte IP binden. Zwischen Prüfung und Verbindungsaufbau
+ * kann sich die Auflösung deshalb ändern (TOCTOU, Rebinding mit kurzer TTL). Ausgehende Anfragen laufen
+ * dort über das Cloudflare-Netz, private Netze des Betreibers sind nicht erreichbar. Im Node-Betrieb
+ * übergibt `node-server.ts` ein `fetch` aus `node/pinned-fetch.ts`, das jede beim Verbindungsaufbau
+ * aufgelöste Adresse prüft; dort gibt es diese Lücke nicht.
  */
 
 import {
@@ -56,7 +57,7 @@ export function parseHostAllowlist(raw: unknown): string[] {
 
 /** Prüft einen Host gegen die Allowlist. `*.example.com` passt nur auf echte Subdomains. */
 export function isHostAllowed(host: string, allowlist: readonly string[]): boolean {
-  const h = host.toLowerCase().replace(/\.$/, "");
+  const h = host.toLowerCase().replace(/\.+$/, "");
   return allowlist.some((entry) => {
     if (entry.startsWith("*.")) {
       const suffix = entry.slice(1);
@@ -74,7 +75,7 @@ const INTERNAL_SUFFIXES = [".localhost", ".local", ".localdomain", ".internal", 
  * URL-Import: zusätzlich gesperrt sind Namen ohne Punkt (Intranet-Namen, Suchdomänen) und `*.arpa`.
  */
 export function isBlockedEndpointHost(host: string): boolean {
-  const h = host.trim().toLowerCase().replace(/\.$/, "");
+  const h = host.trim().toLowerCase().replace(/\.+$/, "");
   if (parseIpv4ToUint32(h) !== null || parseIpv6(h) !== null) return isPrivateOrLocalHost(h);
   if (!h.includes(".")) return true;
   if (INTERNAL_SUFFIXES.some((suffix) => h.endsWith(suffix))) return true;

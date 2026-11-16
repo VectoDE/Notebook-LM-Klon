@@ -182,7 +182,9 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   const sessionManager = new SessionManager({ repo: coreRepo, saltSecret });
   const keyVault = hasConfiguredKek(env) ? createKeyVaultFromEnv(env) : undefined;
   const endpointRepo = new EndpointRepository(dbAdapter);
-  const customEndpointDeps = { ragRepo, endpointRepo, keyVault };
+  // Node-Betrieb: fetch mit Adressprüfung beim Verbindungsaufbau (node/pinned-fetch.ts, DNS-Rebinding).
+  const byomFetch = (env as unknown as { BYOM_FETCH?: typeof fetch }).BYOM_FETCH;
+  const customEndpointDeps = { ragRepo, endpointRepo, keyVault, fetchFn: byomFetch };
 
   const app = new Hono<ApiEnv>();
 

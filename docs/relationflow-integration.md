@@ -152,5 +152,9 @@ TLS-Namen lässt sich nicht vorgeben. Ein Angreifer mit eigener Domain und sehr 
 zwischen Prüfung und Verbindungsaufbau die Antwort wechseln (TOCTOU). Auf Workers laufen ausgehende
 Anfragen über das Cloudflare-Netz; private Netze des Betreibers sind von dort nicht erreichbar, das
 begrenzt den Schaden. Beim Betrieb als Node-Server (`apps/worker/src/node-server.ts`) gibt es diesen
-Netzabstand nicht: Wer dort interne Dienste im selben Netz hat, sollte `BYOM_ALLOWED_HOSTS` setzen
-oder ausgehenden Verkehr per Firewall auf das Internet beschränken.
+Netzabstand nicht. Dort laufen Aufrufe eigener Endpunkte deshalb über `apps/worker/src/node/pinned-fetch.ts`:
+Der Name wird beim Verbindungsaufbau aufgelöst, jede gelieferte Adresse geprüft, und der Socket nutzt genau
+diese Adressen. Liefert der Name auch nur eine private, lokale oder reservierte Adresse, wird nicht
+verbunden. Ein Wechsel der DNS-Antwort zwischen Prüfung und Verbindung bringt damit nichts. Wer interne
+Dienste im selben Netz hat, kann zusätzlich `BYOM_ALLOWED_HOSTS` setzen oder ausgehenden Verkehr per
+Firewall auf das Internet beschränken.

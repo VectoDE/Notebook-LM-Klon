@@ -313,6 +313,12 @@ export function isPrivateOrReservedIpv6(segments: number[]): boolean {
     return true;
   }
 
+  // Alles außerhalb von Global Unicast 2000::/3 (RFC 4291, IANA IPv6 Address Space) ist kein
+  // öffentliches Ziel, z. B. IPv4-translated ::ffff:0:0:0/96 (RFC 2765) oder nicht zugeteilte Bereiche.
+  if ((s0 & 0xe000) !== 0x2000) {
+    return true;
+  }
+
   return false;
 }
 
