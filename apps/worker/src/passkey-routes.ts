@@ -1,6 +1,7 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
 import { Hono } from "hono";
+import type { AuditLogger } from "./audit-log.js";
 import { requireAuth } from "./auth-middleware.js";
 import type { CoreRepository } from "./core-repository.js";
 import type { PasskeyService } from "./passkey-service.js";
@@ -19,6 +20,7 @@ export function createPasskeyRoutes(opts: {
    */
   turnstileSecretKey?: string | undefined;
   customFetch?: typeof fetch | undefined;
+  auditLogger?: AuditLogger | undefined;
 }): Hono<{ Bindings: Env }> {
   const router = new Hono<{ Bindings: Env }>();
 
@@ -178,6 +180,11 @@ export function createPasskeyRoutes(opts: {
       const ip = resolveClientIp(c) ?? null;
       const ua = c.req.header("user-agent") ?? null;
       const session = await opts.sessionManager.createSession(result.user.id, ip, ua);
+      await opts.auditLogger?.record(c, {
+        userId: result.user.id,
+        action: "auth.login.passkey",
+        target: "user:self"
+      });
 
       const cookieHeader = buildSessionCookie(
         session.rawToken,

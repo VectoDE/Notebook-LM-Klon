@@ -4,7 +4,9 @@ import {
   createProblemDetails
 } from "@notebook-lm/shared";
 import { Hono } from "hono";
+import { registerAccountRoutes } from "./account-routes.js";
 import { registerAudioRoutes } from "./audio-routes.js";
+import { AuditLogger } from "./audit-log.js";
 import {
   csrfProtection,
   requireAuth,
@@ -14,7 +16,7 @@ import {
 import { registerBYOKRoutes } from "./byok-routes.js";
 import { registerChatRoutes } from "./chat-routes.js";
 import { registerChunkIngestionRoutes } from "./chunk-ingestion.js";
-import { runScheduledCleanup } from "./cleanup.js";
+import { createNotebookStatePurger, runScheduledCleanup } from "./cleanup.js";
 import { registerCommentRoutes } from "./comments-routes.js";
 import { resolveAppConfig } from "./config.js";
 import { CoreRepository } from "./core-repository.js";
@@ -185,6 +187,7 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   // Node-Betrieb: fetch mit Adressprüfung beim Verbindungsaufbau (node/pinned-fetch.ts, DNS-Rebinding).
   const byomFetch = (env as unknown as { BYOM_FETCH?: typeof fetch }).BYOM_FETCH;
   const customEndpointDeps = { ragRepo, endpointRepo, keyVault, fetchFn: byomFetch };
+  const auditLogger = new AuditLogger({ repo: coreRepo, saltSecret });
 
   const app = new Hono<ApiEnv>();
 
@@ -220,7 +223,8 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
       mailAdapter: createMailAdapter(secrets),
       turnstileSecretKey: secrets.TURNSTILE_SECRET_KEY,
       appBaseUrl: config.origin,
-      isProduction
+      isProduction,
+      auditLogger
     })
   );
   app.route(
@@ -235,7 +239,8 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
       }),
       sessionManager,
       turnstileSecretKey: secrets.TURNSTILE_SECRET_KEY,
-      isProduction
+      isProduction,
+      auditLogger
     })
   );
 
@@ -311,7 +316,7 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   app.on("DELETE", "/api/v1/sources/:id", requireSourceRole(coreRepo, ragRepo, "editor"));
   registerUrlImportRoutes(app, { ragRepo });
   registerSourcesUploadRoutes(app, { coreRepo, ragRepo });
-  registerChunkIngestionRoutes(app, { ragRepo, coreRepo });
+  registerChunkIngestionRoutes(app, { ragRepo, coreRepo, auditLogger });
 
   // 5b. Comments on sources and notes with mentions (guards inside registerCommentRoutes:
   // viewer reads, editor writes, author edits, author or owner deletes)
@@ -345,7 +350,11 @@ export function buildApiApp(env: Env): Hono<ApiEnv> {
   );
   registerJobRoutes(app, { coreRepo });
 
-  // 8. BYOK key management (last: its router adds its own same-origin CSRF check)
+  // 8. Account self-service (Art. 17 DSGVO): immediate deletion of the own account
+  app.use("/api/v1/me", requireAuth());
+  registerAccountRoutes(app, { coreRepo, isProduction, auditLogger });
+
+  // 9. BYOK key management (last: its router adds its own same-origin CSRF check)
   app.use("/api/v1/keys", requireAuth(), requireConfiguredKek(), requireSalt);
   app.use("/api/v1/keys/*", requireAuth(), requireConfiguredKek(), requireSalt);
   registerBYOKRoutes(app, { ragRepo, coreRepo, keyVault, saltSecret });
@@ -397,7 +406,8 @@ export const scheduled = async (
 
   const cleanupPromise = runScheduledCleanup({
     db: dbAdapter,
-    mediaBucket: env.MEDIA
+    mediaBucket: env.MEDIA,
+    purgeNotebookState: createNotebookStatePurger(env.NOTEBOOK_DO, env.JOB_DO)
   }).then((metrics) => {
     console.info(
       JSON.stringify({

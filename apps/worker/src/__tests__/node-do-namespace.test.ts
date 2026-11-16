@@ -156,6 +156,30 @@ describe("in-process Durable Object namespace (#330)", () => {
     expect(fired).toHaveLength(1);
   });
 
+  it("deleteAll drops every table and the alarm like storage.deleteAll() on Cloudflare", async () => {
+    vi.useFakeTimers({ now: 1_000_000 });
+    const fired = vi.fn(async () => {});
+    const r = recorder(fired);
+    const ns = namespace(r.factory);
+    await ns.get(ns.idFromName("nb_1")).fetch("http://do/x");
+    const storage = (r.contexts[0] as SqliteDurableObjectState).storage;
+    storage.sql.exec('CREATE TABLE "we""ird" (x INTEGER); CREATE TABLE notebook_doc (x INTEGER)');
+    storage.sql.exec("INSERT INTO notebook_doc (x) VALUES (?)", 1);
+    await storage.setAlarm(1_005_000);
+
+    await storage.deleteAll();
+
+    const tables = storage.sql
+      .exec("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
+      .toArray();
+    expect(tables).toEqual([{ name: "_nlk_alarm" }]);
+    expect(await storage.getAlarm()).toBeNull();
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(fired).not.toHaveBeenCalled();
+    // the object can create its schema again
+    storage.sql.exec("CREATE TABLE notebook_doc (x INTEGER)");
+  });
+
   it("re-checks alarms beyond the setTimeout limit and skips alarms removed meanwhile", async () => {
     vi.useFakeTimers({ now: 0 });
     const fired = vi.fn(async () => {});

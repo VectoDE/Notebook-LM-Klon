@@ -1,4 +1,4 @@
-import { type CleanupMetrics, runScheduledCleanup } from "../cleanup.js";
+import { type CleanupMetrics, createNotebookStatePurger, runScheduledCleanup } from "../cleanup.js";
 import { createD1DatabaseAdapter } from "../d1-adapter.js";
 
 /**
@@ -12,8 +12,14 @@ import { createD1DatabaseAdapter } from "../d1-adapter.js";
 /** Same cadence as the Cloudflare cron trigger "0 * * * *". */
 export const DEFAULT_CLEANUP_INTERVAL_MINUTES = 60;
 
+/** DB and MEDIA are required; with NOTEBOOK_DO and JOB_DO the cleanup also clears Durable Object state. */
+export type SchedulerEnv = Pick<Env, "DB" | "MEDIA"> & {
+  readonly NOTEBOOK_DO?: Env["NOTEBOOK_DO"];
+  readonly JOB_DO?: Env["JOB_DO"];
+};
+
 export interface CleanupSchedulerOptions {
-  readonly env: Pick<Env, "DB" | "MEDIA">;
+  readonly env: SchedulerEnv;
   readonly intervalMs: number;
   readonly run?: typeof runScheduledCleanup;
   readonly log?: Pick<Console, "info" | "error">;
@@ -26,11 +32,15 @@ export interface CleanupScheduler {
 }
 
 export async function runCleanupOnce(
-  env: Pick<Env, "DB" | "MEDIA">,
+  env: SchedulerEnv,
   run: typeof runScheduledCleanup = runScheduledCleanup,
   log: Pick<Console, "info" | "error"> = console
 ): Promise<CleanupMetrics> {
-  const metrics = await run({ db: createD1DatabaseAdapter(env.DB), mediaBucket: env.MEDIA });
+  const metrics = await run({
+    db: createD1DatabaseAdapter(env.DB),
+    mediaBucket: env.MEDIA,
+    purgeNotebookState: createNotebookStatePurger(env.NOTEBOOK_DO, env.JOB_DO)
+  });
   // Same log line as scheduled() on Cloudflare, so both runtimes are monitored alike.
   log.info(JSON.stringify({ event: "scheduled_cleanup_completed", metrics }));
   return metrics;
