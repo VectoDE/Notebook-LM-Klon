@@ -62,7 +62,7 @@ function createFullSqliteAdapter(): { adapter: DatabaseAdapter; close: () => voi
   return { adapter, close: () => db.close() };
 }
 
-describe("Demo Dataset: RelationFlow & KI im Mittelstand (Sub-Issue #107)", () => {
+describe("Demo Dataset: KI im Mittelstand (Sub-Issue #107)", () => {
   it("defines comprehensive sources, pre-chunked segments, and valid chunk character ranges", () => {
     expect(RELATIONFLOW_DEMO_NOTEBOOK.id).toBe(RELATIONFLOW_NOTEBOOK_ID);
     expect(RELATIONFLOW_DEMO_NOTEBOOK.sources.length).toBe(4);

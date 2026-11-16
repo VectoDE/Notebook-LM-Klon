@@ -31,6 +31,8 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       DEPLOY_URL: ${{ vars.DEPLOY_URL }}
+      # Öffentlicher Turnstile-Site-Key (kein Geheimnis), wird in die Web-Oberfläche eingebaut.
+      VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -51,7 +53,7 @@ jobs:
       - name: Konfiguration des Inhabers prüfen
         run: |
           missing=0
-          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID DEPLOY_URL; do
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID DEPLOY_URL VITE_TURNSTILE_SITE_KEY; do
             if [ -z "${!name}" ]; then
               echo "::error::${name} ist im Environment 'production' nicht gesetzt."
               missing=1
@@ -61,15 +63,54 @@ jobs:
             echo "::error::apps/worker/wrangler.jsonc enthält noch die Platzhalter-database_id."
             missing=1
           fi
+          # APP_ORIGIN (CSRF-Origin, Passkey-RP-ID, Turnstile) muss genau die Deploy-Adresse sein.
+          app_origin="$(grep -o '"APP_ORIGIN": *"[^"]*"' apps/worker/wrangler.jsonc | sed 's/.*: *"\(.*\)"/\1/')"
+          case "$app_origin" in
+            https://*) ;;
+            *)
+              echo "::error::APP_ORIGIN in apps/worker/wrangler.jsonc ist keine HTTPS-Adresse (${app_origin:-leer})."
+              missing=1
+              ;;
+          esac
+          if [ -n "$DEPLOY_URL" ] && [ "${DEPLOY_URL%/}" != "$app_origin" ]; then
+            echo "::error::DEPLOY_URL (${DEPLOY_URL}) stimmt nicht mit APP_ORIGIN (${app_origin}) überein."
+            missing=1
+          fi
           exit "$missing"
 
       - name: Install dependencies (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
+      # Fehlende Worker-Secrets früh melden, bevor Migrationen laufen. Es werden nur Namen gelesen.
+      # Schlägt die Abfrage selbst fehl (z. B. Netzwerk), wird nur gewarnt; der Smoke-Check
+      # fängt fehlende Secrets danach über 503 ab.
+      - name: Worker-Secrets prüfen
+        working-directory: apps/worker
+        run: |
+          set -o pipefail
+          if ! names="$(pnpm exec wrangler secret list --format json | jq -r '.[].name')"; then
+            echo "::warning::Worker-Secrets konnten nicht gelesen werden, Prüfung übersprungen."
+            exit 0
+          fi
+          missing=0
+          for name in TURNSTILE_SECRET_KEY SESSION_SALT_SECRET DEMO_GEMINI_KEY; do
+            if ! printf '%s\n' "$names" | grep -qx "$name"; then
+              echo "::error::Worker-Secret ${name} fehlt (wrangler secret put ${name})."
+              missing=1
+            fi
+          done
+          if ! printf '%s\n' "$names" | grep -Eqx 'KEK_V[0-9]+|BYOK_MASTER_KEY'; then
+            echo "::error::Worker-Secret KEK_V1 fehlt (wrangler secret put KEK_V1)."
+            missing=1
+          fi
+          exit "$missing"
+
       - name: Tests vor dem Deploy
         run: pnpm test
 
       - name: Web-Oberfläche bauen
+        env:
+          VITE_PUBLIC_BASE_URL: ${{ vars.DEPLOY_URL }}
         run: pnpm --filter @notebook-lm/web build
 
       - name: D1-Migrationen remote anwenden
@@ -83,4 +124,13 @@ jobs:
 
       - name: Smoke-Check gegen die Deploy-URL
         working-directory: apps/worker
-        run: pnpm exec tsx src/smoke-check.ts "$DEPLOY_URL"
+        # Bis zu drei Versuche: direkt nach dem Deploy braucht die Verteilung manchmal Sekunden.
+        run: |
+          for attempt in 1 2 3; do
+            if pnpm exec tsx src/smoke-check.ts "$DEPLOY_URL"; then
+              exit 0
+            fi
+            echo "Smoke-Check Versuch ${attempt} fehlgeschlagen."
+            [ "$attempt" -lt 3 ] && sleep 15
+          done
+          exit 1

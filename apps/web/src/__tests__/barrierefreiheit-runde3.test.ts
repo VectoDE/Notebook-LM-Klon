@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { ChatPanel } from "../ChatPanel.js";
 import { FlashcardsViewer } from "../FlashcardsViewer.js";
 import { MindmapViewer } from "../MindmapViewer.js";
@@ -10,8 +10,12 @@ import { QuizViewer } from "../QuizViewer.js";
 import { SourcesPanel } from "../SourcesPanel.js";
 import { StudioPanel } from "../StudioPanel.js";
 import { DEFAULT_CONTENT_LANGS, DEFAULT_SOURCES, WorkspaceLayout } from "../WorkspaceLayout.js";
+import { preloadStudioViewers } from "../lazy-viewers.js";
 import { AREA_DE, AREA_EN } from "../translations-areas.js";
 import { validateSourceUrl } from "../url-validation.js";
+
+// Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
+beforeAll(() => preloadStudioViewers());
 
 describe("URL-Prüfung im Import-Dialog (#323)", () => {
   it("verlangt eine Eingabe", () => {
@@ -126,7 +130,8 @@ describe("Sprachauszeichnung der Inhalte (#323)", () => {
         contentLang: "en"
       })
     );
-    expect(mindmap).toMatch(/class="rn-mm-label" lang="en">Compute</);
+    // Beschriftung bricht in <tspan>-Zeilen um (Issue #279), die Sprache sitzt am <text>
+    expect(mindmap).toMatch(/class="rn-mm-label" lang="en"><tspan[^>]*>Compute<\/tspan><\/text>/);
     expect(mindmap).toContain('<span class="rn-tree-text" lang="en"><strong>Compute</strong>');
   });
 

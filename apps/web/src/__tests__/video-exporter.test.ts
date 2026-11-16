@@ -95,6 +95,23 @@ describe("Video Exporter Pipeline (Sub-Issue #121)", () => {
     ).rejects.toThrow("Video-Export wurde abgebrochen.");
   });
 
+  it("prefers MP4 over WebM because only MP4 can carry C2PA provenance (Issue #353)", () => {
+    const globalObj = globalThis as unknown as Record<string, unknown>;
+    const original = globalObj.MediaRecorder;
+    try {
+      globalObj.MediaRecorder = { isTypeSupported: () => true };
+      expect(getSupportedVideoMimeType()).toBe("video/mp4;codecs=avc1,mp4a.40.2");
+      globalObj.MediaRecorder = { isTypeSupported: (t: string) => t === "video/mp4" };
+      expect(getSupportedVideoMimeType()).toBe("video/mp4");
+      globalObj.MediaRecorder = { isTypeSupported: (t: string) => t.startsWith("video/webm;") };
+      expect(getSupportedVideoMimeType()).toBe("video/webm;codecs=vp9,opus");
+      globalObj.MediaRecorder = { isTypeSupported: () => false };
+      expect(getSupportedVideoMimeType()).toBe("video/webm");
+    } finally {
+      globalObj.MediaRecorder = original;
+    }
+  });
+
   it("executes mock MediaRecorder pipeline when MediaRecorder is available", async () => {
     class MockMediaRecorder {
       static isTypeSupported(type: string) {

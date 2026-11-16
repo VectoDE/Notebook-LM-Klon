@@ -5,12 +5,14 @@ import {
   WORKSPACE_VERSION
 } from "@notebook-lm/shared";
 import type { FunctionComponent } from "react";
-import { FlashcardsViewer } from "./FlashcardsViewer.js";
-import { MindmapViewer } from "./MindmapViewer.js";
 import { PrivacyCenter } from "./PrivacyCenter.js";
-import { QuizViewer } from "./QuizViewer.js";
 import { WorkspaceLayout } from "./WorkspaceLayout.js";
 import { readGtmId } from "./analytics-config.js";
+import {
+  LazyFlashcardsViewer as FlashcardsViewer,
+  LazyMindmapViewer as MindmapViewer,
+  LazyQuizViewer as QuizViewer
+} from "./lazy-viewers.js";
 
 /** Einwilligung nur abfragen, wenn ein optionaler Dienst eingerichtet ist (Issue #261). */
 const OPTIONAL_SERVICES_CONFIGURED = readGtmId(import.meta.env.VITE_GTM_ID) !== null;
@@ -99,7 +101,7 @@ export const App: FunctionComponent<AppProps> = ({
   return (
     <main aria-labelledby="app-title">
       <header>
-        <h1 id="app-title">RelationNotes – NotebookLM &amp; RelationFlow Knowledge Studio</h1>
+        <h1 id="app-title">RelationNotes</h1>
         <p>
           Version {WORKSPACE_VERSION} – Bereit für Forschung, Quellenanalyse, Wissengraphen und
           Studio-Synthese.

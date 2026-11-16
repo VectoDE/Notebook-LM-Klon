@@ -9,8 +9,11 @@
  * Bewegung: nur Übergänge über Tokens, die bei reduzierter Bewegung 0 ms sind.
  */
 
+import type { EntityGraph } from "@notebook-lm/shared";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
+  Suspense,
+  lazy,
   useCallback,
   useEffect,
   useId,
@@ -20,6 +23,7 @@ import {
   useState
 } from "react";
 import { Icon } from "./Icon.js";
+import "./entity-graph-mode.css";
 import {
   GRAPH_FONT_SIZE,
   GRAPH_PADDING,
@@ -39,8 +43,12 @@ import {
   stepZoom
 } from "./knowledge-graph.js";
 import { useTheme } from "./useTheme.js";
-import type { PanelFocusAttributes } from "./workspace-types.js";
+import type { CitationLocation, PanelFocusAttributes } from "./workspace-types.js";
 
+/** Beziehungsgraph erst beim Umschalten laden, damit der Start schlank bleibt (LCP). */
+const EntityGraphView = lazy(() =>
+  import("./EntityGraphView.js").then((m) => ({ default: m.EntityGraphView }))
+);
 export interface GraphViewerProps {
   readonly graph: KnowledgeGraph;
   /** Sprache der Begriffe und Quellentitel (BCP 47), für lang (WCAG 3.1.2). */
@@ -49,7 +57,18 @@ export interface GraphViewerProps {
   /** Nur ab 900 px: Rückweg zum Chat, der in derselben Spalte liegt. */
   readonly onClose?: (() => void) | undefined;
   readonly panelAttributes?: PanelFocusAttributes | undefined;
+  /**
+   * Beziehungsgraph (Issue #238): Personen, Organisationen, Themen mit Beleg je Kante.
+   * Als Funktion wird er erst beim Umschalten geladen, damit der Start schlank bleibt.
+   */
+  readonly entityGraph?: EntityGraph | (() => Promise<EntityGraph>) | undefined;
+  /** Quellen (id, Titel) für die Belegzeile des Beziehungsgraphen. */
+  readonly entitySources?: readonly { readonly id: string; readonly title: string }[] | undefined;
+  /** Sprung zur markierten Zitatstelle in der Quelle. */
+  readonly onCitationJump?: ((citation: CitationLocation) => void) | undefined;
 }
+
+type GraphMode = "concepts" | "entities";
 
 /** Erste Grundlinie im Knoten: Innenabstand oben plus Oberlänge bei 14 px. */
 const FIRST_BASELINE = 27;
@@ -60,13 +79,29 @@ export function GraphViewer({
   contentLang,
   onSourceJump,
   onClose,
-  panelAttributes
+  panelAttributes,
+  entityGraph,
+  entitySources = [],
+  onCitationJump
 }: GraphViewerProps) {
   const { t, tf } = useTheme();
   const baseId = useId();
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const tabRefs = useRef<Record<GraphTab, HTMLButtonElement | null>>({ visual: null, list: null });
   const [tab, setTab] = useState<GraphTab>("visual");
+  const [graphMode, setGraphMode] = useState<GraphMode>("concepts");
+  const [loadedEntityGraph, setLoadedEntityGraph] = useState<EntityGraph | undefined>();
+  const shownEntityGraph = typeof entityGraph === "function" ? loadedEntityGraph : entityGraph;
+  useEffect(() => {
+    if (graphMode !== "entities" || typeof entityGraph !== "function") return;
+    let active = true;
+    void entityGraph().then((graph) => {
+      if (active) setLoadedEntityGraph(graph);
+    });
+    return () => {
+      active = false;
+    };
+  }, [graphMode, entityGraph]);
   const [canvas, setCanvas] = useState({ width: 0, height: 0 });
   /** null: eingepasst (folgt der Fläche); sonst der gewählte Zoom. */
   const [zoom, setZoom] = useState<number | null>(null);
@@ -183,13 +218,15 @@ export function GraphViewer({
       <header className="rn-panel-head">
         <div className="rn-panel-heading">
           <h2 id={`${baseId}-title`}>{t("graphTitle")}</h2>
-          <p className="rn-panel-sub">
-            {tf("graphSub", {
-              concepts: concepts.length,
-              sources: sources.length,
-              links: graph.edges.length
-            })}
-          </p>
+          {graphMode === "concepts" && (
+            <p className="rn-panel-sub">
+              {tf("graphSub", {
+                concepts: concepts.length,
+                sources: sources.length,
+                links: graph.edges.length
+              })}
+            </p>
+          )}
         </div>
         {onClose && (
           <button
@@ -204,7 +241,25 @@ export function GraphViewer({
         )}
       </header>
 
-      <div className="rn-tool-view rn-graph-view rn-cinema-enter">
+      {entityGraph && (
+        <fieldset className="rn-graph-mode">
+          <legend className="rn-visually-hidden">{t("egModeLabel")}</legend>
+          {(["concepts", "entities"] as const).map((id) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={graphMode === id}
+              data-testid={`graph-mode-${id}`}
+              className="rn-btn rn-btn--secondary rn-btn--compact"
+              onClick={() => setGraphMode(id)}
+            >
+              {t(id === "concepts" ? "egModeConcepts" : "egModeEntities")}
+            </button>
+          ))}
+        </fieldset>
+      )}
+
+      <div className="rn-tool-view rn-graph-view rn-cinema-enter" hidden={graphMode === "entities"}>
         <div className="rn-mindmap-toolbar" data-testid="graph-toolbar">
           <div role="tablist" aria-label={t("mmViewLabel")} className="rn-seg-tabs">
             {GRAPH_TABS.map((id) => (
@@ -475,6 +530,16 @@ export function GraphViewer({
             ))}
         </div>
       </div>
+      {shownEntityGraph && graphMode === "entities" && (
+        <Suspense fallback={null}>
+          <EntityGraphView
+            graph={shownEntityGraph}
+            sources={entitySources}
+            contentLang={contentLang}
+            onCitationJump={onCitationJump}
+          />
+        </Suspense>
+      )}
     </section>
   );
 }

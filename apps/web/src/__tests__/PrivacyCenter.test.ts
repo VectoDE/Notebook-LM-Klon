@@ -87,6 +87,8 @@ describe("Datenschutztexte (Issues #258, #259, #261, #262)", () => {
     const en = privacyTexts("en");
     expect(Object.keys(en).sort()).toEqual(Object.keys(de).sort());
     expect(en.noticeSections.length).toBe(de.noticeSections.length);
+    // Leichte Sprache fällt auf Deutsch zurück, bis eigene Texte da sind.
+    expect(privacyTexts("de-x-ls")).toBe(de);
     for (const texts of [de, en]) {
       for (const [key, value] of Object.entries(texts)) {
         if (typeof value === "string") expect(value.trim().length, key).toBeGreaterThan(0);

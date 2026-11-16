@@ -1,0 +1,93 @@
+/* ==========================================================================
+   Timeline, Infografik und Datentabelle (Issue #239). Beleg, Prüfknöpfe und Liste nutzen
+   die Stile des Beziehungsgraphen (.rn-eg-*, .rn-graph-*). Prüfstatus ohne Farbe:
+   gestrichelter Rand = zu prüfen, durchgestrichen = abgelehnt.
+   ========================================================================== */
+
+.rn-st {
+  display: grid;
+  gap: var(--rn-space-4);
+  min-width: 0;
+}
+
+.rn-st-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--rn-space-3);
+}
+
+.rn-st-timeline {
+  display: grid;
+  gap: var(--rn-space-4);
+  margin: 0;
+  padding: 0 0 0 var(--rn-space-4);
+  list-style: none;
+  border-inline-start: 2px solid var(--rn-color-border);
+}
+
+.rn-st-timeline > li {
+  display: grid;
+  gap: var(--rn-space-2);
+  padding: var(--rn-space-3);
+  border: 1px solid var(--rn-color-panel-border);
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-panel);
+}
+
+.rn-st-timeline > li[data-status="suggested"],
+.rn-st-table tr[data-status="suggested"] > :first-child {
+  border-style: dashed;
+}
+
+.rn-st-timeline > li[data-status="rejected"] .rn-st-event,
+.rn-st-table tr[data-status="rejected"] > :not(:last-child),
+.rn-graph-item[data-status="rejected"] .rn-graph-item-name {
+  text-decoration: line-through;
+}
+
+.rn-st-date {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-st-event {
+  margin: 0;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-st-evidence {
+  display: grid;
+  gap: var(--rn-space-2);
+  min-width: 0;
+}
+
+.rn-st-table-wrap {
+  min-width: 0;
+}
+
+/* Quellenspalte mit Zitat und Prüfknöpfen bekommt den meisten Platz */
+.rn-st-table th:last-child,
+.rn-st-table td:last-child {
+  width: 45%;
+}
+
+.rn-st-table th[scope="row"] {
+  font-weight: 600;
+}
+
+.rn-st-figure {
+  margin: 0;
+}
+
+.rn-st-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--rn-color-panel-border);
+  border-radius: var(--rn-radius-md);
+  background: #ffffff;
+}

@@ -10,7 +10,7 @@ Stand: 2026-11-13 · Issues #258, #259, #262
 
 ## Welche Daten wir verarbeiten
 
-- **Konto:** E-Mail-Adresse (bei Anmeldung per Magic Link), Anzeigename, Sprache, Passkey-Daten. Gastkonten laufen nach 24 Stunden ab.
+- **Konto:** E-Mail-Adresse (bei Anmeldung per Magic Link), Anzeigename, Sprache, Passkey-Daten. Gastkonten laufen nach 24 Stunden ab und werden beim nächsten stündlichen Aufräumlauf gelöscht.
 - **Inhalte:** Notebooks, hochgeladene Quellen, Chats, Notizen und erzeugte Artefakte. Sie liegen in Cloudflare D1 und R2.
 - **Sitzung:** Ein technisch notwendiges Cookie (`__Host-sid`) hält Sie angemeldet. Im Speicher steht nur ein Hash des Tokens, IP-Adresse und Browserkennung nur als tagesweise gesalzener Hash.
 - **Sicherheitsprotokoll:** Anmeldungen sowie das Löschen von Quellen und Konten werden mit Zeitpunkt, Art des Ereignisses und der betroffenen ID protokolliert. Die IP-Adresse steht dort nur als tagesweise gesalzener Hash, Inhalte von Quellen nie. Die Einträge werden nach 90 Tagen gelöscht.
@@ -31,7 +31,7 @@ Ob für diese Zählung eine Einwilligung nötig ist, hängt von § 25 TDDDG und 
 
 ## Löschung
 
-Sie können Ihr Konto jederzeit löschen. Alle Datensätze und Dateien werden sofort entfernt. Im Wiederherstellungsverlauf der Datenbank (Cloudflare D1 Time Travel) bleiben sie technisch bedingt noch bis zu 30 Tage enthalten und sind danach endgültig gelöscht. Einzelheiten: [Löschkonzept](./loeschkonzept.md).
+Sie können Ihr Konto jederzeit löschen. Ihre Kontodaten und Dateien werden sofort entfernt. Inhalte in Arbeitsbereichen, an denen weitere Personen beteiligt sind (zum Beispiel Notebooks, die Sie in einem fremden Arbeitsbereich angelegt haben, oder Ihre Kommentare dort), bleiben für diese Personen erhalten; Ihr Name wird entfernt und durch „Gelöschtes Konto“ ersetzt. Im Wiederherstellungsverlauf der Datenbank (Cloudflare D1 Time Travel) bleiben sie technisch bedingt noch bis zu 30 Tage enthalten und sind danach endgültig gelöscht. Einzelheiten: [Löschkonzept](./loeschkonzept.md).
 
 ## Rechte
 

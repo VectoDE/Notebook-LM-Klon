@@ -208,7 +208,7 @@ export async function verifyQuotaAction(
       };
     }
 
-    return ALLOWED;
+    return verifyOwnerStorage(db, action.notebookId, action.byteSize, limits);
   }
 
   // action.type === "llm_call"
@@ -221,6 +221,56 @@ export async function verifyQuotaAction(
     };
   }
   return ALLOWED;
+}
+
+/**
+ * Speicher je Nutzer bzw. Gast (F247): Summe byte_size aller Quellen in den Notebooks des
+ * Notebook-Eigentümers (notebooks.created_by). Uploads von Mitbearbeitern zählen beim
+ * Eigentümer, denn dessen Notebooks belegen den Speicher. Genau am Limit ist erlaubt.
+ */
+async function verifyOwnerStorage(
+  db: D1Database,
+  notebookId: string,
+  byteSize: number,
+  limits: ProfileQuotas
+): Promise<QuotaCheckResult> {
+  const owner = await db
+    .prepare(
+      `SELECT u.is_guest AS is_guest,
+              (SELECT COALESCE(SUM(s.byte_size), 0)
+                 FROM sources s JOIN notebooks n2 ON n2.id = s.notebook_id
+                WHERE n2.created_by = n.created_by) AS used_bytes
+         FROM notebooks n JOIN users u ON u.id = n.created_by
+        WHERE n.id = ?`
+    )
+    .bind(notebookId)
+    .first<{ is_guest: number; used_bytes: number }>();
+  if (!owner) {
+    return ALLOWED;
+  }
+
+  const isGuest = Number(owner.is_guest) === 1;
+  const limit = isGuest ? limits.maxGuestStorageBytes : limits.maxUserStorageBytes;
+  const usedBytes = Number(owner.used_bytes);
+  if (usedBytes + byteSize <= limit) {
+    return ALLOWED;
+  }
+
+  const limitMb = formatMegabytes(limit);
+  const usedMb = formatMegabytes(usedBytes);
+  return isGuest
+    ? {
+        allowed: false,
+        code: "QUOTA_MAX_GUEST_STORAGE_EXCEEDED",
+        reason: `Gastzugänge haben ${limitMb} MB Speicher, davon sind ${usedMb} MB belegt. Entfernen Sie eine Quelle oder melden Sie sich mit einem Konto an.`,
+        reasonEn: `Guest access includes ${limitMb} MB of storage and ${usedMb} MB are in use. Remove a source or sign in with an account.`
+      }
+    : {
+        allowed: false,
+        code: "QUOTA_MAX_USER_STORAGE_EXCEEDED",
+        reason: `Ihr Speicher von ${limitMb} MB ist mit ${usedMb} MB zu voll für diese Datei. Entfernen Sie Quellen, um Platz zu schaffen.`,
+        reasonEn: `Your ${limitMb} MB of storage holds ${usedMb} MB, too much for this file. Remove sources to make room.`
+      };
 }
 
 /**

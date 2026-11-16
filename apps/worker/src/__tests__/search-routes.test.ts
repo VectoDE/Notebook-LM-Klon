@@ -559,6 +559,25 @@ describe("RAG & Hybrid Search API (POST /api/v1/notebooks/:id/search - Issues #1
     });
     expect(qRes).toHaveLength(2);
 
+    // 5b. Modellfilter im D1-Rückfall: fremde Modelle werden nicht verglichen
+    const quantizedQuery = {
+      quantized: Array.from(new Int8Array(768).fill(10)),
+      scale: 0.01,
+      limit: 2
+    };
+    expect(
+      await queryNotebookVectorSearch(undefined, ragRepo, testNotebookId, {
+        ...quantizedQuery,
+        model: "@cf/google/embeddinggemma-2"
+      })
+    ).toEqual([]);
+    expect(
+      await queryNotebookVectorSearch(undefined, ragRepo, testNotebookId, {
+        ...quantizedQuery,
+        model: "text-embedding-3-small"
+      })
+    ).toHaveLength(2);
+
     // 6. Test notebook share authorization branch (user is in notebook_shares)
     await coreRepo.createUser({
       id: "shared_user",

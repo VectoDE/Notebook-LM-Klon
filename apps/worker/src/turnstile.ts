@@ -1,3 +1,7 @@
+import { createProblemDetails } from "@notebook-lm/shared";
+import type { Context } from "hono";
+import { resolveClientIp } from "./rate-limiter.js";
+
 export interface TurnstileVerifyOptions {
   secretKey: string;
   token: string;
@@ -80,4 +84,75 @@ export async function verifyTurnstileToken(
       errorCodes: ["network-error"]
     };
   }
+}
+
+export interface TurnstileGuardOptions {
+  /** TURNSTILE_SECRET_KEY. Missing or blank means the protected action is disabled (503). */
+  secretKey?: string | undefined;
+  customFetch?: typeof fetch | undefined;
+}
+
+const PROBLEM_HEADERS = { "content-type": "application/problem+json; charset=utf-8" };
+
+/**
+ * Fail-closed bot check shared by every Turnstile-protected route:
+ * missing secret -> 503, missing or rejected token -> 403.
+ * Returns null only when Siteverify confirmed the token. The client IP for `remoteip`
+ * comes from resolveClientIp() and is never read from client-supplied headers.
+ */
+export async function requireTurnstile(
+  c: Context,
+  token: unknown,
+  opts: TurnstileGuardOptions
+): Promise<Response | null> {
+  const secretKey = opts.secretKey?.trim();
+  if (!secretKey) {
+    return c.json(
+      createProblemDetails({
+        status: 503,
+        title: "Service Unavailable",
+        detail:
+          "Bot-Schutz ist nicht konfiguriert (TURNSTILE_SECRET_KEY fehlt). Anmeldung ist deaktiviert.",
+        instance: c.req.path,
+        code: "TURNSTILE_NOT_CONFIGURED"
+      }),
+      503,
+      PROBLEM_HEADERS
+    );
+  }
+
+  if (typeof token !== "string" || token.trim() === "") {
+    return c.json(
+      createProblemDetails({
+        status: 403,
+        title: "Forbidden",
+        detail: "Turnstile-Token fehlt. Bitte die Bot-Prüfung abschließen.",
+        instance: c.req.path,
+        code: "BOT_VERIFICATION_REQUIRED"
+      }),
+      403,
+      PROBLEM_HEADERS
+    );
+  }
+
+  const verifyRes = await verifyTurnstileToken(
+    { secretKey, token, remoteIp: resolveClientIp(c) ?? null },
+    opts.customFetch
+  );
+
+  if (!verifyRes.success) {
+    return c.json(
+      createProblemDetails({
+        status: 403,
+        title: "Forbidden",
+        detail: "Turnstile Bot-Verifikation fehlgeschlagen.",
+        instance: c.req.path,
+        code: "BOT_VERIFICATION_FAILED"
+      }),
+      403,
+      PROBLEM_HEADERS
+    );
+  }
+
+  return null;
 }

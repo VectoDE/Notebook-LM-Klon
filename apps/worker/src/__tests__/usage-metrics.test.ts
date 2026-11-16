@@ -4,12 +4,15 @@ import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { DELETED_USER_ID } from "../cleanup.js";
 import { createD1DatabaseAdapter } from "../d1-adapter.js";
 import { createApp } from "../index.js";
 import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
 import { clearRateLimitMemory } from "../rate-limiter.js";
 import {
   USAGE_METRICS,
+  createUsageThrottle,
+  incrementUsageCounter,
   isUsageMetric,
   registerUsageMetricsRoutes,
   usageDay
@@ -84,9 +87,15 @@ describe("Cookielose aggregierte Nutzungszähler (Issue #262)", () => {
     expect(dump).not.toContain("Testbrowser");
 
     // nothing was written to session or rate-limit tables
-    for (const table of ["sessions", "users", "audit_log", "rate_limits"]) {
-      const n = sqlite.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number };
-      expect(Number(n.n), table).toBe(0);
+    // (users: the placeholder account from migration 0009 does not count)
+    for (const query of [
+      "SELECT COUNT(*) AS n FROM sessions",
+      `SELECT COUNT(*) AS n FROM users WHERE id != '${DELETED_USER_ID}'`,
+      "SELECT COUNT(*) AS n FROM audit_log",
+      "SELECT COUNT(*) AS n FROM rate_limits"
+    ]) {
+      const n = sqlite.prepare(query).get() as { n: number };
+      expect(Number(n.n), query).toBe(0);
     }
   });
 
@@ -114,16 +123,80 @@ describe("Cookielose aggregierte Nutzungszähler (Issue #262)", () => {
     expect(sqlite.prepare("SELECT COUNT(*) AS n FROM usage_counters").get()).toEqual({ n: 0 });
   });
 
+  it("zählt nur mit exakt passender Origin, auch ohne Origin-Header nicht", async () => {
+    const missing = await app.request(
+      `${ORIGIN}/api/v1/metrics`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ metric: "page_view" })
+      },
+      env
+    );
+    expect(missing.status).toBe(403);
+    expect(((await missing.json()) as { code: string }).code).toBe("METRICS_ORIGIN_FORBIDDEN");
+    const lookalike = await post(JSON.stringify({ metric: "page_view" }), {
+      origin: `${ORIGIN}.evil.example`
+    });
+    expect(lookalike.status).toBe(403);
+    expect(sqlite.prepare("SELECT COUNT(*) AS n FROM usage_counters").get()).toEqual({ n: 0 });
+  });
+
+  it("drosselt je Isolate ohne Client-Merkmal und antwortet mit 429", async () => {
+    const now = Date.UTC(2026, 10, 16, 12, 0, 0);
+    const local = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
+    registerUsageMetricsRoutes(local, {
+      db: createD1DatabaseAdapter(env.DB),
+      allowedOrigin: ORIGIN,
+      now: () => now,
+      throttle: createUsageThrottle(2, 1)
+    });
+    const send = () =>
+      local.request("/api/v1/metrics", {
+        method: "POST",
+        headers: { origin: ORIGIN },
+        body: JSON.stringify({ metric: "page_view" })
+      });
+    expect((await send()).status).toBe(204);
+    expect((await send()).status).toBe(204);
+    const limited = await send();
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("retry-after")).toBe("1");
+    expect(((await limited.json()) as { code: string }).code).toBe("METRICS_THROTTLED");
+    expect(sqlite.prepare("SELECT count FROM usage_counters").get()).toEqual({ count: 2 });
+  });
+
+  it("füllt den Token-Eimer mit der Zeit wieder auf", () => {
+    const bucket = createUsageThrottle(1, 1);
+    expect(bucket.tryTake(1000)).toBe(true);
+    expect(bucket.tryTake(1000)).toBe(false);
+    expect(bucket.tryTake(1500)).toBe(false);
+    expect(bucket.tryTake(2600)).toBe(true);
+    // time running backwards never adds tokens
+    expect(bucket.tryTake(100)).toBe(false);
+  });
+
+  it("deckelt den Tageszähler", async () => {
+    const db = createD1DatabaseAdapter(env.DB);
+    const at = Date.UTC(2026, 10, 16, 8, 0, 0);
+    for (let i = 0; i < 5; i++) {
+      await incrementUsageCounter(db, "page_view", at, 3);
+    }
+    expect(sqlite.prepare("SELECT count FROM usage_counters").get()).toEqual({ count: 3 });
+  });
+
   it("legt je UTC-Tag eine eigene Zeile an", async () => {
     let now = Date.UTC(2026, 10, 13, 23, 59, 0);
     const local = new Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>();
     registerUsageMetricsRoutes(local, {
       db: createD1DatabaseAdapter(env.DB),
+      allowedOrigin: ORIGIN,
       now: () => now
     });
     const send = () =>
       local.request("/api/v1/metrics", {
         method: "POST",
+        headers: { origin: ORIGIN },
         body: JSON.stringify({ metric: "page_view" })
       });
 

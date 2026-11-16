@@ -25,7 +25,13 @@ export const PASSTHROUGH_VARS = [
   ...Array.from({ length: 10 }, (_, i) => `KEK_V${i + 1}`),
   "RESEND_API_KEY",
   "MAIL_FROM",
-  "DEMO_GEMINI_KEY"
+  "DEMO_GEMINI_KEY",
+  // C2PA signing of exports (Issue #353), see node/c2pa-signer.ts
+  "C2PATOOL_PATH",
+  "C2PA_SIGN_CERT",
+  "C2PA_PRIVATE_KEY",
+  "C2PA_CERT_KIND",
+  "C2PA_TSA_URL"
 ] as const;
 
 /** Minimum length for secrets that protect stored data (e.g. `openssl rand -hex 32` gives 64). */

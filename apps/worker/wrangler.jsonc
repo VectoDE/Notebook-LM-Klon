@@ -12,7 +12,7 @@
   },
   "vars": {
     "APP_PROFILE": "demo",
-    "APP_ORIGIN": "http://localhost:8787"
+    "APP_ORIGIN": "https://notebook-lm-klon.timhauke.workers.dev"
   },
   "assets": {
     "directory": "../web/dist",
@@ -20,14 +20,25 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
   },
+  // Region (F249): D1 mit EU-Jurisdiktion. Gilt nur beim Anlegen, im Binding steht kein Feld:
+  // wrangler d1 create notebook-lm-db --jurisdiction=eu
+  // Quelle: https://developers.cloudflare.com/d1/configuration/data-location/
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "notebook-lm-db",
-      "database_id": "00000000-0000-0000-0000-000000000001",
+      "database_id": "ae367cb2-a6c1-4500-a804-1d43f2491463",
       "migrations_dir": "migrations"
     }
   ],
+  "ai": {
+    "binding": "AI"
+  },
+  // Region (F249): R2 mit Location Hint Westeuropa, nur beim ersten Anlegen wirksam, kein Binding-Feld.
+  // Der Hint ist ein Wunsch ohne Garantie: Uploads dürfen nicht als EU-gespeichert beworben werden.
+  // "jurisdiction" gehört nur zu Jurisdiktions-Buckets (eu, fedramp, us) und fehlt hier bewusst:
+  // wrangler r2 bucket create notebook-lm-media --location=weur
+  // Quelle: https://developers.cloudflare.com/r2/reference/data-location/
   "r2_buckets": [
     {
       "binding": "MEDIA",
