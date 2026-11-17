@@ -6,9 +6,9 @@
  */
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { DEFAULT_VIDEO_STORYBOARD } from "@/components/layout/WorkspaceLayout.js";
+import { VideoOverviewPlayer } from "@/components/media/VideoOverviewPlayer.js";
 import { ThemeProvider } from "@/hooks/useTheme.js";
-import { VideoOverviewPlayer } from "../../src/VideoOverviewPlayer.js";
-import { DEFAULT_VIDEO_STORYBOARD } from "../../src/WorkspaceLayout.js";
 import "@/styles/fonts.css";
 import "@/styles/themes.css";
 import "@/styles/workspace.css";

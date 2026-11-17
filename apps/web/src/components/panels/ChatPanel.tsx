@@ -1,0 +1,470 @@
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { EmptyState } from "@/components/ui/EmptyState.js";
+import { Icon } from "@/components/ui/Icon.js";
+import { useTheme } from "@/hooks/useTheme.js";
+import { shouldReduceMotion } from "@/theme/theme-preferences.js";
+import type { CitationLocation, PanelFocusAttributes } from "@/types/workspace-types.js";
+
+export interface ChatMessage {
+  readonly id: string;
+  readonly role: "user" | "assistant" | "system";
+  readonly content: string;
+  readonly citations?: readonly CitationLocation[] | undefined;
+  readonly isStreaming?: boolean | undefined;
+  /** Fehlertext, falls die Antwort fehlgeschlagen ist. */
+  readonly error?: string | undefined;
+  /** Technische Angabe zum Fehler (z. B. HTTP-Status), klein unter dem Klartext. */
+  readonly errorDetail?: string | undefined;
+  /** True, wenn der Nutzer die Antwort abgebrochen hat. */
+  readonly aborted?: boolean | undefined;
+  /** Modell, das die Antwort erzeugt hat (EU AI Act Art. 50). */
+  readonly modelUsed?: string | undefined;
+  /**
+   * Antwort des lokalen Modells ohne Netz (Issue #346): keine geprüften Zitate, stattdessen
+   * die verwendeten Auszüge als Sprungziele in die Quellen.
+   */
+  readonly offline?:
+    | {
+        readonly note: string;
+        readonly passages: readonly {
+          readonly location: CitationLocation;
+          readonly label: string;
+        }[];
+      }
+    | undefined;
+}
+
+export interface ChatPanelProps {
+  readonly notebookTitle?: string | undefined;
+  readonly notebookSummary?: string | undefined;
+  /** Sprache der Zusammenfassung (BCP 47), für lang bei abweichender Oberfläche (#323). */
+  readonly notebookSummaryLang?: string | undefined;
+  readonly promptChips?: readonly string[] | undefined;
+  readonly messages: readonly ChatMessage[];
+  readonly activeModel?: string | undefined;
+  readonly onSendMessage?: ((message: string) => void | Promise<void>) | undefined;
+  readonly onCitationClick?: ((citation: CitationLocation) => void) | undefined;
+  readonly onReadAloud?: ((text: string) => void) | undefined;
+  readonly onStop?: (() => void) | undefined;
+  readonly onRetry?: (() => void) | undefined;
+  /** Verlauf als Markdown mit Zitaten sichern (Issue #243). */
+  readonly onExport?: (() => void) | undefined;
+  readonly isGenerating?: boolean | undefined;
+  /** Fokusziel für die Bereichsnavigation (data-panel, tabIndex). */
+  readonly panelAttributes?: PanelFocusAttributes | undefined;
+  /** Modus-Anzeige und Offline-Steuerung unter dem Eingabefeld (Issue #346). */
+  readonly modeSlot?: ReactNode | undefined;
+}
+
+export function ChatPanel({
+  notebookTitle = "RelationNotes Studio",
+  notebookSummary,
+  notebookSummaryLang,
+  promptChips: promptChipsProp,
+  messages,
+  activeModel = "gemini-2.5-flash",
+  onSendMessage,
+  onCitationClick,
+  onReadAloud,
+  onStop,
+  onRetry,
+  onExport,
+  isGenerating = false,
+  panelAttributes,
+  modeSlot
+}: ChatPanelProps) {
+  const { t, tf, language } = useTheme();
+  // Vorschlagsfragen sind Bedientext und folgen der Sprache; eigene Fragen bleiben unverändert
+  const promptChips = promptChipsProp ?? [t("chatChip1"), t("chatChip2"), t("chatChip3")];
+  const [inputText, setInputText] = useState("");
+  const [isReadingAloud, setIsReadingAloud] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Mitscrollen erst bei neuen Inhalten, nicht beim Öffnen: so bleibt die Zusammenfassung
+  // oben sichtbar (vor allem auf dem Telefon)
+  // (Vergleich mit dem zuletzt gesehenen Stand, robust gegen doppelte Effekte im StrictMode)
+  const contentKey = `${messages.length}:${messages[messages.length - 1]?.content ?? ""}`;
+  const seenKey = useRef(contentKey);
+  useEffect(() => {
+    if (seenKey.current === contentKey) return;
+    seenKey.current = contentKey;
+    messagesEndRef.current?.scrollIntoView?.({
+      behavior: shouldReduceMotion(document.documentElement, window.matchMedia?.bind(window))
+        ? "auto"
+        : "smooth",
+      block: "nearest"
+    });
+  }, [contentKey]);
+
+  // Fokus zurueck ins Eingabefeld, sobald die Generierung endet (Tastaturbedienung)
+  const wasGenerating = useRef(false);
+  useEffect(() => {
+    if (wasGenerating.current && !isGenerating) inputRef.current?.focus();
+    wasGenerating.current = isGenerating;
+  }, [isGenerating]);
+
+  const lastMessage = messages[messages.length - 1];
+  let statusText = "";
+  if (isGenerating) statusText = t("chatStatusGenerating");
+  else if (lastMessage?.error) statusText = tf("chatStatusError", { error: lastMessage.error });
+  else if (lastMessage?.aborted) statusText = t("chatStatusAborted");
+  else if (lastMessage?.role === "assistant" && messages.length > 1)
+    statusText = t("chatStatusDone");
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!inputText.trim() || isGenerating) return;
+    onSendMessage?.(inputText.trim());
+    setInputText("");
+  };
+
+  const handleChipClick = (prompt: string) => {
+    if (isGenerating) return;
+    onSendMessage?.(prompt);
+  };
+
+  // Web Speech API Read Aloud
+  const handleReadAloud = (text: string) => {
+    if (onReadAloud) {
+      onReadAloud(text);
+      return;
+    }
+
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      if (isReadingAloud) {
+        window.speechSynthesis.cancel();
+        setIsReadingAloud(false);
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      const cleanText = text.replace(/\[\d+\]/g, "");
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = language === "en" ? "en-US" : "de-DE";
+      utterance.onend = () => setIsReadingAloud(false);
+      utterance.onerror = () => setIsReadingAloud(false);
+      setIsReadingAloud(true);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  // Helper to render text with clickable citation pills like [1], [2]
+  const renderMessageContent = (
+    messageId: string,
+    content: string,
+    citations?: readonly CitationLocation[]
+  ) => {
+    const citationRegex = /\[(\d+)\]/g;
+    const parts: (string | { num: number; index: number })[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null = null;
+
+    while (true) {
+      match = citationRegex.exec(content);
+      if (!match) break;
+
+      const numStr = match[1];
+      if (numStr) {
+        const num = Number.parseInt(numStr, 10);
+        if (match.index > lastIndex) {
+          parts.push(content.slice(lastIndex, match.index));
+        }
+        parts.push({ num, index: match.index });
+        lastIndex = match.index + match[0].length;
+      }
+    }
+
+    if (lastIndex < content.length) {
+      parts.push(content.slice(lastIndex));
+    }
+
+    return (
+      <>
+        {parts.map((part) => {
+          if (typeof part === "string") {
+            return <span key={`${messageId}-txt-${part.slice(0, 10)}`}>{part}</span>;
+          }
+
+          // Find citation metadata
+          const citation = citations?.[part.num - 1] ?? {
+            sourceId: `src_${part.num}`,
+            quote: tf("chatCitationQuote", { n: part.num })
+          };
+
+          return (
+            <button
+              key={`${messageId}-pill-${part.num}`}
+              type="button"
+              className="citation-pill rn-cite"
+              data-testid={`citation-pill-${part.num}`}
+              aria-label={tf("chatCitationAria", { n: part.num })}
+              onClick={() => onCitationClick?.(citation)}
+            >
+              {part.num}
+            </button>
+          );
+        })}
+      </>
+    );
+  };
+
+  const canSend = inputText.trim().length > 0 && !isGenerating;
+  // Leerzustand nur ohne jede Nachricht: die Begrüßung ersetzt ihn (Issue #335)
+  const isEmpty = messages.length === 0;
+
+  return (
+    <section
+      aria-label={t("chatPanelLabel")}
+      className="chat-panel"
+      data-testid="chat-panel"
+      {...panelAttributes}
+    >
+      {/* Statusmeldungen fuer Screenreader (nicht pro Token, sondern pro Zustand) */}
+      <output
+        aria-live="polite"
+        aria-atomic="true"
+        data-testid="chat-status-live"
+        className="rn-visually-hidden"
+      >
+        {statusText}
+      </output>
+
+      {/* Verlauf */}
+      <div role="log" aria-label={t("chatLogLabel")} aria-busy={isGenerating} className="chat-log">
+        <div className="chat-column">
+          {/* Zusammenfassung des Notebooks */}
+          {notebookSummary && (
+            <article
+              aria-label={t("chatSummaryAria")}
+              data-testid="executive-summary-card"
+              className="rn-summary"
+            >
+              <p className="rn-eyebrow">{t("chatSummaryLabel")}</p>
+              <h2 className="rn-summary-title">{notebookTitle}</h2>
+              <p className="rn-summary-text" lang={notebookSummaryLang}>
+                {notebookSummary}
+              </p>
+            </article>
+          )}
+
+          {/* Nachrichten */}
+          {messages.map((msg) => {
+            const isUser = msg.role === "user";
+
+            return (
+              <article
+                key={msg.id}
+                data-testid={`chat-message-${msg.id}`}
+                className={`rn-msg ${isUser ? "rn-msg--user" : "rn-msg--assistant"}`}
+              >
+                <div className="rn-msg-meta">
+                  {isUser ? (
+                    <span className="rn-msg-author">{t("chatUser")}</span>
+                  ) : (
+                    <>
+                      <span className="rn-msg-author">
+                        <span className="rn-avatar" aria-hidden="true" />
+                        {t("chatAssistant")}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleReadAloud(msg.content)}
+                        data-testid={`btn-read-aloud-${msg.id}`}
+                        aria-label={t("chatReadAloudAria")}
+                        className="rn-btn rn-btn--ghost rn-btn--compact"
+                      >
+                        <Icon name="speaker" size={18} />
+                        {t("chatReadAloud")}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <div data-testid={`message-content-${msg.id}`} className="rn-msg-body">
+                  {msg.isStreaming && msg.content.length === 0
+                    ? t("chatCreating")
+                    : msg.offline
+                      ? msg.content
+                      : renderMessageContent(msg.id, msg.content, msg.citations)}
+                  {msg.isStreaming && (
+                    <span
+                      aria-live="polite"
+                      aria-atomic="false"
+                      data-testid="streaming-indicator"
+                      className="rn-caret"
+                    />
+                  )}
+                </div>
+
+                {msg.error && (
+                  <div role="alert" data-testid={`chat-error-${msg.id}`} className="rn-msg-error">
+                    <span className="rn-msg-error-text">
+                      {msg.error}
+                      {msg.errorDetail && (
+                        <small
+                          data-testid={`chat-error-detail-${msg.id}`}
+                          className="rn-msg-error-detail"
+                        >
+                          {msg.errorDetail}
+                        </small>
+                      )}
+                    </span>
+                    {onRetry && (
+                      <button
+                        type="button"
+                        onClick={onRetry}
+                        disabled={isGenerating}
+                        data-testid="btn-retry-chat"
+                        className="rn-btn rn-btn--danger rn-btn--compact"
+                      >
+                        {t("chatRetry")}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {msg.offline && !msg.isStreaming && (
+                  <div data-testid={`chat-offline-note-${msg.id}`} className="rn-offline-passages">
+                    <p className="rn-msg-note">{msg.offline.note}</p>
+                    {msg.offline.passages.length > 0 && (
+                      <ol>
+                        {msg.offline.passages.map(({ location, label }, i) => (
+                          <li key={`${msg.id}-p-${location.sourceId}-${location.startOffset}`}>
+                            <button
+                              type="button"
+                              className="citation-pill rn-cite"
+                              data-testid={`offline-passage-${i + 1}`}
+                              aria-label={label}
+                              title={location.quote}
+                              onClick={() => onCitationClick?.(location)}
+                            >
+                              {i + 1}
+                            </button>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </div>
+                )}
+
+                {msg.aborted && (
+                  <p data-testid={`chat-aborted-${msg.id}`} className="rn-msg-note">
+                    {t("chatStatusAborted")}
+                  </p>
+                )}
+
+                {!isUser && msg.modelUsed && !msg.isStreaming && (
+                  <p data-testid={`ai-label-${msg.id}`} className="rn-msg-note">
+                    {tf("chatAiLabel", { model: msg.modelUsed })}
+                  </p>
+                )}
+              </article>
+            );
+          })}
+
+          {onExport && messages.some((m) => m.role === "user") && (
+            <div className="rn-chat-tools">
+              <button
+                type="button"
+                onClick={onExport}
+                disabled={isGenerating}
+                data-testid="btn-export-chat-md"
+                aria-label={t("chatExportAria")}
+                className="rn-btn rn-btn--ghost rn-btn--compact"
+              >
+                <Icon name="download" size={18} />
+                {t("chatExport")}
+              </button>
+            </div>
+          )}
+
+          {isEmpty && !isGenerating && (
+            <EmptyState
+              art="chat"
+              title={t("chatEmptyTitle")}
+              text={t("chatEmptyText")}
+              compact
+              testId="chat-empty-state"
+            />
+          )}
+
+          {/* Vorschlagsfragen unter dem Verlauf, direkt über der Eingabe: so steht die erste
+              Antwort auf dem Telefon sichtbar unter der Zusammenfassung (Issue #315) */}
+          {promptChips.length > 0 && (
+            <div
+              aria-label={t("chatChipsLabel")}
+              data-testid="prompt-chips-container"
+              className="rn-chips"
+            >
+              {promptChips.map((chip) => (
+                <button
+                  key={`chip-${chip}`}
+                  type="button"
+                  onClick={() => handleChipClick(chip)}
+                  data-testid={`prompt-chip-${chip}`}
+                  className="rn-chip"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Eingabe: liegt unter dem Verlauf, verdeckt nichts */}
+      <footer className="chat-dock">
+        <form onSubmit={handleSubmit} data-testid="floating-pill-input-bar" className="rn-composer">
+          <span data-testid="active-model-badge" className="rn-model-badge">
+            <span className="rn-model-dot" aria-hidden="true" />
+            {activeModel}
+          </span>
+
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && isGenerating) onStop?.();
+            }}
+            placeholder={t("chatInputPlaceholder")}
+            aria-label={t("chatInputAria")}
+            readOnly={isGenerating}
+            aria-busy={isGenerating}
+            data-testid="chat-input-field"
+            className="rn-composer-input"
+          />
+
+          {isGenerating && onStop ? (
+            <button
+              type="button"
+              onClick={onStop}
+              data-testid="btn-stop-chat"
+              aria-label={t("chatStopAria")}
+              className="rn-send rn-send--stop"
+            >
+              <Icon name="stop" />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={!canSend}
+              data-testid="btn-send-chat"
+              aria-label={t("chatSendAria")}
+              className="rn-send"
+            >
+              <Icon name="send" />
+            </button>
+          )}
+
+          {/* Im Eingabefeld: schmal neben Modell und Senden, breit als eigene Zeile (#346) */}
+          {modeSlot ? <div className="rn-composer-mode">{modeSlot}</div> : null}
+        </form>
+      </footer>
+    </section>
+  );
+}

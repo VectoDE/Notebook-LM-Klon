@@ -108,7 +108,7 @@ noch nicht dokumentiert ist (Anfrage-Entwurf: Issue #249).
 | Schutz für Nutzer-Endpunkte | `apps/worker/src/security/endpoint-guard.ts` |
 | Routen `GET/PUT/DELETE /api/v1/providers/custom`, `POST /api/v1/providers/custom/test` | `apps/worker/src/routes/custom-endpoint-routes.ts` |
 | Tabelle `provider_endpoints` (Adresse, Modelle; der Schlüssel liegt verschlüsselt in `provider_keys`) | `apps/worker/migrations/0006_custom_endpoints.sql` |
-| Einstellung im UI (Deutsch und Englisch) | `apps/web/src/CustomEndpointSettings.tsx` |
+| Einstellung im UI (Deutsch und Englisch) | `apps/web/src/components/panels/CustomEndpointSettings.tsx` |
 
 **Erlaubte Hosts:** Jeder öffentliche HTTPS-Endpunkt ist erlaubt (Entscheidung F247). Interne,
 private und lokale Ziele bleiben gesperrt (Liste unten). Optional kann der Betreiber mit

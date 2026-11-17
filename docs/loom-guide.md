@@ -34,9 +34,9 @@ Ziel: 9:30 Minuten, harte Obergrenze 10:00.
 | Aussage im Video | Beleg im Repository |
 |---|---|
 | Zitate verweisen auf die Textstelle | Chat-Antworten mit Zitaten, Suche liefert `page`, `startOffset`, `endOffset` (`openapi.json`, `SearchCitation`) |
-| Sechs Studio-Werkzeuge | `apps/web/src/StudioPanel.tsx` (`StudioTool`) |
+| Sechs Studio-Werkzeuge | `apps/web/src/components/panels/StudioPanel.tsx` (`StudioTool`) |
 | Audio-Rückfrage | `POST /api/v1/notebooks/:id/audio-interject` |
-| Video-Overview (WebM-Export nur als Modul, nicht in der Oberfläche) | `apps/web/src/video-exporter.ts` |
+| Video-Overview (WebM-Export nur als Modul, nicht in der Oberfläche) | `apps/web/src/components/media/video-exporter.ts` |
 | Vier Designs, drei Farbmodi | `apps/web/src/theme/design-tokens.ts` |
 | 100 % Testabdeckung als Schwelle | `vitest.config.ts`, Pflicht-Check `Lint, Typecheck, Coverage & Build` |
 | OpenAPI-Abdeckung aller Routen | `packages/shared/tests/integration/openapi.test.ts` |

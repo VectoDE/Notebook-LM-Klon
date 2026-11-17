@@ -1,0 +1,462 @@
+/**
+ * Interactive Multiple-Choice Quiz Viewer Component.
+ *
+ * Implements Sub-Issue #123 (Decision #62, #70):
+ * - Instant Feedback on Answer Selection (Correct / Incorrect highlights)
+ * - Grounded Explanations with Source Citations ([n]) and Click-Jump
+ * - Score Calculation & Completion View
+ * - WAI-ARIA Radio Group & Live Announcements
+ */
+
+import { evaluateQuiz, type QuizEvaluationResult, type QuizQuestion } from "@notebook-lm/shared";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { EmptyState } from "@/components/ui/EmptyState.js";
+import { ViewToggle } from "@/components/ui/ViewToggle.js";
+import { useTheme } from "@/hooks/useTheme.js";
+import {
+  readTableView,
+  storeView,
+  type TableView,
+  VIEW_STORAGE_KEYS
+} from "@/preferences/view-preferences.js";
+import { browserStorage } from "@/theme/theme-preferences.js";
+
+export interface QuizViewerProps {
+  readonly questions: readonly QuizQuestion[];
+  readonly title?: string | undefined;
+  readonly onSourceJump?:
+    | ((sourceRef: {
+        sourceId?: string | undefined;
+        chunkId?: string | undefined;
+        sourceCitation?: string | undefined;
+      }) => void)
+    | undefined;
+  readonly onComplete?: ((result: QuizEvaluationResult) => void) | undefined;
+  /**
+   * Sprache der Inhalte (BCP 47). Weicht sie von der Oberfläche ab, bekommen die Inhalte
+   * ein lang-Attribut (WCAG 3.1.2, Issue #323); Bedientexte folgen weiter der Oberfläche.
+   */
+  readonly contentLang?: string | undefined;
+}
+
+function FlagIcon({ correct }: { readonly correct: boolean }) {
+  return (
+    <svg
+      className="rn-quiz-flag-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d={correct ? "M5 12.5l4.5 4.5L19 7.5" : "M6 6l12 12M18 6L6 18"} />
+    </svg>
+  );
+}
+
+export function QuizViewer({
+  questions,
+  title: titleProp,
+  onSourceJump,
+  onComplete,
+  contentLang
+}: QuizViewerProps) {
+  const { t, tf } = useTheme();
+  const title = titleProp ?? t("quizDefaultTitle");
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+  const [showSummary, setShowSummary] = useState(false);
+  const [liveMessage, setLiveMessage] = useState<string>("");
+  const fieldsetRef = useRef<HTMLFieldSetElement>(null);
+  // Zählt Fragewechsel per Knopf; der Fokus springt erst danach auf die neue Frage (nicht beim Start)
+  const [focusRequest, setFocusRequest] = useState(0);
+
+  const totalQuestions = questions.length;
+  const currentQuestion = questions[activeQuestionIndex];
+
+  const evaluation = useMemo(() => {
+    return evaluateQuiz(questions, selectedAnswers);
+  }, [questions, selectedAnswers]);
+
+  const handleSelectOption = useCallback(
+    (questionId: string, optionIndex: number) => {
+      setSelectedAnswers((prev) => {
+        const next = { ...prev, [questionId]: optionIndex };
+        const q = questions.find((item) => item.id === questionId);
+        if (q) {
+          const isCorrect = optionIndex === q.correctAnswerIndex;
+          setLiveMessage(
+            isCorrect
+              ? t("quizLiveRight")
+              : tf("quizLiveWrong", { answer: q.options[q.correctAnswerIndex] ?? "" })
+          );
+        }
+        return next;
+      });
+    },
+    [questions, t, tf]
+  );
+
+  const goToQuestion = useCallback(
+    (index: number) => {
+      setActiveQuestionIndex(index);
+      setLiveMessage(tf("quizProgress", { n: index + 1, total: questions.length }));
+      setFocusRequest((n) => n + 1);
+    },
+    [questions.length, tf]
+  );
+
+  useEffect(() => {
+    if (focusRequest > 0) fieldsetRef.current?.focus();
+  }, [focusRequest]);
+
+  const handleFinishQuiz = useCallback(() => {
+    setShowSummary(true);
+    setLiveMessage(tf("quizLiveDone", { pct: evaluation.scorePercentage }));
+    onComplete?.(evaluation);
+  }, [evaluation, onComplete, tf]);
+
+  const handleReset = useCallback(() => {
+    setSelectedAnswers({});
+    setActiveQuestionIndex(0);
+    setShowSummary(false);
+    setLiveMessage(t("quizLiveReset"));
+  }, [t]);
+
+  const containerId = useId();
+
+  if (totalQuestions === 0) {
+    return (
+      <section aria-label={title} className="rn-tool-view rn-tool-view--empty">
+        <EmptyState
+          art="studio"
+          title={t("quizEmptyTitle")}
+          text={t("quizEmpty")}
+          testId="quiz-empty-state"
+        />
+      </section>
+    );
+  }
+
+  const answeredCount = Object.keys(selectedAnswers).length;
+
+  return (
+    <section aria-label={tf("quizAria", { title })} className="rn-tool-view rn-quiz">
+      <header className="rn-tool-view-head">
+        <h2 className="rn-tool-view-title">{title}</h2>
+        <span data-testid="quiz-progress-indicator" className="rn-tool-view-meta">
+          {tf("quizProgress", { n: activeQuestionIndex + 1, total: totalQuestions })}
+        </span>
+      </header>
+      <progress
+        className="rn-progress"
+        aria-label={t("quizAnswered")}
+        max={totalQuestions}
+        value={answeredCount}
+      />
+
+      {/* Screenreader live announcement */}
+      <output
+        aria-live="polite"
+        data-testid="a11y-quiz-announcement"
+        className="rn-visually-hidden"
+      >
+        {liveMessage}
+      </output>
+
+      {showSummary ? (
+        <>
+          <div data-testid="quiz-summary-card" className="rn-quiz-summary">
+            <p className="rn-eyebrow">{t("quizSummaryEyebrow")}</p>
+            <p className="rn-quiz-score">
+              <span className="rn-quiz-score-value">{evaluation.scorePercentage}%</span>
+              <span className="rn-quiz-score-text">
+                {tf("quizScore", {
+                  correct: evaluation.correctCount,
+                  total: evaluation.totalQuestions,
+                  pct: evaluation.scorePercentage
+                })}
+              </span>
+            </p>
+            <div className="rn-tool-actions-row rn-tool-actions-row--center">
+              <button type="button" onClick={handleReset} className="rn-btn rn-btn--primary">
+                {t("quizRepeat")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSummary(false)}
+                className="rn-btn rn-btn--secondary"
+              >
+                {t("quizViewAnswers")}
+              </button>
+            </div>
+          </div>
+          <QuizResults questions={questions} evaluation={evaluation} contentLang={contentLang} />
+        </>
+      ) : (
+        currentQuestion && (
+          <div data-testid={`quiz-question-${currentQuestion.id}`} className="rn-quiz-card">
+            <fieldset ref={fieldsetRef} tabIndex={-1} className="rn-quiz-fieldset">
+              <legend className="rn-quiz-question" lang={contentLang}>
+                {currentQuestion.question}
+              </legend>
+
+              <div
+                role="radiogroup"
+                aria-label={tf("quizOptionsAria", { n: activeQuestionIndex + 1 })}
+                className="rn-quiz-options"
+              >
+                {currentQuestion.options.map((optionText, optIdx) => {
+                  const hasAnswered = selectedAnswers[currentQuestion.id] !== undefined;
+                  const isSelected = selectedAnswers[currentQuestion.id] === optIdx;
+                  const isCorrectAnswer = optIdx === currentQuestion.correctAnswerIndex;
+                  let state = "open";
+                  if (hasAnswered) {
+                    if (isCorrectAnswer) state = "correct";
+                    else if (isSelected) state = "wrong";
+                    else state = "idle";
+                  }
+
+                  const optionId = `${containerId}-q${currentQuestion.id}-opt${optIdx}`;
+
+                  return (
+                    <label
+                      key={`opt-${currentQuestion.id}-${optIdx}-${optionText.slice(0, 8)}`}
+                      htmlFor={optionId}
+                      className="rn-quiz-option"
+                      data-state={state}
+                    >
+                      <input
+                        id={optionId}
+                        type="radio"
+                        name={`quiz-radio-${currentQuestion.id}`}
+                        value={optIdx}
+                        checked={isSelected}
+                        onChange={() => handleSelectOption(currentQuestion.id, optIdx)}
+                        className="rn-quiz-radio"
+                      />
+                      <span className="rn-quiz-option-letter" aria-hidden="true">
+                        {String.fromCharCode(65 + optIdx)}
+                      </span>
+                      <span className="rn-quiz-option-text" lang={contentLang}>
+                        {optionText}
+                      </span>
+                      {state === "correct" && (
+                        <span className="rn-quiz-flag">
+                          <FlagIcon correct />
+                          {t("quizRight")}
+                        </span>
+                      )}
+                      {state === "wrong" && (
+                        <span className="rn-quiz-flag">
+                          <FlagIcon correct={false} />
+                          {t("quizWrong")}
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            {/* Explanation with Grounded Source Citation & Jump */}
+            {selectedAnswers[currentQuestion.id] !== undefined && (
+              <div data-testid="quiz-explanation-box" className="rn-quiz-explanation">
+                <p className="rn-quiz-explanation-title">{t("quizExplanation")}</p>
+                <p className="rn-quiz-explanation-text" lang={contentLang}>
+                  {currentQuestion.explanation}
+                </p>
+
+                {(currentQuestion.sourceCitation || currentQuestion.sourceId) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSourceJump?.({
+                        sourceId: currentQuestion.sourceId,
+                        chunkId: currentQuestion.chunkId,
+                        sourceCitation: currentQuestion.sourceCitation
+                      });
+                    }}
+                    className="rn-link-btn"
+                  >
+                    {tf("quizVerify", {
+                      citation: currentQuestion.sourceCitation ?? t("quizOriginalQuote")
+                    })}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Navigation buttons */}
+            <div className="rn-tool-actions-row rn-tool-actions-row--split">
+              <button
+                type="button"
+                disabled={activeQuestionIndex === 0}
+                onClick={() => goToQuestion(activeQuestionIndex - 1)}
+                className="rn-btn rn-btn--ghost"
+              >
+                {t("quizBack")}
+              </button>
+
+              {activeQuestionIndex < totalQuestions - 1 ? (
+                <button
+                  type="button"
+                  onClick={() => goToQuestion(activeQuestionIndex + 1)}
+                  className="rn-btn rn-btn--secondary"
+                >
+                  {t("quizNext")}
+                </button>
+              ) : (
+                <button type="button" onClick={handleFinishQuiz} className="rn-btn rn-btn--primary">
+                  {t("quizFinish")}
+                </button>
+              )}
+            </div>
+          </div>
+        )
+      )}
+    </section>
+  );
+}
+
+/** Ohne gespeicherte Wahl: auf schmalen Bildschirmen Karten, sonst Tabelle. */
+function defaultTableView(): TableView {
+  if (typeof window === "undefined") return "table";
+  return window.matchMedia?.("(max-width: 599.98px)").matches ? "cards" : "table";
+}
+
+type ResultState = "correct" | "wrong" | "open";
+
+interface QuizResultsProps {
+  readonly questions: readonly QuizQuestion[];
+  readonly evaluation: QuizEvaluationResult;
+  readonly contentLang?: string | undefined;
+}
+
+/**
+ * Antworten im Überblick (Issue #329): als Tabelle oder als Karten umschaltbar, die Wahl
+ * bleibt gespeichert. Das Ergebnis steht als Text neben dem Symbol, nicht nur als Farbe.
+ */
+export function QuizResults({ questions, evaluation, contentLang }: QuizResultsProps) {
+  const { t, tf } = useTheme();
+  const headingId = useId();
+  const [view, setView] = useState<TableView>(() =>
+    readTableView(browserStorage(), VIEW_STORAGE_KEYS.quizResults, defaultTableView())
+  );
+
+  const changeView = (next: TableView) => {
+    setView(next);
+    storeView(browserStorage(), VIEW_STORAGE_KEYS.quizResults, next);
+  };
+
+  const rows = questions.map((question, index) => {
+    const detail = evaluation.details[index];
+    const selected = detail?.selectedIndex ?? null;
+    let state: ResultState = "open";
+    if (selected !== null) state = detail?.isCorrect ? "correct" : "wrong";
+    return {
+      id: question.id,
+      number: index + 1,
+      question: question.question,
+      yours: selected === null ? null : (question.options[selected] ?? null),
+      correct: question.options[question.correctAnswerIndex] ?? "",
+      state
+    };
+  });
+
+  const labels: Readonly<Record<ResultState, string>> = {
+    correct: t("quizRight"),
+    wrong: t("quizWrong"),
+    open: t("quizNoAnswer")
+  };
+
+  const result = (state: ResultState) => (
+    <span className="rn-result" data-state={state}>
+      {state !== "open" && <FlagIcon correct={state === "correct"} />}
+      {labels[state]}
+    </span>
+  );
+
+  return (
+    <section
+      aria-labelledby={headingId}
+      className="rn-quiz-results"
+      data-testid="quiz-results"
+      data-view={view}
+    >
+      <div className="rn-results-head">
+        <h3 id={headingId} className="rn-results-title">
+          {t("quizResultsTitle")}
+        </h3>
+        <ViewToggle
+          label={t("quizResultsView")}
+          value={view}
+          onChange={changeView}
+          testId="quiz-results-view-toggle"
+          options={[
+            { value: "table", label: t("viewTable"), icon: "table" },
+            { value: "cards", label: t("viewCards"), icon: "grid" }
+          ]}
+        />
+      </div>
+
+      {view === "table" ? (
+        <table className="rn-table" aria-labelledby={headingId} data-testid="quiz-results-table">
+          <thead>
+            <tr>
+              <th scope="col">{t("quizColQuestion")}</th>
+              <th scope="col">{t("quizColYours")}</th>
+              <th scope="col">{t("quizColCorrect")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id} data-state={row.state}>
+                <th scope="row" lang={contentLang}>
+                  {row.question}
+                </th>
+                <td>
+                  {/* Ergebnis als Marke unter der eigenen Antwort: drei Spalten passen auch schmal */}
+                  {row.yours !== null && <span lang={contentLang}>{row.yours}</span>}
+                  {result(row.state)}
+                </td>
+                <td lang={contentLang}>{row.correct}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <ol className="rn-result-cards" data-testid="quiz-results-cards">
+          {rows.map((row) => (
+            <li key={row.id} className="rn-result-card" data-state={row.state}>
+              <div className="rn-result-card-head">
+                <span className="rn-result-number">
+                  {tf("quizProgress", { n: row.number, total: rows.length })}
+                </span>
+                {result(row.state)}
+              </div>
+              <p className="rn-result-question" lang={contentLang}>
+                {row.question}
+              </p>
+              <dl className="rn-result-answers">
+                <div>
+                  <dt>{t("quizColYours")}</dt>
+                  <dd lang={row.yours === null ? undefined : contentLang}>
+                    {row.yours ?? labels.open}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t("quizColCorrect")}</dt>
+                  <dd lang={contentLang}>{row.correct}</dd>
+                </div>
+              </dl>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}

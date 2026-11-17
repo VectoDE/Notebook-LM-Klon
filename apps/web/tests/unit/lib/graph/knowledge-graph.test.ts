@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { preloadStudioViewers } from "@/lazy-viewers.js";
+import { DEFAULT_MINDMAP, DEFAULT_SOURCES } from "@/components/layout/WorkspaceLayout.js";
+import { preloadStudioViewers } from "@/components/lazy/lazy-viewers.js";
 import {
   ARC_LEFT,
   ARC_RIGHT,
@@ -26,7 +27,6 @@ import {
   tokenize,
   wrapLabel
 } from "@/lib/graph/knowledge-graph.js";
-import { DEFAULT_MINDMAP, DEFAULT_SOURCES } from "@/WorkspaceLayout.js";
 
 // Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
 beforeAll(() => preloadStudioViewers());
