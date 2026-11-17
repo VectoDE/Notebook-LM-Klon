@@ -45,6 +45,7 @@ import {
   useMediaQuery,
   useNotebookSync,
   useOfflineChat,
+  usePanelLayout,
   useTheme
 } from "@/hooks/index.js";
 
@@ -123,9 +124,18 @@ export function WorkspaceLayout({
   const isSinglePanel = useMediaQuery(SINGLE_PANEL_QUERY);
 
   // Panels & Navigation state
-  const [activeMobileTab, setActiveMobileTab] = useState<PanelTab>(initialPanelTab);
-  // Wissensgraph statt Chat in der mittleren Spalte (Issue #327); der Chat bleibt erhalten
-  const [isGraphOpen, setIsGraphOpen] = useState(initialPanelTab === "graph");
+  const {
+    activeMobileTab,
+    setActiveMobileTab,
+    isGraphOpen,
+    announcement,
+    isCollapsed,
+    setPanelCollapsed,
+    togglePanel,
+    goToPanel,
+    panelAttributes
+  } = usePanelLayout(initialPanelTab, isSinglePanel);
+
   const [sources, setSources] = useState<WorkspaceSource[]>(DEFAULT_SOURCES);
   const [activeCitation, setActiveCitation] = useState<CitationLocation | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -133,14 +143,6 @@ export function WorkspaceLayout({
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   // Modellwahl übersteht das Neuladen (nur bekannte Werte, Issue #319)
   const [activeModel, setActiveModel] = useState<string>(() => readStoredModel(browserStorage()));
-  // Eingeklappte Spalten und Titel bleiben auf dem Gerät gespeichert (Issue #325); ohne
-  // gespeicherte Wahl startet das Studio auf schmalem Desktop eingeklappt (Issue #335)
-  const [collapsed, setCollapsed] = useState<CollapsedPanels>(() =>
-    readCollapsedPanels(
-      browserStorage(),
-      typeof window === "undefined" ? undefined : window.innerWidth
-    )
-  );
   const [notebookTitle, setNotebookTitle] = useState(() =>
     readNotebookTitle(browserStorage(), notebookId, DEFAULT_NOTEBOOK_TITLE)
   );
@@ -151,8 +153,6 @@ export function WorkspaceLayout({
     setNotebookTitle
   );
   const [studioToolRequest, setStudioToolRequest] = useState<{ readonly tool: StudioTool }>();
-  // Kurze Meldung für Screenreader (Spalte ein- oder ausgeklappt, Titel gespeichert)
-  const [announcement, setAnnouncement] = useState("");
   // Hinweis-Leiste unten (Issue #329): Rückmeldung nach Export, neuer Quelle, Titel
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const toastCounter = useRef(0);
@@ -178,9 +178,6 @@ export function WorkspaceLayout({
   const settingsFromAccountRef = useRef(false);
   const sheetRef = useRef<HTMLDialogElement>(null);
 
-  // Einklappen gilt nur, wenn alle Spalten nebeneinander stehen (ab 900 px)
-  const isCollapsed = (panel: CollapsiblePanel) => !isSinglePanel && collapsed[panel];
-
   const appearanceProps = {
     role: userRole,
     onRoleChange: setUserRole,
@@ -190,86 +187,12 @@ export function WorkspaceLayout({
     onColorModeChange: setColorMode
   };
 
-  const setPanelCollapsed = (panel: CollapsiblePanel, value: boolean) => {
-    setCollapsed((prev) => {
-      const next = { ...prev, [panel]: value };
-      storeCollapsedPanels(browserStorage(), next);
-      return next;
-    });
-    const key =
-      panel === "sources"
-        ? value
-          ? "panelSourcesCollapsed"
-          : "panelSourcesExpanded"
-        : value
-          ? "panelStudioCollapsed"
-          : "panelStudioExpanded";
-    setAnnouncement(t(key));
-  };
-
-  /**
-   * Spalte ein- oder ausklappen. Ging der Fokus dabei verloren (er lag in der eingeklappten
-   * Spalte oder auf dem verschwundenen Knopf der Leiste), landet er auf dem Umschalter.
-   */
-  const togglePanel = (panel: CollapsiblePanel) => {
-    const willCollapse = !collapsed[panel];
-    setPanelCollapsed(panel, willCollapse);
-    requestAnimationFrame(() => {
-      const active = document.activeElement;
-      const lost = !active || active === document.body || active.closest("[hidden]") !== null;
-      if (!lost) return;
-      document
-        .querySelector<HTMLElement>(
-          `[data-testid="btn-${willCollapse ? "expand" : "collapse"}-${panel}"]`
-        )
-        ?.focus();
-    });
-  };
-
-  // Kürzel Alt+Umschalt+1 / +3 (nur ab 900 px und ohne offenen modalen Dialog)
-  const togglePanelRef = useRef(togglePanel);
-  togglePanelRef.current = togglePanel;
-  useEffect(() => {
-    if (isSinglePanel) return;
-    const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      const panel = matchPanelShortcut(event);
-      if (!panel || event.defaultPrevented || isModalOpen()) return;
-      event.preventDefault();
-      togglePanelRef.current(panel);
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [isSinglePanel]);
-
-  /**
-   * Bereich wählen; der Fokus springt in das Panel (Tastatur landet direkt im Inhalt).
-   * Unter 900 px schaltet das den sichtbaren Bereich um; ab 900 px wird eine eingeklappte
-   * Spalte dabei ausgeklappt.
-   */
-  const goToPanel = (tab: PanelTab) => {
-    setActiveMobileTab(tab);
-    if (tab === "graph") setIsGraphOpen(true);
-    if (tab === "chat") setIsGraphOpen(false);
-    if ((tab === "sources" || tab === "studio") && isCollapsed(tab)) {
-      setPanelCollapsed(tab, false);
-    }
-    requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>(`[data-panel="${tab}"]`)?.focus({ preventScroll: true });
-    });
-  };
-
   /** Werkzeug aus der eingeklappten Studio-Leiste: Spalte ausklappen, Werkzeug öffnen. */
   const openStudioTool = (tool: StudioTool) => {
     setStudioToolRequest({ tool });
     handleStudioToolSelected(tool);
     goToPanel("studio");
   };
-
-  // Fokusziel ist die benannte Region im Bereich, nicht der Layout-Wrapper (Issue #323)
-  const panelAttributes = (tab: PanelTab): PanelFocusAttributes => ({
-    "data-panel": tab,
-    tabIndex: -1
-  });
 
   /** Abmelden (Issue #348): lokale Daten löschen, dann die Sitzung am Server beenden. */
   const signOut = async () => {
