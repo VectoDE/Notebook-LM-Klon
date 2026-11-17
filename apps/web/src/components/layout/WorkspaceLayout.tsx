@@ -91,6 +91,7 @@ import type {
   WorkspaceSource
 } from "@/types/workspace-types.js";
 import { AccountStatus } from "./AccountStatus.js";
+import { MobileBottomNav } from "./MobileBottomNav.js";
 import { NotebookTitle } from "./NotebookTitle.js";
 import { PanelRail, PanelToggle, RailButton } from "./PanelRail.js";
 import { TopNav } from "./TopNav.js";
@@ -450,30 +451,11 @@ export function WorkspaceLayout({
       <LegalFooter />
 
       {/* Untere Reiterleiste (unter 600 px): im Daumenbereich, Symbol und Kurzname */}
-      <nav aria-label={t("navAreas")} data-testid="mobile-bottom-nav" className="mobile-bottom-nav">
-        {PANEL_TABS.map((tab) => {
-          const isActive = activeMobileTab === tab.id;
-          const isSources = tab.id === "sources";
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => goToPanel(tab.id)}
-              aria-current={isActive ? "true" : undefined}
-              aria-label={isSources ? undefined : t(tab.ariaKey)}
-              data-testid={`tab-btn-${tab.id}`}
-              className="rn-tab"
-            >
-              <span className="rn-tab-indicator" aria-hidden="true">
-                <Icon name={tab.icon} size={22} />
-                {isSources && <span className="rn-tab-count">{sources.length}</span>}
-              </span>
-              <span className="rn-tab-label">{t(tab.labelKey)}</span>
-              {isSources && <span className="rn-visually-hidden"> ({sources.length})</span>}
-            </button>
-          );
-        })}
-      </nav>
+      <MobileBottomNav
+        activeMobileTab={activeMobileTab}
+        sourceCount={sources.length}
+        goToPanel={goToPanel}
+      />
 
       {/* Meldungen für Screenreader: Spalte ein- oder ausgeklappt */}
       <output aria-live="polite" className="rn-visually-hidden" data-testid="layout-status">
