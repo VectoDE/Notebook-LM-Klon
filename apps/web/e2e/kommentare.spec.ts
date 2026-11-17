@@ -4,7 +4,7 @@ import { findLayoutProblems } from "./helpers.js";
 /**
  * Kommentare an Quellen mit Erwähnungen (Issue #353), nur mit Tastatur bedient.
  * Der Worker wird durch einen Speicher im Test ersetzt; die Rechte- und Validierungslogik
- * des echten Workers prüft apps/worker/src/__tests__/comments-routes.test.ts.
+ * des echten Workers prüft apps/worker/tests/unit/routes/comments-routes.test.ts.
  */
 
 interface StoredComment {

@@ -5,7 +5,7 @@ import { findLayoutProblems, openPanel } from "./helpers.js";
 /**
  * Sichtbarer C2PA-Herkunftshinweis nach dem Mindmap-Export (Issue #353).
  * Der Server wird hier nachgestellt; die echte Signatur prüft der CI-Job
- * "C2PA-Herkunftsnachweis" mit c2patool (apps/worker/src/__tests__/c2pa-integration.test.ts).
+ * "C2PA-Herkunftsnachweis" mit c2patool (apps/worker/tests/integration/c2pa-integration.test.ts).
  */
 
 const SIGNED_MARKER = "<!-- c2pa: signiert im Test -->";
