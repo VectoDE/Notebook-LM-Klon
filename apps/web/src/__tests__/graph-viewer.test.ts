@@ -1,11 +1,11 @@
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
+import { ThemeProvider, type ThemeProviderProps } from "@/hooks/useTheme.js";
+import { buildKnowledgeGraph } from "@/lib/graph/knowledge-graph.js";
 import { GraphViewer } from "../GraphViewer.js";
-import { buildKnowledgeGraph } from "../knowledge-graph.js";
 import { preloadStudioViewers } from "../lazy-viewers.js";
 import { StudioPanel } from "../StudioPanel.js";
-import { ThemeProvider, type ThemeProviderProps } from "../useTheme.js";
 import { DEFAULT_MINDMAP, DEFAULT_SOURCES, WorkspaceLayout } from "../WorkspaceLayout.js";
 
 // Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.

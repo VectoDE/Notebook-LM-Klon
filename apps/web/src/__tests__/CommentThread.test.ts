@@ -1,12 +1,12 @@
 import { createElement, isValidElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
+import { ThemeProvider, type ThemeProviderProps } from "@/hooks/useTheme.js";
+import { COMMENTS_DE, COMMENTS_EN, commentTexts } from "@/i18n/catalogs/translations-comments.js";
+import { commentErrorKey } from "@/services/api/comments-client.js";
 import { CommentThread, renderCommentBody } from "../CommentThread.js";
-import { commentErrorKey } from "../comments-client.js";
 import { LazyCommentThread } from "../lazy-viewers.js";
 import { SourcesPanel } from "../SourcesPanel.js";
-import { COMMENTS_DE, COMMENTS_EN, commentTexts } from "../translations-comments.js";
-import { ThemeProvider, type ThemeProviderProps } from "../useTheme.js";
 
 function inTheme(language: "de" | "en", child: ReturnType<typeof createElement>): string {
   return renderToStaticMarkup(

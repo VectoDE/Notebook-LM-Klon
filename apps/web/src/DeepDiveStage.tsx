@@ -1,11 +1,11 @@
 import type { PodcastStateMachine } from "@notebook-lm/shared";
 import { useEffect, useRef, useState } from "react";
+import { useReturnFocus } from "@/hooks/useReturnFocus.js";
+import { useTheme } from "@/hooks/useTheme.js";
+import type { SpokenTranscriptFormat } from "@/lib/export/media-downloads.js";
 import { AuroraOrb } from "./AuroraOrb.js";
 import { Icon } from "./Icon.js";
 import { LiveLyrics, type TranscriptLine } from "./LiveLyrics.js";
-import type { SpokenTranscriptFormat } from "./media-downloads.js";
-import { useReturnFocus } from "./useReturnFocus.js";
-import { useTheme } from "./useTheme.js";
 
 export interface DeepDiveStageProps {
   readonly isOpen: boolean;
@@ -87,7 +87,7 @@ export function DeepDiveStage({
 
   // Erst beim Klick nachladen: hält das Startpaket unter dem Skript-Budget
   const downloadTranscript = (format: SpokenTranscriptFormat) => {
-    void import("./media-downloads.js").then((m) =>
+    void import("@/lib/export/media-downloads.js").then((m) =>
       m.downloadSpokenTranscript(format, notebookTitle, transcriptLines, transcriptLang)
     );
   };

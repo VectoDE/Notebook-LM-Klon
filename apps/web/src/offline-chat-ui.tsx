@@ -1,19 +1,21 @@
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
-import { trapTabKey } from "./focus-trap.js";
-import { fill } from "./i18n.js";
-import { LazyCommentThread } from "./lazy-viewers.js";
+import { useReturnFocus } from "@/hooks/useReturnFocus.js";
+import { LOCALES, useTheme } from "@/hooks/useTheme.js";
+import { offlineChatTexts } from "@/i18n/catalogs/translations-offline-chat.js";
+import { fill } from "@/i18n/i18n.js";
+import { trapTabKey } from "@/lib/a11y/focus-trap.js";
 import {
   LocalModelController,
   type LocalModelEnv,
   type LocalModelState,
   type LocalRuntimeLoader
-} from "./local-llm.js";
+} from "@/services/llm/local-llm.js";
 import {
   formatGigabytes,
   LOCAL_MODEL_DOWNLOAD_BYTES,
   LOCAL_MODEL_LABEL,
   LOCAL_MODEL_VRAM_MB
-} from "./local-llm-config.js";
+} from "@/services/llm/local-llm-config.js";
 import {
   answerOffline,
   type ChatMode,
@@ -22,11 +24,9 @@ import {
   type OfflineAnswerRequest,
   type OfflineAnswerResult,
   offlineErrorText
-} from "./offline-chat.js";
-import { browserStorage } from "./theme-preferences.js";
-import { offlineChatTexts } from "./translations-offline-chat.js";
-import { useReturnFocus } from "./useReturnFocus.js";
-import { LOCALES, useTheme } from "./useTheme.js";
+} from "@/services/llm/offline-chat.js";
+import { browserStorage } from "@/theme/theme-preferences.js";
+import { LazyCommentThread } from "./lazy-viewers.js";
 
 /**
  * Nachgeladener Teil des Offline-Chats (Issue #346). Das Start-Bundle enthält nur einen
@@ -36,7 +36,7 @@ import { LOCALES, useTheme } from "./useTheme.js";
 
 /** Lädt die WebLLM-Anbindung erst bei Bedarf. */
 export const loadWebLlmRuntime: LocalRuntimeLoader = () =>
-  import("./local-llm-webllm.js").then((module) => module.default);
+  import("@/services/llm/local-llm-webllm.js").then((module) => module.default);
 
 function browserEnv(): LocalModelEnv {
   const nav = navigator as Navigator & { gpu?: LocalModelEnv["gpu"] };

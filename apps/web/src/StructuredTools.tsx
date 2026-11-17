@@ -17,19 +17,19 @@ import {
   type TimelineEntry
 } from "@notebook-lm/shared";
 import { type ReactNode, useId, useState } from "react";
-import { triggerBrowserDownload } from "./artifact-exporters.js";
-import { Icon } from "./Icon.js";
+import { triggerBrowserDownload } from "@/lib/export/artifact-exporters.js";
 import {
   addSvgProvenanceMetadata,
   type FetchLike,
   provenanceNoteKey,
   signExport
-} from "./provenance-client.js";
+} from "@/services/api/provenance-client.js";
+import { Icon } from "./Icon.js";
 // Beleg- und Prüfstile teilt sich das Werkzeug mit dem Beziehungsgraphen (nachgeladen)
-import "./entity-graph.css";
-import "./structured-tools.css";
-import { useTheme } from "./useTheme.js";
-import type { CitationLocation } from "./workspace-types.js";
+import "@/styles/entity-graph.css";
+import "@/styles/structured-tools.css";
+import { useTheme } from "@/hooks/useTheme.js";
+import type { CitationLocation } from "@/types/workspace-types.js";
 
 interface Evidence {
   readonly sourceId: string;

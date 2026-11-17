@@ -1,11 +1,11 @@
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
+import { ThemeProvider, type ThemeProviderProps } from "@/hooks/useTheme.js";
 import { preloadStudioViewers } from "../lazy-viewers.js";
 import { NotebookTitle } from "../NotebookTitle.js";
 import { PanelRail, PanelToggle, RailButton } from "../PanelRail.js";
 import { SHARE_ROLES, ShareDialog } from "../ShareDialog.js";
-import { ThemeProvider, type ThemeProviderProps } from "../useTheme.js";
 import { AccountStatus, DEFAULT_NOTEBOOK_TITLE, WorkspaceLayout } from "../WorkspaceLayout.js";
 
 // Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.

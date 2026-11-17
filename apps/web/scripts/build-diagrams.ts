@@ -9,7 +9,7 @@
 
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { buildDiagramVariants, type DiagramStrings } from "../src/diagram-i18n.ts";
+import { buildDiagramVariants, type DiagramStrings } from "../src/i18n/catalogs/diagram-i18n.ts";
 
 const assets = resolve(import.meta.dirname, "../../../docs/assets");
 const catalog = JSON.parse(readFileSync(resolve(assets, "i18n/strings.json"), "utf8")) as Record<

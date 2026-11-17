@@ -1,0 +1,545 @@
+/**
+ * Theme Context, Hook, and I18n Engine for 4 Design Systems x 3 Color Modes x 2 Languages.
+ *
+ * Implements Sub-Issue #128 & #129:
+ * - 4 Design Systems: pure, immersive-cinema, editorial-calm, fusion
+ * - 3 Color Modes: light, dark, aaa-contrast, dazu "system" (Standard, folgt dem Gerät live)
+ * - 3 Languages: de, de-x-ls (Leichte Sprache, Katalog lädt bei Bedarf, Issue #349), en
+ * - Persistence in localStorage and html attributes (data-design, data-color-mode, lang)
+ */
+
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState
+} from "react";
+import { applySeoLanguage, languageFromSearch } from "@/config/seo.js";
+import { AREA_DE, AREA_EN } from "@/i18n/catalogs/translations-areas.js";
+import { ENTITY_GRAPH_DE, ENTITY_GRAPH_EN } from "@/i18n/catalogs/translations-entity-graph.js";
+import { STRUCTURED_DE, STRUCTURED_EN } from "@/i18n/catalogs/translations-structured.js";
+import { fill, type TranslationDictionary } from "@/i18n/i18n.js";
+import { createLocaleRegistry, LOCALE_LOADERS } from "@/i18n/locale-registry.js";
+import {
+  COLOR_MODES,
+  type ColorMode,
+  DEFAULT_THEME,
+  type DesignTheme,
+  THEMES
+} from "@/theme/design-tokens.js";
+import {
+  applyReduceMotion,
+  applyThemeToDocument,
+  COLOR_MODE_PREFERENCES,
+  type ColorModePreference,
+  documentLanguage,
+  LANGUAGES,
+  type Language,
+  REDUCED_MOTION_QUERY,
+  readReduceMotion,
+  resolveColorMode,
+  resolveInitialPreferences,
+  SYSTEM_COLOR_QUERIES,
+  systemColorMode,
+  systemPrefersReducedMotion
+} from "@/theme/theme-preferences.js";
+
+export type { ColorMode, ColorModePreference, DesignTheme, Language, TranslationDictionary };
+export { COLOR_MODE_PREFERENCES, COLOR_MODES, documentLanguage, LANGUAGES, THEMES };
+
+/** Eingebaute Kataloge; weitere Sprachen (z. B. Leichte Sprache) kommen aus locales/*.json. */
+export type BuiltinLanguage = "de" | "en";
+
+export const TRANSLATIONS: Record<BuiltinLanguage, TranslationDictionary> = {
+  de: {
+    ...AREA_DE,
+    ...ENTITY_GRAPH_DE,
+    ...STRUCTURED_DE,
+    appTitle: "RelationNotes",
+    appSubtitle:
+      "Bereit für Forschung, Quellenanalyse, Wissengraphen und barrierefreie Studio-Synthese.",
+    sourcesTitle: "Quellen",
+    sourcesEmpty: "Noch keine Quellen hochgeladen.",
+    sourcesAdd: "Quelle hinzufügen",
+    sourcesCount: "Quellen",
+    chatTitle: "Chat & Zitate",
+    chatPlaceholder: "Frage zu den Quellen stellen oder Thema vertiefen...",
+    chatSend: "Frage senden",
+    chatDisclaimer:
+      "Antworten sind KI-generiert und können Fehler enthalten. Bitte Quellen prüfen.",
+    studioTitle: "Studio",
+    studioAudioCard: "Audio-Überblick",
+    studioVideoCard: "Video-Überblick",
+    studioMindmapCard: "Wissens-Mindmap",
+    studioFlashcardsCard: "Lernkarten (SM-2)",
+    studioQuizCard: "Interaktives Quiz",
+    studioBriefingCard: "Briefing & Timeline",
+    settingsTitle: "Einstellungen",
+    settingsClose: "Einstellungen schließen",
+    appearanceTitle: "Darstellung",
+    appearanceStored: "Design und Farbschema werden auf diesem Gerät gespeichert.",
+    themeLabel: "Design",
+    colorModeLabel: "Farbschema",
+    languageLabel: "Sprache",
+    languageHint: "Gilt für die Oberfläche und wird auf diesem Gerät gespeichert.",
+    modelRouter: "KI-Modell",
+    modelHint: "Gilt für neue Antworten.",
+    byokTitle: "Eigene API-Schlüssel (BYOK)",
+    byokStatus: "In Vorbereitung",
+    byokText:
+      "Bald können Sie hier eigene Schlüssel für Modellanbieter hinterlegen (BYOK steht für „Bring Your Own Key“). Sie werden verschlüsselt gespeichert.",
+    gdprTitle: "DSGVO & Datenschutz",
+    gdprText:
+      "Ob ein Anbieter Ihre Eingaben zum Training nutzt, hängt vom Modell ab. Die Angabe mit Quelle steht beim gewählten Modell unter „KI-Modell“.",
+    modelGeminiFlash: "Google Gemini 2.5 Flash (Standard)",
+    modelOllama: "Ollama Llama 3 (auf dem Server)",
+    modelCustom: "Eigener Endpunkt (OpenAI-kompatibel)",
+    modelCustomSetup:
+      "„Eigener Endpunkt“ lässt sich erst wählen, wenn Adresse und Chat-Modell gespeichert sind.",
+    modelCustomSetupLink: "Eigenen Endpunkt einrichten",
+    policyStatusOperator: "Hängt vom Betreiber des Endpunkts ab",
+    policyCustom:
+      "Ihre Eingaben gehen an die Adresse, die Sie selbst eingetragen haben. Ob dort mit Ihren Eingaben trainiert wird, regeln die Bedingungen dieses Betreibers; diese App kennt sie nicht.",
+    policyTitle: "Training mit Ihren Eingaben",
+    policyStatusNoTraining: "Laut Anbieter kein Training",
+    policyStatusConditional: "Kein Training nur unter Bedingungen",
+    policyStatusLocal: "Lokal, kein externer Anbieter",
+    policyGemini:
+      "Google nutzt Eingaben und Antworten nicht zur Verbesserung seiner Produkte, wenn die Gemini API kostenpflichtig genutzt wird oder Sie sich im EWR, in der Schweiz oder im Vereinigten Königreich befinden. In der kostenlosen Stufe außerhalb dieser Regionen kann Google sie dafür nutzen und von Menschen prüfen lassen.",
+    policyAnthropic:
+      "Anthropic verwendet Eingaben und Ausgaben über die API standardmäßig nicht zum Training. Ausnahmen: Sie melden Feedback oder stimmen ausdrücklich zu.",
+    policyOpenai:
+      "OpenAI verwendet Daten aus der API seit dem 1. März 2023 nicht zum Training, außer Sie stimmen zu. Protokolle zur Missbrauchserkennung werden bis zu 30 Tage aufbewahrt.",
+    policyGroq:
+      "Laut Groq-Dienstvertrag (Ziffer 4.2) darf Groq Eingaben und Ausgaben nicht zum Training verwenden, außer Sie erlauben es.",
+    policyOllama:
+      "Ollama läuft auf dem Server dieser Installation. Eingaben gehen an keinen externen KI-Anbieter. Laut Ollama sieht Ollama bei lokaler Nutzung keine Eingaben.",
+    policyNotConnected:
+      "Noch nicht angebunden: Anfragen mit diesem Modell schlagen derzeit fehl, es werden keine Daten an den Anbieter gesendet.",
+    policyRoutedToGemini:
+      "Noch nicht angebunden: Anfragen gehen derzeit an Google Gemini 2.5 Flash, es gelten die Angaben von Google.",
+    policySource: "Quelle",
+    policyNewWindow: "(öffnet in neuem Fenster)",
+    policyRetrieved: "Stand der Anbieterangaben:",
+    policyDisclaimer: "Zusammenfassung, keine Rechtsberatung.",
+    aiActTitle: "EU AI Act",
+    aiActBadge: "Transparenzpflicht Art. 50 erfüllt (Kennzeichnung KI-generierter Inhalte).",
+    cinemaStageClose: "Bühne schließen",
+    themePure: "Pure",
+    themePureHint: "Ruhige Klarheit",
+    themeEditorial: "Editorial",
+    themeEditorialHint: "Lesen mit Serife",
+    themeCinema: "Cinema",
+    themeCinemaHint: "Tiefe und Licht",
+    themeFusion: "Fusion",
+    themeFusionHint: "Energie und Farbe",
+    modeSystem: "Automatisch (wie Gerät)",
+    modeLight: "Hell",
+    modeDark: "Dunkel",
+    modeAAA: "Hoher Kontrast (AAA)",
+    motionLabel: "Bewegung",
+    motionToggle: "Bewegung reduzieren",
+    motionHint:
+      "Hält Hintergrund- und Übergangsanimationen an. Gilt zusätzlich zur Einstellung des Geräts.",
+    motionSystemActive:
+      "Ihr Gerät ist auf weniger Bewegung eingestellt. Animationen sind deshalb bereits aus.",
+    chatWelcome:
+      "Willkommen in Ihrem RelationNotes Arbeitsbereich. Ihre Quellen sind geladen. Sie können Fragen stellen oder im Bereich Studio Lernmaterial erzeugen [1].",
+    errorTechnical: "Technische Angabe",
+    errorNetwork:
+      "Keine Verbindung zum Server. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.",
+    errorNotFound:
+      "Dieses Notebook wurde auf dem Server nicht gefunden. Laden Sie die Seite neu; besteht der Fehler weiter, öffnen Sie das Notebook erneut.",
+    errorAuth:
+      "Sie sind nicht mehr angemeldet. Melden Sie sich erneut an und versuchen Sie es noch einmal.",
+    errorRateLimit:
+      "Zu viele Anfragen in kurzer Zeit. Warten Sie einen Moment und versuchen Sie es dann erneut.",
+    errorServer:
+      "Der Server hat einen Fehler gemeldet. Versuchen Sie es in einigen Minuten erneut.",
+    errorGeneric: "Die Anfrage hat nicht geklappt. Versuchen Sie es erneut.",
+    errorHostAnswer: "Die Hosts konnten nicht antworten.",
+    navOverview: "Übersicht",
+    navMindmap: "Mindmap",
+    navFlashcards: "Lernkarten",
+    navQuiz: "Quiz",
+    navVideo: "Video",
+    navAudio: "Audio",
+    navAreas: "Bereiche",
+    skipToContent: "Zum Inhalt springen",
+    navSources: "Quellen",
+    navChat: "Chat",
+    navChatAria: "Chat & Zitate",
+    navStudio: "Studio",
+    navStudioAria: "Studio (10 Werkzeuge)",
+    navSettings: "Einstellungen",
+    navSettingsHint: "Sprache, KI-Modell, Datenschutz",
+    menuOpen: "Menü öffnen",
+    menuTitle: "Menü",
+    menuClose: "Menü schließen",
+    settingsAppearanceHint: "Design und Farbschema stellen Sie unter „Darstellung“ ein.",
+    roleLabel: "Rolle (Vorschau)",
+    roleHint:
+      "Nur Vorschau: Die Auswahl ändert derzeit nichts. Ihre Rechte in einem Arbeitsbereich legt der Server fest.",
+    roleOwner: "Inhaber",
+    roleEditor: "Bearbeiter",
+    roleViewer: "Betrachter",
+    chatSummaryLabel: "Zusammenfassung",
+    chatSummaryAria: "Zusammenfassung des Notebooks",
+    studioAudioOpen: "Anhören",
+    studioVideoDesc: "Animierte Folien und Diagramme, Export als Videodatei im WebM-Format.",
+    studioFlashcardsDesc:
+      "Wiederholung in wachsenden Abständen nach dem SM-2-Verfahren, Export als CSV für die Lernkarten-App Anki."
+  },
+  en: {
+    ...AREA_EN,
+    ...ENTITY_GRAPH_EN,
+    ...STRUCTURED_EN,
+    appTitle: "RelationNotes",
+    appSubtitle:
+      "Ready for research, source grounding, knowledge graphs, and accessible synthesis.",
+    sourcesTitle: "Sources",
+    sourcesEmpty: "No sources uploaded yet.",
+    sourcesAdd: "Add source",
+    sourcesCount: "Sources",
+    chatTitle: "Chat & Citations",
+    chatPlaceholder: "Ask a question about your sources or explore a topic...",
+    chatSend: "Send question",
+    chatDisclaimer: "Responses are AI-generated and may contain errors. Please verify sources.",
+    studioTitle: "Studio",
+    studioAudioCard: "Audio overview",
+    studioVideoCard: "Video overview",
+    studioMindmapCard: "Knowledge Mindmap",
+    studioFlashcardsCard: "Flashcards (SM-2)",
+    studioQuizCard: "Interactive Quiz",
+    studioBriefingCard: "Briefing & Timeline",
+    settingsTitle: "Settings",
+    settingsClose: "Close settings",
+    appearanceTitle: "Appearance",
+    appearanceStored: "Design and color scheme are saved on this device.",
+    themeLabel: "Design",
+    colorModeLabel: "Color scheme",
+    languageLabel: "Language",
+    languageHint: "Applies to the interface and is saved on this device.",
+    modelRouter: "AI model",
+    modelHint: "Applies to new answers.",
+    byokTitle: "Your own API keys (BYOK)",
+    byokStatus: "Coming soon",
+    byokText:
+      "Soon you can add your own keys for model providers here (BYOK stands for “bring your own key”). They will be stored encrypted.",
+    gdprTitle: "GDPR & Privacy",
+    gdprText:
+      "Whether a provider uses your input for training depends on the model. See the details with source for the selected model under “AI model”.",
+    modelGeminiFlash: "Google Gemini 2.5 Flash (default)",
+    modelOllama: "Ollama Llama 3 (on the server)",
+    modelCustom: "Own endpoint (OpenAI-compatible)",
+    modelCustomSetup: "“Own endpoint” becomes selectable once its URL and chat model are saved.",
+    modelCustomSetupLink: "Set up your own endpoint",
+    policyStatusOperator: "Depends on the endpoint operator",
+    policyCustom:
+      "Your input goes to the address you entered yourself. Whether it is used for training depends on that operator's terms, which this app does not know.",
+    policyTitle: "Training on your input",
+    policyStatusNoTraining: "No training, per provider",
+    policyStatusConditional: "No training only under conditions",
+    policyStatusLocal: "Local, no external provider",
+    policyGemini:
+      "Google does not use prompts and responses to improve its products when the Gemini API is used as a paid service or when you are in the EEA, Switzerland or the UK. On the free tier outside these regions, Google may use them for that purpose and have humans review them.",
+    policyAnthropic:
+      "By default, Anthropic does not use API inputs and outputs for training. Exceptions: you send feedback or explicitly opt in.",
+    policyOpenai:
+      "Since 1 March 2023, OpenAI has not used API data for training unless you opt in. Abuse-monitoring logs are kept for up to 30 days.",
+    policyGroq:
+      "Under the Groq services agreement (section 4.2), Groq may not use inputs or outputs for training unless you permit it.",
+    policyOllama:
+      "Ollama runs on the server of this installation. Your input is not sent to an external AI provider. According to Ollama, it does not see prompts when run locally.",
+    policyNotConnected:
+      "Not connected yet: requests with this model currently fail, and no data is sent to the provider.",
+    policyRoutedToGemini:
+      "Not connected yet: requests currently go to Google Gemini 2.5 Flash, so Google's terms apply.",
+    policySource: "Source",
+    policyNewWindow: "(opens in a new window)",
+    policyRetrieved: "Provider terms as of:",
+    policyDisclaimer: "Summary, not legal advice.",
+    aiActTitle: "EU AI Act",
+    aiActBadge: "Article 50 Transparency standard fulfilled (labeled AI-generated content).",
+    cinemaStageClose: "Close Stage",
+    themePure: "Pure",
+    themePureHint: "Calm clarity",
+    themeEditorial: "Editorial",
+    themeEditorialHint: "Reading with serifs",
+    themeCinema: "Cinema",
+    themeCinemaHint: "Depth and light",
+    themeFusion: "Fusion",
+    themeFusionHint: "Energy and color",
+    modeSystem: "Automatic (match device)",
+    modeLight: "Light",
+    modeDark: "Dark",
+    modeAAA: "High contrast (AAA)",
+    motionLabel: "Motion",
+    motionToggle: "Reduce motion",
+    motionHint:
+      "Stops background and transition animations. Applies in addition to your device setting.",
+    motionSystemActive: "Your device is set to reduce motion, so animations are already off.",
+    chatWelcome:
+      "Welcome to your RelationNotes workspace. Your sources are loaded. Ask questions or create learning material in the Studio area [1].",
+    errorTechnical: "Technical detail",
+    errorNetwork: "No connection to the server. Check your internet connection and try again.",
+    errorNotFound:
+      "This notebook was not found on the server. Reload the page; if the problem persists, open the notebook again.",
+    errorAuth: "You are no longer signed in. Sign in again and retry.",
+    errorRateLimit: "Too many requests in a short time. Wait a moment, then try again.",
+    errorServer: "The server reported an error. Try again in a few minutes.",
+    errorGeneric: "The request did not work. Please try again.",
+    errorHostAnswer: "The hosts could not answer.",
+    navOverview: "Overview",
+    navMindmap: "Mindmap",
+    navFlashcards: "Flashcards",
+    navQuiz: "Quiz",
+    navVideo: "Video",
+    navAudio: "Audio",
+    navAreas: "Sections",
+    skipToContent: "Skip to content",
+    navSources: "Sources",
+    navChat: "Chat",
+    navChatAria: "Chat & citations",
+    navStudio: "Studio",
+    navStudioAria: "Studio (10 tools)",
+    navSettings: "Settings",
+    navSettingsHint: "Language, AI model, privacy",
+    menuOpen: "Open menu",
+    menuTitle: "Menu",
+    menuClose: "Close menu",
+    settingsAppearanceHint: "Design and color scheme are set under “Appearance”.",
+    roleLabel: "Role (preview)",
+    roleHint:
+      "Preview only: this choice changes nothing yet. Your permissions in a workspace are set by the server.",
+    roleOwner: "Owner",
+    roleEditor: "Editor",
+    roleViewer: "Viewer",
+    chatSummaryLabel: "Summary",
+    chatSummaryAria: "Notebook summary",
+    studioAudioOpen: "Listen",
+    studioVideoDesc: "Animated slides and diagrams, export as a WebM video file.",
+    studioFlashcardsDesc:
+      "Review at growing intervals using the SM-2 method, export as CSV for the flashcard app Anki."
+  }
+};
+
+/**
+ * Alle Kataloge mit Rückfall pro Schlüssel: Deutsch und Englisch eingebaut, weitere aus
+ * locales/*.json werden erst bei Wahl der Sprache geladen (LOCALES.load).
+ */
+export const LOCALES = createLocaleRegistry(TRANSLATIONS, LOCALE_LOADERS);
+export const I18N = LOCALES.i18n;
+
+/** Text zum Schlüssel in der Sprache; fehlt er, folgt die Rückfallkette, zuletzt der Schlüssel selbst. */
+export function translate(language: string, key: string): string {
+  return I18N.translate(language, key);
+}
+
+export { fill };
+
+export interface ThemeContextValue {
+  readonly theme: DesignTheme;
+  /** Gewählter Farbmodus, ggf. "system". */
+  readonly colorMode: ColorModePreference;
+  /** Tatsächlich angewendeter Farbmodus (bei "system" der des Geräts). */
+  readonly resolvedColorMode: ColorMode;
+  readonly language: Language;
+  /** Schalter „Bewegung reduzieren“ der App (zusätzlich zu prefers-reduced-motion). */
+  readonly reduceMotion: boolean;
+  readonly setReduceMotion: (enabled: boolean) => void;
+  /** Systemwert: Gerät wünscht weniger Bewegung (prefers-reduced-motion: reduce), live. */
+  readonly systemReducedMotion: boolean;
+  readonly setTheme: (theme: DesignTheme) => void;
+  readonly setColorMode: (mode: ColorModePreference) => void;
+  readonly setLanguage: (lang: Language) => void;
+  readonly t: (key: string) => string;
+  /** Wie t, mit Werten für Platzhalter wie {n}. */
+  readonly tf: (key: string, vars: Readonly<Record<string, string | number>>) => string;
+}
+
+export const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+export interface ThemeProviderProps {
+  readonly children: ReactNode;
+  readonly defaultTheme?: DesignTheme | undefined;
+  readonly defaultColorMode?: ColorModePreference | undefined;
+  readonly defaultLanguage?: Language | undefined;
+}
+
+function browserEnvironment() {
+  if (typeof window === "undefined") return {};
+  let storage: Storage | undefined;
+  try {
+    storage = window.localStorage;
+  } catch {
+    storage = undefined;
+  }
+  return {
+    storage,
+    matchMedia: typeof window.matchMedia === "function" ? window.matchMedia.bind(window) : undefined
+  };
+}
+
+export function ThemeProvider({
+  children,
+  defaultTheme,
+  defaultColorMode,
+  defaultLanguage
+}: ThemeProviderProps) {
+  const [initial] = useState(() => {
+    const prefs = resolveInitialPreferences(browserEnvironment(), {
+      theme: defaultTheme,
+      colorMode: defaultColorMode,
+      language: defaultLanguage
+    });
+    // Ein Link mit ?lang=de|en (hreflang, Issue #263) hat Vorrang vor der gespeicherten Wahl.
+    const urlLanguage =
+      typeof window === "undefined" ? undefined : languageFromSearch(window.location?.search ?? "");
+    return urlLanguage ? { ...prefs, language: urlLanguage } : prefs;
+  });
+  const [theme, setThemeState] = useState<DesignTheme>(initial.theme);
+  const [colorMode, setColorModeState] = useState<ColorModePreference>(initial.colorMode);
+  const [language, setLanguageState] = useState<Language>(initial.language);
+  // Sprache, deren Katalog bereitsteht. Bis eine nachgeladene Sprache da ist, gilt ihr Rückfall.
+  const [loadedLanguage, setLoadedLanguage] = useState<Language>(initial.language);
+  const textLanguage = LOCALES.isLoaded(language) ? language : loadedLanguage;
+  const [reduceMotion, setReduceMotion] = useState<boolean>(() =>
+    readReduceMotion(browserEnvironment().storage)
+  );
+  const [systemMode, setSystemMode] = useState<ColorMode>(() =>
+    systemColorMode(browserEnvironment())
+  );
+  const [systemReducedMotion, setSystemReducedMotion] = useState<boolean>(() =>
+    systemPrefersReducedMotion(browserEnvironment().matchMedia)
+  );
+
+  // Systemwert „weniger Bewegung“ live verfolgen (Hinweis beim Schalter, Issue #328)
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const list = window.matchMedia(REDUCED_MOTION_QUERY);
+    const update = () => setSystemReducedMotion(list.matches);
+    update();
+    list.addEventListener("change", update);
+    return () => list.removeEventListener("change", update);
+  }, []);
+
+  // Modus "system": live auf Änderungen von Farbschema und Kontrast des Geräts reagieren
+  useEffect(() => {
+    if (colorMode !== "system" || typeof window === "undefined" || !window.matchMedia) return;
+    const lists = SYSTEM_COLOR_QUERIES.map((q) => window.matchMedia(q));
+    const update = () => setSystemMode(systemColorMode(browserEnvironment()));
+    update();
+    for (const list of lists) list.addEventListener("change", update);
+    return () => {
+      for (const list of lists) list.removeEventListener("change", update);
+    };
+  }, [colorMode]);
+
+  const resolvedColorMode = resolveColorMode(colorMode, systemMode);
+
+  // Katalog der gewählten Sprache nachladen (eigener Chunk); danach neu rendern.
+  useEffect(() => {
+    let active = true;
+    void LOCALES.load(language).then(() => {
+      if (active) setLoadedLanguage(language);
+    });
+    return () => {
+      active = false;
+    };
+  }, [language]);
+
+  // Zustand in DOM-Attribute und localStorage spiegeln
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    applyThemeToDocument(
+      document.documentElement,
+      { theme, colorMode, language },
+      browserEnvironment().storage,
+      systemMode
+    );
+    applySeoLanguage(document, documentLanguage(language));
+  }, [theme, colorMode, language, systemMode]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    applyReduceMotion(document.documentElement, reduceMotion, browserEnvironment().storage);
+  }, [reduceMotion]);
+
+  const setTheme = useCallback((newTheme: DesignTheme) => {
+    setThemeState(newTheme);
+  }, []);
+
+  const setColorMode = useCallback((newMode: ColorModePreference) => {
+    setColorModeState(newMode);
+  }, []);
+
+  const setLanguage = useCallback((newLang: Language) => {
+    setLanguageState(newLang);
+  }, []);
+
+  const t = useCallback((key: string): string => translate(textLanguage, key), [textLanguage]);
+
+  const tf = useCallback(
+    (key: string, vars: Readonly<Record<string, string | number>>): string =>
+      fill(translate(textLanguage, key), vars),
+    [textLanguage]
+  );
+
+  const value = useMemo<ThemeContextValue>(
+    () => ({
+      theme,
+      colorMode,
+      resolvedColorMode,
+      language,
+      reduceMotion,
+      setReduceMotion,
+      systemReducedMotion,
+      setTheme,
+      setColorMode,
+      setLanguage,
+      t,
+      tf
+    }),
+    [
+      theme,
+      colorMode,
+      resolvedColorMode,
+      language,
+      reduceMotion,
+      systemReducedMotion,
+      setTheme,
+      setColorMode,
+      setLanguage,
+      t,
+      tf
+    ]
+  );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+export function useTheme(): ThemeContextValue {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    return {
+      theme: DEFAULT_THEME,
+      colorMode: "system",
+      resolvedColorMode: "light",
+      language: "de",
+      reduceMotion: false,
+      setReduceMotion: () => {},
+      systemReducedMotion: false,
+      setTheme: () => {},
+      setColorMode: () => {},
+      setLanguage: () => {},
+      t: (key: string) => translate("de", key),
+      tf: (key: string, vars: Readonly<Record<string, string | number>>) =>
+        fill(translate("de", key), vars)
+    };
+  }
+  return context;
+}

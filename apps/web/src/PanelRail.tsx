@@ -1,7 +1,7 @@
 import type { ReactNode, Ref } from "react";
+import { useTheme } from "@/hooks/useTheme.js";
+import { type CollapsiblePanel, PANEL_SHORTCUTS } from "@/preferences/layout-preferences.js";
 import { Icon, type IconName } from "./Icon.js";
-import { type CollapsiblePanel, PANEL_SHORTCUTS } from "./layout-preferences.js";
-import { useTheme } from "./useTheme.js";
 
 /**
  * Seite, zu der die Kurzinfo aufgeht: in der Quellen-Leiste nach rechts, im Studio nach

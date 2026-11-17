@@ -1,8 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { ThemeProvider } from "@/hooks/useTheme.js";
 import { SettingsDrawer } from "../SettingsDrawer.js";
-import { ThemeProvider } from "../useTheme.js";
 
 describe("SettingsDrawer Component (Sub-Issue #129)", () => {
   it("renders nothing when isOpen is false", () => {

@@ -12,11 +12,11 @@ English). Dieses Dokument beschreibt Technik, Regeln, die Selbstprüfung und was
 
 | Baustein | Datei | Aufgabe |
 | --- | --- | --- |
-| Katalog | `apps/web/src/locales/de-x-ls.json` | Alle 604 Oberflächenschlüssel in Leichter Sprache, `$meta.fallback: ["de"]`. |
-| Sprachwahl | `apps/web/src/theme-preferences.ts` (`LANGUAGES`) | `de`, `de-x-ls`, `en`; gespeichert unter `rn_language`. |
-| Nachladen | `apps/web/src/locale-registry.ts` (`createLocaleRegistry`, `LOCALE_LOADERS`) | Der Katalog ist ein eigener Chunk (rund 35 kB, gzip rund 12 kB) und lädt erst bei Wahl der Sprache. Das Start-Bundle bleibt unter dem Lighthouse-Skriptbudget. |
+| Katalog | `apps/web/src/i18n/locales/de-x-ls.json` | Alle 604 Oberflächenschlüssel in Leichter Sprache, `$meta.fallback: ["de"]`. |
+| Sprachwahl | `apps/web/src/theme/theme-preferences.ts` (`LANGUAGES`) | `de`, `de-x-ls`, `en`; gespeichert unter `rn_language`. |
+| Nachladen | `apps/web/src/i18n/locale-registry.ts` (`createLocaleRegistry`, `LOCALE_LOADERS`) | Der Katalog ist ein eigener Chunk (rund 35 kB, gzip rund 12 kB) und lädt erst bei Wahl der Sprache. Das Start-Bundle bleibt unter dem Lighthouse-Skriptbudget. |
 | Dokumentsprache | `documentLanguage()` | `<html lang="de">` auch in Leichter Sprache, damit Screenreader die deutsche Stimme und Aussprache nutzen. Die Wahl steht zusätzlich in `<html data-language="de-x-ls">`. |
-| Kommentare | `apps/web/src/translations-comments.ts` (`commentTexts`) | Der nachgeladene Kommentar-Katalog übernimmt die Leichte-Sprache-Texte einzeln. |
+| Kommentare | `apps/web/src/i18n/catalogs/translations-comments.ts` (`commentTexts`) | Der nachgeladene Kommentar-Katalog übernimmt die Leichte-Sprache-Texte einzeln. |
 | KI-Antworten | `WorkspaceLayout.tsx` | Der Chat fragt die KI weiter auf Deutsch an. Leichte Sprache gilt für die Oberfläche, nicht für erzeugte Antworten. |
 
 Der Rückfall auf Deutsch je Schlüssel (`de-x-ls` → `de` → `en`) ist nur Sicherheitsnetz: Bis der Katalog geladen ist
@@ -28,7 +28,7 @@ deutschen Schlüssel selbst enthält.
 - `apps/web/src/__tests__/leichte-sprache.test.ts`: Abdeckung 100 % gegen den deutschen Katalog (Haupt- und
   Kommentar-Katalog), keine fremden Schlüssel, **ein Test je Schlüssel** (604) mit Platzhaltern und den prüfbaren
   Regeln unten; Umschalter in den Einstellungen; Kommentar-Texte.
-- `apps/web/src/__tests__/i18n.test.ts`: Nachladen einmalig, Rückfall vor dem Laden, neuer Versuch nach Ladefehler.
+- `apps/web/tests/unit/i18n/i18n.test.ts`: Nachladen einmalig, Rückfall vor dem Laden, neuer Versuch nach Ladefehler.
 - `apps/web/e2e/leichte-sprache.spec.ts`: In allen vier Designs bei 1440 und 390 px: Umschalten, `lang="de"`,
   Katalog erst nach der Wahl angefragt, kein Überlauf und kein abgeschnittener Text in Einstellungen, Kopf,
   Menü, allen drei Bereichen; dazu jede Studio-Ansicht, Teilen und Konto bei 1440 und 390 px und die Prüfung

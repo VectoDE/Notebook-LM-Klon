@@ -1,7 +1,7 @@
 import { type FocusEvent, useEffect, useRef } from "react";
+import { useTheme } from "@/hooks/useTheme.js";
+import { createToastTimer, TOAST_DURATION_MS, type ToastTimer } from "@/lib/utils/toast-timer.js";
 import { Icon } from "./Icon.js";
-import { createToastTimer, TOAST_DURATION_MS, type ToastTimer } from "./toast-timer.js";
-import { useTheme } from "./useTheme.js";
 
 export interface ToastMessage {
   /** Neue id je Hinweis: derselbe Text erscheint erneut und die Zeit beginnt von vorn. */

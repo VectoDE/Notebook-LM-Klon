@@ -2,6 +2,7 @@ import { evaluateQuiz } from "@notebook-lm/shared";
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { ThemeProvider, type ThemeProviderProps } from "@/hooks/useTheme.js";
 import { ChatPanel } from "../ChatPanel.js";
 import { EMPTY_ART_WIDTH, EmptyArt, EmptyState, type EmptyStateArt } from "../EmptyState.js";
 import { preloadStudioViewers } from "../lazy-viewers.js";
@@ -9,7 +10,6 @@ import { QuizResults } from "../QuizViewer.js";
 import { SourcesPanel } from "../SourcesPanel.js";
 import { StudioPanel } from "../StudioPanel.js";
 import { Toast } from "../Toast.js";
-import { ThemeProvider, type ThemeProviderProps } from "../useTheme.js";
 import { ViewToggle } from "../ViewToggle.js";
 
 // Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.

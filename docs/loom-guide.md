@@ -37,7 +37,7 @@ Ziel: 9:30 Minuten, harte Obergrenze 10:00.
 | Sechs Studio-Werkzeuge | `apps/web/src/StudioPanel.tsx` (`StudioTool`) |
 | Audio-Rückfrage | `POST /api/v1/notebooks/:id/audio-interject` |
 | Video-Overview (WebM-Export nur als Modul, nicht in der Oberfläche) | `apps/web/src/video-exporter.ts` |
-| Vier Designs, drei Farbmodi | `apps/web/src/design-tokens.ts` |
+| Vier Designs, drei Farbmodi | `apps/web/src/theme/design-tokens.ts` |
 | 100 % Testabdeckung als Schwelle | `vitest.config.ts`, Pflicht-Check `Lint, Typecheck, Coverage & Build` |
 | OpenAPI-Abdeckung aller Routen | `packages/shared/tests/integration/openapi.test.ts` |
 | Offenlegung des KI-Einsatzes | README-Kapitel „Ehrlicher KI-Einsatz“ |

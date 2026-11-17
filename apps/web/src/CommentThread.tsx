@@ -30,6 +30,8 @@ import {
   useRef,
   useState
 } from "react";
+import { fill, LOCALES, useTheme } from "@/hooks/useTheme.js";
+import { commentTexts } from "@/i18n/catalogs/translations-comments.js";
 import {
   type CommentErrorKind,
   commentErrorKey,
@@ -39,9 +41,7 @@ import {
   listComments,
   listMembers,
   updateComment
-} from "./comments-client.js";
-import { commentTexts } from "./translations-comments.js";
-import { fill, LOCALES, useTheme } from "./useTheme.js";
+} from "@/services/api/comments-client.js";
 
 export interface CommentThreadProps {
   readonly notebookId: string;

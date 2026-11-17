@@ -1,15 +1,15 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { afterSettled } from "@/after-settled.js";
+import { ThemeProvider } from "@/hooks/useTheme.js";
+import { afterSettled } from "@/lib/utils/after-settled.js";
+import { sendUsageBeacon } from "@/services/analytics/usage-beacon.js";
 import { App } from "./App.js";
 import { scheduleStudioViewerPreload } from "./lazy-viewers.js";
-import { sendUsageBeacon } from "./usage-beacon.js";
-import { ThemeProvider } from "./useTheme.js";
 // Schriften selbst gehostet (OFL, Latin-Subset, von Vite gehasht, kein externes CDN)
-import "./fonts.css";
-import "./themes.css";
-import "./workspace.css";
-import "./components.css";
+import "@/styles/fonts.css";
+import "@/styles/themes.css";
+import "@/styles/workspace.css";
+import "@/styles/components.css";
 
 const rootElement = document.getElementById("root");
 if (rootElement) {

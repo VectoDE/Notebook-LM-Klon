@@ -8,6 +8,6 @@
     "declarationMap": false,
     "types": ["node"]
   },
-  "include": ["./**/*.ts", "./**/*.tsx"],
+  "include": ["./**/*.ts", "./**/*.tsx", "../src/**/*.d.ts"],
   "exclude": ["./e2e/**"]
 }

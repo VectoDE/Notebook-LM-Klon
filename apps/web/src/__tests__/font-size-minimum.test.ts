@@ -12,8 +12,9 @@ const SRC = resolve(import.meta.dirname, "..");
 const MIN_PX = 14;
 const ROOT_PX = 16;
 
-const files = readdirSync(SRC)
-  .filter((f) => f.endsWith(".tsx") || f.endsWith(".css"))
+const files = readdirSync(SRC, { recursive: true, encoding: "utf8" })
+  .map((f) => f.split("\\").join("/"))
+  .filter((f) => (f.endsWith(".tsx") || f.endsWith(".css")) && !f.startsWith("__tests__/"))
   .map((f) => ({ name: f, text: readFileSync(resolve(SRC, f), "utf8") }));
 
 /** Wandelt "0.875rem", "14px", "1.1em" oder "13" in Pixel um (rem/em auf 16 px). */
@@ -66,7 +67,9 @@ describe("Schriftgrößen-Minimum 14 px (0,875 rem)", () => {
   });
 
   it("prüft alle Quelldateien", () => {
-    expect(files.length).toBeGreaterThan(10);
+    // Vor dem Umbau 43 .tsx/.css-Dateien flach in src/; rekursiv müssen es mindestens so viele sein.
+    expect(files.length).toBeGreaterThanOrEqual(43);
+    expect(files.some((f) => f.name.startsWith("styles/") && f.name.endsWith(".css"))).toBe(true);
   });
 
   it.each(files.map((f) => [f.name, f.text] as const))(

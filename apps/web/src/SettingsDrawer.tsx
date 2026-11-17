@@ -17,14 +17,24 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { useReturnFocus } from "@/hooks/useReturnFocus.js";
+import { documentLanguage, LANGUAGES, type Language, useTheme } from "@/hooks/useTheme.jsx";
+import { trapTabKey } from "@/lib/a11y/focus-trap.js";
+import {
+  CONNECTION_KEYS,
+  POLICY_RETRIEVED,
+  policyFor,
+  STATUS_KEYS
+} from "@/services/llm/model-data-policy.js";
+import {
+  DEFAULT_MODEL,
+  isModelSelectable,
+  MODEL_IDS,
+  type ModelId
+} from "@/theme/theme-preferences.js";
 import { MotionSetting } from "./AppearanceControls.js";
 import { CustomEndpointSettings } from "./CustomEndpointSettings.js";
-import { trapTabKey } from "./focus-trap.js";
 import { Icon } from "./Icon.js";
-import { CONNECTION_KEYS, POLICY_RETRIEVED, policyFor, STATUS_KEYS } from "./model-data-policy.js";
-import { DEFAULT_MODEL, isModelSelectable, MODEL_IDS, type ModelId } from "./theme-preferences.js";
-import { useReturnFocus } from "./useReturnFocus.js";
-import { documentLanguage, LANGUAGES, type Language, useTheme } from "./useTheme.jsx";
 
 /**
  * Namen der Sprachen, jeweils in der Sprache selbst (Issue #349): Sie bleiben gleich, egal

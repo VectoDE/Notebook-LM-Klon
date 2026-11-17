@@ -5,8 +5,8 @@ import {
   WORKSPACE_VERSION
 } from "@notebook-lm/shared";
 import type { FunctionComponent } from "react";
-import { readGtmId } from "./analytics-config.js";
-import { type GtmGlobal, gtmConsentHandler } from "./gtm.js";
+import { readGtmId } from "@/config/analytics-config.js";
+import { type GtmGlobal, gtmConsentHandler } from "@/services/analytics/gtm.js";
 import {
   LazyFlashcardsViewer as FlashcardsViewer,
   LazyMindmapViewer as MindmapViewer,

@@ -15,13 +15,17 @@ import {
   useRef,
   useState
 } from "react";
-import { triggerBrowserDownload } from "./artifact-exporters.js";
-import { ChatApiError, errorKeyForStatus, technicalErrorDetail } from "./chat-client.js";
-import { focusFirstAvailable } from "./focus-return.js";
-import { trapTabKey } from "./focus-trap.js";
-import type { SpokenTranscriptFormat } from "./media-downloads.js";
-import { podcastStateKey } from "./stage-visuals.js";
-import { useTheme } from "./useTheme.js";
+import { useTheme } from "@/hooks/useTheme.js";
+import { focusFirstAvailable } from "@/lib/a11y/focus-return.js";
+import { trapTabKey } from "@/lib/a11y/focus-trap.js";
+import { triggerBrowserDownload } from "@/lib/export/artifact-exporters.js";
+import type { SpokenTranscriptFormat } from "@/lib/export/media-downloads.js";
+import { podcastStateKey } from "@/lib/utils/stage-visuals.js";
+import {
+  ChatApiError,
+  errorKeyForStatus,
+  technicalErrorDetail
+} from "@/services/api/chat-client.js";
 
 // Erst beim Aufklappen laden: hält das Startpaket unter dem Skript-Budget (Issue #350)
 const MediaTranscript = lazy(() =>
@@ -364,7 +368,7 @@ export function InteractiveAudioHostPlayer(props: InteractiveAudioHostPlayerProp
   };
 
   const downloadTranscript = (format: SpokenTranscriptFormat) => {
-    void import("./media-downloads.js").then((m) => {
+    void import("@/lib/export/media-downloads.js").then((m) => {
       const file = m.spokenTranscriptFile(
         format,
         currentTrackTitle,

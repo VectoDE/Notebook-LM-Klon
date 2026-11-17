@@ -4,6 +4,18 @@ import type { PodcastStateMachine, PodcastStateMachineContext } from "@notebook-
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
+import {
+  fill,
+  ThemeProvider,
+  type ThemeProviderProps,
+  TRANSLATIONS,
+  translate,
+  useTheme
+} from "@/hooks/useTheme.js";
+import { AREA_DE, AREA_EN } from "@/i18n/catalogs/translations-areas.js";
+import { COMMENTS_DE, COMMENTS_EN } from "@/i18n/catalogs/translations-comments.js";
+import { OFFLINE_CHAT_DE, OFFLINE_CHAT_EN } from "@/i18n/catalogs/translations-offline-chat.js";
+import { podcastStateKey } from "@/lib/utils/stage-visuals.js";
 import { ChatPanel } from "../ChatPanel.js";
 import { DeepDiveStage } from "../DeepDiveStage.js";
 import { describeNextReview, describeRepetitions, FlashcardsViewer } from "../FlashcardsViewer.js";
@@ -14,18 +26,6 @@ import { MindmapViewer } from "../MindmapViewer.js";
 import { QuizViewer } from "../QuizViewer.js";
 import { SourcesPanel } from "../SourcesPanel.js";
 import { StudioPanel } from "../StudioPanel.js";
-import { podcastStateKey } from "../stage-visuals.js";
-import { AREA_DE, AREA_EN } from "../translations-areas.js";
-import { COMMENTS_DE, COMMENTS_EN } from "../translations-comments.js";
-import { OFFLINE_CHAT_DE, OFFLINE_CHAT_EN } from "../translations-offline-chat.js";
-import {
-  fill,
-  ThemeProvider,
-  type ThemeProviderProps,
-  TRANSLATIONS,
-  translate,
-  useTheme
-} from "../useTheme.js";
 import { VideoOverviewPlayer } from "../VideoOverviewPlayer.js";
 
 // Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
@@ -36,8 +36,14 @@ const SRC = join(__dirname, "..");
 /** Schlüssel aus t("…"), tf("…") und labelKey/hintKey-Angaben im Quelltext. */
 function usedKeys(): Map<string, string> {
   const found = new Map<string, string>();
-  for (const file of readdirSync(SRC).filter((f) => /\.tsx?$/.test(f))) {
-    const text = readFileSync(join(SRC, file), "utf8");
+  const sources = readdirSync(SRC, { recursive: true, encoding: "utf8" })
+    .map((f) => f.split("\\").join("/"))
+    .filter((f) => /\.tsx?$/.test(f) && !f.startsWith("__tests__/"));
+  // Vor dem Umbau 93 .ts/.tsx-Dateien flach in src/; rekursiv dürfen es nicht weniger sein.
+  expect(sources.length).toBeGreaterThanOrEqual(93);
+  for (const path of sources) {
+    const file = path.slice(path.lastIndexOf("/") + 1);
+    const text = readFileSync(join(SRC, path), "utf8");
     for (const m of text.matchAll(/\bt[f]?\(\s*"([A-Za-z0-9]+)"/g)) {
       if (m[1]) found.set(`${file}|${m[1]}`, file);
     }

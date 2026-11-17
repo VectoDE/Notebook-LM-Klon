@@ -1,7 +1,8 @@
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
-import { trapTabKey } from "./focus-trap.js";
-import { Icon } from "./Icon.js";
-import { type PasskeyCredentials, registerPasskey } from "./passkey-client.js";
+import { useReturnFocus } from "@/hooks/useReturnFocus.js";
+import { useTheme } from "@/hooks/useTheme.js";
+import { trapTabKey } from "@/lib/a11y/focus-trap.js";
+import { type PasskeyCredentials, registerPasskey } from "@/services/api/passkey-client.js";
 import {
   type AuthCallResult,
   authErrorKey,
@@ -11,9 +12,8 @@ import {
   resolveTurnstileSiteKey,
   type SiteKeyResolution,
   type TurnstileApi
-} from "./turnstile-client.js";
-import { useReturnFocus } from "./useReturnFocus.js";
-import { useTheme } from "./useTheme.js";
+} from "@/services/api/turnstile-client.js";
+import { Icon } from "./Icon.js";
 
 export interface SignInDialogProps {
   readonly isOpen: boolean;

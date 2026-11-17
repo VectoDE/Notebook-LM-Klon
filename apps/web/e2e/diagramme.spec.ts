@@ -11,7 +11,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 const assets = resolve(import.meta.dirname, "../../../docs/assets");
 const fontData = (file: string): string =>
-  readFileSync(resolve(import.meta.dirname, "../src/fonts", file)).toString("base64");
+  readFileSync(resolve(import.meta.dirname, "../src/assets/fonts", file)).toString("base64");
 const inter = fontData("inter-latin-wght-normal.woff2");
 const mono = fontData("jetbrains-mono-latin-wght-normal.woff2");
 /**

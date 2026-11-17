@@ -9,7 +9,7 @@ import { chooseDesign, DESIGNS, findLayoutProblems, openPanel } from "./helpers"
  */
 
 const LS = JSON.parse(
-  readFileSync(new URL("../src/locales/de-x-ls.json", import.meta.url), "utf8")
+  readFileSync(new URL("../src/i18n/locales/de-x-ls.json", import.meta.url), "utf8")
 ) as Record<string, string>;
 
 async function openSettings(page: Page) {

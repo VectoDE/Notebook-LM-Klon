@@ -7,23 +7,27 @@ import {
   useRef,
   useState
 } from "react";
-import type { FetchLike } from "./comments-client.js";
-import { EmptyState } from "./EmptyState.js";
-import { trapTabKey } from "./focus-trap.js";
-import { Icon } from "./Icon.js";
-import { LazyCommentThread } from "./lazy-viewers.js";
-import { browserStorage, shouldReduceMotion } from "./theme-preferences.js";
-import { type SourceUrlError, validateSourceUrl } from "./url-validation.js";
-import { useReturnFocus } from "./useReturnFocus.js";
-import { useTheme } from "./useTheme.js";
-import { ViewToggle } from "./ViewToggle.js";
+import { useReturnFocus } from "@/hooks/useReturnFocus.js";
+import { useTheme } from "@/hooks/useTheme.js";
+import { trapTabKey } from "@/lib/a11y/focus-trap.js";
+import { type SourceUrlError, validateSourceUrl } from "@/lib/utils/url-validation.js";
 import {
   readSourcesView,
   type SourcesView,
   storeView,
   VIEW_STORAGE_KEYS
-} from "./view-preferences.js";
-import type { CitationLocation, PanelFocusAttributes, WorkspaceSource } from "./workspace-types.js";
+} from "@/preferences/view-preferences.js";
+import type { FetchLike } from "@/services/api/comments-client.js";
+import { browserStorage, shouldReduceMotion } from "@/theme/theme-preferences.js";
+import type {
+  CitationLocation,
+  PanelFocusAttributes,
+  WorkspaceSource
+} from "@/types/workspace-types.js";
+import { EmptyState } from "./EmptyState.js";
+import { Icon } from "./Icon.js";
+import { LazyCommentThread } from "./lazy-viewers.js";
+import { ViewToggle } from "./ViewToggle.js";
 
 export interface SourcesPanelProps {
   readonly sources: readonly WorkspaceSource[];

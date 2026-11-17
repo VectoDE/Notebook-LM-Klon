@@ -1,5 +1,5 @@
 /**
- * Schreibt die Farbblöcke in apps/web/src/themes.css aus design-tokens.ts neu
+ * Schreibt die Farbblöcke in apps/web/src/styles/themes.css aus design-tokens.ts neu
  * (zwischen den Markierungen @tokens:start und @tokens:end).
  *
  * Aufruf: pnpm --filter @notebook-lm/web themes:generate
@@ -8,9 +8,9 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { buildThemeCss } from "../src/design-tokens.ts";
+import { buildThemeCss } from "../src/theme/design-tokens.ts";
 
-const file = resolve(import.meta.dirname, "../src/themes.css");
+const file = resolve(import.meta.dirname, "../src/styles/themes.css");
 const css = readFileSync(file, "utf8");
 const start = "/* @tokens:start */";
 const end = "/* @tokens:end */";

@@ -15,25 +15,14 @@ import {
   useRef,
   useState
 } from "react";
-import { AppearanceControls, type UserRole } from "./AppearanceControls.js";
-import { afterSettled } from "./after-settled.js";
-import { BrandLogo } from "./BrandLogo.js";
-import { type ChatMessage, ChatPanel } from "./ChatPanel.js";
-import {
-  ChatApiError,
-  errorKeyForStatus,
-  fetchChatHistory,
-  mapCitations,
-  streamChat,
-  technicalErrorDetail
-} from "./chat-client.js";
-import { chatToMarkdown } from "./chat-export.js";
-import { triggerBrowserDownload } from "./download.js";
-import { wipeLocalData } from "./encrypted-store.js";
-import { FOCUSABLE_SELECTOR, trapTabKey } from "./focus-trap.js";
-import { GraphViewer } from "./GraphViewer.js";
-import { Icon, type IconName } from "./Icon.js";
-import { buildKnowledgeGraph } from "./knowledge-graph.js";
+import type { StructuredData } from "@/data/structured-demo.js";
+import { useNotebookSync } from "@/hooks/useNotebookSync.js";
+import { documentLanguage, useTheme } from "@/hooks/useTheme.js";
+import { FOCUSABLE_SELECTOR, trapTabKey } from "@/lib/a11y/focus-trap.js";
+import { chatToMarkdown } from "@/lib/export/chat-export.js";
+import { triggerBrowserDownload } from "@/lib/export/download.js";
+import { buildKnowledgeGraph } from "@/lib/graph/knowledge-graph.js";
+import { afterSettled } from "@/lib/utils/after-settled.js";
 import {
   type CollapsedPanels,
   type CollapsiblePanel,
@@ -44,34 +33,49 @@ import {
   storeChatId,
   storeCollapsedPanels,
   storeNotebookTitle
-} from "./layout-preferences.js";
+} from "@/preferences/layout-preferences.js";
 import {
-  LazySettingsDrawer as SettingsDrawer,
-  LazyShareDialog as ShareDialog,
-  LazySignInDialog as SignInDialog
-} from "./lazy-viewers.js";
-import { signOutAndWipe } from "./local-session.js";
-import { NotebookTitle } from "./NotebookTitle.js";
-import { hasLocalModelFlag } from "./offline-chat-flag.js";
-import type { OfflineChat } from "./offline-chat-ui.js";
-import { PanelRail, PanelToggle, RailButton } from "./PanelRail.js";
-import { LegalFooter } from "./PrivacyCenter.js";
-import { isSourceUsable, SOURCE_FILE_ACCEPT, SourcesPanel } from "./SourcesPanel.js";
-import { StudioPanel, type StudioTool } from "./StudioPanel.js";
-import type { UploadSourceResult } from "./source-upload-client.js";
+  ChatApiError,
+  errorKeyForStatus,
+  fetchChatHistory,
+  mapCitations,
+  streamChat,
+  technicalErrorDetail
+} from "@/services/api/chat-client.js";
+import type { UploadSourceResult } from "@/services/api/source-upload-client.js";
 import {
   createPendingSource,
   markSourceFailed,
   markSourceReady,
   uploadErrorKey
-} from "./source-uploads.js";
-import type { StructuredData } from "./structured-demo.js";
-import { describeSyncStatus } from "./sync-status-text.js";
+} from "@/services/api/source-uploads.js";
+import { hasLocalModelFlag } from "@/services/llm/offline-chat-flag.js";
+import { wipeLocalData } from "@/services/storage/encrypted-store.js";
+import { signOutAndWipe } from "@/services/storage/local-session.js";
+import { describeSyncStatus } from "@/services/sync/sync-status-text.js";
+import { browserStorage, readStoredModel, storeModel } from "@/theme/theme-preferences.js";
+import type {
+  CitationLocation,
+  PanelFocusAttributes,
+  WorkspaceSource
+} from "@/types/workspace-types.js";
+import { AppearanceControls, type UserRole } from "./AppearanceControls.js";
+import { BrandLogo } from "./BrandLogo.js";
+import { type ChatMessage, ChatPanel } from "./ChatPanel.js";
+import { GraphViewer } from "./GraphViewer.js";
+import { Icon, type IconName } from "./Icon.js";
+import {
+  LazySettingsDrawer as SettingsDrawer,
+  LazyShareDialog as ShareDialog,
+  LazySignInDialog as SignInDialog
+} from "./lazy-viewers.js";
+import { NotebookTitle } from "./NotebookTitle.js";
+import type { OfflineChat } from "./offline-chat-ui.js";
+import { PanelRail, PanelToggle, RailButton } from "./PanelRail.js";
+import { LegalFooter } from "./PrivacyCenter.js";
+import { isSourceUsable, SOURCE_FILE_ACCEPT, SourcesPanel } from "./SourcesPanel.js";
+import { StudioPanel, type StudioTool } from "./StudioPanel.js";
 import { Toast, type ToastMessage } from "./Toast.js";
-import { browserStorage, readStoredModel, storeModel } from "./theme-preferences.js";
-import { useNotebookSync } from "./useNotebookSync.js";
-import { documentLanguage, useTheme } from "./useTheme.js";
-import type { CitationLocation, PanelFocusAttributes, WorkspaceSource } from "./workspace-types.js";
 
 export const DEFAULT_MINDMAP: MindmapNode = {
   id: "cf_root",
@@ -134,7 +138,8 @@ export const DEFAULT_QUIZ: QuizQuestion[] = [
 ];
 
 /** Demo-Beziehungsgraph (Issue #238), erst beim Umschalten geladen. */
-const loadDemoEntityGraph = () => import("./entity-graph-view.js").then((m) => m.DEMO_ENTITY_GRAPH);
+const loadDemoEntityGraph = () =>
+  import("@/lib/graph/entity-graph-view.js").then((m) => m.DEMO_ENTITY_GRAPH);
 
 export const DEFAULT_SOURCES: WorkspaceSource[] = [
   {
@@ -168,7 +173,7 @@ export const DEFAULT_SOURCES: WorkspaceSource[] = [
  * Die Prüfung braucht zod; sie läuft deshalb nach dem ersten Rendern aus einem eigenen Block.
  */
 const loadStructuredDemo = (): Promise<StructuredData> =>
-  import("./structured-demo.js").then((m) => m.buildStructuredDemo(DEFAULT_SOURCES));
+  import("@/data/structured-demo.js").then((m) => m.buildStructuredDemo(DEFAULT_SOURCES));
 
 /**
  * Sprache der Demo-Inhalte (Issue #323): Zusammenfassung, Lernkarten und Quiz sind deutsch,
@@ -277,8 +282,8 @@ export type SourceFileUploader = (file: File, notebookId: string) => Promise<Upl
  */
 const defaultUploadSourceFile: SourceFileUploader = async (file, notebookId) => {
   const [{ uploadSource }, { parseFileInWorker }] = await Promise.all([
-    import("./source-upload-client.js"),
-    import("./ingest-client.js")
+    import("@/services/api/source-upload-client.js"),
+    import("@/services/api/ingest-client.js")
   ]);
   return uploadSource({ notebookId, file, parse: (f, mimeType) => parseFileInWorker(f, mimeType) });
 };

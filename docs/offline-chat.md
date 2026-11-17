@@ -35,7 +35,7 @@ Alle Zahlen für die 4-Bit-Fassung `q4f16_1` aus der Modellliste von WebLLM 0.2.
 | gemma-2-2b-it | Gemma Terms of Use mit Prohibited Use Policy | 1,5 GB | – | mehrsprachig |
 | Phi-3.5-mini-instruct | MIT | 2,2 GB | 3,7 GB | mehrsprachig; zu groß für viele Laptops |
 
-Gewählt ist Qwen2.5-1.5B-Instruct: freie Lizenz ohne Nutzungsbeschränkung, Deutsch ausdrücklich genannt, unter 1 GB Download und unter 2 GB Grafikspeicher. Llama und Gemma wären technisch möglich, bringen aber eigene Nutzungsbedingungen mit, die an Endnutzer weitergegeben werden müssten. Die Wahl steht in `apps/web/src/local-llm-config.ts` und lässt sich dort ändern. Rechtlich verbindlich ist das nicht; vor einem kommerziellen Einsatz sollte jemand mit juristischer Ausbildung die Lizenzen ansehen.
+Gewählt ist Qwen2.5-1.5B-Instruct: freie Lizenz ohne Nutzungsbeschränkung, Deutsch ausdrücklich genannt, unter 1 GB Download und unter 2 GB Grafikspeicher. Llama und Gemma wären technisch möglich, bringen aber eigene Nutzungsbedingungen mit, die an Endnutzer weitergegeben werden müssten. Die Wahl steht in `apps/web/src/services/llm/local-llm-config.ts` und lässt sich dort ändern. Rechtlich verbindlich ist das nicht; vor einem kommerziellen Einsatz sollte jemand mit juristischer Ausbildung die Lizenzen ansehen.
 
 ## Ablauf
 
@@ -100,9 +100,9 @@ Lighthouse begrenzt Skripte auf 180 000 Byte Transfer. Auf `main` waren es 177 8
 
 | Test | Was er belegt |
 | --- | --- |
-| `apps/web/src/__tests__/local-llm.test.ts` | WebGPU-Prüfung, Speicherprüfung, Laden nur mit Zustimmung, Fortschritt, ein Download bei parallelen Aufrufen, Cache ohne neue Zustimmung, nie stillschweigend laden, Fehlerarten, Entfernen, gesperrtes `localStorage`, Abbruch |
-| `apps/web/src/__tests__/offline-chat.test.ts` | Wahl des Wegs online/offline, lokale Suche, Prompt DE/EN, Marker entfernen, Chat ohne Netz mit gemockter Laufzeit, Fehlertexte, beide Kataloge gleich |
-| `apps/web/src/__tests__/local-llm-webllm.test.ts` | WebLLM gemockt: gepinnte URLs, SRI, Cache Storage, Fortschritt, Stream, Abbruch |
+| `apps/web/tests/unit/services/llm/local-llm.test.ts` | WebGPU-Prüfung, Speicherprüfung, Laden nur mit Zustimmung, Fortschritt, ein Download bei parallelen Aufrufen, Cache ohne neue Zustimmung, nie stillschweigend laden, Fehlerarten, Entfernen, gesperrtes `localStorage`, Abbruch |
+| `apps/web/tests/unit/services/llm/offline-chat.test.ts` | Wahl des Wegs online/offline, lokale Suche, Prompt DE/EN, Marker entfernen, Chat ohne Netz mit gemockter Laufzeit, Fehlertexte, beide Kataloge gleich |
+| `apps/web/tests/unit/services/llm/local-llm-webllm.test.ts` | WebLLM gemockt: gepinnte URLs, SRI, Cache Storage, Fortschritt, Stream, Abbruch |
 | `apps/web/e2e/offline-chat.spec.ts` | Chromium mit `context.setOffline(true)` und ersetzter Laufzeit: Zustimmung mit Größe, Abbrechen lädt nichts, Modus-Wechsel online/offline, lokale Antwort ohne Zitat-Pillen mit Auszügen, Rückkehr zum Server, offline ohne Modell, ohne WebGPU, Server nicht erreichbar, Neuladen aus dem Cache, Entfernen; die Startseite lädt nichts vom Offline-Teil |
 
 In CI wird nie ein echtes Modell geladen. Ein Lauf mit echtem Modell ist in diesem Issue nicht belegt; er braucht einen Rechner mit WebGPU und 0,9 GB Download.

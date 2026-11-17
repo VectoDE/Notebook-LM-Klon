@@ -1,10 +1,10 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { ThemeProvider } from "@/hooks/useTheme.js";
+import { AREA_DE, AREA_EN } from "@/i18n/catalogs/translations-areas.js";
+import { TURNSTILE_TEST_SITE_KEY } from "@/services/api/turnstile-client.js";
 import { SignInDialog } from "../SignInDialog.js";
-import { AREA_DE, AREA_EN } from "../translations-areas.js";
-import { TURNSTILE_TEST_SITE_KEY } from "../turnstile-client.js";
-import { ThemeProvider } from "../useTheme.js";
 
 function render(props: Parameters<typeof SignInDialog>[0]): string {
   return renderToStaticMarkup(

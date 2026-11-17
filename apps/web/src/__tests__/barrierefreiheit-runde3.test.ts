@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
+import { AREA_DE, AREA_EN } from "@/i18n/catalogs/translations-areas.js";
+import { validateSourceUrl } from "@/lib/utils/url-validation.js";
 import { ChatPanel } from "../ChatPanel.js";
 import { FlashcardsViewer } from "../FlashcardsViewer.js";
 import { preloadStudioViewers } from "../lazy-viewers.js";
@@ -10,8 +12,6 @@ import { MindmapViewer } from "../MindmapViewer.js";
 import { QuizViewer } from "../QuizViewer.js";
 import { SourcesPanel } from "../SourcesPanel.js";
 import { StudioPanel } from "../StudioPanel.js";
-import { AREA_DE, AREA_EN } from "../translations-areas.js";
-import { validateSourceUrl } from "../url-validation.js";
 import { DEFAULT_CONTENT_LANGS, DEFAULT_SOURCES, WorkspaceLayout } from "../WorkspaceLayout.js";
 
 // Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
