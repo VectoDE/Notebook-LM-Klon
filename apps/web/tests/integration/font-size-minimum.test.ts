@@ -14,7 +14,7 @@ const ROOT_PX = 16;
 
 const files = readdirSync(SRC, { recursive: true, encoding: "utf8" })
   .map((f) => f.split("\\").join("/"))
-  .filter((f) => (f.endsWith(".tsx") || f.endsWith(".css")))
+  .filter((f) => f.endsWith(".tsx") || f.endsWith(".css"))
   .map((f) => ({ name: f, text: readFileSync(resolve(SRC, f), "utf8") }));
 
 /** Wandelt "0.875rem", "14px", "1.1em" oder "13" in Pixel um (rem/em auf 16 px). */

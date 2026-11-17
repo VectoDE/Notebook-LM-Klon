@@ -49,7 +49,10 @@ describe("URL-Prüfung im Import-Dialog (#323)", () => {
   });
 
   it("der Dialog nutzt eigene Meldungen statt der Browserblase", () => {
-    const src = readFileSync(resolve(__dirname, "../../src/components/panels/SourcesPanel.tsx"), "utf8");
+    const src = readFileSync(
+      resolve(__dirname, "../../src/components/panels/SourcesPanel.tsx"),
+      "utf8"
+    );
     expect(src).toContain("noValidate");
     expect(src).toContain("aria-invalid={urlError");
     expect(src).toContain("aria-describedby={urlError ? urlErrorId");
