@@ -15,7 +15,7 @@ Vielen Dank für dein Interesse an **RelationNotes**! Dieses Dokument beschreibt
 5. **Striktes Verbot von KI-Kennzeichnungen:**
    - Weder in Commit-Messages noch in Pull Requests, Issues, Kommentaren, Quellcode oder Dokumentation dürfen Zeilen wie `Generated with ...` oder `Co-Authored-By: ...` enthalten sein.
 6. **Striktes UTF-8 ohne BOM / Kein Mojibake:**
-   - Alle Dateien müssen als reines UTF-8 ohne BOM mit `LF`-Zeilenenden gespeichert werden (`packages/shared/src/__tests__/encoding.test.ts` prüft dies bei jedem Testlauf).
+   - Alle Dateien müssen als reines UTF-8 ohne BOM mit `LF`-Zeilenenden gespeichert werden (`packages/shared/tests/unit/lib/encoding.test.ts` prüft dies bei jedem Testlauf).
 
 ## 2. Lokale Qualitäts- & Sicherheitsprüfungen vor jedem Push
 

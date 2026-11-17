@@ -14,7 +14,7 @@ import {
   type QuizQuestion,
   serializeFlashcardsToAnkiCsv,
   type TimelineArtifactPayload
-} from "../studio-artifacts.js";
+} from "../../../src/domain/studio-artifacts.js";
 
 describe("Studio Artifacts Utilities & Generators (Sub-Issues #122, #123, #124)", () => {
   describe("Mindmap Tree Traversals", () => {

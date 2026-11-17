@@ -98,7 +98,12 @@ export default defineConfig({
         "apps/web/src/privacy-texts.ts",
         "apps/web/src/gtm.ts"
       ],
-      exclude: ["**/__tests__/**", "**/*.d.ts"],
+      exclude: [
+        "**/__tests__/**",
+        "**/*.d.ts",
+        // Barrels in Unterordnern enthalten nur Re-Exporte (Prüfung folgt mit dem Import-Graph-Test)
+        "packages/shared/src/*/index.ts"
+      ],
       thresholds: {
         lines: 100,
         functions: 100,

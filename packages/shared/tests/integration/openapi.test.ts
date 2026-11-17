@@ -16,7 +16,7 @@ import {
   ProviderTypeSchema,
   SearchQueryBodySchema,
   SearchResponseSchema
-} from "../index.js";
+} from "../../src/index.js";
 
 /**
  * OpenAPI-Abdeckung (Issue #150).
@@ -31,7 +31,8 @@ import {
  * absichtlich fehlschlagen.
  */
 
-const REPO_ROOT = join(import.meta.dirname, "../../../..");
+import { REPO_ROOT } from "../support/paths.js";
+
 const WORKER_SRC = join(REPO_ROOT, "apps/worker/src");
 
 const MOUNT_PREFIX: Readonly<Record<string, string>> = {

@@ -14,7 +14,7 @@ import {
   locateQuote,
   normalizeEntityExtraction,
   unescapeXml
-} from "../entity-graph.js";
+} from "../../../src/domain/entity-graph.js";
 
 const SOURCES = [
   {

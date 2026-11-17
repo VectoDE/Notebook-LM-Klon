@@ -4,7 +4,7 @@
     "title": "RelationNotes API",
     "version": "0.1.0",
     "summary": "HTTP-API des RelationNotes-Workers",
-    "description": "Alle Endpunkte liegen unter `/api/v1`. Fehler folgen RFC 9457 (`application/problem+json`). Bis auf die als öffentlich markierten Endpunkte ist eine Sitzung (Cookie) nötig; schreibende Aufrufe prüfen zusätzlich die Notebook-Rolle (viewer, editor, owner). Neue Routen müssen hier eingetragen werden: `packages/shared/src/__tests__/openapi.test.ts` schlägt sonst fehl.",
+    "description": "Alle Endpunkte liegen unter `/api/v1`. Fehler folgen RFC 9457 (`application/problem+json`). Bis auf die als öffentlich markierten Endpunkte ist eine Sitzung (Cookie) nötig; schreibende Aufrufe prüfen zusätzlich die Notebook-Rolle (viewer, editor, owner). Neue Routen müssen hier eingetragen werden: `packages/shared/tests/integration/openapi.test.ts` schlägt sonst fehl.",
     "license": {
       "name": "MIT",
       "identifier": "MIT"
