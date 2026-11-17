@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
+import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
 
 function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } {
   const db = new DatabaseSync(":memory:");

@@ -104,8 +104,8 @@ noch nicht dokumentiert ist (Anfrage-Entwurf: Issue #249).
 
 | Teil | Datei |
 |---|---|
-| Adapter (`/chat/completions` mit und ohne Stream, `/embeddings`, `/models`) | `apps/worker/src/openai-compatible-provider.ts` |
-| Schutz für Nutzer-Endpunkte | `apps/worker/src/endpoint-guard.ts` |
+| Adapter (`/chat/completions` mit und ohne Stream, `/embeddings`, `/models`) | `apps/worker/src/providers/openai-compatible-provider.ts` |
+| Schutz für Nutzer-Endpunkte | `apps/worker/src/security/endpoint-guard.ts` |
 | Routen `GET/PUT/DELETE /api/v1/providers/custom`, `POST /api/v1/providers/custom/test` | `apps/worker/src/custom-endpoint-routes.ts` |
 | Tabelle `provider_endpoints` (Adresse, Modelle; der Schlüssel liegt verschlüsselt in `provider_keys`) | `apps/worker/migrations/0006_custom_endpoints.sql` |
 | Einstellung im UI (Deutsch und Englisch) | `apps/web/src/CustomEndpointSettings.tsx` |
@@ -117,7 +117,7 @@ private und lokale Ziele bleiben gesperrt (Liste unten). Optional kann der Betre
 Die Basis-URL endet auf den Versionspfad, z. B. `https://api.example.com/v1`; der Adapter hängt
 `/chat/completions`, `/embeddings` und `/models` an.
 
-**Regeln für jeden Aufruf** (`apps/worker/src/endpoint-guard.ts`):
+**Regeln für jeden Aufruf** (`apps/worker/src/security/endpoint-guard.ts`):
 
 - nur `https:` auf Port 443, keine Zugangsdaten, Query-Parameter oder Fragmente in der Adresse;
 - gesperrte IP-Literale in jeder Schreibweise (dezimal, oktal, hex, gekürzt; IPv4-mapped, NAT64,
@@ -157,7 +157,7 @@ TLS-Namen lässt sich nicht vorgeben. Ein Angreifer mit eigener Domain und sehr 
 zwischen Prüfung und Verbindungsaufbau die Antwort wechseln (TOCTOU). Auf Workers laufen ausgehende
 Anfragen über das Cloudflare-Netz; private Netze des Betreibers sind von dort nicht erreichbar, das
 begrenzt den Schaden. Beim Betrieb als Node-Server (`apps/worker/src/node-server.ts`) gibt es diesen
-Netzabstand nicht. Dort laufen Aufrufe eigener Endpunkte deshalb über `apps/worker/src/node/pinned-fetch.ts`:
+Netzabstand nicht. Dort laufen Aufrufe eigener Endpunkte deshalb über `apps/worker/src/platform/node/pinned-fetch.ts`:
 Der Name wird beim Verbindungsaufbau aufgelöst, jede gelieferte Adresse geprüft, und der Socket nutzt genau
 diese Adressen. Liefert der Name auch nur eine private, lokale oder reservierte Adresse, wird nicht
 verbunden. Ein Wechsel der DNS-Antwort zwischen Prüfung und Verbindung bringt damit nichts. Wer interne

@@ -4,12 +4,20 @@ import { DatabaseSync } from "node:sqlite";
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import { sessionMiddleware } from "../auth-middleware.js";
-import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
+import { sessionMiddleware } from "@/middleware/auth-middleware.js";
+import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
+import {
+  DEV_SESSION_COOKIE_NAME,
+  SESSION_COOKIE_NAME,
+  SessionManager
+} from "@/security/session.js";
+import { TURNSTILE_TEST_SECRET_ALWAYS_PASSES } from "@/security/turnstile.js";
+import {
+  CHALLENGE_TTL_MS,
+  PasskeyService,
+  type WebAuthnEngine
+} from "@/services/passkey-service.js";
 import { createPasskeyRoutes } from "../passkey-routes.js";
-import { CHALLENGE_TTL_MS, PasskeyService, type WebAuthnEngine } from "../passkey-service.js";
-import { DEV_SESSION_COOKIE_NAME, SESSION_COOKIE_NAME, SessionManager } from "../session.js";
-import { TURNSTILE_TEST_SECRET_ALWAYS_PASSES } from "../turnstile.js";
 
 function createSqliteAdapter(): { adapter: DatabaseAdapter; close: () => void } {
   const db = new DatabaseSync(":memory:");

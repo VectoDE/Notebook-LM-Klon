@@ -56,7 +56,7 @@ describe("Deploy-Workflow mit manueller Freigabe (#264)", () => {
       "pnpm --filter @notebook-lm/web build",
       "wrangler d1 migrations apply notebook-lm-db --remote",
       "wrangler deploy",
-      "tsx src/smoke-check.ts"
+      "tsx src/ops/smoke-check.ts"
     ].map((cmd) => workflow.indexOf(cmd));
     expect(order.every((i) => i > 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);

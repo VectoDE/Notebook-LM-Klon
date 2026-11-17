@@ -127,7 +127,7 @@ jobs:
         # Bis zu drei Versuche: direkt nach dem Deploy braucht die Verteilung manchmal Sekunden.
         run: |
           for attempt in 1 2 3; do
-            if pnpm exec tsx src/smoke-check.ts "$DEPLOY_URL"; then
+            if pnpm exec tsx src/ops/smoke-check.ts "$DEPLOY_URL"; then
               exit 0
             fi
             echo "Smoke-Check Versuch ${attempt} fehlgeschlagen."

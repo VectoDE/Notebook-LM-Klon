@@ -8,9 +8,9 @@ import {
   UpdateCommentBodySchema
 } from "@notebook-lm/shared";
 import type { Context, Hono } from "hono";
-import { requireAuth, requireNotebookRole } from "./auth-middleware.js";
-import type { CoreRepository, DatabaseAdapter } from "./core-repository.js";
-import { type NotebookRole, resolveNotebookRole } from "./route-guards.js";
+import { requireAuth, requireNotebookRole } from "@/middleware/auth-middleware.js";
+import { type NotebookRole, resolveNotebookRole } from "@/middleware/route-guards.js";
+import type { CoreRepository, DatabaseAdapter } from "@/repositories/core-repository.js";
 
 /**
  * Kommentare an Quellen und Notizen mit Erwähnungen (Issue #353).

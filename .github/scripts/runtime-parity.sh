@@ -42,7 +42,7 @@ for _ in $(seq 1 90); do
 done
 cat /tmp/health.json; echo
 
-pnpm exec tsx src/smoke-check.ts "${BASE}"
+pnpm exec tsx src/ops/smoke-check.ts "${BASE}"
 
 code="$(curl -s -o /tmp/guest.json -w '%{http_code}' -X POST "${BASE}/api/v1/auth/guest" \
   -H 'content-type: application/json' -H "origin: ${BASE}" \

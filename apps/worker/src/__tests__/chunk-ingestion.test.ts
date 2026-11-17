@@ -1,8 +1,8 @@
 import type { SourceRow } from "@notebook-lm/shared";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
+import { RagRepository } from "@/repositories/rag-repository.js";
 import { notifyNotebookDO, registerChunkIngestionRoutes } from "../chunk-ingestion.js";
-import { RagRepository } from "../rag-repository.js";
 
 // Helper to create in-memory database mock supporting exec, run, query, queryOne and batch
 function createMockDb(): {

@@ -1,6 +1,6 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import type { Hono } from "hono";
-import type { DatabaseAdapter } from "./core-repository.js";
+import type { DatabaseAdapter } from "@/repositories/core-repository.js";
 
 /**
  * Cookie-free usage measurement (Issue #262).

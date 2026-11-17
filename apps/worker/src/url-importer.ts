@@ -7,23 +7,23 @@ import {
   z
 } from "@notebook-lm/shared";
 import type { Hono } from "hono";
-import { resolveAppConfig } from "./config.js";
-import { detectGoogleDocsUrl } from "./gdoc-detector.js";
-import { extractArticleFromHtml } from "./html-extractor.js";
-import {
-  incrementUserQuota,
-  localizedQuotaReason,
-  quotaDenialStatus,
-  verifyQuotaAction
-} from "./quota-guard.js";
-import type { RagRepository } from "./rag-repository.js";
+import { resolveAppConfig } from "@/config/config.js";
+import { checkTextWordLimit, sourceWordLimitProblem } from "@/middleware/word-limit.js";
+import type { RagRepository } from "@/repositories/rag-repository.js";
 import {
   type SafeFetchOptions,
   SsrSecurityError,
   StreamTooLargeError,
   safeFetchWithGuard
-} from "./ssrf-guard.js";
-import { checkTextWordLimit, sourceWordLimitProblem } from "./word-limit.js";
+} from "@/security/ssrf-guard.js";
+import { detectGoogleDocsUrl } from "@/services/gdoc-detector.js";
+import { extractArticleFromHtml } from "@/services/html-extractor.js";
+import {
+  incrementUserQuota,
+  localizedQuotaReason,
+  quotaDenialStatus,
+  verifyQuotaAction
+} from "@/services/quota-guard.js";
 
 export const ImportUrlRequestSchema = z.object({
   url: z.string().url("Gültige URL erforderlich (http:// oder https://)")

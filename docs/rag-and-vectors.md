@@ -79,7 +79,7 @@ flowchart TD
 Bis hier kamen Vektoren nur, wenn der Client sie beim Chunk-Ingest mitschickte. Der Upload eigener
 Quellen schickt keine, die Vektorsuche blieb deshalb leer und es zählte nur FTS5. Jetzt rechnet der
 Worker fehlende Embeddings selbst über das Workers-AI-Binding `AI`
-([`apps/worker/src/embeddings.ts`](../apps/worker/src/embeddings.ts)).
+([`apps/worker/src/services/embeddings.ts`](../apps/worker/src/services/embeddings.ts)).
 
 ### Modellwahl: `@cf/google/embeddinggemma-2`
 

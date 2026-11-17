@@ -3,8 +3,8 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it } from "vitest";
-import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
-import { RagRepository } from "../rag-repository.js";
+import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
+import { RagRepository } from "@/repositories/rag-repository.js";
 import {
   buildContentDisposition,
   createR2PresignedPutUrl,

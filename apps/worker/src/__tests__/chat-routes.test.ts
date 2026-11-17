@@ -9,7 +9,10 @@ import type {
 } from "@notebook-lm/shared";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AutoRouter } from "../auto-router.js";
+import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
+import { RagRepository } from "@/repositories/rag-repository.js";
+import { KeyVault } from "@/security/key-vault.js";
+import { AutoRouter } from "@/services/auto-router.js";
 import {
   decodeHistoryCursor,
   encodeHistoryCursor,
@@ -18,9 +21,6 @@ import {
   NO_EVIDENCE_ANSWER,
   registerChatRoutes
 } from "../chat-routes.js";
-import { CoreRepository, type DatabaseAdapter } from "../core-repository.js";
-import { KeyVault } from "../key-vault.js";
-import { RagRepository } from "../rag-repository.js";
 
 function createMockD1(): { db: D1Database; adapter: DatabaseAdapter; close: () => void } {
   const sqlite = new DatabaseSync(":memory:");

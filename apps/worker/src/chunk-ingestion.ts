@@ -5,12 +5,12 @@ import {
   quantizeFloat32ToInt8
 } from "@notebook-lm/shared";
 import type { Hono } from "hono";
-import type { AuditLogger } from "./audit-log.js";
-import { resolveAppConfig } from "./config.js";
-import type { CoreRepository } from "./core-repository.js";
-import { documentInput, EMBEDDING_MODEL, embedTexts } from "./embeddings.js";
-import type { RagRepository } from "./rag-repository.js";
-import { exceedsWordLimit, sourceWordLimitProblem } from "./word-limit.js";
+import { resolveAppConfig } from "@/config/config.js";
+import { exceedsWordLimit, sourceWordLimitProblem } from "@/middleware/word-limit.js";
+import type { CoreRepository } from "@/repositories/core-repository.js";
+import type { RagRepository } from "@/repositories/rag-repository.js";
+import type { AuditLogger } from "@/security/audit-log.js";
+import { documentInput, EMBEDDING_MODEL, embedTexts } from "@/services/embeddings.js";
 
 export const D1_STATEMENT_BATCH_LIMIT = 50;
 

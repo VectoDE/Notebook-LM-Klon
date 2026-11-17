@@ -23,7 +23,7 @@ Das Manifest wird aus `packages/shared/src/domain/provenance.ts` (`buildManifest
 | --- | --- | --- |
 | Formate, Manifest | `packages/shared/src/domain/provenance.ts` | signierbare Medienarten, Manifest-Definition |
 | API | `apps/worker/src/provenance-routes.ts` | `GET /api/v1/provenance/status`, `POST /api/v1/provenance/sign` |
-| Signierer | `apps/worker/src/node/c2pa-signer.ts` | ruft `c2patool` im Node-Server auf |
+| Signierer | `apps/worker/src/platform/node/c2pa-signer.ts` | ruft `c2patool` im Node-Server auf |
 | Oberfläche | `apps/web/src/provenance-client.ts` | signiert vor dem Download (Mindmap, Infografik), sonst ehrlicher Hinweis |
 
 `POST /api/v1/provenance/sign` braucht eine Sitzung, nimmt höchstens 64 MB und fällt unter

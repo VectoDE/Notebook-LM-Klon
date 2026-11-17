@@ -1,17 +1,17 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import { type Context, Hono } from "hono";
-import type { AuditLogger } from "./audit-log.js";
-import type { CoreRepository } from "./core-repository.js";
-import { seedDemoNotebooks } from "./demo-seeder.js";
-import type { MailAdapter } from "./mail-adapter.js";
-import { resolveClientIp } from "./rate-limiter.js";
+import type { CoreRepository } from "@/repositories/core-repository.js";
+import type { AuditLogger } from "@/security/audit-log.js";
+import { resolveClientIp } from "@/security/rate-limiter.js";
 import {
   buildSessionCookie,
   generateSessionToken,
   type SessionManager,
   sha256Hex
-} from "./session.js";
-import { requireTurnstile } from "./turnstile.js";
+} from "@/security/session.js";
+import { requireTurnstile } from "@/security/turnstile.js";
+import { seedDemoNotebooks } from "@/services/demo-seeder.js";
+import type { MailAdapter } from "@/services/mail-adapter.js";
 
 export const GUEST_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const MAGIC_LINK_TTL_MS = 15 * 60 * 1000; // 15 minutes

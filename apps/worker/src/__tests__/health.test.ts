@@ -5,7 +5,7 @@ import {
   ProblemDetailsSchema
 } from "@notebook-lm/shared";
 import { describe, expect, it } from "vitest";
-import { resolveAppConfig } from "../config.js";
+import { resolveAppConfig } from "@/config/config.js";
 import { createApp } from "../index.js";
 
 function createMockEnv(overrides?: Partial<{ APP_PROFILE: string; d1Fail: boolean }>): Env {

@@ -8,9 +8,9 @@ import {
   type ProvenanceStatus
 } from "@notebook-lm/shared";
 import type { Context, Hono } from "hono";
-import { requireAuth } from "./auth-middleware.js";
-import { readBodyLimited } from "./body-limit.js";
-import { WORKER_VERSION } from "./version.js";
+import { WORKER_VERSION } from "@/config/version.js";
+import { requireAuth } from "@/middleware/auth-middleware.js";
+import { readBodyLimited } from "@/middleware/body-limit.js";
 
 /**
  * C2PA-Herkunftsnachweis für Exporte (Issue #353).
