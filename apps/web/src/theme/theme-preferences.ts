@@ -174,7 +174,7 @@ export function applyThemeToDocument(
 
 /**
  * Schalter „Bewegung reduzieren“ (Issue #315): Attribut am <html>, das dieselben Regeln
- * auslöst wie prefers-reduced-motion: reduce (themes.css, workspace.css).
+ * auslöst wie prefers-reduced-motion: reduce (themes.css, styles/workspace/).
  */
 export const REDUCE_MOTION_ATTRIBUTE = "data-reduce-motion";
 export const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";

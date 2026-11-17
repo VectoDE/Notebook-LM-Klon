@@ -1,0 +1,59 @@
+/* ==========================================================================
+   Formularfelder
+   ========================================================================== */
+.rn-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 var(--rn-space-3);
+  border-radius: var(--rn-radius-md);
+  border: 1px solid var(--rn-color-border);
+  background: var(--rn-color-field);
+  color: var(--rn-color-text-primary);
+  font-size: var(--rn-text-base);
+}
+
+.rn-checkbox {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--rn-color-accent);
+  cursor: pointer;
+}
+
+.rn-field {
+  display: grid;
+  gap: var(--rn-space-1);
+}
+
+.rn-field label {
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+}
+
+.rn-form {
+  display: grid;
+  gap: var(--rn-space-4);
+}
+
+/* Eigene Fehlermeldung unter dem Feld (Issue #323): Text in Fehlerfarbe auf dem Panel,
+   der Rahmen des Felds wechselt zusätzlich, die Meldung trägt aber den Inhalt */
+.rn-field-error {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--rn-color-error);
+}
+
+.rn-input[aria-invalid="true"] {
+  border-color: var(--rn-color-error);
+}
+
+/* Aktionen der Einstellung „Eigener Endpunkt“ (Issue #247) */
+.rn-endpoint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rn-space-2);
+}

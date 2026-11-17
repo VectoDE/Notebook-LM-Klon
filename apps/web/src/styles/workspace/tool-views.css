@@ -1,0 +1,120 @@
+/* ==========================================================================
+   Werkzeugansichten: gemeinsamer Kopf, Fortschritt, Aktionsreihen
+   Alle Texte stehen auf geprüften Token-Flächen (panel, canvas, surface-variant,
+   highlight, error-/success-surface). Bühnenteile nur auf stage-bg.
+   ========================================================================== */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.rn-tool-view {
+  gap: var(--rn-space-4);
+}
+
+.rn-tool-view-head {
+  display: grid;
+  gap: var(--rn-space-1);
+  min-width: 0;
+}
+
+.rn-tool-view-title {
+  margin: 0;
+  font-family: var(--rn-font-family-headings);
+  /* Werkzeugtitel: Zwischenstufe unter dem Paneltitel „Studio“ */
+  font-size: var(--rn-text-lead);
+  font-weight: var(--rn-weight-heading);
+  line-height: 1.25;
+  color: var(--rn-color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.rn-tool-view-meta {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-tool-view--empty {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--rn-space-6) var(--rn-space-4);
+}
+
+.rn-tool-empty {
+  margin: 0;
+  max-width: 36ch;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-progress {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 6px;
+  border: 0;
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-surface-variant);
+  box-shadow: inset 0 0 0 1px var(--rn-color-panel-border);
+  overflow: hidden;
+  color: var(--rn-color-accent);
+}
+
+.rn-progress::-webkit-progress-bar {
+  background: transparent;
+}
+
+.rn-progress::-webkit-progress-value {
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-accent);
+  transition: width var(--rn-transition-base);
+}
+
+.rn-progress::-moz-progress-bar {
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-accent);
+}
+
+.rn-tool-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2);
+}
+
+.rn-tool-actions-row--center {
+  justify-content: center;
+}
+
+.rn-tool-actions-row--split {
+  justify-content: space-between;
+}
+
+/* Textknopf: Pille ohne Unterstrich (Issue #328), Fläche erscheint beim Überfahren */
+.rn-link-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--rn-space-3);
+  border: 0;
+  border-radius: var(--rn-radius-pill);
+  background: transparent;
+  color: var(--rn-color-primary);
+  font: inherit;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.rn-link-btn:hover {
+  background: var(--rn-color-surface-variant);
+}

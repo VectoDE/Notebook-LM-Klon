@@ -1,0 +1,146 @@
+/* ==========================================================================
+   Lernkarten
+   ========================================================================== */
+.rn-cards > .rn-flashcard {
+  flex-shrink: 0;
+}
+
+.rn-flashcard {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--rn-space-4);
+  min-height: 260px;
+  padding: var(--rn-space-5);
+  border-radius: var(--rn-radius-lg);
+  border: 1px solid var(--rn-color-panel-border);
+  background: var(--rn-color-panel);
+  box-shadow: var(--rn-color-panel-shadow);
+}
+
+.rn-flashcard[data-side="back"] {
+  border-color: var(--rn-color-primary);
+  box-shadow:
+    inset 0 3px 0 var(--rn-color-primary),
+    var(--rn-color-panel-shadow);
+}
+
+.rn-flashcard-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rn-space-2);
+}
+
+.rn-flashcard-stats {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-flashcard-text {
+  align-self: center;
+  margin: 0;
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-h3);
+  line-height: 1.4;
+  text-align: center;
+  color: var(--rn-color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.rn-flashcard-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rn-space-2);
+}
+
+.rn-ratings {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--rn-space-2);
+}
+
+.rn-rating {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-height: 56px;
+  padding: var(--rn-space-2) var(--rn-space-3);
+  border-radius: var(--rn-radius-pill);
+  border: 1px solid var(--rn-color-border);
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--rn-transition-base),
+    border-color var(--rn-transition-base);
+}
+
+.rn-rating:hover:not(:disabled) {
+  background: var(--rn-color-surface-variant);
+}
+
+/* Kartennavigation: gleiche Spalten und Ränder wie die Bewertungsreihe */
+.rn-cards .rn-tool-actions-row--split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--rn-space-2);
+}
+
+.rn-cards .rn-tool-actions-row--split .rn-btn {
+  width: 100%;
+  border-color: var(--rn-color-border);
+}
+
+.rn-cards .rn-tool-actions-row--split .rn-btn:disabled {
+  border-color: var(--rn-color-panel-border);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-flashcard-foot .rn-link-btn {
+  padding-inline: 0;
+  text-align: start;
+}
+
+.rn-rating:disabled {
+  cursor: not-allowed;
+  border-color: var(--rn-color-panel-border);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-rating[data-rating="again"]:not(:disabled) {
+  border-color: var(--rn-color-error);
+  color: var(--rn-color-error);
+}
+
+.rn-rating[data-rating="easy"]:not(:disabled) {
+  border-color: var(--rn-color-success);
+  color: var(--rn-color-success);
+}
+
+.rn-rating-label {
+  font-size: var(--rn-text-small);
+  font-weight: 700;
+}
+
+.rn-rating-key {
+  font-family: var(--rn-font-mono);
+  font-size: var(--rn-text-small);
+  color: inherit;
+}
+
+@media (max-width: 599.98px) {
+  .rn-ratings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .rn-quiz-card,
+  .rn-flashcard {
+    padding: var(--rn-space-4);
+  }
+}

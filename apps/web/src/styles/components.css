@@ -3,7 +3,7 @@
    Chat-Blasen, Studio gemischt, Ansichten-Umschalter, Quellen als Karten,
    Ergebnistabelle, Leerzustände, Hinweis-Leiste, Dialoge Vollbild/zentriert.
    Nur vorhandene Tokens; keine globalen Token- oder Grundknopf-Regeln.
-   Lädt nach workspace.css: gleiche Spezifität gewinnt hier.
+   Lädt nach styles/workspace/index.css: gleiche Spezifität gewinnt hier.
    ========================================================================== */
 
 /* --------------------------------------------------------------------------

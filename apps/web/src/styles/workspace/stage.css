@@ -1,0 +1,92 @@
+/* ==========================================================================
+   Bühne: Video-Player, Deep-Dive und Audio teilen das dunkle Bühnenmaterial.
+   Nur geprüfte Paare: stage-text, stage-muted, stage-accent auf stage-bg.
+   ========================================================================== */
+.rn-video,
+.rn-stage,
+.audio-player-container {
+  --rn-stage-line: color-mix(in srgb, var(--rn-color-stage-muted) 28%, transparent);
+  background: var(--rn-color-stage-bg);
+  color: var(--rn-color-stage-text);
+}
+
+/* Die globale Fokusregel (themes.css) liest diese Variable; auf der dunklen Bühne
+   trägt der Bühnenakzent den Ring (mind. 3:1 zu stage-bg in allen Designs).
+   Beim Video-Player gilt das nur innen: sein eigener Ring liegt außen auf dem
+   Panelgrund und behält den Seitenring (#314). */
+.rn-video > *,
+.rn-stage,
+.audio-player-container {
+  --rn-color-focus-ring: var(--rn-color-stage-accent);
+}
+
+/* Fehlerkasten im Player liegt auf der hellen Fehlerfläche: Ring in Fehlerfarbe (≥ 3:1) */
+.audio-player-container .audio-error {
+  --rn-color-focus-ring: var(--rn-color-error);
+}
+
+.rn-stage-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--rn-space-2);
+  min-height: 44px;
+  padding: 0 var(--rn-space-4);
+  border-radius: var(--rn-radius-pill);
+  border: 1px solid var(--rn-color-stage-muted);
+  background: transparent;
+  color: var(--rn-color-stage-text);
+  font: inherit;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--rn-transition-base),
+    color var(--rn-transition-base);
+}
+
+.rn-stage-btn:hover {
+  border-color: var(--rn-color-stage-text);
+}
+
+.rn-stage-btn--primary,
+.rn-stage-btn[aria-pressed="true"] {
+  border-color: var(--rn-color-stage-accent);
+  background: var(--rn-color-stage-accent);
+  color: var(--rn-color-stage-bg);
+}
+
+.rn-stage-btn--primary:hover {
+  border-color: var(--rn-color-stage-text);
+  background: var(--rn-color-stage-text);
+}
+
+.rn-stage-btn--large {
+  min-height: 52px;
+  padding: 0 var(--rn-space-6);
+  font-size: var(--rn-text-base);
+}
+
+.rn-stage-chip {
+  min-height: 44px;
+  padding: 0 var(--rn-space-3);
+  border-radius: var(--rn-radius-pill);
+  border: 1px solid var(--rn-stage-line);
+  background: transparent;
+  color: var(--rn-color-stage-muted);
+  font: inherit;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rn-stage-chip:hover {
+  color: var(--rn-color-stage-text);
+  border-color: var(--rn-color-stage-muted);
+}
+
+.rn-stage-chip[aria-current="true"] {
+  border-color: var(--rn-color-stage-accent);
+  color: var(--rn-color-stage-accent);
+  box-shadow: inset 0 0 0 1px var(--rn-color-stage-accent);
+}

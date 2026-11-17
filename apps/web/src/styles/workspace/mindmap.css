@@ -1,0 +1,300 @@
+/* ==========================================================================
+   Mindmap
+   ========================================================================== */
+.rn-mindmap {
+  min-height: 0;
+}
+
+.rn-mindmap-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--rn-space-3);
+}
+
+.rn-mindmap-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-3);
+}
+
+.rn-seg-tabs {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--rn-radius-pill);
+  border: 1px solid var(--rn-color-border);
+  background: var(--rn-color-surface-variant);
+}
+
+.rn-seg-tab {
+  min-height: 44px;
+  padding: 0 var(--rn-space-3);
+  border: 0;
+  border-radius: var(--rn-radius-pill);
+  background: transparent;
+  color: var(--rn-color-text-secondary);
+  font: inherit;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.rn-seg-tab[aria-selected="true"] {
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-primary);
+  box-shadow: inset 0 0 0 1px var(--rn-color-border);
+}
+
+/* Bei großer Schrift (200 %) bricht die Gruppe um statt über den Rand zu ragen */
+.rn-zoom {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  /* 8 px zwischen den Knöpfen: getrennte Ziele, auch mit dem Daumen (Issue #279) */
+  gap: var(--rn-space-2);
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 0 0 var(--rn-space-1);
+  border: 1px solid var(--rn-color-border);
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-panel);
+}
+
+.rn-zoom .rn-icon-btn {
+  font-size: var(--rn-text-base);
+  font-weight: 700;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-zoom-value {
+  min-width: 5ch;
+  font-family: var(--rn-font-mono);
+  font-size: var(--rn-text-small);
+  text-align: center;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-zoom .rn-btn {
+  min-height: 44px;
+  border-left: 1px solid var(--rn-color-panel-border);
+  border-radius: 0 var(--rn-radius-pill) var(--rn-radius-pill) 0;
+}
+
+.rn-mindmap-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 420px;
+  overflow: auto;
+  border-radius: var(--rn-radius-lg);
+  border: 1px solid var(--rn-color-panel-border);
+  background-color: var(--rn-color-canvas);
+  background-image: radial-gradient(var(--rn-color-panel-border) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.rn-mindmap-canvas:focus-visible {
+  outline: var(--rn-focus-outline-width) solid var(--rn-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.rn-mindmap-canvas[hidden],
+.rn-mindmap-tree[hidden] {
+  display: none;
+}
+
+.rn-mindmap-svg {
+  display: block;
+  min-width: 800px;
+  min-height: 600px;
+}
+
+.rn-mm-link {
+  fill: none;
+  stroke: var(--rn-color-border);
+  stroke-width: 2;
+}
+
+.rn-mm-node {
+  cursor: pointer;
+}
+
+.rn-mm-box {
+  fill: var(--rn-color-panel);
+  stroke: var(--rn-color-border);
+  stroke-width: 1.5;
+  transition: stroke var(--rn-transition-base);
+}
+
+.rn-mm-node:hover .rn-mm-box {
+  stroke: var(--rn-color-primary);
+}
+
+.rn-mm-node[data-kind="root"] .rn-mm-box {
+  fill: var(--rn-color-accent);
+  stroke: var(--rn-color-accent);
+  stroke-width: 2;
+}
+
+.rn-mm-node[data-kind="source"] .rn-mm-box {
+  fill: var(--rn-color-success-surface);
+  stroke: var(--rn-color-success);
+}
+
+.rn-mm-label {
+  fill: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-ui);
+  font-weight: 500;
+  pointer-events: none;
+  user-select: none;
+}
+
+.rn-mm-node[data-kind="root"] .rn-mm-label {
+  fill: var(--rn-color-accent-text);
+  font-weight: 700;
+}
+
+.rn-mm-node[data-kind="source"] .rn-mm-label {
+  fill: var(--rn-color-success);
+  font-weight: 600;
+}
+
+.rn-mm-toggle {
+  cursor: pointer;
+}
+
+.rn-mm-toggle-hit {
+  fill: transparent;
+}
+
+.rn-mm-toggle-dot {
+  fill: var(--rn-color-panel);
+  stroke: var(--rn-color-primary);
+  stroke-width: 1.5;
+}
+
+.rn-mm-toggle-sign {
+  fill: var(--rn-color-primary);
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.rn-mindmap-tree {
+  flex: 1;
+  overflow: auto;
+  padding: var(--rn-space-4);
+  border-radius: var(--rn-radius-lg);
+  border: 1px solid var(--rn-color-panel-border);
+  background: var(--rn-color-panel);
+}
+
+.rn-mindmap-hint {
+  margin: 0 0 var(--rn-space-3);
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-tree {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-tree-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rn-space-2);
+  min-height: 44px;
+  padding: 0 var(--rn-space-1) 0 var(--rn-space-3);
+  border-radius: var(--rn-radius-sm);
+  color: var(--rn-color-text-primary);
+  cursor: pointer;
+}
+
+.rn-tree-item:hover {
+  background: var(--rn-color-surface-variant);
+}
+
+.rn-tree-item[data-active="true"] {
+  background: var(--rn-color-highlight);
+  box-shadow: inset 3px 0 0 var(--rn-color-primary);
+}
+
+.rn-tree-item:focus-visible {
+  outline: var(--rn-focus-outline-width) solid var(--rn-color-focus-ring);
+  outline-offset: -2px;
+}
+
+.rn-tree-label {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: var(--rn-space-2);
+  min-width: 0;
+  padding-block: var(--rn-space-2);
+}
+
+/* Hängender Einzug: Umbrüche laufen bündig zum Textanfang, nicht unter den Punkt. */
+.rn-tree-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--rn-space-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rn-tree-marker {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-block-start: calc((1lh - 8px) / 2);
+  border-radius: 50%;
+  background: var(--rn-color-border);
+}
+
+.rn-tree-marker[data-state="open"],
+.rn-tree-marker[data-state="closed"] {
+  background: var(--rn-color-primary);
+}
+
+.rn-tree-marker[data-state="closed"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--rn-color-primary);
+}
+
+.rn-tree-cite {
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  color: var(--rn-color-success);
+}
+
+.rn-tree-item[data-active="true"] .rn-tree-cite {
+  color: var(--rn-color-text-primary);
+}
+
+@media (max-width: 599.98px) {
+  .rn-mindmap-head,
+  .rn-mindmap-toolbar {
+    align-items: stretch;
+  }
+  .rn-mindmap-toolbar,
+  .rn-seg-tabs {
+    width: 100%;
+  }
+  .rn-seg-tab {
+    flex: 1 1 0;
+  }
+  .rn-mindmap-canvas {
+    min-height: 360px;
+  }
+}

@@ -756,7 +756,7 @@ export function mixSrgb(a: string, b: string, shareOfA: number): string {
 }
 
 /**
- * Getönte Flächen aus workspace.css (Kacheln, Karten, Reitermarke). Jede Fläche
+ * Getönte Flächen aus styles/workspace/ (Kacheln, Karten, Reitermarke). Jede Fläche
  * ist eine Mischung aus zwei Tokens; darauf stehende Texte brauchen 7:1, Symbole 3:1.
  * Gilt für Hell und Dunkel; im AAA-Modus sind diese Flächen abgeschaltet.
  */

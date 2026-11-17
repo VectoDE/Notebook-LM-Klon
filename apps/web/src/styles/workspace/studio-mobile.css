@@ -1,0 +1,39 @@
+/* ==========================================================================
+   Studio auf dem Telefon: Werkzeuge als Liste statt Karten
+   Eine Fläche, Trennlinien, Symbol links, Aktion unter dem Text.
+   ========================================================================== */
+@media (max-width: 599.98px) {
+  html[data-design] .rn-tools {
+    gap: 0;
+    border-radius: var(--rn-radius-lg);
+    border: 1px solid var(--rn-color-panel-border);
+    background: var(--rn-color-panel);
+    /* Rundung ohne Scroll-Container: clip schneidet nur, die Liste behält ihre volle Höhe */
+    overflow: clip;
+    overflow-clip-margin: 4px;
+    flex: none;
+  }
+  html[data-design] .rn-tools .rn-tool {
+    grid-template-areas:
+      "tile text"
+      ". actions";
+    column-gap: var(--rn-space-3);
+    row-gap: var(--rn-space-3);
+    padding: var(--rn-space-4);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+  }
+  html[data-design] .rn-tools > li + li .rn-tool {
+    border-top: 1px solid var(--rn-color-panel-border);
+  }
+  html[data-design] .rn-tools .rn-tool-tile {
+    width: 40px;
+    height: 40px;
+  }
+  html[data-design] .rn-tools .rn-tool-primary {
+    flex: 0 1 auto;
+  }
+}

@@ -1,0 +1,351 @@
+/* ==========================================================================
+   Raster: drei Spalten ab 900 px (die Spalten sind die Navigation), 600 bis 899 px ein
+   Bereich mit Reitern oben, unter 600 px ein Bereich mit Reiterleiste unten (Issue #325)
+   ========================================================================== */
+@media (min-width: 600px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 899.98px) {
+  .workspace-panel {
+    display: none;
+  }
+  .workspace-panel.panel-active {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+/* Inhalt einer einklappbaren Spalte (Quellen, Studio) */
+.rn-panel-slot {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.rn-panel-slot[hidden] {
+  display: none;
+}
+
+/* Knopf zum Einklappen sitzt im Spaltenkopf, am Rand zur Mitte hin */
+.rn-panel-head .rn-panel-heading {
+  flex: 1 1 auto;
+}
+
+.rn-panel-head .rn-panel-toggle {
+  flex: none;
+  margin: -6px -8px 0;
+}
+
+/* Unter 900 px ist immer nur ein Bereich sichtbar: Einklappen entfällt */
+@media (max-width: 899.98px) {
+  .rn-panel-toggle {
+    display: none;
+  }
+}
+
+/* Eingeklappte Spalte: schmale Leiste mit Symbolen, die Mitte nutzt den Platz */
+@media (min-width: 900px) {
+  .workspace-panel[data-collapsed="true"] {
+    position: relative;
+    z-index: 5;
+    flex: 0 0 64px;
+    min-width: 64px;
+    max-width: 64px;
+    /* Kurzinfos ragen über die Leiste hinaus in die Mitte */
+    overflow: visible;
+  }
+}
+
+.rn-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--rn-space-2);
+  height: 100%;
+  box-sizing: border-box;
+  padding: var(--rn-space-3) 0;
+}
+
+.rn-rail-items {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--rn-space-1);
+  padding-top: var(--rn-space-2);
+  border-top: 1px solid var(--rn-color-panel-border);
+}
+
+.rn-rail-button {
+  width: 44px;
+  height: 44px;
+}
+
+html[data-color-mode="aaa-contrast"] .rn-rail-items {
+  border-top: 2px solid var(--rn-color-border);
+}
+
+/* Übergang beim Ein- und Ausklappen nur ohne reduzierte Bewegung */
+@media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
+  html:not([data-reduce-motion="true"]) :is(.panel-left, .panel-right) {
+    transition:
+      flex-grow var(--rn-motion-medium) var(--rn-transition-ease),
+      flex-basis var(--rn-motion-medium) var(--rn-transition-ease),
+      min-width var(--rn-motion-medium) var(--rn-transition-ease),
+      max-width var(--rn-motion-medium) var(--rn-transition-ease);
+  }
+}
+
+/* Telefon: Panels in voller Breite, kein doppelter Rahmen um den Inhalt */
+@media (max-width: 599.98px) {
+  #workspace-main {
+    padding: 0;
+    gap: 0;
+  }
+  html[data-design] .workspace-panel {
+    border: 0 !important;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* Mittlere Breiten: zuerst weicht die Version */
+@media (max-width: 1099.98px) {
+  .workspace-version {
+    display: none;
+  }
+}
+
+/*
+ * Unter 1024 px: Teilen, Einstellungen und Darstellung nur als Symbol. Die Beschriftung
+ * bleibt der Name für Screenreader und erscheint bei Zeiger und Tastaturfokus als Kurzinfo
+ * (Issue #319).
+ */
+@media (max-width: 1023.98px) {
+  .rn-appearance-button,
+  .rn-settings-button,
+  .rn-share-button {
+    width: var(--rn-control-h);
+    padding: 0;
+  }
+  .rn-appearance-button-label,
+  .rn-appearance-chevron,
+  .rn-settings-button-label,
+  .rn-share-button-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 899.98px) {
+  .workspace-header {
+    padding: 0 16px !important;
+    gap: var(--rn-space-2);
+  }
+}
+
+/* Reiter 600 bis 899 px: eine Leiste unter dem Kopf, drei gleich breite Reiter */
+@media (min-width: 600px) and (max-width: 899.98px) {
+  .rn-topnav {
+    display: flex;
+    justify-content: center;
+    gap: var(--rn-space-1);
+    padding: 6px 16px;
+    background: var(--rn-color-panel);
+    border-bottom: 1px solid var(--rn-color-panel-border);
+    z-index: 25;
+  }
+  .rn-topnav-item {
+    flex: 1 1 0;
+    max-width: 220px;
+  }
+}
+
+/* Niedrige Fenster mit Maus (200 % Zoom, 640 x 400): Reiter 32 px hoch (WCAG 2.5.8 verlangt 24 px),
+   damit Inhalt sichtbar bleibt. Touch-Geräte behalten 44 px (WCAG 2.5.5). */
+@media (min-width: 600px) and (max-width: 899.98px) and (max-height: 520px) and (pointer: fine) {
+  .rn-topnav {
+    padding: 2px 16px;
+  }
+  .rn-topnav-item {
+    height: 32px;
+  }
+}
+
+/* Telefon: Logo, Titel und Menü-Knopf; Bereiche liegen unten in der Reiterleiste */
+@media (max-width: 599.98px) {
+  .workspace-header {
+    min-height: 60px;
+    padding: 8px 16px !important;
+  }
+  .rn-header-end > :not(.rn-menu-button) {
+    display: none;
+  }
+  .rn-header-end .rn-menu-button {
+    display: inline-flex;
+  }
+  .rn-nb-title-button,
+  .rn-nb-title-input {
+    font-size: var(--rn-text-base);
+  }
+  .rn-nb-title-button {
+    padding: 2px 6px;
+  }
+  .rn-nb-title-icon {
+    display: none;
+  }
+  /* Eine Zeile mit Auslassung: der Kopf bleibt so hoch wie ein Bedienziel */
+  .rn-nb-title-text {
+    -webkit-line-clamp: 1;
+  }
+}
+
+/*
+ * Kurzinfos (WCAG 1.4.13): erscheinen bei Zeiger und Tastaturfokus, bleiben, solange
+ * Zeiger oder Fokus da sind, lassen sich überfahren (Teil des Knopfs, ohne Lücke dank
+ * transparentem Rand) und mit Escape schließen (data-tips-hidden an der Hülle). Bei offenem
+ * Menü des Knopfs bleibt die Kurzinfo aus.
+ */
+.rn-tip-host {
+  position: relative;
+}
+
+.rn-tip {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.workspace-shell:not([data-tips-hidden="true"])
+  .rn-tip-host:is(:hover, :focus-visible):not([aria-haspopup][aria-expanded="true"])
+  > .rn-tip {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  z-index: 45;
+  padding: 6px 10px;
+  border-radius: var(--rn-radius-sm);
+  background: var(--rn-color-text-primary);
+  background-clip: padding-box;
+  color: var(--rn-color-panel);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 20px;
+  text-align: left;
+}
+
+.rn-tip--below,
+.rn-tip--below-start {
+  top: 100%;
+  border-top: 6px solid transparent;
+}
+
+.rn-tip--below {
+  right: 0;
+}
+
+.rn-tip--below-start {
+  left: 0;
+}
+
+.rn-tip--right,
+.rn-tip--left {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.rn-tip--right {
+  left: 100%;
+  border-left: 6px solid transparent;
+}
+
+.rn-tip--left {
+  right: 100%;
+  border-right: 6px solid transparent;
+}
+
+.rn-tip-kbd {
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 500;
+}
+
+@media (min-width: 600px) and (max-width: 1023.98px) {
+  .workspace-shell:not([data-tips-hidden="true"])
+    .rn-header-end
+    .rn-tip-host:is(:hover, :focus-visible):not([aria-expanded="true"])
+    :is(.rn-settings-button-label, .rn-appearance-button-label, .rn-share-button-label) {
+    top: 100%;
+    right: 0;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    z-index: 45;
+    padding: 6px 10px;
+    border-top: 6px solid transparent;
+    border-radius: var(--rn-radius-sm);
+    background: var(--rn-color-text-primary);
+    background-clip: padding-box;
+    color: var(--rn-color-panel);
+    font-size: var(--rn-text-small);
+    font-weight: 600;
+    line-height: 20px;
+  }
+}
+
+/* Telefon: Auswahlfelder mit 16 px, sonst vergrößert iOS beim Fokus die Seite */
+@media (max-width: 599.98px) {
+  select,
+  .rn-control-input {
+    font-size: max(16px, var(--rn-text-base));
+  }
+}
+
+/* Kompakt heißt schmaler Innenabstand, nicht kleineres Ziel: 44 px bleiben (WCAG 2.5.5) */
+.rn-btn--compact {
+  min-height: 44px;
+  padding: 0 var(--rn-space-3);
+}
+
+.rn-btn--danger {
+  background: transparent;
+  color: var(--rn-color-error);
+  border-color: var(--rn-color-error);
+}
+
+.rn-btn--danger:hover {
+  background: var(--rn-color-panel);
+}
+
+.rn-eyebrow {
+  margin: 0;
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rn-color-primary);
+}

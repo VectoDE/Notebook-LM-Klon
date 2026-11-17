@@ -11,7 +11,7 @@ import { VideoOverviewPlayer } from "@/components/media/VideoOverviewPlayer.js";
 import { ThemeProvider } from "@/hooks/useTheme.js";
 import "@/styles/fonts.css";
 import "@/styles/themes.css";
-import "@/styles/workspace.css";
+import "@/styles/workspace/index.css";
 import "@/styles/components.css";
 
 const root = document.getElementById("root");
