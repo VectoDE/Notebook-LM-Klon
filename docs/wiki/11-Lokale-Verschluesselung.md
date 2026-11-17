@@ -82,6 +82,6 @@ Geprüft am 13.11.2026 anhand des Diffs von Issue #348:
 | `apps/web/tests/unit/services/storage/encrypted-store.test.ts` | Speichern, Lesen, Listen, Löschen; nur Chiffrat in IndexedDB; Wiederöffnen; Sitzungswechsel; Löschen der Datenbank nachweisbar (`localDataExists` danach `false`) |
 | `apps/web/tests/unit/services/storage/local-session.test.ts` | Schlüsselabruf (401, 503, Netzfehler, kaputte Antworten), Reihenfolge beim Abmelden, Abmelden offline |
 | `apps/worker/tests/unit/routes/local-data-routes.test.ts` | 401 ohne Sitzung, stabiles Material je Sitzung, verschieden je Sitzung und Nutzer, Abmelden beendet die Sitzung, 503 ohne Geheimnis |
-| `apps/web/e2e/lokale-verschluesselung.spec.ts` | In Chromium: verschlüsselt schreiben, Rohdaten ohne Klartext, Abmelden über die Oberfläche, danach keine Datenbank `rn-local-v1` mehr |
+| `apps/web/tests/e2e/features/lokale-verschluesselung.spec.ts` | In Chromium: verschlüsselt schreiben, Rohdaten ohne Klartext, Abmelden über die Oberfläche, danach keine Datenbank `rn-local-v1` mehr |
 
 Quellen: [NIST SP 800-38D](https://csrc.nist.gov/pubs/sp/800/38/d/final) (GCM, Abschnitt 8.3), [W3C Web Cryptography API](https://www.w3.org/TR/WebCryptoAPI/), [RFC 5869](https://www.rfc-editor.org/rfc/rfc5869) (HKDF), [W3C Indexed Database API 3.0](https://www.w3.org/TR/IndexedDB/).

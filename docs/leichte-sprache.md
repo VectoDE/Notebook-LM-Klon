@@ -29,7 +29,7 @@ deutschen Schlüssel selbst enthält.
   Kommentar-Katalog), keine fremden Schlüssel, **ein Test je Schlüssel** (604) mit Platzhaltern und den prüfbaren
   Regeln unten; Umschalter in den Einstellungen; Kommentar-Texte.
 - `apps/web/tests/unit/i18n/i18n.test.ts`: Nachladen einmalig, Rückfall vor dem Laden, neuer Versuch nach Ladefehler.
-- `apps/web/e2e/leichte-sprache.spec.ts`: In allen vier Designs bei 1440 und 390 px: Umschalten, `lang="de"`,
+- `apps/web/tests/e2e/i18n/leichte-sprache.spec.ts`: In allen vier Designs bei 1440 und 390 px: Umschalten, `lang="de"`,
   Katalog erst nach der Wahl angefragt, kein Überlauf und kein abgeschnittener Text in Einstellungen, Kopf,
   Menü, allen drei Bereichen; dazu jede Studio-Ansicht, Teilen und Konto bei 1440 und 390 px und die Prüfung
   „sichtbare Beschriftung steht am Anfang des zugänglichen Namens“ (WCAG 2.5.3).

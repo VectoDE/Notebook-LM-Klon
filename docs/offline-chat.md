@@ -103,7 +103,7 @@ Lighthouse begrenzt Skripte auf 180 000 Byte Transfer. Auf `main` waren es 177 8
 | `apps/web/tests/unit/services/llm/local-llm.test.ts` | WebGPU-Prüfung, Speicherprüfung, Laden nur mit Zustimmung, Fortschritt, ein Download bei parallelen Aufrufen, Cache ohne neue Zustimmung, nie stillschweigend laden, Fehlerarten, Entfernen, gesperrtes `localStorage`, Abbruch |
 | `apps/web/tests/unit/services/llm/offline-chat.test.ts` | Wahl des Wegs online/offline, lokale Suche, Prompt DE/EN, Marker entfernen, Chat ohne Netz mit gemockter Laufzeit, Fehlertexte, beide Kataloge gleich |
 | `apps/web/tests/unit/services/llm/local-llm-webllm.test.ts` | WebLLM gemockt: gepinnte URLs, SRI, Cache Storage, Fortschritt, Stream, Abbruch |
-| `apps/web/e2e/offline-chat.spec.ts` | Chromium mit `context.setOffline(true)` und ersetzter Laufzeit: Zustimmung mit Größe, Abbrechen lädt nichts, Modus-Wechsel online/offline, lokale Antwort ohne Zitat-Pillen mit Auszügen, Rückkehr zum Server, offline ohne Modell, ohne WebGPU, Server nicht erreichbar, Neuladen aus dem Cache, Entfernen; die Startseite lädt nichts vom Offline-Teil |
+| `apps/web/tests/e2e/features/offline-chat.spec.ts` | Chromium mit `context.setOffline(true)` und ersetzter Laufzeit: Zustimmung mit Größe, Abbrechen lädt nichts, Modus-Wechsel online/offline, lokale Antwort ohne Zitat-Pillen mit Auszügen, Rückkehr zum Server, offline ohne Modell, ohne WebGPU, Server nicht erreichbar, Neuladen aus dem Cache, Entfernen; die Startseite lädt nichts vom Offline-Teil |
 
 In CI wird nie ein echtes Modell geladen. Ein Lauf mit echtem Modell ist in diesem Issue nicht belegt; er braucht einen Rechner mit WebGPU und 0,9 GB Download.
 
