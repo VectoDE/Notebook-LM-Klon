@@ -117,7 +117,7 @@ for (const design of DESIGNS) {
         // Langer Titel als Wurzel: dieselbe Berechnung wie die Komponente, im Browser mit der
         // Schrift des Designs gemessen (Wurzelknoten mit Knopf, Text ab x = 16, Knopf ab Breite - 32)
         const longRoot = await page.evaluate(async (label) => {
-          const modulePath = "/src/MindmapViewer.tsx";
+          const modulePath = "/src/components/viewers/MindmapViewer.tsx";
           const viewer = await import(/* @vite-ignore */ modulePath);
           const size = viewer.nodeSizeFor(label, true, viewer.createTextMeasure(document));
           const rootNode = document.querySelector('.rn-mm-node[data-kind="root"]');
@@ -145,7 +145,7 @@ for (const design of DESIGNS) {
           // Beleg: die Wurzel kurz mit dem langen Titel zeichnen, genau wie die Komponente
           // (Rahmen, Zeilen, Knopf), Bild aufnehmen, Original wiederherstellen
           await page.evaluate(async (label) => {
-            const modulePath = "/src/MindmapViewer.tsx";
+            const modulePath = "/src/components/viewers/MindmapViewer.tsx";
             const viewer = await import(/* @vite-ignore */ modulePath);
             const size = viewer.nodeSizeFor(label, true, viewer.createTextMeasure(document));
             const original = document.querySelector<SVGGElement>('.rn-mm-node[data-kind="root"]');
