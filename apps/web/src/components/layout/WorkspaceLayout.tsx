@@ -1,47 +1,24 @@
-import { PodcastStateMachine, WORKSPACE_VERSION } from "@notebook-lm/shared";
-import {
-  type FunctionComponent,
-  type KeyboardEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
+import { PodcastStateMachine } from "@notebook-lm/shared";
+import { type FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LazySettingsDrawer as SettingsDrawer,
   LazyShareDialog as ShareDialog,
   LazySignInDialog as SignInDialog
 } from "@/components/lazy/index.js";
-import type { ChatMessage } from "@/components/panels/ChatPanel.js";
-import {
-  ChatPanel,
-  isSourceUsable,
-  LegalFooter,
-  SOURCE_FILE_ACCEPT,
-  SourcesPanel,
-  StudioPanel
-} from "@/components/panels/index.js";
+import { isSourceUsable, LegalFooter } from "@/components/panels/index.js";
 
 import type { StudioTool } from "@/components/panels/StudioPanel.js";
 import type { UserRole } from "@/components/ui/AppearanceControls.js";
-import { AppearanceControls, BrandLogo, Icon, Toast } from "@/components/ui/index.js";
+import { Toast } from "@/components/ui/index.js";
 import type { ToastMessage } from "@/components/ui/Toast.js";
-import { GraphViewer } from "@/components/viewers/index.js";
 import {
-  DEFAULT_CONTENT_LANGS,
-  DEFAULT_FLASHCARDS,
   DEFAULT_MINDMAP,
   DEFAULT_NOTEBOOK_TITLE,
-  DEFAULT_QUIZ,
   DEFAULT_SOURCES,
-  DEFAULT_VIDEO_STORYBOARD,
-  loadDemoEntityGraph,
   loadStructuredDemo
 } from "@/data/index.js";
 import type { StructuredData } from "@/data/structured-demo.js";
 import {
-  documentLanguage,
   useHeaderMenus,
   useMediaQuery,
   useNotebookSync,
@@ -51,50 +28,24 @@ import {
   useWorkspaceChat
 } from "@/hooks/index.js";
 
-import { FOCUSABLE_SELECTOR, isModalOpen, trapTabKey } from "@/lib/a11y/index.js";
-import { chatToMarkdown, triggerBrowserDownload } from "@/lib/export/index.js";
-
 import { buildKnowledgeGraph } from "@/lib/graph/index.js";
 import { afterSettled } from "@/lib/utils/index.js";
+import { readNotebookTitle, storeNotebookTitle } from "@/preferences/index.js";
 import {
-  matchPanelShortcut,
-  readChatId,
-  readCollapsedPanels,
-  readNotebookTitle,
-  storeChatId,
-  storeCollapsedPanels,
-  storeNotebookTitle
-} from "@/preferences/index.js";
-import type { CollapsedPanels, CollapsiblePanel } from "@/preferences/layout-preferences.js";
-import {
-  ChatApiError,
   createPendingSource,
   defaultUploadSourceFile,
-  errorKeyForStatus,
-  fetchChatHistory,
-  mapCitations,
   markSourceFailed,
   markSourceReady,
   type SourceFileUploader,
-  streamChat,
-  technicalErrorDetail,
   uploadErrorKey
 } from "@/services/api/index.js";
 
 import { signOutAndWipe, wipeLocalData } from "@/services/storage/index.js";
 
-import { describeSyncStatus } from "@/services/sync/index.js";
 import { browserStorage, readStoredModel, storeModel } from "@/theme/index.js";
-import type {
-  CitationLocation,
-  PanelFocusAttributes,
-  WorkspaceSource
-} from "@/types/workspace-types.js";
-import { AccountStatus } from "./AccountStatus.js";
+import type { CitationLocation, WorkspaceSource } from "@/types/workspace-types.js";
 import { MobileBottomNav } from "./MobileBottomNav.js";
 import { MobileMenuSheet } from "./MobileMenuSheet.js";
-import { NotebookTitle } from "./NotebookTitle.js";
-import { PanelRail, PanelToggle, RailButton } from "./PanelRail.js";
 import { TopNav } from "./TopNav.js";
 import { WorkspaceColumns } from "./WorkspaceColumns.js";
 import { WorkspaceHeader } from "./WorkspaceHeader.js";
@@ -103,8 +54,6 @@ import {
   NARROW_HEADER_QUERY,
   PANEL_TABS,
   type PanelTab,
-  type Popover,
-  RAIL_TOOLS,
   SINGLE_PANEL_QUERY
 } from "./workspace-config.js";
 
@@ -125,7 +74,7 @@ export function WorkspaceLayout({
   chatFetch,
   uploadSourceFile = defaultUploadSourceFile
 }: WorkspaceLayoutProps) {
-  const { theme, setTheme, colorMode, setColorMode, t, tf, language } = useTheme();
+  const { theme, setTheme, colorMode, setColorMode, t, tf } = useTheme();
   const { offlineChat, offlineChatRef, online, loadOfflineChat } = useOfflineChat();
   const isNarrowHeader = useMediaQuery(NARROW_HEADER_QUERY);
   const isSinglePanel = useMediaQuery(SINGLE_PANEL_QUERY);
@@ -170,28 +119,13 @@ export function WorkspaceLayout({
   const menus = useHeaderMenus(isNarrowHeader);
   const {
     tipsHidden,
-    tipHandlers,
-    openPopover,
-    isMenuOpen,
-    setIsMenuOpen,
-    appearanceAnchorRef,
-    accountAnchorRef,
-    appearanceButtonRef,
-    accountButtonRef,
-    popoverPanelRef,
     menuButtonRef,
+    accountButtonRef,
     settingsButtonRef,
     shareButtonRef,
-    settingsFromAccountRef,
-    sheetRef,
-    togglePopover,
-    closePopover,
-    handlePopoverKeyDown,
-    closeMenu,
-    handleSheetKeyDown
+    settingsFromAccountRef
   } = menus;
   const [userRole, setUserRole] = useState<UserRole>("owner");
-  const railFileInputRef = useRef<HTMLInputElement>(null);
 
   const appearanceProps = {
     role: userRole,

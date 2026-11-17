@@ -14,29 +14,29 @@ export interface TopNavProps {
 export function TopNav({ isSinglePanel, activeMobileTab, sourceCount, goToPanel }: TopNavProps) {
   const { t } = useTheme();
   return (
-      <nav aria-label={t("navAreas")} className="rn-topnav" data-testid="top-nav">
-        {PANEL_TABS.map((tab) => {
-          const isSources = tab.id === "sources";
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => goToPanel(tab.id)}
-              aria-current={isSinglePanel && activeMobileTab === tab.id ? "true" : undefined}
-              data-testid={`top-tab-${tab.id}`}
-              className="rn-topnav-item"
-            >
-              <Icon name={tab.icon} size={18} />
-              <span className="rn-topnav-label">{t(tab.labelKey)}</span>
-              {isSources && (
-                <span className="rn-topnav-count">
-                  <span className="rn-visually-hidden">, </span>
-                  {sourceCount}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
+    <nav aria-label={t("navAreas")} className="rn-topnav" data-testid="top-nav">
+      {PANEL_TABS.map((tab) => {
+        const isSources = tab.id === "sources";
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => goToPanel(tab.id)}
+            aria-current={isSinglePanel && activeMobileTab === tab.id ? "true" : undefined}
+            data-testid={`top-tab-${tab.id}`}
+            className="rn-topnav-item"
+          >
+            <Icon name={tab.icon} size={18} />
+            <span className="rn-topnav-label">{t(tab.labelKey)}</span>
+            {isSources && (
+              <span className="rn-topnav-count">
+                <span className="rn-visually-hidden">, </span>
+                {sourceCount}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </nav>
   );
 }

@@ -116,202 +116,202 @@ export function WorkspaceColumns({
   const { t } = useTheme();
   const railFileInputRef = useRef<HTMLInputElement>(null);
   return (
-      <main
-        id="workspace-main"
-        tabIndex={-1}
-        aria-labelledby="notebook-title"
-        data-testid="workspace-3panel-container"
-        className="workspace-main"
+    <main
+      id="workspace-main"
+      tabIndex={-1}
+      aria-labelledby="notebook-title"
+      data-testid="workspace-3panel-container"
+      className="workspace-main"
+    >
+      {/* Panel 1: Left Sources Panel */}
+      <div
+        data-testid="panel-left-wrapper"
+        data-collapsed={sourcesCollapsed ? "true" : undefined}
+        className={`workspace-panel panel-left ${activeMobileTab === "sources" ? "panel-active" : ""}`}
       >
-        {/* Panel 1: Left Sources Panel */}
-        <div
-          data-testid="panel-left-wrapper"
-          data-collapsed={sourcesCollapsed ? "true" : undefined}
-          className={`workspace-panel panel-left ${activeMobileTab === "sources" ? "panel-active" : ""}`}
-        >
-          {sourcesCollapsed && (
-            <PanelRail
-              panel="sources"
-              toggle={
-                <PanelToggle
-                  panel="sources"
-                  collapsed
-                  onToggle={() => togglePanel("sources")}
-                  controls={COLUMN_IDS.sources}
-                />
-              }
-            >
+        {sourcesCollapsed && (
+          <PanelRail
+            panel="sources"
+            toggle={
+              <PanelToggle
+                panel="sources"
+                collapsed
+                onToggle={() => togglePanel("sources")}
+                controls={COLUMN_IDS.sources}
+              />
+            }
+          >
+            <RailButton
+              icon="plus"
+              label={t("sourcesAdd")}
+              onClick={() => railFileInputRef.current?.click()}
+              tipSide="right"
+              testId="rail-add-source"
+            />
+            <input
+              ref={railFileInputRef}
+              type="file"
+              multiple
+              accept={SOURCE_FILE_ACCEPT}
+              hidden
+              data-testid="rail-file-input"
+              onChange={(event) => {
+                const files = Array.from(event.target.files ?? []);
+                if (files.length > 0) void handleUploadFiles(files);
+                event.target.value = "";
+              }}
+              aria-label={t("srcFileInputAria")}
+            />
+          </PanelRail>
+        )}
+        <div id={COLUMN_IDS.sources} className="rn-panel-slot" hidden={sourcesCollapsed}>
+          <SourcesPanel
+            sources={sources}
+            notebookId={notebookId}
+            activeCitation={activeCitation}
+            onToggleSelect={handleToggleSelectSource}
+            onToggleSelectAll={handleToggleSelectAllSources}
+            onUploadFiles={handleUploadFiles}
+            onImportUrl={handleImportUrl}
+            onClearActiveCitation={() => setActiveCitation(null)}
+            panelAttributes={panelAttributes("sources")}
+            headerAction={
+              <PanelToggle
+                panel="sources"
+                collapsed={false}
+                onToggle={() => togglePanel("sources")}
+                controls={COLUMN_IDS.sources}
+              />
+            }
+          />
+        </div>
+      </div>
+
+      {/* Panel 2: Center Citation Chat Panel */}
+      <div
+        id={COLUMN_IDS.chat}
+        data-testid="panel-center-wrapper"
+        className={`workspace-panel panel-center ${activeMobileTab === "chat" || activeMobileTab === "graph" ? "panel-active" : ""}`}
+      >
+        <div className="rn-panel-slot" hidden={isGraphOpen}>
+          <ChatPanel
+            notebookTitle={notebookTitle}
+            notebookSummary="Dieses Notebook dokumentiert die vollständige Cloudflare Single-Worker- und In-Memory-Vektor-Architektur für latenzfreie Inferenz."
+            notebookSummaryLang={DEFAULT_CONTENT_LANGS.summary}
+            messages={chatMessages}
+            activeModel={activeModel}
+            onSendMessage={(text) => handleSendMessage(text)}
+            onStop={handleStopChat}
+            onRetry={handleRetryChat}
+            onExport={handleExportChat}
+            onCitationClick={handleCitationClick}
+            isGenerating={isGenerating}
+            panelAttributes={panelAttributes("chat")}
+            modeSlot={
+              offlineChat ? (
+                <offlineChat.Control online={online} onNotify={notify} />
+              ) : (
+                <div className="rn-offline-chat rn-offline-chat--start">
+                  <output
+                    className="rn-chat-mode"
+                    data-testid="chat-mode"
+                    data-mode={online ? "online" : "offline-no-model"}
+                  >
+                    <span className="rn-chat-mode-dot" aria-hidden="true" />
+                    {t(online ? "chatModeOnlineShort" : "chatModeOfflineNoModel")}
+                  </output>
+                  <button
+                    type="button"
+                    className="rn-btn rn-btn--ghost rn-btn--compact rn-offline-setup"
+                    data-testid="btn-offline-chat-setup"
+                    disabled={!online}
+                    onClick={loadOfflineChat}
+                  >
+                    <Icon name="download" size={18} />
+                    <span className="rn-offline-setup-label">{t("offlineChatSetup")}</span>
+                  </button>
+                </div>
+              )
+            }
+          />
+        </div>
+        {isGraphOpen && (
+          <GraphViewer
+            graph={knowledgeGraph}
+            contentLang={DEFAULT_CONTENT_LANGS.sources}
+            onSourceJump={jumpToSourceFromGraph}
+            entityGraph={loadDemoEntityGraph}
+            entitySources={sources}
+            onCitationJump={jumpToCitationFromGraph}
+            onClose={isSinglePanel ? undefined : () => goToPanel("chat")}
+            panelAttributes={panelAttributes("graph")}
+          />
+        )}
+      </div>
+
+      {/* Panel 3: Right Studio Panel */}
+      <div
+        data-testid="panel-right-wrapper"
+        data-collapsed={studioCollapsed ? "true" : undefined}
+        className={`workspace-panel panel-right ${activeMobileTab === "studio" ? "panel-active" : ""}`}
+      >
+        {studioCollapsed && (
+          <PanelRail
+            panel="studio"
+            toggle={
+              <PanelToggle
+                panel="studio"
+                collapsed
+                onToggle={() => togglePanel("studio")}
+                controls={COLUMN_IDS.studio}
+              />
+            }
+          >
+            {RAIL_TOOLS.map((item) => (
               <RailButton
-                icon="plus"
-                label={t("sourcesAdd")}
-                onClick={() => railFileInputRef.current?.click()}
-                tipSide="right"
-                testId="rail-add-source"
+                key={item.tool}
+                icon={item.icon}
+                label={t(item.labelKey)}
+                onClick={() =>
+                  item.tool === "graph" ? goToPanel("graph") : openStudioTool(item.tool)
+                }
+                tipSide="left"
+                testId={`rail-tool-${item.tool}`}
               />
-              <input
-                ref={railFileInputRef}
-                type="file"
-                multiple
-                accept={SOURCE_FILE_ACCEPT}
-                hidden
-                data-testid="rail-file-input"
-                onChange={(event) => {
-                  const files = Array.from(event.target.files ?? []);
-                  if (files.length > 0) void handleUploadFiles(files);
-                  event.target.value = "";
-                }}
-                aria-label={t("srcFileInputAria")}
+            ))}
+          </PanelRail>
+        )}
+        <div id={COLUMN_IDS.studio} className="rn-panel-slot" hidden={studioCollapsed}>
+          <StudioPanel
+            notebookTitle={notebookTitle}
+            activeTool={initialTool}
+            onSelectTool={handleStudioToolSelected}
+            toolRequest={studioToolRequest}
+            onOpenGraph={() => goToPanel("graph")}
+            mindmapData={DEFAULT_MINDMAP}
+            flashcardsData={DEFAULT_FLASHCARDS}
+            quizData={DEFAULT_QUIZ}
+            videoStoryboard={DEFAULT_VIDEO_STORYBOARD}
+            audioStateMachine={audioStateMachine}
+            onSourceJump={handleCitationClick}
+            contentLangs={DEFAULT_CONTENT_LANGS}
+            selectedSourceCount={sources.filter((s) => s.isSelected !== false).length}
+            onNotify={notify}
+            structuredData={structuredDemo}
+            structuredSources={sources}
+            structuredLang="en"
+            panelAttributes={panelAttributes("studio")}
+            headerAction={
+              <PanelToggle
+                panel="studio"
+                collapsed={false}
+                onToggle={() => togglePanel("studio")}
+                controls={COLUMN_IDS.studio}
               />
-            </PanelRail>
-          )}
-          <div id={COLUMN_IDS.sources} className="rn-panel-slot" hidden={sourcesCollapsed}>
-            <SourcesPanel
-              sources={sources}
-              notebookId={notebookId}
-              activeCitation={activeCitation}
-              onToggleSelect={handleToggleSelectSource}
-              onToggleSelectAll={handleToggleSelectAllSources}
-              onUploadFiles={handleUploadFiles}
-              onImportUrl={handleImportUrl}
-              onClearActiveCitation={() => setActiveCitation(null)}
-              panelAttributes={panelAttributes("sources")}
-              headerAction={
-                <PanelToggle
-                  panel="sources"
-                  collapsed={false}
-                  onToggle={() => togglePanel("sources")}
-                  controls={COLUMN_IDS.sources}
-                />
-              }
-            />
-          </div>
+            }
+          />
         </div>
-
-        {/* Panel 2: Center Citation Chat Panel */}
-        <div
-          id={COLUMN_IDS.chat}
-          data-testid="panel-center-wrapper"
-          className={`workspace-panel panel-center ${activeMobileTab === "chat" || activeMobileTab === "graph" ? "panel-active" : ""}`}
-        >
-          <div className="rn-panel-slot" hidden={isGraphOpen}>
-            <ChatPanel
-              notebookTitle={notebookTitle}
-              notebookSummary="Dieses Notebook dokumentiert die vollständige Cloudflare Single-Worker- und In-Memory-Vektor-Architektur für latenzfreie Inferenz."
-              notebookSummaryLang={DEFAULT_CONTENT_LANGS.summary}
-              messages={chatMessages}
-              activeModel={activeModel}
-              onSendMessage={(text) => handleSendMessage(text)}
-              onStop={handleStopChat}
-              onRetry={handleRetryChat}
-              onExport={handleExportChat}
-              onCitationClick={handleCitationClick}
-              isGenerating={isGenerating}
-              panelAttributes={panelAttributes("chat")}
-              modeSlot={
-                offlineChat ? (
-                  <offlineChat.Control online={online} onNotify={notify} />
-                ) : (
-                  <div className="rn-offline-chat rn-offline-chat--start">
-                    <output
-                      className="rn-chat-mode"
-                      data-testid="chat-mode"
-                      data-mode={online ? "online" : "offline-no-model"}
-                    >
-                      <span className="rn-chat-mode-dot" aria-hidden="true" />
-                      {t(online ? "chatModeOnlineShort" : "chatModeOfflineNoModel")}
-                    </output>
-                    <button
-                      type="button"
-                      className="rn-btn rn-btn--ghost rn-btn--compact rn-offline-setup"
-                      data-testid="btn-offline-chat-setup"
-                      disabled={!online}
-                      onClick={loadOfflineChat}
-                    >
-                      <Icon name="download" size={18} />
-                      <span className="rn-offline-setup-label">{t("offlineChatSetup")}</span>
-                    </button>
-                  </div>
-                )
-              }
-            />
-          </div>
-          {isGraphOpen && (
-            <GraphViewer
-              graph={knowledgeGraph}
-              contentLang={DEFAULT_CONTENT_LANGS.sources}
-              onSourceJump={jumpToSourceFromGraph}
-              entityGraph={loadDemoEntityGraph}
-              entitySources={sources}
-              onCitationJump={jumpToCitationFromGraph}
-              onClose={isSinglePanel ? undefined : () => goToPanel("chat")}
-              panelAttributes={panelAttributes("graph")}
-            />
-          )}
-        </div>
-
-        {/* Panel 3: Right Studio Panel */}
-        <div
-          data-testid="panel-right-wrapper"
-          data-collapsed={studioCollapsed ? "true" : undefined}
-          className={`workspace-panel panel-right ${activeMobileTab === "studio" ? "panel-active" : ""}`}
-        >
-          {studioCollapsed && (
-            <PanelRail
-              panel="studio"
-              toggle={
-                <PanelToggle
-                  panel="studio"
-                  collapsed
-                  onToggle={() => togglePanel("studio")}
-                  controls={COLUMN_IDS.studio}
-                />
-              }
-            >
-              {RAIL_TOOLS.map((item) => (
-                <RailButton
-                  key={item.tool}
-                  icon={item.icon}
-                  label={t(item.labelKey)}
-                  onClick={() =>
-                    item.tool === "graph" ? goToPanel("graph") : openStudioTool(item.tool)
-                  }
-                  tipSide="left"
-                  testId={`rail-tool-${item.tool}`}
-                />
-              ))}
-            </PanelRail>
-          )}
-          <div id={COLUMN_IDS.studio} className="rn-panel-slot" hidden={studioCollapsed}>
-            <StudioPanel
-              notebookTitle={notebookTitle}
-              activeTool={initialTool}
-              onSelectTool={handleStudioToolSelected}
-              toolRequest={studioToolRequest}
-              onOpenGraph={() => goToPanel("graph")}
-              mindmapData={DEFAULT_MINDMAP}
-              flashcardsData={DEFAULT_FLASHCARDS}
-              quizData={DEFAULT_QUIZ}
-              videoStoryboard={DEFAULT_VIDEO_STORYBOARD}
-              audioStateMachine={audioStateMachine}
-              onSourceJump={handleCitationClick}
-              contentLangs={DEFAULT_CONTENT_LANGS}
-              selectedSourceCount={sources.filter((s) => s.isSelected !== false).length}
-              onNotify={notify}
-              structuredData={structuredDemo}
-              structuredSources={sources}
-              structuredLang="en"
-              panelAttributes={panelAttributes("studio")}
-              headerAction={
-                <PanelToggle
-                  panel="studio"
-                  collapsed={false}
-                  onToggle={() => togglePanel("studio")}
-                  controls={COLUMN_IDS.studio}
-                />
-              }
-            />
-          </div>
-        </div>
-      </main>
+      </div>
+    </main>
   );
 }
