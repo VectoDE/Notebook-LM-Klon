@@ -35,7 +35,7 @@ const TOUCH_MATRIX = [
  * Aufruf: pnpm --filter @notebook-lm/web test:e2e
  */
 export default defineConfig({
-  testDir: "./e2e",
+  testDir: "./tests/e2e",
   // Node-build tests run with playwright.node.config.ts (test:e2e:node).
   testIgnore: ["node/**"],
   fullyParallel: true,

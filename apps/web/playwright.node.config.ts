@@ -17,7 +17,7 @@ const TEST_SALT = "e2e-only-session-salt-0123456789abcdef0123";
 const TEST_KEK = "e2e-only-kek-0123456789abcdef0123456789abcd";
 
 export default defineConfig({
-  testDir: "./e2e/node",
+  testDir: "./tests/e2e/node",
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,

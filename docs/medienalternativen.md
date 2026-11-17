@@ -91,7 +91,7 @@ Bild), ohne Ton, mit Untertitelspur, und folgt Start, Pause und Sprüngen des Pl
 Eintrag steht im Player offen: „Für diese Übersicht ist noch kein Video in Deutscher
 Gebärdensprache hinterlegt. Transkript und Untertitel enthalten den vollständigen Inhalt.“
 
-Geprüft wird das mit einer Prüfseite (`apps/web/e2e/fixtures/sign-language.html`), die einen
+Geprüft wird das mit einer Prüfseite (`apps/web/tests/e2e/fixtures/sign-language.html`), die einen
 selbst erzeugten, einfarbigen Platzhalter als Video einsetzt. Das ist kein DGS-Inhalt.
 
 ### 4.4 Avatare: Bewertung
