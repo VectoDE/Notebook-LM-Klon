@@ -13,3 +13,4 @@ export {
   translate,
   useTheme
 } from "./useTheme.js";
+export { useWorkspaceChat } from "./useWorkspaceChat.js";
