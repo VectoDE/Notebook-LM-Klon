@@ -1,0 +1,11 @@
+export {
+  DEFAULT_CONTENT_LANGS,
+  DEFAULT_FLASHCARDS,
+  DEFAULT_MINDMAP,
+  DEFAULT_NOTEBOOK_TITLE,
+  DEFAULT_QUIZ,
+  DEFAULT_SOURCES,
+  DEFAULT_VIDEO_STORYBOARD,
+  loadDemoEntityGraph,
+  loadStructuredDemo
+} from "./workspace-demo.js";

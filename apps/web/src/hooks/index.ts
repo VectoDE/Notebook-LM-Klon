@@ -1,3 +1,4 @@
+export { useMediaQuery } from "./useMediaQuery.js";
 export { useNotebookSync } from "./useNotebookSync.js";
 export { useReturnFocus } from "./useReturnFocus.js";
 export {

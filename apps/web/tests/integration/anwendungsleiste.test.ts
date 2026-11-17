@@ -2,14 +2,12 @@ import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 import { SHARE_ROLES, ShareDialog } from "@/components/dialogs/ShareDialog.js";
+import { AccountStatus } from "@/components/layout/AccountStatus.js";
 import { NotebookTitle } from "@/components/layout/NotebookTitle.js";
 import { PanelRail, PanelToggle, RailButton } from "@/components/layout/PanelRail.js";
-import {
-  AccountStatus,
-  DEFAULT_NOTEBOOK_TITLE,
-  WorkspaceLayout
-} from "@/components/layout/WorkspaceLayout.js";
+import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout.js";
 import { preloadStudioViewers } from "@/components/lazy/lazy-viewers.js";
+import { DEFAULT_NOTEBOOK_TITLE } from "@/data/workspace-demo.js";
 import { ThemeProvider, type ThemeProviderProps } from "@/hooks/useTheme.js";
 
 // Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
