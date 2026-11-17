@@ -6,14 +6,14 @@ import { Hono } from "hono";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
 import { sessionMiddleware } from "@/middleware/auth-middleware.js";
+import { createNodeEnv, runSqliteMigrations } from "@/node-server.js";
 import { CoreRepository } from "@/repositories/core-repository.js";
-import { SessionManager, sha256Hex } from "@/security/session.js";
 import {
   deriveLocalKeyMaterial,
   LOCAL_KEY_BYTES,
   registerLocalDataRoutes
-} from "../local-data-routes.js";
-import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
+} from "@/routes/local-data-routes.js";
+import { SessionManager, sha256Hex } from "@/security/session.js";
 
 const SALT = "test-only-salt-local-data-routes";
 

@@ -11,14 +11,14 @@ import {
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
+import { createNodeEnv, runSqliteMigrations } from "@/node-server.js";
 import { CoreRepository } from "@/repositories/core-repository.js";
 import { RagRepository } from "@/repositories/rag-repository.js";
+import { registerChatRoutes } from "@/routes/chat-routes.js";
+import { registerChunkIngestionRoutes } from "@/routes/chunk-ingestion.js";
+import { registerSearchRoutes } from "@/routes/search-routes.js";
+import { registerSourcesUploadRoutes } from "@/routes/sources-upload.js";
 import { AutoRouter } from "@/services/auto-router.js";
-import { registerChatRoutes } from "../chat-routes.js";
-import { registerChunkIngestionRoutes } from "../chunk-ingestion.js";
-import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
-import { registerSearchRoutes } from "../search-routes.js";
-import { registerSourcesUploadRoutes } from "../sources-upload.js";
 
 /**
  * P6 Ende-zu-Ende auf Worker-Seite: genau die Anfragen, die der Upload-Client der Oberfläche

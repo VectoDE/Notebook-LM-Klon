@@ -7,7 +7,7 @@ import {
   registerProvenanceRoutes,
   signerFromEnv,
   signerUserIdsFromEnv
-} from "../provenance-routes.js";
+} from "@/routes/provenance-routes.js";
 
 type App = Hono<{ Bindings: Env; Variables: { sessionUser?: { id: string } } }>;
 

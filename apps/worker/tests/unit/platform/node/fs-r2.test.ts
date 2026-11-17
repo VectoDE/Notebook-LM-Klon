@@ -10,7 +10,7 @@ import {
   ObjectTooLargeError,
   resolveRange
 } from "@/platform/node/fs-r2.js";
-import { MAX_SOURCE_BYTE_SIZE_LIMIT } from "@/sources-upload.js";
+import { MAX_SOURCE_BYTE_SIZE_LIMIT } from "@/routes/sources-upload.js";
 
 let dir = "";
 let mediaDir = "";

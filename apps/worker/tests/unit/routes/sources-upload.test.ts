@@ -12,7 +12,7 @@ import {
   MAX_SOURCE_BYTE_SIZE_LIMIT,
   registerSourcesUploadRoutes,
   resolveSourceTypeAndExt
-} from "../sources-upload.js";
+} from "@/routes/sources-upload.js";
 
 /**
  * Creates in-memory SQLite wrapper mocking D1 with migrations 0001 & 0002.

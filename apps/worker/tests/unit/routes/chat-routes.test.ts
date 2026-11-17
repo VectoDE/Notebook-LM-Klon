@@ -11,8 +11,6 @@ import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
 import { RagRepository } from "@/repositories/rag-repository.js";
-import { KeyVault } from "@/security/key-vault.js";
-import { AutoRouter } from "@/services/auto-router.js";
 import {
   decodeHistoryCursor,
   encodeHistoryCursor,
@@ -20,7 +18,9 @@ import {
   HISTORY_PAGE_MAX,
   NO_EVIDENCE_ANSWER,
   registerChatRoutes
-} from "../chat-routes.js";
+} from "@/routes/chat-routes.js";
+import { KeyVault } from "@/security/key-vault.js";
+import { AutoRouter } from "@/services/auto-router.js";
 
 function createMockD1(): { db: D1Database; adapter: DatabaseAdapter; close: () => void } {
   const sqlite = new DatabaseSync(":memory:");

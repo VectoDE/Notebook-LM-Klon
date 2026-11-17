@@ -12,14 +12,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { sessionMiddleware } from "@/middleware/auth-middleware.js";
 import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
 import { RagRepository } from "@/repositories/rag-repository.js";
+import { registerBYOKRoutes } from "@/routes/byok-routes.js";
+import { createGuestAndMagicLinkRoutes } from "@/routes/guest-magic-link-routes.js";
+import { createPasskeyRoutes } from "@/routes/passkey-routes.js";
 import { KeyVault } from "@/security/key-vault.js";
 import { computeDailySaltedHash, SessionManager } from "@/security/session.js";
 import { TURNSTILE_TEST_SECRET_ALWAYS_PASSES } from "@/security/turnstile.js";
 import { ConsoleMailAdapter } from "@/services/mail-adapter.js";
 import { PasskeyService } from "@/services/passkey-service.js";
-import { registerBYOKRoutes } from "../byok-routes.js";
-import { createGuestAndMagicLinkRoutes } from "../guest-magic-link-routes.js";
-import { createPasskeyRoutes } from "../passkey-routes.js";
 
 const SPOOFED_HEADERS = {
   "cf-connecting-ip": "6.6.6.6",

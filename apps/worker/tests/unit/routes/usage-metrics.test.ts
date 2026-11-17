@@ -5,10 +5,8 @@ import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
-import { DELETED_USER_ID } from "@/scheduled/cleanup.js";
-import { clearRateLimitMemory } from "@/security/rate-limiter.js";
-import { createApp } from "../index.js";
-import { createNodeEnv, runSqliteMigrations } from "../node-server.js";
+import { createApp } from "@/index.js";
+import { createNodeEnv, runSqliteMigrations } from "@/node-server.js";
 import {
   createUsageThrottle,
   incrementUsageCounter,
@@ -16,7 +14,9 @@ import {
   registerUsageMetricsRoutes,
   USAGE_METRICS,
   usageDay
-} from "../usage-metrics.js";
+} from "@/routes/usage-metrics.js";
+import { DELETED_USER_ID } from "@/scheduled/cleanup.js";
+import { clearRateLimitMemory } from "@/security/rate-limiter.js";
 
 const ORIGIN = "http://localhost:8787";
 

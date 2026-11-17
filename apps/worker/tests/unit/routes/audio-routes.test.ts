@@ -11,9 +11,9 @@ import { Hono } from "hono";
 import { beforeEach, describe, expect, it } from "vitest";
 import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
 import { RagRepository } from "@/repositories/rag-repository.js";
+import { registerAudioRoutes } from "@/routes/audio-routes.js";
 import { KeyVault } from "@/security/key-vault.js";
 import { AutoRouter } from "@/services/auto-router.js";
-import { registerAudioRoutes } from "../audio-routes.js";
 
 function createMockD1(): { db: D1Database; adapter: DatabaseAdapter; close: () => void } {
   const sqlite = new DatabaseSync(":memory:");

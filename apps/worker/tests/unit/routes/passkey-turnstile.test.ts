@@ -10,10 +10,10 @@ import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 import { sessionMiddleware } from "@/middleware/auth-middleware.js";
 import { CoreRepository, type DatabaseAdapter } from "@/repositories/core-repository.js";
+import { createPasskeyRoutes } from "@/routes/passkey-routes.js";
 import { SESSION_COOKIE_NAME, SessionManager } from "@/security/session.js";
 import { TURNSTILE_TEST_SECRET_ALWAYS_PASSES } from "@/security/turnstile.js";
 import { PasskeyService } from "@/services/passkey-service.js";
-import { createPasskeyRoutes } from "../passkey-routes.js";
 
 function createDb(): { adapter: DatabaseAdapter; close: () => void } {
   const db = new DatabaseSync(":memory:");

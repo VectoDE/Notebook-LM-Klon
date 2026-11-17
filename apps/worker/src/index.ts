@@ -26,6 +26,31 @@ import {
 import { applySecurityHeaders } from "@/middleware/security-headers.js";
 import { CoreRepository } from "@/repositories/core-repository.js";
 import { RagRepository } from "@/repositories/rag-repository.js";
+import { registerAccountRoutes } from "@/routes/account-routes.js";
+import { registerAudioRoutes } from "@/routes/audio-routes.js";
+import { registerBYOKRoutes } from "@/routes/byok-routes.js";
+import { registerChatRoutes } from "@/routes/chat-routes.js";
+import { registerChunkIngestionRoutes } from "@/routes/chunk-ingestion.js";
+import { registerCommentRoutes } from "@/routes/comments-routes.js";
+import {
+  EndpointRepository,
+  loadCustomProvider,
+  registerCustomEndpointRoutes,
+  resolveAllowlist,
+  resolveCustomKeyBinding
+} from "@/routes/custom-endpoint-routes.js";
+import { createDemoRoutes } from "@/routes/demo-routes.js";
+import { registerDocSyncRoutes } from "@/routes/doc-sync.js";
+import { createGuestAndMagicLinkRoutes } from "@/routes/guest-magic-link-routes.js";
+import { registerJobRoutes } from "@/routes/job-routes.js";
+import { registerLocalDataRoutes } from "@/routes/local-data-routes.js";
+import { createPasskeyRoutes } from "@/routes/passkey-routes.js";
+import { registerProvenanceRoutes } from "@/routes/provenance-routes.js";
+import { registerProviderRoutes } from "@/routes/provider-routes.js";
+import { registerSearchRoutes } from "@/routes/search-routes.js";
+import { registerSourcesUploadRoutes } from "@/routes/sources-upload.js";
+import { registerUrlImportRoutes } from "@/routes/url-importer.js";
+import { registerUsageMetricsRoutes } from "@/routes/usage-metrics.js";
 import { createNotebookStatePurger, runScheduledCleanup } from "@/scheduled/cleanup.js";
 import { AuditLogger } from "@/security/audit-log.js";
 import { createKeyVaultFromEnv } from "@/security/key-vault.js";
@@ -39,31 +64,6 @@ import {
 } from "@/services/mail-adapter.js";
 import { PasskeyService } from "@/services/passkey-service.js";
 import { type QuotaAction, quotaGuardMiddleware } from "@/services/quota-guard.js";
-import { registerAccountRoutes } from "./account-routes.js";
-import { registerAudioRoutes } from "./audio-routes.js";
-import { registerBYOKRoutes } from "./byok-routes.js";
-import { registerChatRoutes } from "./chat-routes.js";
-import { registerChunkIngestionRoutes } from "./chunk-ingestion.js";
-import { registerCommentRoutes } from "./comments-routes.js";
-import {
-  EndpointRepository,
-  loadCustomProvider,
-  registerCustomEndpointRoutes,
-  resolveAllowlist,
-  resolveCustomKeyBinding
-} from "./custom-endpoint-routes.js";
-import { createDemoRoutes } from "./demo-routes.js";
-import { registerDocSyncRoutes } from "./doc-sync.js";
-import { createGuestAndMagicLinkRoutes } from "./guest-magic-link-routes.js";
-import { registerJobRoutes } from "./job-routes.js";
-import { registerLocalDataRoutes } from "./local-data-routes.js";
-import { createPasskeyRoutes } from "./passkey-routes.js";
-import { registerProvenanceRoutes } from "./provenance-routes.js";
-import { registerProviderRoutes } from "./provider-routes.js";
-import { registerSearchRoutes } from "./search-routes.js";
-import { registerSourcesUploadRoutes } from "./sources-upload.js";
-import { registerUrlImportRoutes } from "./url-importer.js";
-import { registerUsageMetricsRoutes } from "./usage-metrics.js";
 
 declare module "hono" {
   interface ContextVariableMap {

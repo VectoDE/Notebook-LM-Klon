@@ -7,7 +7,7 @@ import {
   c2paExtensionFor,
   type ProvenanceCertificateKind
 } from "@notebook-lm/shared";
-import type { ProvenanceSigner } from "@/provenance-routes.js";
+import type { ProvenanceSigner } from "@/routes/provenance-routes.js";
 
 /**
  * C2PA-Signatur über das offizielle Kommandozeilenwerkzeug c2patool (Issue #353).

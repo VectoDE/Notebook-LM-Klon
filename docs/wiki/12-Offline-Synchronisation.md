@@ -76,7 +76,7 @@ Ohne Sitzung (kein Schlüssel nach #348) bleibt alles wie bisher: kein Status, d
 | `apps/web/src/__tests__/offline-sync.test.ts` | Offline-Schreiben, Wiederverbindung mit einem gesammelten Update, Konflikt, Idempotenz, Serverfehler, Neustart mit verschlüsselter Warteschlange |
 | `apps/web/src/__tests__/notebook-sync.test.ts` | Titel aus dem Server hat Vorrang vor einem alten lokalen Titel, Umbenennen, Betrieb ohne IndexedDB |
 | `apps/web/src/__tests__/sync-status-text.test.ts` | Texte für jeden Zustand in DE und EN, Einzahl und Mehrzahl |
-| `apps/worker/src/__tests__/doc-sync.test.ts` | Rechte (401, viewer liest, nur editor schreibt), Diff per Zustandsvektor, Konvergenz, Grenzen, kaputte Eingaben, 503 ohne DO |
+| `apps/worker/tests/unit/routes/doc-sync.test.ts` | Rechte (401, viewer liest, nur editor schreibt), Diff per Zustandsvektor, Konvergenz, Grenzen, kaputte Eingaben, 503 ohne DO |
 | `apps/web/e2e/offline-sync.spec.ts` | `context.setOffline(true)`: offline umbenennen, Status, nur Chiffrat in IndexedDB, Senden bei Wiederverbindung; Konflikt; Neuladen mit wartender Änderung; ohne Sitzung kein Status; schmale Bildschirme ohne Layoutfehler |
 
 Quellen: [Yjs-Dokumentation: Document Updates](https://docs.yjs.dev/api/document-updates), [Yjs: Y.Map](https://docs.yjs.dev/api/shared-types/y.map), [Cloudflare: Durable Objects SQLite storage](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/).
