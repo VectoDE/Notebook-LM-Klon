@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 import { App } from "@/App.js";
-import { preloadStudioViewers } from "@/lazy-viewers.js";
+import { preloadStudioViewers } from "@/components/lazy/lazy-viewers.js";
 
 // Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.
 beforeAll(() => preloadStudioViewers());

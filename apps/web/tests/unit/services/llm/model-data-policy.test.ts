@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { SettingsDrawer } from "@/components/panels/SettingsDrawer.js";
 import { ThemeProvider, type ThemeProviderProps, TRANSLATIONS } from "@/hooks/useTheme.js";
-import { SettingsDrawer } from "@/SettingsDrawer.js";
 import {
   CONNECTION_KEYS,
   MODEL_DATA_POLICIES,

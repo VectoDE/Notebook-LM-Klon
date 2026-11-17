@@ -7,8 +7,9 @@ import {
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { EntityGraphView } from "@/EntityGraphView.js";
-import { GraphViewer } from "@/GraphViewer.js";
+import { DEFAULT_MINDMAP, DEFAULT_SOURCES } from "@/components/layout/WorkspaceLayout.js";
+import { EntityGraphView } from "@/components/viewers/EntityGraphView.js";
+import { GraphViewer } from "@/components/viewers/GraphViewer.js";
 import { ThemeProvider, type ThemeProviderProps } from "@/hooks/useTheme.js";
 import {
   announceKey,
@@ -19,7 +20,6 @@ import {
   orderByKind
 } from "@/lib/graph/entity-graph-view.js";
 import { buildKnowledgeGraph } from "@/lib/graph/knowledge-graph.js";
-import { DEFAULT_MINDMAP, DEFAULT_SOURCES } from "@/WorkspaceLayout.js";
 
 const node = (id: string, kind: EntityNode["kind"], name = id): EntityNode => ({
   id,

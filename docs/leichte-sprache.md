@@ -25,7 +25,7 @@ deutschen Schlüssel selbst enthält.
 
 ### Tests
 
-- `apps/web/src/__tests__/leichte-sprache.test.ts`: Abdeckung 100 % gegen den deutschen Katalog (Haupt- und
+- `apps/web/tests/integration/leichte-sprache.test.ts`: Abdeckung 100 % gegen den deutschen Katalog (Haupt- und
   Kommentar-Katalog), keine fremden Schlüssel, **ein Test je Schlüssel** (604) mit Platzhaltern und den prüfbaren
   Regeln unten; Umschalter in den Einstellungen; Kommentar-Texte.
 - `apps/web/tests/unit/i18n/i18n.test.ts`: Nachladen einmalig, Rückfall vor dem Laden, neuer Versuch nach Ladefehler.

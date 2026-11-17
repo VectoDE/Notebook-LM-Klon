@@ -1,10 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { scheduleStudioViewerPreload } from "@/components/lazy/lazy-viewers.js";
 import { ThemeProvider } from "@/hooks/useTheme.js";
 import { afterSettled } from "@/lib/utils/after-settled.js";
 import { sendUsageBeacon } from "@/services/analytics/usage-beacon.js";
 import { App } from "./App.js";
-import { scheduleStudioViewerPreload } from "./lazy-viewers.js";
 // Schriften selbst gehostet (OFL, Latin-Subset, von Vite gehasht, kein externes CDN)
 import "@/styles/fonts.css";
 import "@/styles/themes.css";

@@ -3,8 +3,8 @@ import { resolve } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { SOURCE_FILE_ACCEPT, SourcesPanel } from "@/components/panels/SourcesPanel.js";
 import { TRANSLATIONS } from "@/hooks/useTheme.js";
-import { SOURCE_FILE_ACCEPT, SourcesPanel } from "@/SourcesPanel.js";
 import { SourceUploadError } from "@/services/api/source-upload-client.js";
 import {
   createPendingSource,
