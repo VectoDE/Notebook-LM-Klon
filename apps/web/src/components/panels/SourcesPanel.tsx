@@ -7,22 +7,18 @@ import {
   useRef,
   useState
 } from "react";
-import { LazyCommentThread } from "@/components/lazy/lazy-viewers.js";
-import { EmptyState } from "@/components/ui/EmptyState.js";
-import { Icon } from "@/components/ui/Icon.js";
-import { ViewToggle } from "@/components/ui/ViewToggle.js";
-import { useReturnFocus } from "@/hooks/useReturnFocus.js";
-import { useTheme } from "@/hooks/useTheme.js";
-import { trapTabKey } from "@/lib/a11y/focus-trap.js";
-import { type SourceUrlError, validateSourceUrl } from "@/lib/utils/url-validation.js";
-import {
-  readSourcesView,
-  type SourcesView,
-  storeView,
-  VIEW_STORAGE_KEYS
-} from "@/preferences/view-preferences.js";
+import { LazyCommentThread } from "@/components/lazy/index.js";
+import { EmptyState, Icon, ViewToggle } from "@/components/ui/index.js";
+
+import { useReturnFocus, useTheme } from "@/hooks/index.js";
+
+import { trapTabKey } from "@/lib/a11y/index.js";
+import { validateSourceUrl } from "@/lib/utils/index.js";
+import type { SourceUrlError } from "@/lib/utils/url-validation.js";
+import { readSourcesView, storeView, VIEW_STORAGE_KEYS } from "@/preferences/index.js";
+import type { SourcesView } from "@/preferences/view-preferences.js";
 import type { FetchLike } from "@/services/api/comments-client.js";
-import { browserStorage, shouldReduceMotion } from "@/theme/theme-preferences.js";
+import { browserStorage, shouldReduceMotion } from "@/theme/index.js";
 import type {
   CitationLocation,
   PanelFocusAttributes,

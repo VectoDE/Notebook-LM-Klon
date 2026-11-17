@@ -8,10 +8,10 @@ import {
   type SearchResponse
 } from "@notebook-lm/shared";
 import type { Hono } from "hono";
-import { buildSafeFts5MatchQuery } from "@/db/fts5-probe.js";
+import { buildSafeFts5MatchQuery } from "@/db/index.js";
 import type { CoreRepository } from "@/repositories/core-repository.js";
 import type { RagRepository } from "@/repositories/rag-repository.js";
-import { embedQuery } from "@/services/embeddings.js";
+import { embedQuery } from "@/services/index.js";
 
 export interface SearchRoutesDependencies {
   readonly ragRepo: RagRepository;

@@ -17,35 +17,36 @@ import {
   useMemo,
   useState
 } from "react";
-import { applySeoLanguage, languageFromSearch } from "@/config/seo.js";
-import { AREA_DE, AREA_EN } from "@/i18n/catalogs/translations-areas.js";
-import { ENTITY_GRAPH_DE, ENTITY_GRAPH_EN } from "@/i18n/catalogs/translations-entity-graph.js";
-import { STRUCTURED_DE, STRUCTURED_EN } from "@/i18n/catalogs/translations-structured.js";
-import { fill, type TranslationDictionary } from "@/i18n/i18n.js";
-import { createLocaleRegistry, LOCALE_LOADERS } from "@/i18n/locale-registry.js";
+import { applySeoLanguage, languageFromSearch } from "@/config/index.js";
 import {
-  COLOR_MODES,
-  type ColorMode,
-  DEFAULT_THEME,
-  type DesignTheme,
-  THEMES
-} from "@/theme/design-tokens.js";
+  AREA_DE,
+  AREA_EN,
+  ENTITY_GRAPH_DE,
+  ENTITY_GRAPH_EN,
+  STRUCTURED_DE,
+  STRUCTURED_EN
+} from "@/i18n/catalogs/index.js";
+import type { TranslationDictionary } from "@/i18n/i18n.js";
+import { createLocaleRegistry, fill, LOCALE_LOADERS } from "@/i18n/index.js";
+import type { ColorMode, DesignTheme } from "@/theme/design-tokens.js";
 import {
   applyReduceMotion,
   applyThemeToDocument,
   COLOR_MODE_PREFERENCES,
-  type ColorModePreference,
+  COLOR_MODES,
+  DEFAULT_THEME,
   documentLanguage,
   LANGUAGES,
-  type Language,
   REDUCED_MOTION_QUERY,
   readReduceMotion,
   resolveColorMode,
   resolveInitialPreferences,
   SYSTEM_COLOR_QUERIES,
   systemColorMode,
-  systemPrefersReducedMotion
-} from "@/theme/theme-preferences.js";
+  systemPrefersReducedMotion,
+  THEMES
+} from "@/theme/index.js";
+import type { ColorModePreference, Language } from "@/theme/theme-preferences.js";
 
 export type { ColorMode, ColorModePreference, DesignTheme, Language, TranslationDictionary };
 export { COLOR_MODE_PREFERENCES, COLOR_MODES, documentLanguage, LANGUAGES, THEMES };

@@ -1,5 +1,6 @@
 import * as Y from "yjs";
-import { type EncryptedStore, openEncryptedStore } from "@/services/storage/encrypted-store.js";
+import type { EncryptedStore } from "@/services/storage/encrypted-store.js";
+import { openEncryptedStore } from "@/services/storage/index.js";
 import {
   createHttpTransport,
   OfflineSync,

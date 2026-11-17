@@ -1,4 +1,4 @@
-import { useTheme } from "@/hooks/useTheme.js";
+import { useTheme } from "@/hooks/index.js";
 import type { DesignTheme } from "@/theme/design-tokens.js";
 import type { ColorModePreference } from "@/theme/theme-preferences.js";
 import { Icon } from "./Icon.js";

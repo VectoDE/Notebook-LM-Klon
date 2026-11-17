@@ -19,20 +19,19 @@ import type {
   LlmTokenUsage,
   ModelTrainingPolicy
 } from "@notebook-lm/shared";
+import type { GuardedFetchOptions, HostResolver } from "@/security/endpoint-guard.js";
 import {
   createDohResolver,
   DEFAULT_ENDPOINT_TIMEOUT_MS,
   DEFAULT_MAX_RESPONSE_BYTES,
   deadlineSignal,
-  type GuardedFetchOptions,
   guardedEndpointFetch,
-  type HostResolver,
   MAX_ERROR_BODY_BYTES,
   ResponseTooLargeError,
   readBodyLimited,
   readUntilAborted,
   redactSecret
-} from "@/security/endpoint-guard.js";
+} from "@/security/index.js";
 
 export interface OpenAiCompatibleConfig {
   readonly baseUrl: string;

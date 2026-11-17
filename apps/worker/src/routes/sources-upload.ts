@@ -1,16 +1,17 @@
 import { createProblemDetails, type SourceRow, type SourceType } from "@notebook-lm/shared";
 import { AwsClient } from "aws4fetch";
 import type { Context, Hono } from "hono";
-import { resolveAppConfig } from "@/config/config.js";
 import {
   limitStream,
   reserveUploadBudget,
+  resolveAppConfig,
   secondsUntilNextUtcDay,
   UploadTooLargeError
-} from "@/config/r2-budget.js";
+} from "@/config/index.js";
+
 import type { CoreRepository } from "@/repositories/core-repository.js";
 import type { RagRepository } from "@/repositories/rag-repository.js";
-import { prefersEnglish } from "@/services/quota-guard.js";
+import { prefersEnglish } from "@/services/index.js";
 
 /**
  * 50 MB maximum size limit per file (product decision: 50 MB per file, 200 MB per notebook).

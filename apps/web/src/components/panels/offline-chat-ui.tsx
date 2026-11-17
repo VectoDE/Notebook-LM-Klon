@@ -1,10 +1,10 @@
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
-import { LazyCommentThread } from "@/components/lazy/lazy-viewers.js";
-import { useReturnFocus } from "@/hooks/useReturnFocus.js";
-import { LOCALES, useTheme } from "@/hooks/useTheme.js";
+import { LazyCommentThread } from "@/components/lazy/index.js";
+import { LOCALES, useReturnFocus, useTheme } from "@/hooks/index.js";
+
 import { offlineChatTexts } from "@/i18n/catalogs/translations-offline-chat.js";
-import { fill } from "@/i18n/i18n.js";
-import { trapTabKey } from "@/lib/a11y/focus-trap.js";
+import { fill } from "@/i18n/index.js";
+import { trapTabKey } from "@/lib/a11y/index.js";
 import {
   LocalModelController,
   type LocalModelEnv,
@@ -26,7 +26,7 @@ import {
   type OfflineAnswerResult,
   offlineErrorText
 } from "@/services/llm/offline-chat.js";
-import { browserStorage } from "@/theme/theme-preferences.js";
+import { browserStorage } from "@/theme/index.js";
 
 /**
  * Nachgeladener Teil des Offline-Chats (Issue #346). Das Start-Bundle enthält nur einen

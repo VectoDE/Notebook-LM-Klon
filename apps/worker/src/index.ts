@@ -4,66 +4,70 @@ import {
   type ServiceStatus
 } from "@notebook-lm/shared";
 import { Hono } from "hono";
-import { resolveAppConfig } from "@/config/config.js";
-import { WORKER_VERSION } from "@/config/version.js";
-import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
+import { resolveAppConfig, WORKER_VERSION } from "@/config/index.js";
+
+import { createD1DatabaseAdapter } from "@/db/index.js";
 import {
+  applySecurityHeaders,
   csrfProtection,
-  requireAuth,
-  requireNotebookRole,
-  sessionMiddleware
-} from "@/middleware/auth-middleware.js";
-import {
   getConfiguredSessionSalt,
   hasConfiguredKek,
   recordQuotaUsage,
+  requireAuth,
   requireConfiguredKek,
   requireConfiguredSessionSalt,
+  requireNotebookRole,
   requireNotebookRoleFromQuery,
   requireSourceRole,
-  resolveAddSourceAction
-} from "@/middleware/route-guards.js";
-import { applySecurityHeaders } from "@/middleware/security-headers.js";
-import { CoreRepository } from "@/repositories/core-repository.js";
-import { RagRepository } from "@/repositories/rag-repository.js";
-import { registerAccountRoutes } from "@/routes/account-routes.js";
-import { registerAudioRoutes } from "@/routes/audio-routes.js";
-import { registerBYOKRoutes } from "@/routes/byok-routes.js";
-import { registerChatRoutes } from "@/routes/chat-routes.js";
-import { registerChunkIngestionRoutes } from "@/routes/chunk-ingestion.js";
-import { registerCommentRoutes } from "@/routes/comments-routes.js";
+  resolveAddSourceAction,
+  sessionMiddleware
+} from "@/middleware/index.js";
+
+import { CoreRepository, RagRepository } from "@/repositories/index.js";
+
 import {
+  createDemoRoutes,
+  createGuestAndMagicLinkRoutes,
+  createPasskeyRoutes,
   EndpointRepository,
   loadCustomProvider,
+  registerAccountRoutes,
+  registerAudioRoutes,
+  registerBYOKRoutes,
+  registerChatRoutes,
+  registerChunkIngestionRoutes,
+  registerCommentRoutes,
   registerCustomEndpointRoutes,
+  registerDocSyncRoutes,
+  registerJobRoutes,
+  registerLocalDataRoutes,
+  registerProvenanceRoutes,
+  registerProviderRoutes,
+  registerSearchRoutes,
+  registerSourcesUploadRoutes,
+  registerUrlImportRoutes,
+  registerUsageMetricsRoutes,
   resolveAllowlist,
   resolveCustomKeyBinding
-} from "@/routes/custom-endpoint-routes.js";
-import { createDemoRoutes } from "@/routes/demo-routes.js";
-import { registerDocSyncRoutes } from "@/routes/doc-sync.js";
-import { createGuestAndMagicLinkRoutes } from "@/routes/guest-magic-link-routes.js";
-import { registerJobRoutes } from "@/routes/job-routes.js";
-import { registerLocalDataRoutes } from "@/routes/local-data-routes.js";
-import { createPasskeyRoutes } from "@/routes/passkey-routes.js";
-import { registerProvenanceRoutes } from "@/routes/provenance-routes.js";
-import { registerProviderRoutes } from "@/routes/provider-routes.js";
-import { registerSearchRoutes } from "@/routes/search-routes.js";
-import { registerSourcesUploadRoutes } from "@/routes/sources-upload.js";
-import { registerUrlImportRoutes } from "@/routes/url-importer.js";
-import { registerUsageMetricsRoutes } from "@/routes/usage-metrics.js";
-import { createNotebookStatePurger, runScheduledCleanup } from "@/scheduled/cleanup.js";
-import { AuditLogger } from "@/security/audit-log.js";
-import { createKeyVaultFromEnv } from "@/security/key-vault.js";
-import { rateLimiterMiddleware } from "@/security/rate-limiter.js";
-import { SessionManager } from "@/security/session.js";
+} from "@/routes/index.js";
+
+import { createNotebookStatePurger, runScheduledCleanup } from "@/scheduled/index.js";
+import {
+  AuditLogger,
+  createKeyVaultFromEnv,
+  rateLimiterMiddleware,
+  SessionManager
+} from "@/security/index.js";
+
 import {
   CloudflareMailAdapter,
-  type CloudflareSendEmailBinding,
   HttpMailAdapter,
-  type MailAdapter
-} from "@/services/mail-adapter.js";
-import { PasskeyService } from "@/services/passkey-service.js";
-import { type QuotaAction, quotaGuardMiddleware } from "@/services/quota-guard.js";
+  PasskeyService,
+  quotaGuardMiddleware
+} from "@/services/index.js";
+import type { CloudflareSendEmailBinding, MailAdapter } from "@/services/mail-adapter.js";
+
+import type { QuotaAction } from "@/services/quota-guard.js";
 
 declare module "hono" {
   interface ContextVariableMap {

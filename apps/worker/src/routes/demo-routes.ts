@@ -13,9 +13,9 @@ import {
   RELATIONFLOW_NOTEBOOK_ID
 } from "@notebook-lm/shared";
 import { Hono } from "hono";
-import { DEMO_DISCLAIMER_TEXT, DEMO_HEADER_DISCLAIMER_KEY } from "@/middleware/demo-key-guard.js";
+import { DEMO_DISCLAIMER_TEXT, DEMO_HEADER_DISCLAIMER_KEY } from "@/middleware/index.js";
 import type { DatabaseAdapter } from "@/repositories/core-repository.js";
-import { DEMO_WORKSPACE_ID, seedDemoNotebooks } from "@/services/demo-seeder.js";
+import { DEMO_WORKSPACE_ID, seedDemoNotebooks } from "@/services/index.js";
 
 export interface DemoRoutesDependencies {
   readonly db?: DatabaseAdapter | undefined;

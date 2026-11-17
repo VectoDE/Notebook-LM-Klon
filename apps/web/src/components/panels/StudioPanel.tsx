@@ -21,19 +21,15 @@ import {
   LazyQuizViewer as QuizViewer,
   LazyTimelineViewer as TimelineViewer,
   LazyVideoOverviewPlayer as VideoOverviewPlayer
-} from "@/components/lazy/lazy-viewers.js";
-import { DEMO_PODCAST_TRANSCRIPT, DeepDiveStage } from "@/components/media/DeepDiveStage.js";
-import { EmptyState } from "@/components/ui/EmptyState.js";
-import { Icon, type IconName } from "@/components/ui/Icon.js";
+} from "@/components/lazy/index.js";
+import { DEMO_PODCAST_TRANSCRIPT, DeepDiveStage } from "@/components/media/index.js";
+import type { IconName } from "@/components/ui/Icon.js";
+import { EmptyState, Icon } from "@/components/ui/index.js";
 import type { StructuredData } from "@/data/structured-demo.js";
-import { useTheme } from "@/hooks/useTheme.js";
-import { escapeHtmlText, triggerBrowserDownload } from "@/lib/export/download.js";
-import {
-  addSvgProvenanceMetadata,
-  type FetchLike,
-  provenanceNoteKey,
-  signExport
-} from "@/services/api/provenance-client.js";
+import { useTheme } from "@/hooks/index.js";
+import { escapeHtmlText, triggerBrowserDownload } from "@/lib/export/index.js";
+import { addSvgProvenanceMetadata, provenanceNoteKey, signExport } from "@/services/api/index.js";
+import type { FetchLike } from "@/services/api/provenance-client.js";
 import type { CitationLocation, PanelFocusAttributes } from "@/types/workspace-types.js";
 
 export type StudioTool =

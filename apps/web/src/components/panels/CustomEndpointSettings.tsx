@@ -6,7 +6,7 @@
  */
 
 import { type FormEvent, useEffect, useState } from "react";
-import { useTheme } from "@/hooks/useTheme.jsx";
+import { useTheme } from "@/hooks/index.js";
 import { type EndpointLanguage, endpointText } from "@/i18n/catalogs/custom-endpoint-i18n.js";
 import {
   type CustomEndpointState,

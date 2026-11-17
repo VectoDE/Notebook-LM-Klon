@@ -14,11 +14,8 @@
 
 import { isDemoNotebookId } from "@notebook-lm/shared";
 import type { Context } from "hono";
-import {
-  checkRateLimit,
-  extractClientIdentifier,
-  type RateLimitConfig
-} from "@/security/rate-limiter.js";
+import { checkRateLimit, extractClientIdentifier } from "@/security/index.js";
+import type { RateLimitConfig } from "@/security/rate-limiter.js";
 
 export const DEMO_HEADER_DISCLAIMER_KEY = "X-Demo-Notice";
 export const DEMO_DISCLAIMER_TEXT =

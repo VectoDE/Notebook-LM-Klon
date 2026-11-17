@@ -19,32 +19,33 @@ import {
   LazySettingsDrawer as SettingsDrawer,
   LazyShareDialog as ShareDialog,
   LazySignInDialog as SignInDialog
-} from "@/components/lazy/lazy-viewers.js";
-import { type ChatMessage, ChatPanel } from "@/components/panels/ChatPanel.js";
-import type { OfflineChat } from "@/components/panels/offline-chat-ui.js";
-import { LegalFooter } from "@/components/panels/PrivacyCenter.js";
+} from "@/components/lazy/index.js";
+import type { ChatMessage } from "@/components/panels/ChatPanel.js";
 import {
+  ChatPanel,
   isSourceUsable,
+  LegalFooter,
   SOURCE_FILE_ACCEPT,
-  SourcesPanel
-} from "@/components/panels/SourcesPanel.js";
-import { StudioPanel, type StudioTool } from "@/components/panels/StudioPanel.js";
-import { AppearanceControls, type UserRole } from "@/components/ui/AppearanceControls.js";
-import { BrandLogo } from "@/components/ui/BrandLogo.js";
-import { Icon, type IconName } from "@/components/ui/Icon.js";
-import { Toast, type ToastMessage } from "@/components/ui/Toast.js";
-import { GraphViewer } from "@/components/viewers/GraphViewer.js";
+  SourcesPanel,
+  StudioPanel
+} from "@/components/panels/index.js";
+import type { OfflineChat } from "@/components/panels/offline-chat-ui.js";
+
+import type { StudioTool } from "@/components/panels/StudioPanel.js";
+import type { UserRole } from "@/components/ui/AppearanceControls.js";
+import type { IconName } from "@/components/ui/Icon.js";
+import { AppearanceControls, BrandLogo, Icon, Toast } from "@/components/ui/index.js";
+import type { ToastMessage } from "@/components/ui/Toast.js";
+import { GraphViewer } from "@/components/viewers/index.js";
 import type { StructuredData } from "@/data/structured-demo.js";
-import { useNotebookSync } from "@/hooks/useNotebookSync.js";
-import { documentLanguage, useTheme } from "@/hooks/useTheme.js";
-import { FOCUSABLE_SELECTOR, trapTabKey } from "@/lib/a11y/focus-trap.js";
-import { chatToMarkdown } from "@/lib/export/chat-export.js";
-import { triggerBrowserDownload } from "@/lib/export/download.js";
-import { buildKnowledgeGraph } from "@/lib/graph/knowledge-graph.js";
-import { afterSettled } from "@/lib/utils/after-settled.js";
+import { documentLanguage, useNotebookSync, useTheme } from "@/hooks/index.js";
+
+import { FOCUSABLE_SELECTOR, trapTabKey } from "@/lib/a11y/index.js";
+import { chatToMarkdown, triggerBrowserDownload } from "@/lib/export/index.js";
+
+import { buildKnowledgeGraph } from "@/lib/graph/index.js";
+import { afterSettled } from "@/lib/utils/index.js";
 import {
-  type CollapsedPanels,
-  type CollapsiblePanel,
   matchPanelShortcut,
   readChatId,
   readCollapsedPanels,
@@ -52,27 +53,27 @@ import {
   storeChatId,
   storeCollapsedPanels,
   storeNotebookTitle
-} from "@/preferences/layout-preferences.js";
+} from "@/preferences/index.js";
+import type { CollapsedPanels, CollapsiblePanel } from "@/preferences/layout-preferences.js";
 import {
   ChatApiError,
+  createPendingSource,
   errorKeyForStatus,
   fetchChatHistory,
   mapCitations,
-  streamChat,
-  technicalErrorDetail
-} from "@/services/api/chat-client.js";
-import type { UploadSourceResult } from "@/services/api/source-upload-client.js";
-import {
-  createPendingSource,
   markSourceFailed,
   markSourceReady,
+  streamChat,
+  technicalErrorDetail,
   uploadErrorKey
-} from "@/services/api/source-uploads.js";
-import { hasLocalModelFlag } from "@/services/llm/offline-chat-flag.js";
-import { wipeLocalData } from "@/services/storage/encrypted-store.js";
-import { signOutAndWipe } from "@/services/storage/local-session.js";
-import { describeSyncStatus } from "@/services/sync/sync-status-text.js";
-import { browserStorage, readStoredModel, storeModel } from "@/theme/theme-preferences.js";
+} from "@/services/api/index.js";
+import type { UploadSourceResult } from "@/services/api/source-upload-client.js";
+
+import { hasLocalModelFlag } from "@/services/llm/index.js";
+import { signOutAndWipe, wipeLocalData } from "@/services/storage/index.js";
+
+import { describeSyncStatus } from "@/services/sync/index.js";
+import { browserStorage, readStoredModel, storeModel } from "@/theme/index.js";
 import type {
   CitationLocation,
   PanelFocusAttributes,

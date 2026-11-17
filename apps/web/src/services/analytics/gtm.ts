@@ -1,4 +1,4 @@
-import { readGtmId } from "@/config/analytics-config.js";
+import { readGtmId } from "@/config/index.js";
 import type { ConsentState } from "./consent.js";
 
 /**

@@ -6,29 +6,29 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { etag } from "hono/etag";
-import { JobDO, NotebookDO } from "@/durable-objects/durable-objects.js";
-import { c2paSignerFromVars } from "@/platform/node/c2pa-signer.js";
+import { JobDO, NotebookDO } from "@/durable-objects/index.js";
+import type { EnvSource } from "@/platform/node/config.js";
+import type { InProcessNamespace } from "@/platform/node/do-namespace.js";
 import {
-  type EnvSource,
+  c2paSignerFromVars,
+  createInProcessNamespace,
+  createLocalR2Adapter,
+  createPinnedFetch,
+  createSmtpBinding,
+  createSqliteD1Adapter,
   loadNodeConfig,
   NodeConfigError,
-  PASSTHROUGH_VARS
-} from "@/platform/node/config.js";
-import { createInProcessNamespace, type InProcessNamespace } from "@/platform/node/do-namespace.js";
-import { createLocalR2Adapter } from "@/platform/node/fs-r2.js";
-import { createPinnedFetch } from "@/platform/node/pinned-fetch.js";
-import {
-  type CleanupScheduler,
-  runCleanupOnce,
-  startCleanupScheduler
-} from "@/platform/node/scheduler.js";
-import { createSmtpBinding, type SmtpSettings } from "@/platform/node/smtp.js";
-import {
-  createSqliteD1Adapter,
   openNodeDatabase,
-  runSqliteMigrations
-} from "@/platform/node/sqlite-d1.js";
-import { registerSocketAddress } from "@/security/rate-limiter.js";
+  PASSTHROUGH_VARS,
+  runCleanupOnce,
+  runSqliteMigrations,
+  startCleanupScheduler
+} from "@/platform/node/index.js";
+
+import type { CleanupScheduler } from "@/platform/node/scheduler.js";
+import type { SmtpSettings } from "@/platform/node/smtp.js";
+
+import { registerSocketAddress } from "@/security/index.js";
 import { createApp } from "./index.js";
 
 export { loadNodeConfig, NodeConfigError } from "@/platform/node/config.js";

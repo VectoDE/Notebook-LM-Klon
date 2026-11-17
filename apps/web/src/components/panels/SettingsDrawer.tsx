@@ -17,23 +17,19 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { MotionSetting } from "@/components/ui/AppearanceControls.js";
-import { Icon } from "@/components/ui/Icon.js";
-import { useReturnFocus } from "@/hooks/useReturnFocus.js";
-import { documentLanguage, LANGUAGES, type Language, useTheme } from "@/hooks/useTheme.jsx";
-import { trapTabKey } from "@/lib/a11y/focus-trap.js";
+import { Icon, MotionSetting } from "@/components/ui/index.js";
+
+import { documentLanguage, LANGUAGES, useReturnFocus, useTheme } from "@/hooks/index.js";
+import type { Language } from "@/hooks/useTheme.jsx";
+import { trapTabKey } from "@/lib/a11y/index.js";
 import {
   CONNECTION_KEYS,
   POLICY_RETRIEVED,
   policyFor,
   STATUS_KEYS
 } from "@/services/llm/model-data-policy.js";
-import {
-  DEFAULT_MODEL,
-  isModelSelectable,
-  MODEL_IDS,
-  type ModelId
-} from "@/theme/theme-preferences.js";
+import { DEFAULT_MODEL, isModelSelectable, MODEL_IDS } from "@/theme/index.js";
+import type { ModelId } from "@/theme/theme-preferences.js";
 import { CustomEndpointSettings } from "./CustomEndpointSettings.js";
 
 /**

@@ -1,9 +1,6 @@
-import { createD1DatabaseAdapter } from "@/db/d1-adapter.js";
-import {
-  type CleanupMetrics,
-  createNotebookStatePurger,
-  runScheduledCleanup
-} from "@/scheduled/cleanup.js";
+import { createD1DatabaseAdapter } from "@/db/index.js";
+import type { CleanupMetrics } from "@/scheduled/cleanup.js";
+import { createNotebookStatePurger, runScheduledCleanup } from "@/scheduled/index.js";
 
 /**
  * Replacement for the Cloudflare cron trigger on the Node runtime. It runs the same

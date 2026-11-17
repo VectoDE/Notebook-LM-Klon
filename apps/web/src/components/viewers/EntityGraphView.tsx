@@ -38,23 +38,23 @@ import {
   useRef,
   useState
 } from "react";
-import { Icon } from "@/components/ui/Icon.js";
+import { Icon } from "@/components/ui/index.js";
 import { announceKey, layoutEntityGraph } from "@/lib/graph/entity-graph-view.js";
 import "@/styles/entity-graph.css";
-import { useTheme } from "@/hooks/useTheme.js";
+import { useTheme } from "@/hooks/index.js";
 import {
   fitZoom,
   GRAPH_FONT_SIZE,
   GRAPH_PADDING,
   GRAPH_TABS,
-  type GraphTab,
   graphOffset,
   graphTabTarget,
   LINE_HEIGHT,
   layoutModeFor,
   nodeInDirection,
   stepZoom
-} from "@/lib/graph/knowledge-graph.js";
+} from "@/lib/graph/index.js";
+import type { GraphTab } from "@/lib/graph/knowledge-graph.js";
 import type { CitationLocation } from "@/types/workspace-types.js";
 
 export interface EntityGraphViewProps {

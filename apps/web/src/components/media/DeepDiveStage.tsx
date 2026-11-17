@@ -1,9 +1,9 @@
 import type { PodcastStateMachine } from "@notebook-lm/shared";
 import { useEffect, useRef, useState } from "react";
-import { AuroraOrb } from "@/components/ui/AuroraOrb.js";
-import { Icon } from "@/components/ui/Icon.js";
-import { useReturnFocus } from "@/hooks/useReturnFocus.js";
-import { useTheme } from "@/hooks/useTheme.js";
+import { AuroraOrb, Icon } from "@/components/ui/index.js";
+
+import { useReturnFocus, useTheme } from "@/hooks/index.js";
+
 import type { SpokenTranscriptFormat } from "@/lib/export/media-downloads.js";
 import { LiveLyrics, type TranscriptLine } from "./LiveLyrics.js";
 

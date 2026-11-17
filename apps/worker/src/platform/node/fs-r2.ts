@@ -5,7 +5,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeWebReadableStream } from "node:stream/web";
-import { MAX_SOURCE_BYTE_SIZE_LIMIT } from "@/routes/sources-upload.js";
+import { MAX_SOURCE_BYTE_SIZE_LIMIT } from "@/routes/index.js";
 
 /**
  * Object storage for the Node runtime with the R2 surface the app uses: binary streams,

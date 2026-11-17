@@ -1,6 +1,7 @@
 import { type FocusEvent, useEffect, useRef } from "react";
-import { useTheme } from "@/hooks/useTheme.js";
-import { createToastTimer, TOAST_DURATION_MS, type ToastTimer } from "@/lib/utils/toast-timer.js";
+import { useTheme } from "@/hooks/index.js";
+import { createToastTimer, TOAST_DURATION_MS } from "@/lib/utils/index.js";
+import type { ToastTimer } from "@/lib/utils/toast-timer.js";
 import { Icon } from "./Icon.js";
 
 export interface ToastMessage {

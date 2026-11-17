@@ -30,7 +30,7 @@ import {
   useRef,
   useState
 } from "react";
-import { fill, LOCALES, useTheme } from "@/hooks/useTheme.js";
+import { fill, LOCALES, useTheme } from "@/hooks/index.js";
 import { commentTexts } from "@/i18n/catalogs/translations-comments.js";
 import {
   type CommentErrorKind,
