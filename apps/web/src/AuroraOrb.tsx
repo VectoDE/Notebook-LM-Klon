@@ -9,8 +9,8 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { orbPalette, orbStyleFor } from "./stage-visuals.js";
-import { REDUCE_MOTION_ATTRIBUTE, shouldReduceMotion } from "./theme-preferences.js";
+import { orbPalette, orbStyleFor } from "@/lib/utils/stage-visuals.js";
+import { REDUCE_MOTION_ATTRIBUTE, shouldReduceMotion } from "@/theme/theme-preferences.js";
 
 /** Zeichnet neu, wenn Design oder Farbmodus am Wurzelelement wechseln. */
 function useDesignVersion(): number {

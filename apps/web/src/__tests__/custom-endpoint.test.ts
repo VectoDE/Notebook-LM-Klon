@@ -1,16 +1,16 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CustomEndpointSettings } from "../CustomEndpointSettings.js";
+import { ThemeProvider } from "@/hooks/useTheme.js";
+import { ENDPOINT_TEXT_KEYS, endpointText } from "@/i18n/catalogs/custom-endpoint-i18n.js";
 import {
   deleteCustomEndpoint,
   EndpointApiError,
   loadCustomEndpoint,
   saveCustomEndpoint,
   testCustomEndpoint
-} from "../custom-endpoint-client.js";
-import { ENDPOINT_TEXT_KEYS, endpointText } from "../custom-endpoint-i18n.js";
-import { ThemeProvider } from "../useTheme.js";
+} from "@/services/api/custom-endpoint-client.js";
+import { CustomEndpointSettings } from "../CustomEndpointSettings.js";
 
 interface Call {
   url: string;

@@ -1,8 +1,8 @@
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
-import { trapTabKey } from "./focus-trap.js";
+import { useReturnFocus } from "@/hooks/useReturnFocus.js";
+import { useTheme } from "@/hooks/useTheme.js";
+import { trapTabKey } from "@/lib/a11y/focus-trap.js";
 import { Icon } from "./Icon.js";
-import { useReturnFocus } from "./useReturnFocus.js";
-import { useTheme } from "./useTheme.js";
 
 export type ShareRole = "owner" | "editor" | "viewer";
 

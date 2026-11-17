@@ -1,10 +1,10 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { CONSENT_STORAGE_KEY, CONSENT_VERSION } from "../consent.js";
+import { ThemeProvider, type ThemeProviderProps } from "@/hooks/useTheme.js";
+import { privacyTexts } from "@/i18n/catalogs/privacy-texts.js";
+import { CONSENT_STORAGE_KEY, CONSENT_VERSION } from "@/services/analytics/consent.js";
 import { LegalFooter, PrivacyCenter } from "../PrivacyCenter.js";
-import { privacyTexts } from "../privacy-texts.js";
-import { ThemeProvider, type ThemeProviderProps } from "../useTheme.js";
 
 function storageWith(value: string | null): Storage {
   return {

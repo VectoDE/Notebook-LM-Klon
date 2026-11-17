@@ -2,7 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 /**
  * Offline-Chat mit lokalem Modell (Issue #346) im echten Browser. Netz-Unterbrechung über
- * context.setOffline(true). Die WebLLM-Anbindung (src/local-llm-webllm.ts) wird durch ein
+ * context.setOffline(true). Die WebLLM-Anbindung (src/services/llm/local-llm-webllm.ts) wird durch ein
  * Modul im Test ersetzt: In CI wird nie ein echtes Modell geladen, WebGPU wird simuliert.
  */
 
@@ -52,7 +52,7 @@ async function setup(
       value: webgpu ? { requestAdapter: async () => ({}) } : undefined
     });
   }, options.webgpu);
-  await page.route("**/src/local-llm-webllm.ts*", (route) =>
+  await page.route("**/src/services/llm/local-llm-webllm.ts*", (route) =>
     route.fulfill({ contentType: "text/javascript", body: FAKE_RUNTIME })
   );
   await page.route("**/api/v1/notebooks/*/chat", (route) => {

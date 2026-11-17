@@ -1,14 +1,14 @@
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type Plugin } from "vite";
-import { injectSiteVerification } from "./src/analytics-config.ts";
+import { injectSiteVerification } from "./src/config/analytics-config.ts";
 import {
   buildHeadTags,
   buildLlmsTxt,
   buildRobotsTxt,
   buildSitemapXml,
   normalizePublicBaseUrl
-} from "./src/seo";
+} from "./src/config/seo";
 
 /**
  * SEO-Dateien beim Build (Issue #263): Kopfbereich in index.html, robots.txt, llms.txt und,

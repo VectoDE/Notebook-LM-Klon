@@ -1,10 +1,15 @@
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
+import {
+  ThemeProvider,
+  type ThemeProviderProps,
+  TRANSLATIONS,
+  translate
+} from "@/hooks/useTheme.js";
 import { AppearanceControls, MODE_OPTIONS, THEME_OPTIONS } from "../AppearanceControls.js";
 import { preloadStudioViewers } from "../lazy-viewers.js";
 import { SettingsDrawer } from "../SettingsDrawer.js";
-import { ThemeProvider, type ThemeProviderProps, TRANSLATIONS, translate } from "../useTheme.js";
 import { WorkspaceLayout } from "../WorkspaceLayout.js";
 
 // Studio-Viewer werden lazy geladen (#257); für Server-Render-Tests vorab laden.

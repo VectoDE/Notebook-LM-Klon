@@ -30,7 +30,7 @@ Sitzungs-Hash ───────┘   (nicht gespeichert)            │
 ```
 
 1. **Server:** `GET /api/v1/auth/local-key` verlangt eine gültige Sitzung. Das Material wird bei jedem Aufruf neu aus `SESSION_SALT_SECRET`, Nutzer-ID und Hash der Sitzung abgeleitet (`apps/worker/src/routes/local-data-routes.ts`). Der Server speichert es nicht. Die Antwort trägt `Cache-Control: no-store`. Ohne `SESSION_SALT_SECRET` antwortet der Endpunkt mit 503.
-2. **Browser:** Das Material geht direkt in `crypto.subtle.importKey("raw", …, "HKDF", false, …)` und wird danach mit Nullen überschrieben. Daraus entsteht per HKDF mit dem Salz der lokalen Datenbank ein AES-GCM-Schlüssel mit `extractable: false` (`apps/web/src/local-crypto.ts`). Weder Material noch Schlüssel landen in IndexedDB, `localStorage` oder `sessionStorage`; der `CryptoKey` lebt nur im Arbeitsspeicher der Seite.
+2. **Browser:** Das Material geht direkt in `crypto.subtle.importKey("raw", …, "HKDF", false, …)` und wird danach mit Nullen überschrieben. Daraus entsteht per HKDF mit dem Salz der lokalen Datenbank ein AES-GCM-Schlüssel mit `extractable: false` (`apps/web/src/services/storage/local-crypto.ts`). Weder Material noch Schlüssel landen in IndexedDB, `localStorage` oder `sessionStorage`; der `CryptoKey` lebt nur im Arbeitsspeicher der Seite.
 3. **Neu laden:** Gleiche Sitzung ergibt gleiches Material, die Daten bleiben lesbar. Dafür braucht der Browser einmal Verbindung zum Server.
 4. **Andere Sitzung:** Ein neuer Login (oder eine Sitzungsrotation) liefert anderes Material. Der verschlüsselte Prüfwert in `meta` lässt sich dann nicht entschlüsseln; die Ablage löscht die alten Chiffrate und beginnt neu (`reset: true`). Mit fremdem Schlüssel wären sie ohnehin unlesbar.
 
@@ -43,7 +43,7 @@ Sitzungs-Hash ───────┘   (nicht gespeichert)            │
 
 ## Abmelden
 
-Der Knopf „Abmelden und lokale Daten löschen“ steht im Konto-Menü und im Menü auf dem Telefon. Ablauf (`apps/web/src/local-session.ts`):
+Der Knopf „Abmelden und lokale Daten löschen“ steht im Konto-Menü und im Menü auf dem Telefon. Ablauf (`apps/web/src/services/storage/local-session.ts`):
 
 1. Offene Verbindungen der Seite schließen, dann `indexedDB.deleteDatabase("rn-local-v1")`. Andere Tabs schließen ihre Verbindung über `onversionchange`, danach läuft das Löschen durch.
 2. `rn_notebook_titles` aus `localStorage` entfernen.
@@ -78,9 +78,9 @@ Geprüft am 13.11.2026 anhand des Diffs von Issue #348:
 
 | Test | Was er belegt |
 | --- | --- |
-| `apps/web/src/__tests__/local-crypto.test.ts` | Ableitung, `extractable: false`, Nullen des Materials, Nonce-Frische und -Obergrenze, AAD, Manipulation, Formatprüfung |
-| `apps/web/src/__tests__/encrypted-store.test.ts` | Speichern, Lesen, Listen, Löschen; nur Chiffrat in IndexedDB; Wiederöffnen; Sitzungswechsel; Löschen der Datenbank nachweisbar (`localDataExists` danach `false`) |
-| `apps/web/src/__tests__/local-session.test.ts` | Schlüsselabruf (401, 503, Netzfehler, kaputte Antworten), Reihenfolge beim Abmelden, Abmelden offline |
+| `apps/web/tests/unit/services/storage/local-crypto.test.ts` | Ableitung, `extractable: false`, Nullen des Materials, Nonce-Frische und -Obergrenze, AAD, Manipulation, Formatprüfung |
+| `apps/web/tests/unit/services/storage/encrypted-store.test.ts` | Speichern, Lesen, Listen, Löschen; nur Chiffrat in IndexedDB; Wiederöffnen; Sitzungswechsel; Löschen der Datenbank nachweisbar (`localDataExists` danach `false`) |
+| `apps/web/tests/unit/services/storage/local-session.test.ts` | Schlüsselabruf (401, 503, Netzfehler, kaputte Antworten), Reihenfolge beim Abmelden, Abmelden offline |
 | `apps/worker/tests/unit/routes/local-data-routes.test.ts` | 401 ohne Sitzung, stabiles Material je Sitzung, verschieden je Sitzung und Nutzer, Abmelden beendet die Sitzung, 503 ohne Geheimnis |
 | `apps/web/e2e/lokale-verschluesselung.spec.ts` | In Chromium: verschlüsselt schreiben, Rohdaten ohne Klartext, Abmelden über die Oberfläche, danach keine Datenbank `rn-local-v1` mehr |
 

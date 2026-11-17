@@ -11,8 +11,17 @@ import {
   type VideoStoryboard
 } from "@notebook-lm/shared";
 import { type ReactNode, useEffect, useState } from "react";
+import type { StructuredData } from "@/data/structured-demo.js";
+import { useTheme } from "@/hooks/useTheme.js";
+import { escapeHtmlText, triggerBrowserDownload } from "@/lib/export/download.js";
+import {
+  addSvgProvenanceMetadata,
+  type FetchLike,
+  provenanceNoteKey,
+  signExport
+} from "@/services/api/provenance-client.js";
+import type { CitationLocation, PanelFocusAttributes } from "@/types/workspace-types.js";
 import { DEMO_PODCAST_TRANSCRIPT, DeepDiveStage } from "./DeepDiveStage.js";
-import { escapeHtmlText, triggerBrowserDownload } from "./download.js";
 import { EmptyState } from "./EmptyState.js";
 import { Icon, type IconName } from "./Icon.js";
 import {
@@ -26,15 +35,6 @@ import {
   LazyTimelineViewer as TimelineViewer,
   LazyVideoOverviewPlayer as VideoOverviewPlayer
 } from "./lazy-viewers.js";
-import {
-  addSvgProvenanceMetadata,
-  type FetchLike,
-  provenanceNoteKey,
-  signExport
-} from "./provenance-client.js";
-import type { StructuredData } from "./structured-demo.js";
-import { useTheme } from "./useTheme.js";
-import type { CitationLocation, PanelFocusAttributes } from "./workspace-types.js";
 
 export type StudioTool =
   | "overview"
@@ -211,7 +211,7 @@ export function StudioPanel({
 
   const handleExport = (type: "anki" | "mindmap" | "quiz" | "briefing") => {
     // Die Formatierer laden erst beim Export, nicht beim Start (Issue #257, LCP mobil).
-    void import("./artifact-exporters.js").then((exporters) => {
+    void import("@/lib/export/artifact-exporters.js").then((exporters) => {
       if (type === "anki" && flashcardsData) {
         const result = exporters.exportFlashcardsToAnkiCsv(flashcardsData);
         download(result.filename, result.content, result.mimeType);

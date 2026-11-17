@@ -6,6 +6,8 @@
  */
 
 import { type FormEvent, useEffect, useState } from "react";
+import { useTheme } from "@/hooks/useTheme.jsx";
+import { type EndpointLanguage, endpointText } from "@/i18n/catalogs/custom-endpoint-i18n.js";
 import {
   type CustomEndpointState,
   deleteCustomEndpoint,
@@ -13,9 +15,7 @@ import {
   loadCustomEndpoint,
   saveCustomEndpoint,
   testCustomEndpoint
-} from "./custom-endpoint-client.js";
-import { type EndpointLanguage, endpointText } from "./custom-endpoint-i18n.js";
-import { useTheme } from "./useTheme.jsx";
+} from "@/services/api/custom-endpoint-client.js";
 
 type Busy = "idle" | "loading" | "saving" | "testing";
 

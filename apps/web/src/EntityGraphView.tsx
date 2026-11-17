@@ -38,9 +38,10 @@ import {
   useRef,
   useState
 } from "react";
-import { announceKey, layoutEntityGraph } from "./entity-graph-view.js";
+import { announceKey, layoutEntityGraph } from "@/lib/graph/entity-graph-view.js";
 import { Icon } from "./Icon.js";
-import "./entity-graph.css";
+import "@/styles/entity-graph.css";
+import { useTheme } from "@/hooks/useTheme.js";
 import {
   fitZoom,
   GRAPH_FONT_SIZE,
@@ -53,9 +54,8 @@ import {
   layoutModeFor,
   nodeInDirection,
   stepZoom
-} from "./knowledge-graph.js";
-import { useTheme } from "./useTheme.js";
-import type { CitationLocation } from "./workspace-types.js";
+} from "@/lib/graph/knowledge-graph.js";
+import type { CitationLocation } from "@/types/workspace-types.js";
 
 export interface EntityGraphViewProps {
   readonly graph: EntityGraph;

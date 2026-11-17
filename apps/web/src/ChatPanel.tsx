@@ -1,9 +1,9 @@
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { useTheme } from "@/hooks/useTheme.js";
+import { shouldReduceMotion } from "@/theme/theme-preferences.js";
+import type { CitationLocation, PanelFocusAttributes } from "@/types/workspace-types.js";
 import { EmptyState } from "./EmptyState.js";
 import { Icon } from "./Icon.js";
-import { shouldReduceMotion } from "./theme-preferences.js";
-import { useTheme } from "./useTheme.js";
-import type { CitationLocation, PanelFocusAttributes } from "./workspace-types.js";
 
 export interface ChatMessage {
   readonly id: string;

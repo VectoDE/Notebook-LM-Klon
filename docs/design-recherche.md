@@ -137,7 +137,7 @@ Wiedererkennbarkeit ist hier eine eigene Einschätzung: eigene Grundfarbe, eigen
 
 ### Was RelationNotes daraus übernimmt
 
-- Jede Textfarbe erreicht 7:1 auf jeder Fläche, auf der sie stehen kann (Tests in `apps/web/src/__tests__/design-tokens.test.ts`).
+- Jede Textfarbe erreicht 7:1 auf jeder Fläche, auf der sie stehen kann (Tests in `apps/web/tests/unit/theme/design-tokens.test.ts`).
 - Markenfarben nur als Fläche, nie als Text unter 7:1.
 - Kein Zoom-Verbot, Zoom 200 % ohne Querscrollen (`apps/web/e2e/zoom-200.spec.ts`).
 - Bedienziele 44 px (`apps/web/e2e/header-mobile.spec.ts`), kleinste Schrift 14 px, Fließtext 16 px.

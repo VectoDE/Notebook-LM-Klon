@@ -201,7 +201,7 @@ describe("MindmapViewer Layout Engine & Component (Sub-Issue #122)", () => {
     expect(html).toContain('data-testid="mindmap-toolbar"');
     expect(html).toMatch(/data-testid="mindmap-toolbar" class="rn-mindmap-toolbar"/);
     // Reiter, Zoom und Zurücksetzen: Klassen mit mindestens 44 px Höhe in workspace.css
-    const css = readFileSync(resolve(import.meta.dirname, "../workspace.css"), "utf8");
+    const css = readFileSync(resolve(import.meta.dirname, "../styles/workspace.css"), "utf8");
     const minHeight = (selector: string) => {
       const start = css.indexOf(`\n${selector} {`);
       expect(start, selector).toBeGreaterThan(-1);
@@ -332,7 +332,7 @@ describe("MindmapViewer Layout Engine & Component (Sub-Issue #122)", () => {
     });
 
     it("Reiterbeschriftung bricht nicht um", () => {
-      const css = readFileSync(resolve(import.meta.dirname, "../workspace.css"), "utf8");
+      const css = readFileSync(resolve(import.meta.dirname, "../styles/workspace.css"), "utf8");
       const start = css.indexOf("\n.rn-seg-tab {");
       expect(css.slice(start, css.indexOf("}", start))).toContain("white-space: nowrap");
     });

@@ -21,10 +21,10 @@ import {
   useRef,
   useState
 } from "react";
-import { triggerBrowserDownload } from "./artifact-exporters.js";
+import { useTheme } from "@/hooks/useTheme.js";
+import { triggerBrowserDownload } from "@/lib/export/artifact-exporters.js";
 import { Icon } from "./Icon.js";
 import type { TranscriptItem } from "./MediaTranscript.js";
-import { useTheme } from "./useTheme.js";
 
 // Erst beim Aufklappen laden: hält das Startpaket unter dem Skript-Budget (Issue #350)
 const MediaTranscript = lazy(() =>
@@ -661,7 +661,7 @@ export function VideoOverviewPlayer(props: VideoOverviewPlayerProps) {
       id: "txt",
       label: t("mediaDownloadText"),
       run: () =>
-        void import("./media-downloads.js").then((m) =>
+        void import("@/lib/export/media-downloads.js").then((m) =>
           download(
             `${storyboard.title}_transkript.txt`,
             m.videoTranscriptText(storyboard.title, transcript, contentLang),

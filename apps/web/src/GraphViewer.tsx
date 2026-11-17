@@ -23,7 +23,8 @@ import {
   useState
 } from "react";
 import { Icon } from "./Icon.js";
-import "./entity-graph-mode.css";
+import "@/styles/entity-graph-mode.css";
+import { useTheme } from "@/hooks/useTheme.js";
 import {
   degree,
   fitZoom,
@@ -41,9 +42,8 @@ import {
   nodeInDirection,
   nodeRelations,
   stepZoom
-} from "./knowledge-graph.js";
-import { useTheme } from "./useTheme.js";
-import type { CitationLocation, PanelFocusAttributes } from "./workspace-types.js";
+} from "@/lib/graph/knowledge-graph.js";
+import type { CitationLocation, PanelFocusAttributes } from "@/types/workspace-types.js";
 
 /** Beziehungsgraph erst beim Umschalten laden, damit der Start schlank bleibt (LCP). */
 const EntityGraphView = lazy(() =>

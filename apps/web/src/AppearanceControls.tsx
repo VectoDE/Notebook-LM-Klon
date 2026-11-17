@@ -1,7 +1,7 @@
-import type { DesignTheme } from "./design-tokens.js";
+import { useTheme } from "@/hooks/useTheme.js";
+import type { DesignTheme } from "@/theme/design-tokens.js";
+import type { ColorModePreference } from "@/theme/theme-preferences.js";
 import { Icon } from "./Icon.js";
-import type { ColorModePreference } from "./theme-preferences.js";
-import { useTheme } from "./useTheme.js";
 
 export type UserRole = "owner" | "editor" | "viewer";
 

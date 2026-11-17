@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useReturnFocus } from "@/hooks/useReturnFocus.js";
+import { useTheme } from "@/hooks/useTheme.js";
+import { privacyTexts } from "@/i18n/catalogs/privacy-texts.js";
+import { trapTabKey } from "@/lib/a11y/focus-trap.js";
 import {
   CONSENT_CHANGE_EVENT,
   type ConsentState,
@@ -7,13 +11,9 @@ import {
   OPEN_PRIVACY_NOTICE_EVENT,
   readConsent,
   storeConsent
-} from "./consent.js";
-import { trapTabKey } from "./focus-trap.js";
+} from "@/services/analytics/consent.js";
 import { Icon } from "./Icon.js";
-import { privacyTexts } from "./privacy-texts.js";
-import { useReturnFocus } from "./useReturnFocus.js";
-import { useTheme } from "./useTheme.js";
-import "./privacy.css";
+import "@/styles/privacy.css";
 
 export interface PrivacyCenterProps {
   /** Ist ein Dienst eingerichtet, der eine Einwilligung braucht (z. B. VITE_GTM_ID)? */

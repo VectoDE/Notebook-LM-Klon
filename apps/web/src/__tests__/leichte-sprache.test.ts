@@ -2,20 +2,20 @@ import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
-import { LANGUAGE_NAMES, SettingsDrawer } from "../SettingsDrawer.js";
-import { COMMENTS_DE, COMMENTS_EN, commentTexts } from "../translations-comments.js";
-import {
-  OFFLINE_CHAT_DE,
-  OFFLINE_CHAT_EN,
-  offlineChatTexts
-} from "../translations-offline-chat.js";
 import {
   LOCALES,
   ThemeProvider,
   type ThemeProviderProps,
   TRANSLATIONS,
   translate
-} from "../useTheme.js";
+} from "@/hooks/useTheme.js";
+import { COMMENTS_DE, COMMENTS_EN, commentTexts } from "@/i18n/catalogs/translations-comments.js";
+import {
+  OFFLINE_CHAT_DE,
+  OFFLINE_CHAT_EN,
+  offlineChatTexts
+} from "@/i18n/catalogs/translations-offline-chat.js";
+import { LANGUAGE_NAMES, SettingsDrawer } from "../SettingsDrawer.js";
 
 /**
  * Leichte Sprache (Issue #349): Der Katalog locales/de-x-ls.json übersetzt jeden Schlüssel der
@@ -25,7 +25,7 @@ import {
  */
 
 const raw = JSON.parse(
-  readFileSync(new URL("../locales/de-x-ls.json", import.meta.url), "utf8")
+  readFileSync(new URL("../i18n/locales/de-x-ls.json", import.meta.url), "utf8")
 ) as Record<string, unknown>;
 const { $meta, ...ls } = raw as { $meta: unknown } & Record<string, string>;
 

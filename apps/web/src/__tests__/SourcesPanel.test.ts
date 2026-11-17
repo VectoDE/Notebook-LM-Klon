@@ -1,8 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import type { WorkspaceSource } from "@/types/workspace-types.js";
 import { SourcesPanel } from "../SourcesPanel.js";
-import type { WorkspaceSource } from "../workspace-types.js";
 
 const TEST_SOURCES: WorkspaceSource[] = [
   {

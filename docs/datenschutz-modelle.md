@@ -8,7 +8,7 @@ Stand: 2026-11-13 · Referenzen: Issue #302, Entscheidungen #8, #41, #45
 
 Die Einstellungen der App zeigen beim gewählten KI-Modell an, ob der Anbieter Eingaben zum Training verwendet, unter welchen Bedingungen und mit welcher Quelle. Eine pauschale Aussage „ohne Training“ gibt es nicht mehr, weil sie nicht für jedes Modell und jeden Zugangsweg stimmt.
 
-Die Daten für die Anzeige stehen in [`apps/web/src/model-data-policy.ts`](../apps/web/src/model-data-policy.ts). Ein Test (`model-data-policy.test.ts`) prüft, dass jede dort genannte Quelle auch in dieser Tabelle steht.
+Die Daten für die Anzeige stehen in [`apps/web/src/services/llm/model-data-policy.ts`](../apps/web/src/services/llm/model-data-policy.ts). Ein Test (`model-data-policy.test.ts`) prüft, dass jede dort genannte Quelle auch in dieser Tabelle steht.
 
 ## Was in dieser Installation tatsächlich angebunden ist
 

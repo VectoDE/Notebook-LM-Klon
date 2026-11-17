@@ -16,8 +16,8 @@ import {
   type SM2State
 } from "@notebook-lm/shared";
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useId, useState } from "react";
+import { fill, type Language, translate, useTheme } from "@/hooks/useTheme.js";
 import { EmptyState } from "./EmptyState.js";
-import { fill, type Language, translate, useTheme } from "./useTheme.js";
 
 export interface FlashcardsViewerProps {
   readonly cards: readonly FlashcardItem[];

@@ -27,8 +27,8 @@ async function stubSession(page: Page): Promise<() => number> {
 
 async function writeEncrypted(page: Page): Promise<void> {
   await page.evaluate(async (text) => {
-    const storeUrl = "/src/encrypted-store.ts";
-    const sessionUrl = "/src/local-session.ts";
+    const storeUrl = "/src/services/storage/encrypted-store.ts";
+    const sessionUrl = "/src/services/storage/local-session.ts";
     const storeMod = await import(/* @vite-ignore */ storeUrl);
     const sessionMod = await import(/* @vite-ignore */ sessionUrl);
     const key = await sessionMod.fetchLocalKey((input: string, init?: RequestInit) =>

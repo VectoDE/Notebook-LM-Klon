@@ -9,19 +9,19 @@ import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { MODEL_DATA_POLICIES, policyFor, STATUS_KEYS } from "../model-data-policy.js";
-import { SettingsDrawer } from "../SettingsDrawer.js";
+import { ThemeProvider, type ThemeProviderProps, TRANSLATIONS } from "@/hooks/useTheme.js";
+import { MODEL_DATA_POLICIES, policyFor, STATUS_KEYS } from "@/services/llm/model-data-policy.js";
 import {
   CUSTOM_MODEL_ID,
   isModelSelectable,
   MODEL_IDS,
   readStoredModel,
   storeModel
-} from "../theme-preferences.js";
-import { ThemeProvider, type ThemeProviderProps, TRANSLATIONS } from "../useTheme.js";
+} from "@/theme/theme-preferences.js";
+import { SettingsDrawer } from "../SettingsDrawer.js";
 
 const EASY = JSON.parse(
-  readFileSync(new URL("../locales/de-x-ls.json", import.meta.url), "utf8")
+  readFileSync(new URL("../i18n/locales/de-x-ls.json", import.meta.url), "utf8")
 ) as Record<string, string>;
 
 const KEYS = [

@@ -8,8 +8,8 @@
 
 import { clockTime } from "@notebook-lm/shared";
 import { useId } from "react";
+import { useTheme } from "@/hooks/useTheme.js";
 import { Icon } from "./Icon.js";
-import { useTheme } from "./useTheme.js";
 
 export interface TranscriptItem {
   readonly id: string;

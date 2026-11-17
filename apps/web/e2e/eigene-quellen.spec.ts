@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { buildDocx } from "../src/__tests__/zip-fixture";
+import { buildDocx } from "../tests/fixtures/zip-fixture";
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 

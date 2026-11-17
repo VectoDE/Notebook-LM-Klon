@@ -10,11 +10,16 @@
 
 import { evaluateQuiz, type QuizEvaluationResult, type QuizQuestion } from "@notebook-lm/shared";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useTheme } from "@/hooks/useTheme.js";
+import {
+  readTableView,
+  storeView,
+  type TableView,
+  VIEW_STORAGE_KEYS
+} from "@/preferences/view-preferences.js";
+import { browserStorage } from "@/theme/theme-preferences.js";
 import { EmptyState } from "./EmptyState.js";
-import { browserStorage } from "./theme-preferences.js";
-import { useTheme } from "./useTheme.js";
 import { ViewToggle } from "./ViewToggle.js";
-import { readTableView, storeView, type TableView, VIEW_STORAGE_KEYS } from "./view-preferences.js";
 
 export interface QuizViewerProps {
   readonly questions: readonly QuizQuestion[];

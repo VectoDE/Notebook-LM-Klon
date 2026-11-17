@@ -6,13 +6,13 @@
  */
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ThemeProvider } from "../../src/useTheme.js";
+import { ThemeProvider } from "@/hooks/useTheme.js";
 import { VideoOverviewPlayer } from "../../src/VideoOverviewPlayer.js";
 import { DEFAULT_VIDEO_STORYBOARD } from "../../src/WorkspaceLayout.js";
-import "../../src/fonts.css";
-import "../../src/themes.css";
-import "../../src/workspace.css";
-import "../../src/components.css";
+import "@/styles/fonts.css";
+import "@/styles/themes.css";
+import "@/styles/workspace.css";
+import "@/styles/components.css";
 
 const root = document.getElementById("root");
 if (root) {
