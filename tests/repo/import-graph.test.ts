@@ -119,10 +119,17 @@ const PACKAGES: PackageConfig[] = [
     name: "web",
     src: join(ROOT, "apps/web/src"),
     alias: true,
+    entries: ["main.tsx"],
     skipFolders: ["workers", "assets", "styles", "i18n/locales"],
     allowedEdges: WEB_EDGES
   },
-  { name: "worker", src: join(ROOT, "apps/worker/src"), alias: true, allowedEdges: WORKER_EDGES },
+  {
+    name: "worker",
+    src: join(ROOT, "apps/worker/src"),
+    alias: true,
+    entries: ["index.ts", "node-server.ts"],
+    allowedEdges: WORKER_EDGES
+  },
   { name: "shared", src: join(ROOT, "packages/shared/src"), alias: false }
 ];
 

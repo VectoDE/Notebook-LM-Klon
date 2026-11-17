@@ -1,4 +1,4 @@
-import { isEnglish, offlineChatTexts } from "@/i18n/catalogs/index.js";
+import { isEnglish, offlineChatTexts } from "@/i18n/catalogs/translations-offline-chat.js";
 import { fill } from "@/i18n/index.js";
 import type { CitationLocation, WorkspaceSource } from "@/types/workspace-types.js";
 import type { LocalChatMessage, LocalModelController, LocalModelState } from "./local-llm.js";

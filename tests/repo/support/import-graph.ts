@@ -15,6 +15,8 @@ export interface PackageConfig {
   alias: boolean;
   /** Ordner (relativ zu `src`), für die keine Barrel-Regeln gelten. */
   skipFolders?: readonly string[];
+  /** Einstiegsdateien (relativ zu src); nur von dort statisch erreichbare Module gelten als Start-Code. */
+  entries?: readonly string[];
   /** Erlaubte Ordnerkanten `von->nach` (statische Wert-Importe). `undefined`: nicht prüfen. */
   allowedEdges?: readonly string[];
 }
@@ -258,6 +260,31 @@ export function check(cfg: PackageConfig): Violation[] {
     }
   }
 
+  // Start-Code: statisch (ohne Typen und dynamische Importe) vom Einstieg erreichbar. Module, die nur
+  // lazy erreichbar sind, dürfen untereinander direkt importieren und gehören in kein Barrel.
+  const startSet = new Set<string>();
+  if (cfg.entries?.length) {
+    const known = new Set(files.map(normalize));
+    const queue = cfg.entries.map((e) => normalize(join(cfg.src, e))).filter((e) => known.has(e));
+    for (const e of queue) startSet.add(e);
+    while (queue.length > 0) {
+      const v = queue.pop() as string;
+      for (const e of edges) {
+        if (
+          e.from !== v ||
+          e.typeOnly ||
+          e.dynamic ||
+          e.to.startsWith("@alias:") ||
+          startSet.has(e.to)
+        )
+          continue;
+        startSet.add(e.to);
+        queue.push(e.to);
+      }
+    }
+  }
+  const lazyOnly = (f: string): boolean => startSet.size > 0 && !startSet.has(f);
+
   const folderEdges = new Set<string>();
   for (const e of edges) {
     if (e.to.startsWith("@alias:") || e.dynamic || e.typeOnly) continue;
@@ -276,7 +303,13 @@ export function check(cfg: PackageConfig): Violation[] {
     }
     folderEdges.add(`${fromFolder}->${toFolder}`);
     // (d) ordnerübergreifend nur über das Barrel (Ausnahmen: Typen, dynamisch geladene Ziele, Wurzel)
-    if (toFolder !== "." && !isIndex(e.to) && !dynamicTargets.has(e.to) && !e.reexport) {
+    if (
+      toFolder !== "." &&
+      !isIndex(e.to) &&
+      !dynamicTargets.has(e.to) &&
+      !lazyOnly(e.to) &&
+      !e.reexport
+    ) {
       out.push({
         kind: "deep-import",
         message: `${cfg.name}: ${rel(e.from)} importiert ${rel(e.to)} am Barrel vorbei`
@@ -296,9 +329,15 @@ export function check(cfg: PackageConfig): Violation[] {
     }
   }
 
-  // (f) keine Wert-Re-Exporte dynamisch geladener Module in Barrels
+  // (f) keine Wert-Re-Exporte dynamisch geladener oder nur lazy erreichbarer Module in Barrels
   for (const e of edges) {
-    if (!e.reexport || e.typeOnly || !isIndex(e.from) || !dynamicTargets.has(e.to)) continue;
+    if (
+      !e.reexport ||
+      e.typeOnly ||
+      !isIndex(e.from) ||
+      !(dynamicTargets.has(e.to) || lazyOnly(e.to))
+    )
+      continue;
     out.push({
       kind: "dynamic-reexport",
       message: `${cfg.name}: ${rel(e.from)} re-exportiert ${rel(e.to)} als Wert`

@@ -2,30 +2,29 @@ import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { LazyCommentThread } from "@/components/lazy/index.js";
 import { LOCALES, useReturnFocus, useTheme } from "@/hooks/index.js";
 
-import { offlineChatTexts } from "@/i18n/catalogs/index.js";
+import { offlineChatTexts } from "@/i18n/catalogs/translations-offline-chat.js";
 import { fill } from "@/i18n/index.js";
 import { trapTabKey } from "@/lib/a11y/index.js";
 import {
-  answerOffline,
-  chatModeFor,
+  LocalModelController,
+  type LocalModelEnv,
+  type LocalModelState,
+  type LocalRuntimeLoader
+} from "@/services/llm/local-llm.js";
+import {
   formatGigabytes,
   LOCAL_MODEL_DOWNLOAD_BYTES,
   LOCAL_MODEL_LABEL,
-  LOCAL_MODEL_VRAM_MB,
-  LocalModelController,
+  LOCAL_MODEL_VRAM_MB
+} from "@/services/llm/local-llm-config.js";
+import {
+  answerOffline,
+  type ChatMode,
+  chatModeFor,
   localRouteFor,
+  type OfflineAnswerRequest,
+  type OfflineAnswerResult,
   offlineErrorText
-} from "@/services/llm/index.js";
-import type {
-  LocalModelEnv,
-  LocalModelState,
-  LocalRuntimeLoader
-} from "@/services/llm/local-llm.js";
-
-import type {
-  ChatMode,
-  OfflineAnswerRequest,
-  OfflineAnswerResult
 } from "@/services/llm/offline-chat.js";
 import { browserStorage } from "@/theme/index.js";
 

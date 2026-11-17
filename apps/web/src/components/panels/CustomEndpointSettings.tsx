@@ -7,16 +7,15 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { useTheme } from "@/hooks/index.js";
-import type { EndpointLanguage } from "@/i18n/catalogs/custom-endpoint-i18n.js";
-import { endpointText } from "@/i18n/catalogs/index.js";
-import type { CustomEndpointState } from "@/services/api/custom-endpoint-client.js";
+import { type EndpointLanguage, endpointText } from "@/i18n/catalogs/custom-endpoint-i18n.js";
 import {
+  type CustomEndpointState,
   deleteCustomEndpoint,
   EndpointApiError,
   loadCustomEndpoint,
   saveCustomEndpoint,
   testCustomEndpoint
-} from "@/services/api/index.js";
+} from "@/services/api/custom-endpoint-client.js";
 
 type Busy = "idle" | "loading" | "saving" | "testing";
 
