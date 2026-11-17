@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Icon } from "@/components/ui/Icon.js";
-import { useReturnFocus } from "@/hooks/useReturnFocus.js";
-import { useTheme } from "@/hooks/useTheme.js";
-import { privacyTexts } from "@/i18n/catalogs/privacy-texts.js";
-import { trapTabKey } from "@/lib/a11y/focus-trap.js";
+import { Icon } from "@/components/ui/index.js";
+import { useReturnFocus, useTheme } from "@/hooks/index.js";
+
+import { privacyTexts } from "@/i18n/catalogs/index.js";
+import { trapTabKey } from "@/lib/a11y/index.js";
+import type { ConsentState } from "@/services/analytics/consent.js";
 import {
   CONSENT_CHANGE_EVENT,
-  type ConsentState,
   needsConsentDecision,
   OPEN_CONSENT_SETTINGS_EVENT,
   OPEN_PRIVACY_NOTICE_EVENT,
   readConsent,
   storeConsent
-} from "@/services/analytics/consent.js";
+} from "@/services/analytics/index.js";
 import "@/styles/privacy.css";
 
 export interface PrivacyCenterProps {

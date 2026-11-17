@@ -1,10 +1,10 @@
 import type { ProvidersListResponse, RouteModelDecision } from "@notebook-lm/shared";
 import { Hono } from "hono";
-import { GeminiProvider } from "@/providers/gemini-provider.js";
-import { OllamaLocalProvider } from "@/providers/ollama-provider.js";
+import { GeminiProvider, OllamaLocalProvider } from "@/providers/index.js";
+
 import type { RagRepository } from "@/repositories/rag-repository.js";
 import type { KeyVault } from "@/security/key-vault.js";
-import { AutoRouter } from "@/services/auto-router.js";
+import { AutoRouter } from "@/services/index.js";
 
 export interface ProviderRoutesDependencies {
   readonly autoRouter?: AutoRouter | undefined;

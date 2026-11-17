@@ -1,13 +1,10 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import type { Hono } from "hono";
 import type { CoreRepository } from "@/repositories/core-repository.js";
-import {
-  createNotebookStatePurger,
-  type MinimalR2Bucket,
-  purgeUsers
-} from "@/scheduled/cleanup.js";
+import type { MinimalR2Bucket } from "@/scheduled/cleanup.js";
+import { createNotebookStatePurger, purgeUsers } from "@/scheduled/index.js";
 import type { AuditLogger } from "@/security/audit-log.js";
-import { buildClearSessionCookie } from "@/security/session.js";
+import { buildClearSessionCookie } from "@/security/index.js";
 
 /** Value the client must send as {"confirm": ...} so an account is never deleted by accident. */
 export const ACCOUNT_DELETE_CONFIRMATION = "DELETE_MY_ACCOUNT";

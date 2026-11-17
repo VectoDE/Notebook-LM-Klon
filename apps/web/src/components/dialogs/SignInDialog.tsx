@@ -1,18 +1,21 @@
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
-import { Icon } from "@/components/ui/Icon.js";
-import { useReturnFocus } from "@/hooks/useReturnFocus.js";
-import { useTheme } from "@/hooks/useTheme.js";
-import { trapTabKey } from "@/lib/a11y/focus-trap.js";
-import { type PasskeyCredentials, registerPasskey } from "@/services/api/passkey-client.js";
+import { Icon } from "@/components/ui/index.js";
+import { useReturnFocus, useTheme } from "@/hooks/index.js";
+
+import { trapTabKey } from "@/lib/a11y/index.js";
 import {
-  type AuthCallResult,
   authErrorKey,
   loadTurnstileScript,
+  registerPasskey,
   requestGuestSession,
   requestMagicLink,
-  resolveTurnstileSiteKey,
-  type SiteKeyResolution,
-  type TurnstileApi
+  resolveTurnstileSiteKey
+} from "@/services/api/index.js";
+import type { PasskeyCredentials } from "@/services/api/passkey-client.js";
+import type {
+  AuthCallResult,
+  SiteKeyResolution,
+  TurnstileApi
 } from "@/services/api/turnstile-client.js";
 
 export interface SignInDialogProps {

@@ -1,9 +1,9 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { scheduleStudioViewerPreload } from "@/components/lazy/lazy-viewers.js";
-import { ThemeProvider } from "@/hooks/useTheme.js";
-import { afterSettled } from "@/lib/utils/after-settled.js";
-import { sendUsageBeacon } from "@/services/analytics/usage-beacon.js";
+import { scheduleStudioViewerPreload } from "@/components/lazy/index.js";
+import { ThemeProvider } from "@/hooks/index.js";
+import { afterSettled } from "@/lib/utils/index.js";
+import { sendUsageBeacon } from "@/services/analytics/index.js";
 import { App } from "./App.js";
 // Schriften selbst gehostet (OFL, Latin-Subset, von Vite gehasht, kein externes CDN)
 import "@/styles/fonts.css";

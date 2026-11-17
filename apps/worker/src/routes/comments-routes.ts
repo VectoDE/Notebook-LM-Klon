@@ -8,8 +8,8 @@ import {
   UpdateCommentBodySchema
 } from "@notebook-lm/shared";
 import type { Context, Hono } from "hono";
-import { requireAuth, requireNotebookRole } from "@/middleware/auth-middleware.js";
-import { type NotebookRole, resolveNotebookRole } from "@/middleware/route-guards.js";
+import { requireAuth, requireNotebookRole, resolveNotebookRole } from "@/middleware/index.js";
+import type { NotebookRole } from "@/middleware/route-guards.js";
 import type { CoreRepository, DatabaseAdapter } from "@/repositories/core-repository.js";
 
 /**

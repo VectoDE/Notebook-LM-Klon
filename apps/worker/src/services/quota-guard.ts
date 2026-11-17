@@ -1,6 +1,7 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import type { Context, MiddlewareHandler } from "hono";
-import { type ProfileQuotas, resolveAppConfig } from "@/config/config.js";
+import type { ProfileQuotas } from "@/config/config.js";
+import { resolveAppConfig } from "@/config/index.js";
 
 export interface QuotaState {
   readonly userId: string;

@@ -1,6 +1,6 @@
-import { STALE_UPLOAD_MS, UPLOAD_DAILY_RETENTION_DAYS } from "@/config/r2-budget.js";
+import { STALE_UPLOAD_MS, UPLOAD_DAILY_RETENTION_DAYS } from "@/config/index.js";
 import type { BatchStatement, DatabaseAdapter } from "@/repositories/core-repository.js";
-import { purgeExpiredAuditEntries, replayPendingAuditEntries } from "@/security/audit-log.js";
+import { purgeExpiredAuditEntries, replayPendingAuditEntries } from "@/security/index.js";
 
 export type { BatchStatement } from "@/repositories/core-repository.js";
 

@@ -1,12 +1,12 @@
 import { createProblemDetails } from "@notebook-lm/shared";
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
 import { Hono } from "hono";
-import { requireAuth } from "@/middleware/auth-middleware.js";
+import { requireAuth } from "@/middleware/index.js";
 import type { CoreRepository } from "@/repositories/core-repository.js";
 import type { AuditLogger } from "@/security/audit-log.js";
-import { resolveClientIp } from "@/security/rate-limiter.js";
-import { buildSessionCookie, type SessionManager } from "@/security/session.js";
-import { requireTurnstile } from "@/security/turnstile.js";
+import { buildSessionCookie, requireTurnstile, resolveClientIp } from "@/security/index.js";
+import type { SessionManager } from "@/security/session.js";
+
 import type { PasskeyService } from "@/services/passkey-service.js";
 
 export function createPasskeyRoutes(opts: {

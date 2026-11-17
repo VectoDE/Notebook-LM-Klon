@@ -14,21 +14,23 @@
 
 import { createProblemDetails, z } from "@notebook-lm/shared";
 import { type Context, Hono } from "hono";
-import { csrfProtection } from "@/middleware/auth-middleware.js";
-import { OpenAiCompatibleProvider } from "@/providers/openai-compatible-provider.js";
+import { csrfProtection } from "@/middleware/index.js";
+import { OpenAiCompatibleProvider } from "@/providers/index.js";
 import type { DatabaseAdapter } from "@/repositories/core-repository.js";
 import type { RagRepository } from "@/repositories/rag-repository.js";
+import type { HostResolver } from "@/security/endpoint-guard.js";
 import {
   assertHostResolvesPublic,
   BYOM_ALLOWLIST_ENV,
+  checkRateLimit,
   createDohResolver,
+  deserializeEncryptedPayload,
   endpointKeyBinding,
-  type HostResolver,
   parseHostAllowlist,
   validateUserEndpoint
-} from "@/security/endpoint-guard.js";
-import { deserializeEncryptedPayload, type KeyVault } from "@/security/key-vault.js";
-import { checkRateLimit, type RateLimitConfig } from "@/security/rate-limiter.js";
+} from "@/security/index.js";
+import type { KeyVault } from "@/security/key-vault.js";
+import type { RateLimitConfig } from "@/security/rate-limiter.js";
 import type { SsrSecurityError } from "@/security/ssrf-guard.js";
 
 /**

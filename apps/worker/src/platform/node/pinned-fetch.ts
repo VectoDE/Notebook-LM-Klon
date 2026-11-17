@@ -16,8 +16,7 @@ import type { ClientRequest, IncomingMessage, OutgoingHttpHeaders } from "node:h
 import { request as httpsRequest, type RequestOptions } from "node:https";
 import type { LookupFunction } from "node:net";
 import { Readable } from "node:stream";
-import { isBlockedIp } from "@/security/endpoint-guard.js";
-import { SsrSecurityError } from "@/security/ssrf-guard.js";
+import { isBlockedIp, SsrSecurityError } from "@/security/index.js";
 
 /** Löst einen Namen in alle Adressen auf (Signatur wie `dns.lookup` mit `all: true`). */
 export type LookupAll = (

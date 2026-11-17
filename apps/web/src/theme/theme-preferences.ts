@@ -7,7 +7,7 @@
  * Das frühere Attribut data-theme wird entfernt (Issue #252).
  */
 
-import { directionOf } from "@/i18n/i18n.js";
+import { directionOf } from "@/i18n/index.js";
 import {
   COLOR_MODES,
   type ColorMode,

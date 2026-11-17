@@ -21,7 +21,7 @@ import {
   useRef,
   useState
 } from "react";
-import { useTheme } from "@/hooks/useTheme.js";
+import { useTheme } from "@/hooks/index.js";
 
 export interface MindmapViewerProps {
   readonly rootNode: MindmapNode;

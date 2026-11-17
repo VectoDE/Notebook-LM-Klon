@@ -8,8 +8,8 @@
  */
 
 import { useEffect, useRef } from "react";
-import { useTheme } from "@/hooks/useTheme.js";
-import { shouldReduceMotion } from "@/theme/theme-preferences.js";
+import { useTheme } from "@/hooks/index.js";
+import { shouldReduceMotion } from "@/theme/index.js";
 
 export interface TranscriptLine {
   readonly id: string;

@@ -101,8 +101,11 @@ export default defineConfig({
       exclude: [
         "**/__tests__/**",
         "**/*.d.ts",
-        // Barrels in Unterordnern enthalten nur Re-Exporte (Prüfung folgt mit dem Import-Graph-Test)
-        "packages/shared/src/*/index.ts"
+        // Barrels in Unterordnern enthalten nur Re-Exporte (tests/repo/import-graph.test.ts prüft das)
+        "packages/shared/src/*/index.ts",
+        "apps/worker/src/*/index.ts",
+        "apps/worker/src/*/*/index.ts",
+        "apps/web/src/**/index.ts"
       ],
       thresholds: {
         lines: 100,

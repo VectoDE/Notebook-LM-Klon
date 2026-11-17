@@ -1,10 +1,7 @@
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
-import { Icon } from "@/components/ui/Icon.js";
-import { useTheme } from "@/hooks/useTheme.js";
-import {
-  NOTEBOOK_TITLE_MAX_LENGTH,
-  normalizeNotebookTitle
-} from "@/preferences/layout-preferences.js";
+import { Icon } from "@/components/ui/index.js";
+import { useTheme } from "@/hooks/index.js";
+import { NOTEBOOK_TITLE_MAX_LENGTH, normalizeNotebookTitle } from "@/preferences/index.js";
 
 export interface NotebookTitleProps {
   /** id der Überschrift: main verweist mit aria-labelledby darauf. */

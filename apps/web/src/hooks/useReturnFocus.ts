@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { focusFirstAvailable } from "@/lib/a11y/focus-return.js";
+import { focusFirstAvailable } from "@/lib/a11y/index.js";
 
 /**
  * Merkt beim Öffnen das fokussierte Element (den Auslöser) und gibt ihm beim Schließen

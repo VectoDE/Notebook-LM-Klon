@@ -15,17 +15,13 @@ import {
   useRef,
   useState
 } from "react";
-import { useTheme } from "@/hooks/useTheme.js";
-import { focusFirstAvailable } from "@/lib/a11y/focus-return.js";
-import { trapTabKey } from "@/lib/a11y/focus-trap.js";
+import { useTheme } from "@/hooks/index.js";
+import { focusFirstAvailable, trapTabKey } from "@/lib/a11y/index.js";
+
 import { triggerBrowserDownload } from "@/lib/export/artifact-exporters.js";
 import type { SpokenTranscriptFormat } from "@/lib/export/media-downloads.js";
-import { podcastStateKey } from "@/lib/utils/stage-visuals.js";
-import {
-  ChatApiError,
-  errorKeyForStatus,
-  technicalErrorDetail
-} from "@/services/api/chat-client.js";
+import { podcastStateKey } from "@/lib/utils/index.js";
+import { ChatApiError, errorKeyForStatus, technicalErrorDetail } from "@/services/api/index.js";
 
 // Erst beim Aufklappen laden: hält das Startpaket unter dem Skript-Budget (Issue #350)
 const MediaTranscript = lazy(() =>

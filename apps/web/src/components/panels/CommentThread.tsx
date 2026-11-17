@@ -30,18 +30,17 @@ import {
   useRef,
   useState
 } from "react";
-import { fill, LOCALES, useTheme } from "@/hooks/useTheme.js";
-import { commentTexts } from "@/i18n/catalogs/translations-comments.js";
+import { fill, LOCALES, useTheme } from "@/hooks/index.js";
+import { commentTexts } from "@/i18n/catalogs/index.js";
+import type { CommentErrorKind, FetchLike } from "@/services/api/comments-client.js";
 import {
-  type CommentErrorKind,
   commentErrorKey,
   createComment,
   deleteComment,
-  type FetchLike,
   listComments,
   listMembers,
   updateComment
-} from "@/services/api/comments-client.js";
+} from "@/services/api/index.js";
 
 export interface CommentThreadProps {
   readonly notebookId: string;

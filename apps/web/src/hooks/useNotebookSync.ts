@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchLocalKey } from "@/services/storage/local-session.js";
+import { fetchLocalKey } from "@/services/storage/index.js";
 import type { NotebookSyncController } from "@/services/sync/notebook-sync.js";
 import type { SyncStatus } from "@/services/sync/offline-sync.js";
 

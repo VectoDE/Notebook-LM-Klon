@@ -21,8 +21,8 @@ import {
   useRef,
   useState
 } from "react";
-import { Icon } from "@/components/ui/Icon.js";
-import { useTheme } from "@/hooks/useTheme.js";
+import { Icon } from "@/components/ui/index.js";
+import { useTheme } from "@/hooks/index.js";
 import { triggerBrowserDownload } from "@/lib/export/artifact-exporters.js";
 import type { TranscriptItem } from "./MediaTranscript.js";
 

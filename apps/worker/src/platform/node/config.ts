@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { TURNSTILE_TEST_SECRET_ALWAYS_PASSES } from "@/security/turnstile.js";
+import { TURNSTILE_TEST_SECRET_ALWAYS_PASSES } from "@/security/index.js";
 import { DEFAULT_CLEANUP_INTERVAL_MINUTES } from "./scheduler.js";
 import { readSmtpSettings, type SmtpSettings } from "./smtp.js";
 

@@ -2,8 +2,9 @@ import { createProblemDetails } from "@notebook-lm/shared";
 import type { Context, MiddlewareHandler } from "hono";
 import type { CoreRepository } from "@/repositories/core-repository.js";
 import type { RagRepository } from "@/repositories/rag-repository.js";
-import { isUsableKekSecret, KEK_ENV_NAMES } from "@/security/key-vault.js";
-import { incrementUserQuota, type QuotaAction } from "@/services/quota-guard.js";
+import { isUsableKekSecret, KEK_ENV_NAMES } from "@/security/index.js";
+import { incrementUserQuota } from "@/services/index.js";
+import type { QuotaAction } from "@/services/quota-guard.js";
 
 export type NotebookRole = "viewer" | "editor" | "owner";
 
