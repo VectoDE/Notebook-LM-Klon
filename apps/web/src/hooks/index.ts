@@ -1,5 +1,6 @@
 export { useMediaQuery } from "./useMediaQuery.js";
 export { useNotebookSync } from "./useNotebookSync.js";
+export { useOfflineChat } from "./useOfflineChat.js";
 export { useReturnFocus } from "./useReturnFocus.js";
 export {
   documentLanguage,

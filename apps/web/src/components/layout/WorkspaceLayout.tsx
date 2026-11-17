@@ -22,7 +22,6 @@ import {
   SourcesPanel,
   StudioPanel
 } from "@/components/panels/index.js";
-import type { OfflineChat } from "@/components/panels/offline-chat-ui.js";
 
 import type { StudioTool } from "@/components/panels/StudioPanel.js";
 import type { UserRole } from "@/components/ui/AppearanceControls.js";
@@ -41,7 +40,13 @@ import {
   loadStructuredDemo
 } from "@/data/index.js";
 import type { StructuredData } from "@/data/structured-demo.js";
-import { documentLanguage, useMediaQuery, useNotebookSync, useTheme } from "@/hooks/index.js";
+import {
+  documentLanguage,
+  useMediaQuery,
+  useNotebookSync,
+  useOfflineChat,
+  useTheme
+} from "@/hooks/index.js";
 
 import { FOCUSABLE_SELECTOR, isModalOpen, trapTabKey } from "@/lib/a11y/index.js";
 import { chatToMarkdown, triggerBrowserDownload } from "@/lib/export/index.js";
@@ -73,7 +78,6 @@ import {
   uploadErrorKey
 } from "@/services/api/index.js";
 
-import { hasLocalModelFlag } from "@/services/llm/index.js";
 import { signOutAndWipe, wipeLocalData } from "@/services/storage/index.js";
 
 import { describeSyncStatus } from "@/services/sync/index.js";
@@ -114,32 +118,7 @@ export function WorkspaceLayout({
   uploadSourceFile = defaultUploadSourceFile
 }: WorkspaceLayoutProps) {
   const { theme, setTheme, colorMode, setColorMode, t, tf, language } = useTheme();
-  // Offline-Chat mit lokalem Modell (Issue #346): der Teil kommt erst beim Einrichten oder,
-  // nach früherer Zustimmung, gleich beim Start; nichts davon im Start-Bundle
-  const [offlineChat, setOfflineChat] = useState<OfflineChat | null>(null);
-  const offlineChatRef = useRef<OfflineChat | null>(null);
-  const [online, setOnline] = useState(() =>
-    typeof navigator === "undefined" ? true : navigator.onLine
-  );
-  const loadOfflineChat = useCallback(() => {
-    if (offlineChatRef.current) return;
-    void import("@/components/panels/offline-chat-ui.js")
-      .then((module) => {
-        offlineChatRef.current ??= module.createOfflineChat();
-        setOfflineChat(offlineChatRef.current);
-      })
-      .catch(() => undefined);
-  }, []);
-  useEffect(() => {
-    if (hasLocalModelFlag(browserStorage())) loadOfflineChat();
-    const update = () => setOnline(navigator.onLine);
-    window.addEventListener("online", update);
-    window.addEventListener("offline", update);
-    return () => {
-      window.removeEventListener("online", update);
-      window.removeEventListener("offline", update);
-    };
-  }, [loadOfflineChat]);
+  const { offlineChat, offlineChatRef, online, loadOfflineChat } = useOfflineChat();
   const isNarrowHeader = useMediaQuery(NARROW_HEADER_QUERY);
   const isSinglePanel = useMediaQuery(SINGLE_PANEL_QUERY);
 

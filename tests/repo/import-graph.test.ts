@@ -74,6 +74,7 @@ const WEB_EDGES = [
   "hooks->i18n",
   "hooks->i18n/catalogs",
   "hooks->lib/a11y",
+  "hooks->services/llm",
   "hooks->services/storage",
   "hooks->theme",
   "services/analytics->config",
