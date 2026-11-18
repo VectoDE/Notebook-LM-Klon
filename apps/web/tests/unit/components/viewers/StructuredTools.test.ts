@@ -11,7 +11,6 @@ import {
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
-import { DEFAULT_SOURCES } from "@/components/layout/WorkspaceLayout.js";
 import { preloadStudioViewers } from "@/components/lazy/lazy-viewers.js";
 import { StudioPanel, type StudioTool } from "@/components/panels/StudioPanel.js";
 import {
@@ -25,6 +24,7 @@ import {
   DEMO_TABLE_RAW,
   DEMO_TIMELINE_RAW
 } from "@/data/structured-demo.js";
+import { DEFAULT_SOURCES } from "@/data/workspace-demo.js";
 import { ThemeProvider, type ThemeProviderProps } from "@/hooks/useTheme.js";
 
 beforeAll(() => preloadStudioViewers());

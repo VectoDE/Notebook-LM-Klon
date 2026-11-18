@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { DEFAULT_MINDMAP, DEFAULT_SOURCES } from "@/components/layout/WorkspaceLayout.js";
 import { preloadStudioViewers } from "@/components/lazy/lazy-viewers.js";
+import { DEFAULT_MINDMAP, DEFAULT_SOURCES } from "@/data/workspace-demo.js";
 import {
   ARC_LEFT,
   ARC_RIGHT,

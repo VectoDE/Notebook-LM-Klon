@@ -1,14 +1,11 @@
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
-import {
-  DEFAULT_MINDMAP,
-  DEFAULT_SOURCES,
-  WorkspaceLayout
-} from "@/components/layout/WorkspaceLayout.js";
+import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout.js";
 import { preloadStudioViewers } from "@/components/lazy/lazy-viewers.js";
 import { StudioPanel } from "@/components/panels/StudioPanel.js";
 import { GraphViewer } from "@/components/viewers/GraphViewer.js";
+import { DEFAULT_MINDMAP, DEFAULT_SOURCES } from "@/data/workspace-demo.js";
 import { ThemeProvider, type ThemeProviderProps } from "@/hooks/useTheme.js";
 import { buildKnowledgeGraph } from "@/lib/graph/knowledge-graph.js";
 

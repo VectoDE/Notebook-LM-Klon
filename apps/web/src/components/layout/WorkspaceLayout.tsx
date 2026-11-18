@@ -1,11 +1,4 @@
-import {
-  type FlashcardItem,
-  type MindmapNode,
-  PodcastStateMachine,
-  type QuizQuestion,
-  type VideoStoryboard,
-  WORKSPACE_VERSION
-} from "@notebook-lm/shared";
+import { PodcastStateMachine, WORKSPACE_VERSION } from "@notebook-lm/shared";
 import {
   type FunctionComponent,
   type KeyboardEvent,
@@ -33,14 +26,24 @@ import type { OfflineChat } from "@/components/panels/offline-chat-ui.js";
 
 import type { StudioTool } from "@/components/panels/StudioPanel.js";
 import type { UserRole } from "@/components/ui/AppearanceControls.js";
-import type { IconName } from "@/components/ui/Icon.js";
 import { AppearanceControls, BrandLogo, Icon, Toast } from "@/components/ui/index.js";
 import type { ToastMessage } from "@/components/ui/Toast.js";
 import { GraphViewer } from "@/components/viewers/index.js";
+import {
+  DEFAULT_CONTENT_LANGS,
+  DEFAULT_FLASHCARDS,
+  DEFAULT_MINDMAP,
+  DEFAULT_NOTEBOOK_TITLE,
+  DEFAULT_QUIZ,
+  DEFAULT_SOURCES,
+  DEFAULT_VIDEO_STORYBOARD,
+  loadDemoEntityGraph,
+  loadStructuredDemo
+} from "@/data/index.js";
 import type { StructuredData } from "@/data/structured-demo.js";
-import { documentLanguage, useNotebookSync, useTheme } from "@/hooks/index.js";
+import { documentLanguage, useMediaQuery, useNotebookSync, useTheme } from "@/hooks/index.js";
 
-import { FOCUSABLE_SELECTOR, trapTabKey } from "@/lib/a11y/index.js";
+import { FOCUSABLE_SELECTOR, isModalOpen, trapTabKey } from "@/lib/a11y/index.js";
 import { chatToMarkdown, triggerBrowserDownload } from "@/lib/export/index.js";
 
 import { buildKnowledgeGraph } from "@/lib/graph/index.js";
@@ -58,16 +61,17 @@ import type { CollapsedPanels, CollapsiblePanel } from "@/preferences/layout-pre
 import {
   ChatApiError,
   createPendingSource,
+  defaultUploadSourceFile,
   errorKeyForStatus,
   fetchChatHistory,
   mapCitations,
   markSourceFailed,
   markSourceReady,
+  type SourceFileUploader,
   streamChat,
   technicalErrorDetail,
   uploadErrorKey
 } from "@/services/api/index.js";
-import type { UploadSourceResult } from "@/services/api/source-upload-client.js";
 
 import { hasLocalModelFlag } from "@/services/llm/index.js";
 import { signOutAndWipe, wipeLocalData } from "@/services/storage/index.js";
@@ -79,194 +83,18 @@ import type {
   PanelFocusAttributes,
   WorkspaceSource
 } from "@/types/workspace-types.js";
+import { AccountStatus } from "./AccountStatus.js";
 import { NotebookTitle } from "./NotebookTitle.js";
 import { PanelRail, PanelToggle, RailButton } from "./PanelRail.js";
-
-export const DEFAULT_MINDMAP: MindmapNode = {
-  id: "cf_root",
-  label: "Cloudflare Edge Stack",
-  children: [
-    {
-      id: "cf_compute",
-      label: "Compute",
-      sourceCitation: "Architecture 1.1",
-      children: [
-        { id: "cf_c1", label: "Single Worker (Hono)" },
-        { id: "cf_c2", label: "NotebookDO (In-Memory Vectors)" }
-      ]
-    },
-    {
-      id: "cf_storage",
-      label: "Storage & RAG",
-      sourceCitation: "Architecture 2.0",
-      children: [
-        { id: "cf_s1", label: "D1 SQLite Relational" },
-        { id: "cf_s2", label: "int8 Quantized Vectors" }
-      ]
-    }
-  ]
-};
-
-export const DEFAULT_FLASHCARDS: FlashcardItem[] = [
-  {
-    id: "fc_demo_1",
-    front: "Was bewirkt die WebSocket Hibernation API in Durable Objects?",
-    back: "Ermöglicht es Durable Objects, bei inaktiven WebSockets aus dem Speicher entladen zu werden, ohne Verbindungen zu trennen. Reduziert Kosten drastisch.",
-    sourceHint: "Cloudflare Single Worker & Hibernating Durable Objects"
-  },
-  {
-    id: "fc_demo_2",
-    front: "Wie viel Speicher spart int8-Skalarquantisierung gegenüber float32?",
-    back: "Genau 75% (1 Byte statt 4 Bytes pro Dimension, 768 Bytes statt 3072 Bytes bei 768 Dimensionen).",
-    sourceHint: "D1 int8 Vektoren & FTS5 Hybrid Search mit RRF"
-  }
-];
-
-export const DEFAULT_QUIZ: QuizQuestion[] = [
-  {
-    id: "qc_demo_1",
-    question: "Welcher SQLite-Mechanismus wird in D1 für die Volltextsuche verwendet?",
-    options: ["fts3", "FTS5 mit BM25", "RegEx Match", "LIKE '%query%'"],
-    correctAnswerIndex: 1,
-    explanation: "D1 nutzt die FTS5 Virtual Table mit BM25-Ranking und automatischen Triggern.",
-    sourceCitation: "D1 Migration 0002"
-  },
-  {
-    id: "qc_demo_2",
-    question:
-      "Welche Mindestgröße müssen barrierefreie Touch-Ziele nach WCAG 2.5.5 (AAA) aufweisen?",
-    options: ["24x24px", "32x32px", "44x44px", "48x48px"],
-    correctAnswerIndex: 2,
-    explanation: "WCAG 2.5.5 Target Size (Enhanced) fordert mindestens 44x44 CSS-Pixel.",
-    sourceCitation: "WCAG 2.2 AAA Leitfaden"
-  }
-];
-
-/** Demo-Beziehungsgraph (Issue #238), erst beim Umschalten geladen. */
-const loadDemoEntityGraph = () =>
-  import("@/lib/graph/entity-graph-view.js").then((m) => m.DEMO_ENTITY_GRAPH);
-
-export const DEFAULT_SOURCES: WorkspaceSource[] = [
-  {
-    id: "src_1",
-    title: "Cloudflare Worker & DO Architecture",
-    originalName: "architecture.md",
-    mimeType: "text/markdown",
-    byteSize: 24500,
-    chunksCount: 8,
-    isSelected: true,
-    rawText:
-      "# Architecture Overview\n\nCloudflare Worker serves as the single unified entry point. In-Memory vectors are managed inside NotebookDO with int8 quantization.",
-    lang: "en"
-  },
-  {
-    id: "src_2",
-    title: "D1 SQLite Relational & FTS5 Hybrid Search",
-    originalName: "database-spec.pdf",
-    mimeType: "application/pdf",
-    byteSize: 112000,
-    chunksCount: 14,
-    isSelected: true,
-    rawText:
-      "D1 Migration 0002 introduces FTS5 tables with BM25 ranking for hybrid lexical and vector search.",
-    lang: "en"
-  }
-];
-
-/**
- * Timeline, Datentabelle und Infografik der Demo, geprüft gegen die Demo-Quellen (Issue #239).
- * Die Prüfung braucht zod; sie läuft deshalb nach dem ersten Rendern aus einem eigenen Block.
- */
-const loadStructuredDemo = (): Promise<StructuredData> =>
-  import("@/data/structured-demo.js").then((m) => m.buildStructuredDemo(DEFAULT_SOURCES));
-
-/**
- * Sprache der Demo-Inhalte (Issue #323): Zusammenfassung, Lernkarten und Quiz sind deutsch,
- * Quellentitel und Mindmap-Begriffe englisch. So bekommen sie in der jeweils anderen
- * Oberflächensprache ein lang-Attribut (WCAG 3.1.2). Der Notebook-Titel gilt als Name.
- */
-export const DEFAULT_CONTENT_LANGS = {
-  summary: "de",
-  mindmap: "en",
-  flashcards: "de",
-  quiz: "de",
-  sources: "en"
-} as const;
-
-export const DEFAULT_VIDEO_STORYBOARD: VideoStoryboard = {
-  id: "vs_demo",
-  notebookId: "nb_demo",
-  title: "Cloudflare Edge Stack Video Overview",
-  durationMs: 30000,
-  aspectRatio: "16:9",
-  fps: 60,
-  resolution: { width: 1280, height: 720 },
-  chapters: [
-    {
-      id: "ch_1",
-      index: 0,
-      title: "Einführung",
-      startTimeMs: 0,
-      endTimeMs: 15000,
-      slideIds: ["sl_1"]
-    },
-    {
-      id: "ch_2",
-      index: 1,
-      title: "Edge & Vektoren",
-      startTimeMs: 15000,
-      endTimeMs: 30000,
-      slideIds: ["sl_2"]
-    }
-  ],
-  slides: [
-    {
-      id: "sl_1",
-      chapterIndex: 0,
-      startTimeMs: 0,
-      endTimeMs: 15000,
-      durationMs: 15000,
-      title: "Cloudflare Edge Stack",
-      subtitle: "Architektur & Performance",
-      bulletPoints: ["Single Worker Hono", "NotebookDO SQLite", "0ms Cold Starts"],
-      spokenNarration: "Cloudflare Worker dient als einheitlicher Einstiegspunkt.",
-      visualTheme: {
-        backgroundGradient: ["#0f172a", "#1e293b"],
-        textColor: "#ffffff",
-        accentColor: "#38bdf8"
-      },
-      audioDescription: "Titel-Folie mit Cloudflare Edge Stack Überblick.",
-      citations: []
-    },
-    {
-      id: "sl_2",
-      chapterIndex: 1,
-      startTimeMs: 15000,
-      endTimeMs: 30000,
-      durationMs: 15000,
-      title: "int8 Vektoren & FTS5",
-      subtitle: "Hybrid Search",
-      bulletPoints: ["75% RAM Ersparnis", "BM25 Ranking", "RRF Fusion"],
-      spokenNarration: "int8 Quantisierung spart 75 Prozent Speicherplatz bei hoher Genauigkeit.",
-      visualTheme: {
-        backgroundGradient: ["#022c22", "#064e3b"],
-        textColor: "#ffffff",
-        accentColor: "#34d399"
-      },
-      audioDescription: "Folie zu int8 Quantisierung und Hybrid Search.",
-      citations: []
-    }
-  ],
-  subtitlesVtt: "WEBVTT\n\n1\n00:00:00.000 --> 00:00:15.000\nCloudflare Worker",
-  subtitles: [
-    { id: "sub_1", startTimeMs: 0, endTimeMs: 15000, text: "Cloudflare Worker" },
-    { id: "sub_2", startTimeMs: 15000, endTimeMs: 30000, text: "int8 Quantisierung" }
-  ],
-  audioDescriptionTrack: [
-    { slideId: "sl_1", startTimeMs: 0, endTimeMs: 15000, description: "Titel-Folie" },
-    { slideId: "sl_2", startTimeMs: 15000, endTimeMs: 30000, description: "int8-Folie" }
-  ]
-};
+import {
+  COLUMN_IDS,
+  NARROW_HEADER_QUERY,
+  PANEL_TABS,
+  type PanelTab,
+  type Popover,
+  RAIL_TOOLS,
+  SINGLE_PANEL_QUERY
+} from "./workspace-config.js";
 
 export interface WorkspaceLayoutProps {
   readonly initialTool?: StudioTool | undefined;
@@ -276,117 +104,6 @@ export interface WorkspaceLayoutProps {
   readonly chatFetch?: typeof fetch | undefined;
   /** Test-Hook: ersetzt Lesen, Hochladen und Indexieren einer Datei (P6). */
   readonly uploadSourceFile?: SourceFileUploader | undefined;
-}
-
-/** Liest eine Datei, lädt sie als Quelle ins Notebook und indexiert ihre Chunks. */
-export type SourceFileUploader = (file: File, notebookId: string) => Promise<UploadSourceResult>;
-
-/**
- * Lädt Upload-Client und Ingest-Worker erst beim ersten Upload nach; das Start-Bundle
- * bleibt klein (Issue #418). Gelesen wird im Web Worker, dann geht es an den Worker-Server.
- */
-const defaultUploadSourceFile: SourceFileUploader = async (file, notebookId) => {
-  const [{ uploadSource }, { parseFileInWorker }] = await Promise.all([
-    import("@/services/api/source-upload-client.js"),
-    import("@/services/api/ingest-client.js")
-  ]);
-  return uploadSource({ notebookId, file, parse: (f, mimeType) => parseFileInWorker(f, mimeType) });
-};
-
-/** Standardtitel des Demo-Notebooks, bis er umbenannt wird. */
-export const DEFAULT_NOTEBOOK_TITLE = "Cloudflare Edge Stack Architecture";
-
-/** Unter 600 px: Logo, Titel und Menü-Knopf oben, Reiterleiste unten. */
-const NARROW_HEADER_QUERY = "(max-width: 599.98px)";
-
-/**
- * Unter 900 px ist nur ein Bereich sichtbar: die Reiter schalten um. Ab 900 px stehen alle
- * Spalten nebeneinander und sind selbst die Navigation (Issue #325).
- */
-const SINGLE_PANEL_QUERY = "(max-width: 899.98px)";
-
-/** Bereiche; graph teilt sich ab 900 px die mittlere Spalte mit dem Chat (Issue #327). */
-type PanelTab = "sources" | "chat" | "studio" | "graph";
-type Popover = "appearance" | "account";
-
-/**
- * Bereiche des Arbeitsbereichs: Schlüssel im Sprachkatalog für den kurzen Namen und den
- * vollen Namen für Screenreader (beginnt mit dem sichtbaren Namen).
- */
-const PANEL_TABS: readonly {
-  readonly id: PanelTab;
-  readonly labelKey: string;
-  readonly ariaKey: string;
-  /** Sprunglink zur Spalte; der Graph hat keine eigene Spalte und keinen Sprunglink. */
-  readonly skipKey?: string | undefined;
-  readonly icon: IconName;
-}[] = [
-  {
-    id: "sources",
-    labelKey: "navSources",
-    ariaKey: "navSources",
-    skipKey: "skipToSources",
-    icon: "sources"
-  },
-  { id: "chat", labelKey: "navChat", ariaKey: "navChatAria", skipKey: "skipToChat", icon: "chat" },
-  {
-    id: "studio",
-    labelKey: "navStudio",
-    ariaKey: "navStudioAria",
-    skipKey: "skipToStudio",
-    icon: "studio"
-  },
-  { id: "graph", labelKey: "navGraph", ariaKey: "navGraphAria", icon: "graph" }
-];
-
-/**
- * Werkzeuge in der Symbolleiste der eingeklappten Studio-Spalte. Der Wissensgraph steht wie
- * im Studio nach der Mindmap; er öffnet in der mittleren Spalte (Issue #327, #335).
- */
-const RAIL_TOOLS: readonly {
-  readonly tool: Exclude<StudioTool, "overview" | "briefing"> | "graph";
-  readonly icon: IconName;
-  readonly labelKey: string;
-}[] = [
-  { tool: "audio", icon: "audio", labelKey: "studioAudioCard" },
-  { tool: "video", icon: "video", labelKey: "studioVideoCard" },
-  { tool: "mindmap", icon: "mindmap", labelKey: "toolMindmapTitle" },
-  { tool: "graph", icon: "graph", labelKey: "toolGraphTitle" },
-  { tool: "flashcards", icon: "cards", labelKey: "toolCardsTitle" },
-  { tool: "quiz", icon: "quiz", labelKey: "toolQuizTitle" }
-];
-
-/** id der Spalteninhalte: Ziel von aria-controls und der Sprunglinks. */
-const COLUMN_IDS: Readonly<Record<PanelTab, string>> = {
-  sources: "sources-column",
-  chat: "chat-column",
-  studio: "studio-column",
-  graph: "chat-column"
-};
-
-/** Reagiert auf eine Media Query; ohne window (Server-Rendering) immer false. */
-export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(
-    () => typeof window !== "undefined" && Boolean(window.matchMedia?.(query).matches)
-  );
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return;
-    const mql = window.matchMedia(query);
-    const update = () => setMatches(mql.matches);
-    update();
-    mql.addEventListener("change", update);
-    return () => mql.removeEventListener("change", update);
-  }, [query]);
-  return matches;
-}
-
-/** Ist gerade ein modaler Dialog offen? Dann wirken die Spalten-Kürzel nicht. */
-function isModalOpen(): boolean {
-  try {
-    return document.querySelector("dialog:modal") !== null;
-  } catch {
-    return false;
-  }
 }
 
 export function WorkspaceLayout({
@@ -1601,23 +1318,6 @@ export function WorkspaceLayout({
             : settingsButtonRef.current;
         }}
       />
-    </div>
-  );
-}
-
-/** Gast-Zustand des Kontos, keine erfundenen Konten (Issue #325). Anmelden öffnet den Dialog (Issue #233). */
-export function AccountStatus() {
-  const { t } = useTheme();
-  return (
-    <div className="rn-account-status" data-testid="account-status">
-      <span className="rn-account-avatar" aria-hidden="true">
-        <Icon name="account" size={28} />
-      </span>
-      <div className="rn-account-text">
-        <p className="rn-account-name">{t("accountGuest")}</p>
-        <p className="rn-account-state">{t("accountSignedOut")}</p>
-      </div>
-      <p className="rn-account-hint">{t("accountText")}</p>
     </div>
   );
 }

@@ -88,3 +88,18 @@ export function uploadErrorKey(error: unknown): string {
   }
   return errorKeyForStatus(error.status);
 }
+
+/** Liest eine Datei, lädt sie als Quelle ins Notebook und indexiert ihre Chunks. */
+export type SourceFileUploader = (file: File, notebookId: string) => Promise<UploadSourceResult>;
+
+/**
+ * Lädt Upload-Client und Ingest-Worker erst beim ersten Upload nach; das Start-Bundle
+ * bleibt klein (Issue #418). Gelesen wird im Web Worker, dann geht es an den Worker-Server.
+ */
+export const defaultUploadSourceFile: SourceFileUploader = async (file, notebookId) => {
+  const [{ uploadSource }, { parseFileInWorker }] = await Promise.all([
+    import("./source-upload-client.js"),
+    import("./ingest-client.js")
+  ]);
+  return uploadSource({ notebookId, file, parse: (f, mimeType) => parseFileInWorker(f, mimeType) });
+};

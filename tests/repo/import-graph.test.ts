@@ -27,6 +27,7 @@ const WEB_EDGES = [
   "components/layout->components/panels",
   "components/layout->components/ui",
   "components/layout->components/viewers",
+  "components/layout->data",
   "components/layout->hooks",
   "components/layout->lib/a11y",
   "components/layout->lib/export",

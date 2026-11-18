@@ -3,11 +3,7 @@ import { resolve } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
-import {
-  DEFAULT_CONTENT_LANGS,
-  DEFAULT_SOURCES,
-  WorkspaceLayout
-} from "@/components/layout/WorkspaceLayout.js";
+import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout.js";
 import { preloadStudioViewers } from "@/components/lazy/lazy-viewers.js";
 import { ChatPanel } from "@/components/panels/ChatPanel.js";
 import { SourcesPanel } from "@/components/panels/SourcesPanel.js";
@@ -15,6 +11,7 @@ import { StudioPanel } from "@/components/panels/StudioPanel.js";
 import { FlashcardsViewer } from "@/components/viewers/FlashcardsViewer.js";
 import { MindmapViewer } from "@/components/viewers/MindmapViewer.js";
 import { QuizViewer } from "@/components/viewers/QuizViewer.js";
+import { DEFAULT_CONTENT_LANGS, DEFAULT_SOURCES } from "@/data/workspace-demo.js";
 import { AREA_DE, AREA_EN } from "@/i18n/catalogs/translations-areas.js";
 import { validateSourceUrl } from "@/lib/utils/url-validation.js";
 
