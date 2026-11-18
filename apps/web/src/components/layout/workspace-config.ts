@@ -1,4 +1,5 @@
 import type { StudioTool } from "@/components/panels/StudioPanel.js";
+import type { AppearanceControlsProps } from "@/components/ui/AppearanceControls.js";
 import type { IconName } from "@/components/ui/Icon.js";
 
 /** Unter 600 px: Logo, Titel und Menü-Knopf oben, Reiterleiste unten. */
@@ -68,3 +69,6 @@ export const COLUMN_IDS: Readonly<Record<PanelTab, string>> = {
   studio: "studio-column",
   graph: "chat-column"
 };
+
+/** Einstellungen der Darstellung, die Kopfzeile und Menü-Sheet an AppearanceControls geben. */
+export type AppearanceProps = Omit<AppearanceControlsProps, "idPrefix">;
