@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import type { MindmapNode } from "@notebook-lm/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -30,6 +28,7 @@ import {
   treeKeyAction,
   wrapLabel
 } from "@/components/viewers/MindmapViewer.js";
+import { readWorkspaceCss } from "../../../support/css";
 
 const sampleTree: MindmapNode = {
   id: "root",
@@ -200,11 +199,8 @@ describe("MindmapViewer Layout Engine & Component (Sub-Issue #122)", () => {
     const html = renderToStaticMarkup(createElement(MindmapViewer, { rootNode: sampleTree }));
     expect(html).toContain('data-testid="mindmap-toolbar"');
     expect(html).toMatch(/data-testid="mindmap-toolbar" class="rn-mindmap-toolbar"/);
-    // Reiter, Zoom und Zurücksetzen: Klassen mit mindestens 44 px Höhe in workspace.css
-    const css = readFileSync(
-      resolve(import.meta.dirname, "../../../../src/styles/workspace.css"),
-      "utf8"
-    );
+    // Reiter, Zoom und Zurücksetzen: Klassen mit mindestens 44 px Höhe in styles/workspace
+    const css = readWorkspaceCss();
     const minHeight = (selector: string) => {
       const start = css.indexOf(`\n${selector} {`);
       expect(start, selector).toBeGreaterThan(-1);
@@ -335,10 +331,7 @@ describe("MindmapViewer Layout Engine & Component (Sub-Issue #122)", () => {
     });
 
     it("Reiterbeschriftung bricht nicht um", () => {
-      const css = readFileSync(
-        resolve(import.meta.dirname, "../../../../src/styles/workspace.css"),
-        "utf8"
-      );
+      const css = readWorkspaceCss();
       const start = css.indexOf("\n.rn-seg-tab {");
       expect(css.slice(start, css.indexOf("}", start))).toContain("white-space: nowrap");
     });

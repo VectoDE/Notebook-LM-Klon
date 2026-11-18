@@ -23,6 +23,7 @@ import {
   TYPOGRAPHY,
   tokensToCssDeclarations
 } from "@/theme/design-tokens.js";
+import { readWorkspaceCss } from "../../support/css";
 
 const css = readFileSync(resolve(import.meta.dirname, "../../../src/styles/themes.css"), "utf8");
 const combos = THEMES.flatMap((theme) => COLOR_MODES.map((mode) => [theme, mode] as const));
@@ -312,11 +313,8 @@ describe("themes.css ist synchron zu design-tokens.ts", () => {
   });
 });
 
-describe("Getönte Dekorflächen (workspace.css)", () => {
-  const workspaceCss = readFileSync(
-    resolve(import.meta.dirname, "../../../src/styles/workspace.css"),
-    "utf8"
-  );
+describe("Getönte Dekorflächen (styles/workspace)", () => {
+  const workspaceCss = readWorkspaceCss();
 
   it("mischt wie CSS color-mix in sRGB", () => {
     expect(mixSrgb("#000000", "#ffffff", 0.5)).toBe("#808080");

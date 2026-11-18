@@ -1,0 +1,87 @@
+/* ==========================================================================
+   Scroll-Verlauf: scrollbare Listen blenden den Rand aus, hinter dem noch
+   Inhalt liegt. Die Randbreite folgt der Scrollposition (Scroll-driven
+   Animation): in Ruhe am Anfang/Ende bleibt der Text voll deckend, der
+   Kontrast sinkt nur in der Randzone Richtung verdecktem Inhalt. Ohne
+   Unterstützung, bei reduzierter Bewegung und im AAA-Kontrast entfällt er.
+   ========================================================================== */
+@property --rn-fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --rn-fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes rn-fade-top-in {
+  to {
+    --rn-fade-top: var(--rn-scroll-fade-size);
+  }
+}
+
+@keyframes rn-fade-bottom-out {
+  from {
+    --rn-fade-bottom: var(--rn-scroll-fade-size);
+  }
+  to {
+    --rn-fade-bottom: 0px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    :where(html:not([data-color-mode="aaa-contrast"]):not([data-reduce-motion="true"]))
+      :is(.chat-log, .rn-sources, .rn-panel-body, .rn-inspector, .rn-stage-body, .rn-lyrics) {
+      --rn-scroll-fade-size: 28px;
+      animation:
+        rn-fade-top-in linear both,
+        rn-fade-bottom-out linear both;
+      animation-timeline: scroll(self block), scroll(self block);
+      animation-range:
+        0 var(--rn-scroll-fade-size),
+        calc(100% - var(--rn-scroll-fade-size)) 100%;
+      mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        #000 var(--rn-fade-top),
+        #000 calc(100% - var(--rn-fade-bottom)),
+        transparent 100%
+      );
+    }
+  }
+}
+
+/*
+ * Geringe Höhe (Querformat, 400 % Zoom; Issue #323): Kopf und untere Leiste werden
+ * kompakt, damit mehr Arbeitsfläche bleibt. Beide bleiben fest an ihrem Platz, so
+ * überdecken sie nie Inhalt oder Fokus (WCAG 2.4.11/2.4.12). Ziele bleiben 44 px.
+ * Steht am Ende, damit es die Kopfregeln der schmalen Breiten übersteuert.
+ */
+@media (max-height: 480px) {
+  .workspace-header,
+  html[data-design] .workspace-header {
+    min-height: 48px;
+    padding-block: 2px !important;
+  }
+}
+
+@media (max-height: 480px) and (max-width: 599.98px) {
+  .mobile-bottom-nav {
+    padding-top: 3px;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+  }
+  /* Vier Reiter (Issue #327): Symbol über der Beschriftung, damit sie auch bei 320 px passen */
+  .rn-tab {
+    gap: 0;
+    min-height: 44px;
+    padding: 0;
+  }
+  .rn-tab-indicator {
+    width: 48px;
+    height: 24px;
+  }
+}

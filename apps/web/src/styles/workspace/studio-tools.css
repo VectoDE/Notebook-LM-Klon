@@ -1,0 +1,84 @@
+/* ==========================================================================
+   Studio: Werkzeugliste
+   ========================================================================== */
+.rn-tool-view {
+  display: flex;
+  flex-direction: column;
+  /* Nicht unter die Inhaltshöhe schrumpfen: das Panel scrollt, nichts wird gestaucht */
+  flex: 1 0 auto;
+  min-height: 0;
+}
+
+.rn-tools {
+  display: grid;
+  gap: var(--rn-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-tool {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "tile text"
+    "actions actions";
+  column-gap: var(--rn-space-4);
+  row-gap: var(--rn-space-4);
+  padding: var(--rn-space-4);
+  border-radius: var(--rn-radius-lg);
+  border: 1px solid var(--rn-color-panel-border);
+  background: var(--rn-color-panel);
+}
+
+.rn-tool:hover,
+.rn-tool:focus-within {
+  border-color: var(--rn-color-border);
+}
+
+html[data-color-mode="aaa-contrast"] .rn-tool {
+  border-color: var(--rn-color-border);
+}
+
+/* Symbolkachel: getönte Fläche, Symbol in Primärfarbe (Grafik, mindestens 3:1) */
+.rn-tool-tile {
+  grid-area: tile;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-primary);
+}
+
+.rn-tool-text {
+  grid-area: text;
+  display: grid;
+  gap: var(--rn-space-1);
+  align-content: center;
+  min-width: 0;
+}
+
+.rn-tool-title {
+  margin: 0;
+  --rn-text-h3: var(--rn-text-subtitle);
+}
+
+.rn-tool-desc {
+  margin: 0;
+  font-size: var(--rn-text-body);
+  line-height: 1.5;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-tool-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rn-space-2);
+}
+
+.rn-tool-primary {
+  flex: 1 1 auto;
+}

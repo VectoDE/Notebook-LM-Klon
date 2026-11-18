@@ -1,0 +1,245 @@
+/* ==========================================================================
+   Teilen (Issue #325): nur Oberfläche, deutlicher Hinweis, nichts wird verschickt
+   ========================================================================== */
+.rn-share-card {
+  max-width: 520px;
+  gap: var(--rn-space-4);
+}
+
+.rn-share-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--rn-space-3);
+}
+
+.rn-share-title {
+  margin: 0;
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-h3);
+  font-weight: var(--rn-weight-heading);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.rn-share-notice {
+  display: grid;
+  gap: 2px;
+  padding: var(--rn-space-3) var(--rn-space-4);
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-surface-variant);
+  box-shadow: inset 4px 0 0 var(--rn-color-primary);
+}
+
+.rn-share-notice p {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-share-notice-title {
+  font-weight: 700;
+}
+
+html[data-color-mode="aaa-contrast"] .rn-share-notice {
+  box-shadow: inset 0 0 0 2px var(--rn-color-border);
+}
+
+.rn-share-invite {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 11rem);
+  gap: var(--rn-space-3);
+}
+
+.rn-share-status {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-share-people {
+  display: grid;
+  gap: var(--rn-space-2);
+}
+
+.rn-share-people-title {
+  margin: 0;
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 700;
+}
+
+.rn-share-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-share-person {
+  display: flex;
+  align-items: center;
+  gap: var(--rn-space-3);
+  min-height: 44px;
+  font-size: var(--rn-text-small);
+}
+
+.rn-share-avatar,
+.rn-account-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-share-person-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.rn-share-person-role {
+  color: var(--rn-color-text-secondary);
+}
+
+/* Senden ist noch nicht verfügbar: erreichbar, aber ruhig zurückgenommen, mit sichtbarem
+   Hinweis „Bald verfügbar“ statt gestricheltem Rand (Issue #335). Text auf
+   surface-variant bzw. panel bleibt bei 7:1. */
+.rn-btn--unavailable,
+.rn-btn--unavailable:hover {
+  gap: var(--rn-space-2);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+  border-color: transparent;
+  cursor: not-allowed;
+}
+
+html[data-color-mode="aaa-contrast"] .rn-btn--unavailable {
+  border-color: var(--rn-color-border);
+}
+
+.rn-btn-hint {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 var(--rn-space-2);
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 599.98px) {
+  .rn-share-invite {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- Konto: Gast-Zustand, ohne Anmeldung --- */
+.rn-account {
+  display: grid;
+  gap: var(--rn-space-4);
+  width: 320px;
+}
+
+.rn-account-status {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--rn-space-3);
+  row-gap: var(--rn-space-3);
+}
+
+.rn-account-text p {
+  margin: 0;
+}
+
+.rn-account-name {
+  font-size: var(--rn-text-base);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.rn-account-state {
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  line-height: 20px;
+}
+
+.rn-account-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+}
+
+/* --- Anmelden: Gastzugang und Magic-Link mit Turnstile (Issue #233) --- */
+.rn-signin-card,
+.rn-signin-section,
+.rn-signin-check {
+  display: grid;
+  gap: var(--rn-space-3);
+}
+
+.rn-signin-card {
+  gap: var(--rn-space-4);
+}
+
+/* Turnstile-Widget: feste Mindesthöhe gegen Layout-Sprung beim Nachladen */
+.rn-signin-widget {
+  min-height: 65px;
+}
+
+.rn-signin-test {
+  margin: 0;
+  padding: var(--rn-space-3);
+  border: 1px dashed var(--rn-color-text-secondary);
+  border-radius: var(--rn-radius-sm);
+  color: var(--rn-color-text-primary);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.rn-signin-alert {
+  margin: 0;
+  padding: var(--rn-space-3);
+  border-radius: var(--rn-radius-sm);
+  background: var(--rn-color-error-surface);
+  color: var(--rn-color-error);
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+}
+
+.rn-signin-alert p {
+  margin: 0;
+}
+
+.rn-signin-alert-title {
+  font-weight: 700;
+}
+
+.rn-signin-status {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-signin-status--error {
+  color: var(--rn-color-error);
+}
+
+.rn-signin-status--success {
+  color: var(--rn-color-success);
+}

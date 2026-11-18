@@ -1,0 +1,182 @@
+/* --- Mobiles Menü: Vollbild-Sheet (nativer modaler Dialog) --- */
+.rn-sheet {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-primary);
+}
+
+.rn-sheet[open] {
+  display: flex;
+  flex-direction: column;
+  animation: rn-sheet-in var(--rn-motion-medium) var(--rn-transition-ease) both;
+}
+
+.rn-sheet::backdrop {
+  background: transparent;
+}
+
+@keyframes rn-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rn-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rn-space-3);
+  min-height: 64px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--rn-color-panel-border);
+}
+
+.rn-sheet-title {
+  margin: 0;
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-h3);
+  font-weight: var(--rn-weight-heading);
+  line-height: 1.3;
+}
+
+.rn-sheet-body {
+  flex: 1;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: var(--rn-space-6);
+  padding: var(--rn-space-4) 16px calc(var(--rn-space-6) + env(safe-area-inset-bottom, 0px));
+}
+
+/* Abschnittstitel in Sheet und Einstellungen: Satzschreibung, gleiche Größe und Stärke */
+.rn-sheet-section,
+.rn-drawer-section-title {
+  margin: 0;
+  padding: 0;
+  color: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-base);
+  font-weight: 700;
+  line-height: 24px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.rn-sheet-section {
+  margin-bottom: var(--rn-space-3);
+}
+
+/* Kurzer Hinweis, wann eine Einstellung greift und wo sie gespeichert ist */
+.rn-setting-hint {
+  margin: 0;
+  color: var(--rn-color-text-secondary);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+}
+
+/* Schließen-Knopf in Dialogen und Sheets: gleiches Symbol, gleiche Größe, rechts oben */
+.rn-dialog-close {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin-right: -6px;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-status-badge {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-panel);
+  box-shadow: inset 0 0 0 1px var(--rn-color-panel-border);
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.rn-sheet-nav {
+  display: grid;
+  gap: var(--rn-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: var(--rn-radius-md);
+  background: transparent;
+  color: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-ui);
+  text-align: left;
+  cursor: pointer;
+}
+
+.rn-sheet-item > .rn-icon {
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-sheet-item:hover {
+  background: var(--rn-color-surface-variant);
+}
+
+.rn-sheet-item-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.rn-sheet-item-title {
+  font-size: var(--rn-text-base);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.rn-sheet-item-hint {
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  line-height: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rn-popover,
+  .rn-sheet[open] {
+    animation: none;
+  }
+  .rn-appearance-chevron {
+    transition: none;
+  }
+}
+
+/* Schalter „Bewegung reduzieren“ (Issue #315): dieselben Regeln */
+html[data-reduce-motion="true"] .rn-popover,
+html[data-reduce-motion="true"] .rn-sheet[open] {
+  animation: none;
+}
+
+html[data-reduce-motion="true"] .rn-appearance-chevron {
+  transition: none;
+}

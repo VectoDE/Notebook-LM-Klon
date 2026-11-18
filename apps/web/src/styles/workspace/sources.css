@@ -1,0 +1,287 @@
+/* ==========================================================================
+   Quellen
+   ========================================================================== */
+.rn-source-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rn-space-2);
+  margin-bottom: var(--rn-space-3);
+}
+
+.rn-source-actions .rn-btn {
+  white-space: nowrap;
+}
+
+.rn-source-actions .rn-btn--primary {
+  flex: 1 1 auto;
+}
+
+.rn-dropzone {
+  display: flex;
+  align-items: center;
+  gap: var(--rn-space-3);
+  margin-bottom: var(--rn-space-4);
+  padding: var(--rn-space-3) var(--rn-space-4);
+  border-radius: var(--rn-radius-md);
+  /* Rand ist Bedeutungsträger der Ablagefläche: Token mit mindestens 3:1 (WCAG 1.4.11) */
+  border: 1.5px dashed var(--rn-color-border);
+  background: transparent;
+  color: var(--rn-color-text-secondary);
+  transition:
+    background-color var(--rn-transition-base),
+    border-color var(--rn-transition-base);
+}
+
+.rn-dropzone[data-dragging="true"] {
+  border-color: var(--rn-color-primary);
+  background: var(--rn-color-surface-variant);
+}
+
+html[data-color-mode="aaa-contrast"] .rn-dropzone {
+  border-color: var(--rn-color-border);
+}
+
+.rn-dropzone-title {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  color: var(--rn-color-text-primary);
+}
+
+.rn-dropzone-hint {
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-search {
+  position: relative;
+  margin-bottom: var(--rn-space-3);
+}
+
+.rn-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--rn-color-text-secondary);
+  pointer-events: none;
+}
+
+.rn-search-input {
+  padding-left: 38px;
+}
+
+.rn-select-all {
+  display: flex;
+  align-items: center;
+  gap: var(--rn-space-3);
+  min-height: 44px;
+  padding: 0 var(--rn-space-3);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-select-all {
+  cursor: pointer;
+  border-radius: var(--rn-radius-md);
+}
+
+.rn-select-all:hover {
+  background: var(--rn-color-surface-variant);
+}
+
+/* 44 × 44 px Trefferfläche um das Kästchen; negative Ränder halten das Zeilenlayout gleich */
+.rn-check-hit {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -12px;
+  cursor: pointer;
+}
+
+/* Die Liste wächst mit ihrem Inhalt und scrollt mit dem Panel: eine offene Vorschau
+   darunter staucht sie nicht zusammen (Issue #335) */
+.rn-sources {
+  display: grid;
+  align-content: start;
+  gap: var(--rn-space-1);
+  flex: 1 0 auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-sources-empty {
+  padding: var(--rn-space-6) var(--rn-space-3);
+  text-align: center;
+  font-size: var(--rn-text-small);
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-source {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--rn-space-2);
+  row-gap: 0;
+  padding: var(--rn-space-2) 0 var(--rn-space-2) var(--rn-space-3);
+  border-radius: var(--rn-radius-md);
+  border: 1px solid transparent;
+  transition:
+    background-color var(--rn-transition-base),
+    border-color var(--rn-transition-base);
+}
+
+.rn-source:hover {
+  background: var(--rn-color-surface-variant);
+}
+
+.rn-source[data-inspected="true"] {
+  background: var(--rn-color-surface-variant);
+  border-color: var(--rn-color-primary);
+}
+
+.rn-source-main {
+  display: contents;
+}
+
+/* Dateiart als ruhige Marke; nur Dekoration, der Dateiname steht in der Metazeile */
+.rn-source-type {
+  display: inline-block;
+  margin-inline-end: var(--rn-space-2);
+  padding: 0 var(--rn-space-2);
+  border-radius: var(--rn-radius-sm);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-primary);
+  font-family: var(--rn-font-mono);
+  font-size: var(--rn-text-small);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.5;
+}
+
+html[data-design="immersive-cinema"] .rn-source-meta .rn-source-type {
+  box-shadow: none;
+}
+
+.rn-source:hover .rn-source-type,
+.rn-source[data-inspected="true"] .rn-source-type {
+  background: var(--rn-color-panel);
+}
+
+/* Titel und Augen-Knopf teilen sich die erste Zeile, die Metazeile läuft darunter über die
+   volle Breite: Dateiname und Größe bleiben einzeilig (Issue #335) */
+.rn-source-text {
+  display: contents;
+}
+
+.rn-source-main .rn-check-hit {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.rn-source-title {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  min-width: 0;
+}
+
+.rn-source-meta {
+  grid-column: 2 / span 2;
+  grid-row: 2;
+  min-width: 0;
+  padding-inline-end: var(--rn-space-2);
+}
+
+.rn-source-inspect {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: start;
+}
+
+/* Titel brechen an Wortgrenzen; nur ein einzelnes zu langes Wort darf umbrechen */
+.rn-source-title {
+  font-size: var(--rn-text-body);
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+}
+
+.rn-source-meta {
+  color: var(--rn-color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* Größe bleibt zusammen („24 KB“), umbrochen wird höchstens vor ihr */
+.rn-source-size {
+  white-space: nowrap;
+}
+
+/* Stand eigener Uploads (P6): dritte Zeile unter Dateiname und Größe */
+.rn-source-status {
+  grid-column: 2 / span 2;
+  grid-row: 3;
+  min-width: 0;
+  padding-inline-end: var(--rn-space-2);
+  font-size: var(--rn-text-small);
+  line-height: 1.45;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-source-status[data-status="error"] {
+  font-weight: 600;
+  color: var(--rn-color-error);
+}
+
+.rn-source-inspect[aria-label$="schließen"] {
+  color: var(--rn-color-primary);
+}
+
+.rn-inspector {
+  flex: none;
+  margin-top: var(--rn-space-4);
+  scroll-margin-block: var(--rn-space-4);
+  padding: var(--rn-space-4);
+  border-radius: var(--rn-radius-md);
+  background: var(--rn-color-surface-variant);
+  border: 1px solid var(--rn-color-panel-border);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.rn-inspector-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--rn-space-2);
+  margin-bottom: var(--rn-space-2);
+}
+
+.rn-inspector-head h3 {
+  margin: 10px 0 0;
+}
+
+.rn-inspector-badge {
+  display: inline-block;
+  margin-bottom: var(--rn-space-2);
+  padding: 2px var(--rn-space-2);
+  border-radius: var(--rn-radius-sm);
+  background: var(--rn-color-highlight);
+  color: var(--rn-color-text-primary);
+  font-size: var(--rn-text-small);
+}
+
+.rn-inspector-content {
+  font-size: var(--rn-text-body);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.rn-inspector-mark {
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-weight: 600;
+}

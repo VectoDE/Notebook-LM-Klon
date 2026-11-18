@@ -1,0 +1,76 @@
+/* ==========================================================================
+   Panel-Kopf und Panel-Körper (Quellen, Studio)
+   ========================================================================== */
+.rn-panel-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: var(--rn-pad-panel);
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-primary);
+  overflow-y: auto;
+}
+
+.rn-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--rn-space-3);
+  margin-bottom: var(--rn-space-5);
+}
+
+/* Rückweg im Panelkopf: eine Zeile, volle Zielgröße */
+.rn-panel-head > .rn-btn {
+  flex: none;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.rn-panel-heading {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rn-panel-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-1) var(--rn-space-2);
+}
+
+.rn-panel-heading h2 {
+  margin: 0;
+  /* Panelkopf = Titelstufe; Fusion hebt --rn-text-title in themes.css an */
+  --rn-text-h2: var(--rn-text-title);
+}
+
+/* Untertitel als Kennzeichnung (z. B. „6 Werkzeuge aus Ihren Quellen“): Metastufe, 14 px */
+.rn-panel-sub {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  color: var(--rn-color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* Erklärt der Untertitel die Spalte in einem ganzen Satz, ist er Fließtext: 16 px
+   (Issue #335). Kennzeichnungen wie die Werkzeugzahl im Studio bleiben Metastufe. */
+.rn-panel-sub--help {
+  font-size: var(--rn-text-body);
+  line-height: var(--rn-line-body);
+}
+
+.rn-count {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 var(--rn-space-3);
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+}

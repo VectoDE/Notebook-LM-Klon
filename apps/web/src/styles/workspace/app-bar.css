@@ -1,0 +1,292 @@
+/* ==========================================================================
+   Anwendungsleiste (Issue #325): Logo und Notebook-Titel links, rechts Teilen,
+   Einstellungen, Darstellung und Konto. Alle Bedienelemente teilen Höhe (44 px,
+   WCAG 2.5.5), Radius und Schrift.
+   ========================================================================== */
+.workspace-header {
+  --rn-control-h: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--rn-space-4);
+  /* Obere Leiste 56 px ab 600 px (Issue #328), Telefon siehe unten */
+  min-height: var(--rn-header-h);
+  box-sizing: border-box;
+  padding: 0 var(--rn-space-6) !important;
+  background: var(--rn-color-panel);
+  border-bottom: 1px solid var(--rn-color-panel-border);
+  box-shadow: none;
+  z-index: 30;
+}
+
+.workspace-brand {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--rn-space-3);
+  min-width: 0;
+}
+
+.workspace-logo {
+  flex: none;
+  line-height: 0;
+}
+
+.workspace-version {
+  font-family: var(--rn-font-mono);
+  font-size: var(--rn-text-small);
+  line-height: 1.4;
+  padding: 2px 8px;
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+}
+
+/* --- Bearbeitbarer Notebook-Titel: Hauptüberschrift der Seite --- */
+.rn-nb-title-wrap {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  min-width: 0;
+}
+
+.rn-nb-title {
+  min-width: 0;
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.rn-nb-title[hidden] {
+  display: none;
+}
+
+.rn-nb-title-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rn-space-2);
+  max-width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: var(--rn-radius-pill);
+  background: transparent;
+  color: var(--rn-color-text-primary);
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-h3);
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: left;
+  cursor: text;
+}
+
+.rn-nb-title-button:hover {
+  background: var(--rn-color-surface-variant);
+}
+
+/* Lange Titel brechen um, höchstens zwei Zeilen */
+.rn-nb-title-text {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.rn-nb-title-icon {
+  color: var(--rn-color-text-secondary);
+}
+
+/* Mittlere Breiten: kleinerer Titel, damit er einzeilig bleibt und der Stift am Text sitzt */
+@media (min-width: 600px) and (max-width: 1279.98px) {
+  .rn-nb-title-button,
+  .rn-nb-title-input {
+    font-size: var(--rn-text-base);
+  }
+}
+
+.rn-nb-title-input {
+  width: min(100%, 520px);
+  min-width: 0;
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-h3);
+  font-weight: 600;
+}
+
+/* --- Stand der Synchronisation (Issue #347), nur mit Sitzung sichtbar --- */
+.rn-sync-status {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--rn-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 2px 10px;
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.rn-sync-status[hidden] {
+  display: none;
+}
+
+.rn-sync-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Form statt nur Farbe: offen bei Warten/Offline, Ring bei Fehler */
+.rn-sync-status[data-state="pending"] .rn-sync-dot,
+.rn-sync-status[data-state="offline"] .rn-sync-dot,
+.rn-sync-status[data-state="syncing"] .rn-sync-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+/* Offline: Ring mit Schrägstrich */
+.rn-sync-status[data-state="offline"] .rn-sync-dot {
+  background: linear-gradient(
+    135deg,
+    transparent 42%,
+    currentColor 42%,
+    currentColor 58%,
+    transparent 58%
+  );
+}
+
+.rn-sync-status[data-state="error"] {
+  color: var(--rn-color-text-primary);
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.rn-sync-count {
+  display: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* Unter 900 px hat der Titel Vorrang: sichtbar bleiben Symbol und Anzahl wartender
+   Änderungen, der volle Text steht im Tooltip und wird weiterhin angesagt. */
+@media (max-width: 899.98px) {
+  .rn-sync-status {
+    flex: none;
+    padding: 2px 8px;
+  }
+
+  .rn-sync-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .rn-sync-count {
+    display: inline;
+  }
+}
+
+/* --- Bereiche 600 bis 899 px: Reiterleiste unter der Anwendungsleiste --- */
+.rn-topnav {
+  display: none;
+}
+
+.rn-topnav-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--rn-space-2);
+  height: var(--rn-control-h, 44px); /* Variable gilt nur im Kopf: Rückfall 44 px (WCAG 2.5.5) */
+  padding: 0 var(--rn-space-4);
+  border: 0;
+  border-radius: var(--rn-radius-pill);
+  background: transparent;
+  color: var(--rn-color-text-secondary);
+  font-family: var(--rn-font-family-ui);
+  font-size: var(--rn-text-small);
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--rn-transition-base),
+    color var(--rn-transition-base);
+}
+
+.rn-topnav-item:hover {
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-primary);
+}
+
+.rn-topnav-item[aria-current="true"] {
+  background: var(--rn-color-surface-variant);
+  color: var(--rn-color-text-primary);
+  font-weight: 600;
+}
+
+.rn-topnav-item[aria-current="true"] .rn-icon {
+  color: var(--rn-color-primary);
+}
+
+.rn-topnav-count {
+  min-width: 22px;
+  height: 22px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border-radius: var(--rn-radius-pill);
+  background: var(--rn-color-panel);
+  box-shadow: inset 0 0 0 1px var(--rn-color-panel-border);
+  color: var(--rn-color-text-secondary);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  line-height: 22px;
+  text-align: center;
+}
+
+html[data-color-mode="aaa-contrast"] .rn-topnav-item[aria-current="true"] {
+  box-shadow: inset 0 0 0 2px var(--rn-color-border);
+}
+
+/* --- Rechts: Teilen, Einstellungen, Darstellung, Konto (Desktop) bzw. Menü (Telefon) --- */
+.rn-header-end {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--rn-space-2);
+}
+
+/* Konto: rundes Symbol, Name als Kurzinfo */
+.rn-header-end .rn-account-button {
+  width: var(--rn-control-h);
+  padding: 0;
+  border-radius: var(--rn-radius-pill);
+}
+
+.rn-popover-anchor {
+  position: relative;
+}
+
+.rn-appearance-chevron {
+  color: var(--rn-color-text-secondary);
+  transition: transform var(--rn-transition-base);
+}
+
+.rn-appearance-button[aria-expanded="true"] .rn-appearance-chevron {
+  transform: rotate(180deg);
+}
+
+.rn-header-end .rn-menu-button {
+  display: none;
+  width: var(--rn-control-h);
+  padding: 0;
+}

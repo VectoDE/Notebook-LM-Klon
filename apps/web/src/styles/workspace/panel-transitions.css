@@ -1,0 +1,58 @@
+/* ==========================================================================
+   Panelwechsel unter 900 px: weiches Einblenden des aktiven Panels
+   ========================================================================== */
+@media (max-width: 899.98px) {
+  .workspace-panel.panel-active {
+    animation: rn-panel-in var(--rn-motion-medium) var(--rn-transition-ease) both;
+  }
+}
+
+@keyframes rn-panel-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-panel.panel-active,
+  .rn-drawer[open],
+  .rn-stage[open],
+  .rn-stage-live {
+    animation: none;
+  }
+  .rn-progress::-webkit-progress-value,
+  .rn-quiz-option,
+  .rn-rating,
+  .rn-lyrics-line,
+  .rn-mm-box {
+    transition: none;
+  }
+  .rn-lyrics {
+    scroll-behavior: auto;
+  }
+}
+
+/* Schalter „Bewegung reduzieren“ (Issue #315): dieselben Regeln */
+html[data-reduce-motion="true"] .workspace-panel.panel-active,
+html[data-reduce-motion="true"] .rn-drawer[open],
+html[data-reduce-motion="true"] .rn-stage[open],
+html[data-reduce-motion="true"] .rn-stage-live {
+  animation: none;
+}
+
+html[data-reduce-motion="true"] .rn-progress::-webkit-progress-value,
+html[data-reduce-motion="true"] .rn-quiz-option,
+html[data-reduce-motion="true"] .rn-rating,
+html[data-reduce-motion="true"] .rn-lyrics-line,
+html[data-reduce-motion="true"] .rn-mm-box {
+  transition: none;
+}
+
+html[data-reduce-motion="true"] .rn-lyrics {
+  scroll-behavior: auto;
+}

@@ -55,7 +55,7 @@ Die Oberfläche nutzt Funktionen, die erst nach Safari 15.0 erschienen sind. Ver
 | `dvh` | Höhe der Arbeitsfläche, Dialoge | 15.4 ([caniuse](https://caniuse.com/viewport-unit-variants)) | 15.0 bis 15.3: Höhe fällt weg, Layout bricht |
 | `Array.prototype.findLastIndex` | Mitlesetext (LiveLyrics) | 15.4 ([caniuse](https://caniuse.com/mdn-javascript_builtins_array_findlastindex)) | 15.0 bis 15.3: Laufzeitfehler im Audio-Player |
 | `@container` | Karten und Leerzustände | 16.0 ([caniuse](https://caniuse.com/css-container-queries)) | Container-Regeln greifen nicht, Grundlayout bleibt |
-| `color-mix()` | 24 Stellen in `themes.css` und `workspace.css` | 16.2 ([caniuse](https://caniuse.com/mdn-css_types_color_color-mix)) | Deklaration ungültig, Fläche fällt auf den geerbten Wert zurück; Kontrast dort nicht geprüft |
+| `color-mix()` | 24 Stellen in `themes.css` und `styles/workspace/` | 16.2 ([caniuse](https://caniuse.com/mdn-css_types_color_color-mix)) | Deklaration ungültig, Fläche fällt auf den geerbten Wert zurück; Kontrast dort nicht geprüft |
 | `@property` | weiche Ränder an Scrollbereichen | 16.4 ([caniuse](https://caniuse.com/mdn-css_at-rules_property)) | Übergang fehlt, rein dekorativ |
 | Build-Ziel `es2022` | `vite.config.ts` | Klassen-`static`-Blöcke erst 16.4 | nicht geprüft, ob das Bundle solche Blöcke enthält |
 

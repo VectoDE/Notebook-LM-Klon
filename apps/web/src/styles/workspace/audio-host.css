@@ -1,0 +1,214 @@
+/* --- Audio-Host-Player --- */
+.audio-player-container {
+  display: grid;
+  gap: var(--rn-space-4);
+  padding: var(--rn-space-5);
+  border-radius: var(--rn-radius-lg);
+  box-shadow: var(--rn-color-panel-shadow);
+}
+
+.player-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--rn-space-3);
+}
+
+.player-header h2,
+.player-header h3 {
+  margin: 0;
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-lead);
+  line-height: 1.25;
+  color: var(--rn-color-stage-text);
+}
+
+.player-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2);
+  font-size: var(--rn-text-small);
+  color: var(--rn-color-stage-muted);
+}
+
+.state-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 var(--rn-space-3);
+  border-radius: var(--rn-radius-pill);
+  border: 1px solid var(--rn-color-stage-accent);
+  color: var(--rn-color-stage-accent);
+  font-size: var(--rn-text-small);
+  font-weight: 700;
+}
+
+.time-display {
+  font-family: var(--rn-font-mono);
+  font-size: var(--rn-text-small);
+  color: var(--rn-color-stage-muted);
+}
+
+.player-controls {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.interject-dialog {
+  position: static;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.interject-dialog h3,
+.host-answer-stage h3 {
+  margin: 0;
+  font-size: var(--rn-text-base);
+  color: var(--rn-color-stage-text);
+}
+
+.player-controls,
+.mic-actions,
+.dialog-actions,
+.answer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2);
+}
+
+.btn-play-pause,
+.btn-interject,
+.btn-mic,
+.btn-submit-question,
+.btn-cancel,
+.btn-resume-podcast {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--rn-space-2);
+  min-height: 44px;
+  padding: 0 var(--rn-space-4);
+  border-radius: var(--rn-radius-pill);
+  border: 1px solid var(--rn-color-stage-muted);
+  background: transparent;
+  color: var(--rn-color-stage-text);
+  font: inherit;
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-play-pause,
+.btn-submit-question,
+.btn-resume-podcast,
+.btn-mic.recording {
+  border-color: var(--rn-color-stage-accent);
+  background: var(--rn-color-stage-accent);
+  color: var(--rn-color-stage-bg);
+}
+
+.btn-play-pause:hover,
+.btn-interject:hover,
+.btn-mic:hover,
+.btn-submit-question:hover,
+.btn-cancel:hover,
+.btn-resume-podcast:hover {
+  border-color: var(--rn-color-stage-text);
+}
+
+.audio-player-container button:disabled {
+  cursor: not-allowed;
+  border-style: dashed;
+  background: transparent;
+  color: var(--rn-color-stage-muted);
+}
+
+.interject-dialog,
+.host-answer-stage {
+  display: grid;
+  gap: var(--rn-space-3);
+  padding: var(--rn-space-4);
+  border-radius: var(--rn-radius-md);
+  border: 1px solid var(--rn-stage-line);
+}
+
+.interject-hint,
+.mic-unsupported-note,
+.live-transcript {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  line-height: 1.5;
+  color: var(--rn-color-stage-muted);
+}
+
+.interject-form,
+.input-group {
+  display: grid;
+  gap: var(--rn-space-2);
+}
+
+.input-group label {
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+  color: var(--rn-color-stage-text);
+}
+
+.input-group input,
+.input-group textarea {
+  min-height: 44px;
+  padding: var(--rn-space-2) var(--rn-space-3);
+  border-radius: var(--rn-radius-sm);
+  border: 1px solid var(--rn-color-stage-muted);
+  background: var(--rn-color-stage-bg);
+  color: var(--rn-color-stage-text);
+  font: inherit;
+  font-size: var(--rn-text-base);
+}
+
+.dialogue-turns {
+  display: grid;
+  gap: var(--rn-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.host-bubble {
+  padding: var(--rn-space-2) var(--rn-space-3);
+  border-left: 3px solid var(--rn-color-stage-accent);
+  color: var(--rn-color-stage-text);
+  line-height: 1.5;
+}
+
+.host-bubble.hostB {
+  border-left-color: var(--rn-color-stage-muted);
+}
+
+.citations-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rn-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cite-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 var(--rn-space-2);
+  border-radius: var(--rn-radius-sm);
+  border: 1px solid var(--rn-color-stage-accent);
+  color: var(--rn-color-stage-accent);
+  font-size: var(--rn-text-small);
+  font-weight: 600;
+}

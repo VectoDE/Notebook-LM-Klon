@@ -1,0 +1,189 @@
+/* ==========================================================================
+   Einstellungen: modales Seitenblatt (Desktop rechts, Telefon von unten)
+   ========================================================================== */
+.rn-drawer {
+  width: min(460px, 100%);
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--rn-color-panel-border);
+  background: var(--rn-color-panel);
+  color: var(--rn-color-text-primary);
+  box-shadow: var(--rn-color-panel-shadow);
+}
+
+.rn-drawer[open] {
+  animation: rn-drawer-in var(--rn-enter-duration) var(--rn-transition-ease) both;
+}
+
+.rn-drawer::backdrop {
+  background: var(--rn-color-scrim);
+}
+
+@keyframes rn-drawer-in {
+  from {
+    transform: translateX(32px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.rn-drawer-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.rn-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rn-space-3);
+  /* rechts 16 px wie im Menü-Sheet: Schließen-Knöpfe stehen an derselben Stelle */
+  padding: var(--rn-space-5) 16px var(--rn-space-4) var(--rn-space-5);
+  border-bottom: 1px solid var(--rn-color-panel-border);
+}
+
+.rn-drawer-title {
+  margin: 0;
+  font-family: var(--rn-font-family-headings);
+  font-size: var(--rn-text-h3);
+  font-weight: var(--rn-weight-heading);
+  line-height: 1.25;
+}
+
+.rn-drawer-body {
+  display: grid;
+  align-content: start;
+  gap: var(--rn-space-5);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--rn-space-5);
+  padding-bottom: max(var(--rn-space-5), env(safe-area-inset-bottom));
+}
+
+.rn-drawer-section {
+  display: grid;
+  gap: var(--rn-space-3);
+}
+
+.rn-drawer-section + .rn-drawer-section {
+  padding-top: var(--rn-space-5);
+  border-top: 1px solid var(--rn-color-panel-border);
+}
+
+.rn-drawer-section-title--status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rn-space-2);
+}
+
+.rn-drawer-section legend.rn-drawer-section-title {
+  margin-bottom: var(--rn-space-3);
+}
+
+.rn-drawer-section fieldset > .rn-setting-hint {
+  margin-top: var(--rn-space-2);
+}
+
+.rn-drawer-section .rn-appearance-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.rn-drawer-text {
+  margin: 0;
+  font-size: var(--rn-text-small);
+  line-height: 1.55;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-drawer-notice {
+  display: grid;
+  gap: var(--rn-space-2);
+  padding: var(--rn-space-4);
+  border-radius: var(--rn-radius-md);
+  border: 1px solid var(--rn-color-panel-border);
+  background: var(--rn-color-canvas);
+}
+
+.rn-drawer-notice .rn-drawer-section-title {
+  color: var(--rn-color-text-primary);
+}
+
+/* Training-Angabe zum gewählten Modell mit Quelle (Issue #302) */
+.rn-model-policy {
+  display: grid;
+  gap: var(--rn-space-2);
+  margin-top: var(--rn-space-3);
+  padding: var(--rn-space-3) var(--rn-space-4);
+  border-radius: var(--rn-radius-md);
+  border: 1px solid var(--rn-color-panel-border);
+  background: var(--rn-color-canvas);
+}
+
+.rn-model-policy strong {
+  color: var(--rn-color-text-primary);
+}
+
+.rn-model-policy-sources {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--rn-text-small);
+  line-height: 1.55;
+  color: var(--rn-color-text-secondary);
+}
+
+.rn-model-policy-sources a {
+  display: inline-block;
+  min-height: 24px;
+  color: var(--rn-color-text-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  overflow-wrap: anywhere;
+}
+
+.rn-appearance-group > .rn-setting-hint {
+  margin-top: var(--rn-space-2);
+}
+
+@media (max-width: 599.98px) {
+  .rn-drawer {
+    width: 100%;
+    height: auto;
+    max-height: 92dvh;
+    margin: auto 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--rn-color-panel-border);
+    border-radius: var(--rn-radius-lg) var(--rn-radius-lg) 0 0;
+  }
+  .rn-drawer[open] {
+    animation-name: rn-drawer-up;
+  }
+  .rn-drawer-panel {
+    max-height: 92dvh;
+  }
+}
+
+@keyframes rn-drawer-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
