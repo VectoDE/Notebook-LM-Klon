@@ -13,6 +13,7 @@ jobs:
   analysis:
     name: OpenSSF Scorecard Analysis
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       security-events: write
       id-token: write

@@ -5,6 +5,8 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  # Manueller Lauf startet auch die Windows-/macOS-Matrix (Issue #481).
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,6 +19,7 @@ jobs:
   quality-and-tests:
     name: Lint, Typecheck, Coverage & Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -52,6 +55,7 @@ jobs:
   e2e:
     name: E2E (Playwright, Zoom 200 %, Kopfzeile, Bewegung)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -99,6 +103,7 @@ jobs:
   e2e-matrix:
     name: Browser- und Geräte-Matrix (${{ matrix.project }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     permissions:
       contents: read
     strategy:
@@ -108,9 +113,7 @@ jobs:
           - { project: firefox, install: firefox, os: ubuntu-latest }
           - { project: webkit, install: webkit, os: ubuntu-latest }
           - { project: chrome, install: chrome, os: ubuntu-latest }
-          - { project: chrome-beta, install: chrome-beta, os: ubuntu-latest }
           - { project: msedge, install: msedge, os: ubuntu-latest }
-          - { project: msedge-beta, install: msedge-beta, os: ubuntu-latest }
           - { project: phone-android, install: chromium, os: ubuntu-latest }
           - { project: phone-android-landscape, install: chromium, os: ubuntu-latest }
           - { project: phone-ios, install: webkit, os: ubuntu-latest }
@@ -119,16 +122,6 @@ jobs:
           - { project: tablet-ios-landscape, install: webkit, os: ubuntu-latest }
           - { project: tablet-android, install: chromium, os: ubuntu-latest }
           - { project: tablet-android-landscape, install: chromium, os: ubuntu-latest }
-          - { project: chrome, install: chrome, os: windows-latest }
-          - { project: msedge, install: msedge, os: windows-latest }
-          - { project: msedge-beta, install: msedge-beta, os: windows-latest }
-          - { project: firefox, install: firefox, os: windows-latest }
-          - { project: webkit, install: webkit, os: macos-latest }
-          - { project: firefox, install: firefox, os: macos-latest }
-          - { project: phone-ios, install: webkit, os: macos-latest }
-          - { project: phone-ios-landscape, install: webkit, os: macos-latest }
-          - { project: tablet-ios, install: webkit, os: macos-latest }
-          - { project: tablet-ios-landscape, install: webkit, os: macos-latest }
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -153,9 +146,64 @@ jobs:
       - name: Run Playwright matrix project
         run: pnpm --filter @notebook-lm/web test:e2e --project=${{ matrix.project }}
 
+  # Windows, macOS und Beta-Kanäle laufen nicht bei jedem PR-Push, sondern
+  # nach dem Merge auf main und manuell per workflow_dispatch. macOS-Runner
+  # sind kontoweit auf wenige gleichzeitige Jobs begrenzt und stauten sich
+  # bei jedem PR-Update (Issue #481). WebKit und phone-ios auf macOS sowie
+  # die Beta-Kanäle laufen zusätzlich im Nachtlauf.
+  e2e-matrix-extended:
+    name: Erweiterte Browser-Matrix (${{ matrix.project }}, ${{ matrix.os }})
+    if: github.event_name != 'pull_request'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { project: chrome-beta, install: chrome-beta, os: ubuntu-latest }
+          - { project: msedge-beta, install: msedge-beta, os: ubuntu-latest }
+          - { project: chrome, install: chrome, os: windows-latest }
+          - { project: msedge, install: msedge, os: windows-latest }
+          - { project: msedge-beta, install: msedge-beta, os: windows-latest }
+          - { project: firefox, install: firefox, os: windows-latest }
+          - { project: webkit, install: webkit, os: macos-latest }
+          - { project: firefox, install: firefox, os: macos-latest }
+          - { project: phone-ios, install: webkit, os: macos-latest }
+          - { project: phone-ios-landscape, install: webkit, os: macos-latest }
+          - { project: tablet-ios, install: webkit, os: macos-latest }
+          - { project: tablet-ios-landscape, install: webkit, os: macos-latest }
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+          cache: "pnpm"
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Install browser (${{ matrix.install }})
+        run: pnpm --filter @notebook-lm/web exec playwright install --with-deps ${{ matrix.install }}
+
+      - name: Run Playwright matrix project
+        run: pnpm --filter @notebook-lm/web test:e2e --project=${{ matrix.project }}
+
   c2pa-provenance:
     name: C2PA-Herkunftsnachweis (c2patool 0.29.0, Testzertifikat)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     env:
@@ -219,6 +267,7 @@ jobs:
   secret-and-dependency-scan:
     name: Secret Scan (Gitleaks) & Dependency Audit (OSV)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -242,6 +291,7 @@ jobs:
   docker-build:
     name: Docker image (Node runtime, healthcheck, Turnstile 201/503)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -264,6 +314,7 @@ jobs:
   runtime-parity:
     name: Same smoke check on both runtimes (${{ matrix.runtime }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     strategy:
@@ -301,6 +352,7 @@ jobs:
   e2e-node:
     name: E2E against the Node build (Playwright)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -335,6 +387,7 @@ jobs:
   worker-dry-run:
     name: Worker Bundle & Bindings (wrangler deploy --dry-run)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
