@@ -2,7 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Browser- und Geräte-Matrix (Issue #255, Vorgabe F351). Jeder Eintrag läuft in der CI als
- * eigener Matrix-Job (`e2e-matrix` in .github/workflows/ci.yml). Die Kanäle `chrome-beta` und
+ * eigener Matrix-Job (`e2e-matrix` bei Pull Requests, `e2e-matrix-extended` mit Windows, macOS
+ * und Beta-Kanälen nach dem Merge auf main, beide in .github/workflows/ci.yml). Die Kanäle `chrome-beta` und
  * `msedge-beta` prüfen kommende Versionen; Firefox und WebKit sind die von Playwright
  * mitgelieferten Fassungen. Nichts wird übersprungen: jede Spec ist nur den Projekten
  * zugeordnet, für die sie gilt.
