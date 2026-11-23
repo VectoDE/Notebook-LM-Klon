@@ -18,13 +18,13 @@
     "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.7",
-    "@hono/node-server": "2.1.8",
+    "@biomejs/biome": "2.6.8",
+    "@hono/node-server": "2.1.9",
     "@types/node": "26.6.6",
-    "@vitest/coverage-v8": "5.1.0",
+    "@vitest/coverage-v8": "5.1.1",
     "fake-indexeddb": "6.2.8",
-    "fast-check": "^4.10.2",
+    "fast-check": "^4.10.3",
     "typescript": "5.8.3",
-    "vitest": "5.1.0"
+    "vitest": "5.1.1"
   }
 }
